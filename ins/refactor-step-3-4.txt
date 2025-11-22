@@ -1,0 +1,232 @@
+"Please read the attached AI_CONTEXT.md file. We are refactoring our Auth system to follow a strict standard.
+
+Task: Create the Storefront Authentication API for the hooknhunt (Next.js) website.
+
+Requirements:
+
+All routes must be prefixed with /api/v1/store.
+
+Auth logic must be separated into two new controllers:
+
+app/Http/Controllers/Api/V1/Storefront/AuthController.php (for public login/register/OTP).
+
+app/Http/Controllers/Api/V1/Storefront/AccountController.php (for authenticated user's account management).
+
+Update the User.php model relationships (e.g., hasMany for addresses).
+
+1. Storefront/AuthController.php (Public Routes)
+
+Generate this controller with the following methods:
+
+register(Request $request):
+
+Validation: name, email (unique), phone_number (unique), password.
+
+Action: Creates a new user. Crucially, set the role automatically to 'retail_customer'.
+
+OTP: Generates otp_code and otp_expires_at (5 minutes).
+
+Response: {'message': 'Registration successful. Please verify your phone.'} (Do not log in).
+
+login(Request $request):
+
+Validation: phone_number, password.
+
+Action: Attempts to authenticate the user.
+
+Role Check: If successful, checks if phone_verified_at is null (return 403 error: "Account not verified").
+
+Role Check: Checks if the user's role is 'retail_customer' OR 'wholesale_customer'. If the role is 'admin' or 'seller', return a 403 error ("Access Denied. Use Admin portal.").
+
+Response: If valid, create and return a Sanctum API token.
+
+sendOtp(Request $request):
+
+Validation: phone_number.
+
+Action: Finds user. If exists, generates new otp_code and otp_expires_at.
+
+Response: {'message': 'OTP sent.'}
+
+verifyOtp(Request $request):
+
+Validation: phone_number, otp_code.
+
+Action: Checks if OTP is valid and not expired.
+
+If Valid: Sets phone_verified_at to current time, otp_code to null.
+
+Response: Creates and returns a new Sanctum API token (logs the user in).
+
+2. Storefront/AccountController.php (Protected Routes)
+
+Generate this controller for users who are already logged in:
+
+me(Request $request):
+
+Action: Returns the authenticated user's details: auth()->user()->load('addresses').
+
+logout(Request $request):
+
+Action: Revokes the current Sanctum token.
+
+updateProfile(Request $request):
+
+Action: Validates and updates the authenticated user's name, whatsapp_number, email.
+
+getAddresses(Request $request):
+
+Action: Returns a list of the authenticated user's addresses (auth()->user()->addresses).
+
+addAddress(Request $request):
+
+Action: Validates new address fields (based on addresses table schema).
+
+Action: Creates a new address linked to auth()->id().
+
+deleteAddress(Address $address, Request $request):
+
+Action: Uses route-model binding. Checks if auth()->id() == $address->user_id (policy check).
+
+Action: Deletes the address.
+
+3. routes/api.php
+
+Generate the routes/api.php file content. It must only contain the new /api/v1/store routes. (We will delete all old routes like /v1/public/auth).
+
+PHP
+
+// routes/api.php
+
+use App\Http\Controllers\Api\V1\Storefront\AuthController;
+use App\Http\Controllers\Api\V1\Storefront\AccountController;
+
+// Storefront API (For Next.js Website)
+Route::prefix('v1/store')->group(function () {
+
+    // Public Auth (Registration, Login, OTP)
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
+    Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+
+    // Authenticated Account Routes (My Profile, My Orders, etc.)
+    Route.middleware('auth:sanctum')->prefix('account')->group(function () {
+        Route::get('/me', [AccountController::class, 'me']);
+        Route::post('/logout', [AccountController::class, 'logout']);
+        
+        Route::put('/profile', [AccountController::class, 'updateProfile']);
+        
+        Route::get('/addresses', [AccountController::class, 'getAddresses']);
+        Route::post('/addresses', [AccountController::class, 'addAddress']);
+        Route::delete('/addresses/{address}', [AccountController::class, 'deleteAddress']);
+        
+        // We will add '/orders' here in a future step
+    });
+
+    // We will add public '/products' routes here in a future step
+
+});
+"
+
+"Please read the attached AI_CONTEXT.md file. We have already implemented the /api/v1/store routes. Now we must create the Admin API for the hooknhunt-ui (React) panel.
+
+Task 1: Create Admin Auth Controller
+
+Generate a new controller: app/Http/Controllers/Api/V1/Admin/AuthController.php.
+
+Implement the following methods:
+
+login(Request $request):
+
+Validation: phone_number, password.
+
+Action: Attempts to authenticate the user.
+
+Role Check: If successful, checks the user's role. If the role is 'retail_customer' OR 'wholesale_customer', return a 403 error ({'message': 'Access Denied. This is an admin-only portal.'}).
+
+Response: If the role is a staff role (e.g., super_admin, admin, seller), create and return a Sanctum API token.
+
+logout(Request $request):
+
+Action: Revokes the current Sanctum token. Must be called by an authenticated admin user.
+
+Task 2: Create Role Middleware (RBAC)
+
+Generate a new middleware: app/Http/Middleware/CheckRoleMiddleware.php.
+
+The middleware must accept parameters (e.g., role:super_admin,admin).
+
+Logic: It must check if the authenticated user's role is in the list of allowed roles.
+
+Failure Response: If the role does not match, return a 403 Forbidden JSON response ({'message': 'Access Denied: You do not have the required permissions.'}).
+
+Show how to register this new middleware in app/Http/Kernel.php with the alias 'role'.
+
+Task 3: Create Admin User Management API
+
+Generate a new controller: app/Http/Controllers/Api/V1/Admin/UserController.php.
+
+Implement full CRUD methods (index, store, show, update, destroy) based on the users table schema.
+
+store(Request $request) Validation:
+
+Must validate name, phone_number (unique), password.
+
+Role Validation: Must validate role. The role must be one of the staff roles (admin, seller, store_keeper, marketer).
+
+Crucial Logic: Get the authenticated user's role (e.g., auth()->user()->role).
+
+If the auth user is admin and they try to create a super_admin, return a 403 error (Forbidden). Only super_admin can create super_admin.
+
+update(Request $request, User $user) Validation:
+
+Similar logic to store. An admin cannot change another user's role to super_admin.
+
+Task 4: Update routes/api.php
+
+Append the new /api/v1/admin routes to the existing routes/api.php file (which already has the /v1/store routes).
+
+The routes must be structured clearly with Sanctum auth and the new role middleware.
+
+PHP
+
+// [File: routes/api.php]
+// ... (The existing /api/v1/store routes from Step 3.2 are already here) ...
+
+// --- ADMIN API (For React Admin Panel) ---
+Route::prefix('v1/admin')->group(function () {
+
+    // Public Auth (Admin Login)
+    Route::post('/auth/login', [App\Http\Controllers\Api\V1\Admin\AuthController::class, 'login']);
+
+    // Authenticated Admin Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        
+        // Logout
+        Route::post('/auth/logout', [App\Http\Controllers\Api\V1\Admin\AuthController::class, 'logout']);
+
+        // Authenticated user (self) route - accessible by all logged-in staff
+        Route::get('/me', [App\Http\Controllers\Api\V1\Admin\AuthController::class, 'me']); // (You need to add a 'me' method to Admin/AuthController)
+
+        // --- Super Admin Only Routes ---
+        Route::middleware('role:super_admin')->group(function () {
+            // Only super_admin can manage other super_admins
+            // (We can refine the UserController logic later if needed)
+        });
+        
+        // --- Super Admin & Admin Routes ---
+        Route::middleware('role:super_admin,admin')->group(function () {
+            // Manage staff users (Admins, Sellers, etc.)
+            Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
+        });
+
+        // --- Staff Routes (e.g., Seller, Store Keeper) ---
+        Route::middleware('role:seller,admin,super_admin')->group(function () {
+            // (We will add POS routes here later)
+        });
+
+        // (We will add Category, Supplier, Product routes here in the next step)
+    });
+});
+"

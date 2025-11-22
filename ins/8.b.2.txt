@@ -1,0 +1,341 @@
+"Please read the attached AI_CONTEXT.md file (v1.3). We have completed Step 8.b.1 (Category List with Zustand). Now we must add the 'Add New' and 'Edit' functionality using a modal dialog.
+
+Task 1: Update src/stores/categoryStore.ts
+
+Update the categoryStore to handle adding and updating categories.
+
+TypeScript
+
+// src/stores/categoryStore.ts
+import create from 'zustand';
+import { Category } from '@/types/category';
+import apiClient from '@/lib/apiClient';
+
+interface CategoryState {
+  categories: Category[];
+  isLoading: boolean;
+  error: string | null;
+  fetchCategories: () => Promise<void>;
+  addCategory: (newCategoryData: { name: string; slug: string; parent_id: number | null }) => Promise<void>;
+  updateCategory: (categoryId: number, updatedCategoryData: { name: string; slug: string; parent_id: number | null }) => Promise<void>;
+  // We will add deleteCategory later
+}
+
+export const useCategoryStore = create<CategoryState>((set, get) => ({
+  categories: [],
+  isLoading: false,
+  error: null,
+
+  fetchCategories: async () => {
+    // ... (existing code from 8.b.1)
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.get<{ data: Category[] }>('/admin/categories');
+      set({ categories: response.data.data, isLoading: false });
+    } catch (err: any) {
+      set({ error: err.message || 'Failed to fetch categories', isLoading: false });
+    }
+  },
+
+  // --- NEW ACTION ---
+  addCategory: async (newCategoryData) => {
+    try {
+      // API call to create
+      const response = await apiClient.post<{ data: Category }>('/admin/categories', newCategoryData);
+      const newCategory = response.data.data;
+      
+      // Add to state instantly (no re-fetch)
+      set((state) => ({
+        categories: [...state.categories, newCategory],
+      }));
+    } catch (err: any) {
+      console.error("Failed to add category:", err);
+      // Re-throw error to be caught by the form
+      throw new Error(err.response?.data?.message || 'Failed to add category');
+    }
+  },
+
+  // --- NEW ACTION ---
+  updateCategory: async (categoryId, updatedCategoryData) => {
+    try {
+      // API call to update
+      const response = await apiClient.put<{ data: Category }>(`/admin/categories/${categoryId}`, updatedCategoryData);
+      const updatedCategory = response.data.data;
+
+      // Update in state instantly (no re-fetch)
+      set((state) => ({
+        categories: state.categories.map((cat) =>
+          cat.id === categoryId ? updatedCategory : cat
+        ),
+      }));
+    } catch (err: any) {
+      console.error("Failed to update category:", err);
+      throw new Error(err.response?.data?.message || 'Failed to update category');
+    }
+  },
+}));
+Task 2: Create Reusable CategoryForm.tsx Component
+
+Create a new component src/components/forms/CategoryForm.tsx. This form will be used for both creating and editing. We will use react-hook-form and zod for validation.
+
+(If not installed: npm install react-hook-form zod @hookform/resolvers)
+
+TypeScript
+
+// src/components/forms/CategoryForm.tsx
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Category } from '@/types/category';
+import { useCategoryStore } from '@/stores/categoryStore';
+
+import { Button } from '@/components/ui/button';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// Validation Schema
+const formSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  slug: z.string().min(2, { message: 'Slug must be at least 2 characters.' }),
+  parent_id: z.coerce.number().nullable(), // Coerce string from select to number
+});
+
+type CategoryFormValues = z.infer<typeof formSchema>;
+
+interface CategoryFormProps {
+  initialData?: Category | null; // Pass category data for editing
+  onClose: () => void; // Function to close the dialog
+}
+
+export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose }) => {
+  const { addCategory, updateCategory, categories } = useCategoryStore((state) => ({
+    addCategory: state.addCategory,
+    updateCategory: state.updateCategory,
+    categories: state.categories,
+  }));
+
+  const form = useForm<CategoryFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: initialData?.name || '',
+      slug: initialData?.slug || '',
+      parent_id: initialData?.parent_id || null,
+    },
+  });
+
+  const isLoading = form.formState.isSubmitting;
+
+  const onSubmit = async (values: CategoryFormValues) => {
+    try {
+      if (initialData) {
+        // Update logic
+        await updateCategory(initialData.id, values);
+        // Add toast notification (e.g., toast({ title: "Category updated!" }))
+      } else {
+        // Create logic
+        await addCategory(values);
+        // Add toast notification (e.g., toast({ title: "Category created!" }))
+      }
+      onClose(); // Close the dialog on success
+    } catch (error: any) {
+      console.error(error);
+      // Show error toast
+      // toast({ title: "Error", description: error.message, variant: "destructive" })
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., T-Shirts" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., t-shirts" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="parent_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Parent Category (Optional)</FormLabel>
+              <Select onValueChange={(value) => field.onChange(value === 'none' ? null : Number(value))} defaultValue={field.value?.toString() || 'none'}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a parent category" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {categories
+                    .filter(cat => cat.id !== initialData?.id) // Prevent self-referencing
+                    .map(cat => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end space-x-2">
+          <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? 'Saving...' : (initialData ? 'Save Changes' : 'Create')}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+};
+Task 3: Update src/pages/Categories.tsx
+
+Update the Categories.tsx page to use Shadcn's Dialog component and the new CategoryForm.
+
+TypeScript
+
+// src/pages/Categories.tsx
+import React, { useEffect, useState } from 'react';
+import { useCategoryStore } from '@/stores/categoryStore';
+import { Category } from '@/types/category';
+import { CategoryForm } from '@/components/forms/CategoryForm'; // Import the new form
+
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+
+const Categories = () => {
+  const { categories, isLoading, fetchCategories } = useCategoryStore((state) => state);
+  
+  // State to manage the dialog (modal)
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  const handleOpenModal = (category: Category | null) => {
+    setEditingCategory(category);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null); // Clear editing state
+  };
+
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <Button onClick={() => handleOpenModal(null)}>
+          Add New Category
+        </Button>
+      </div>
+
+      {/* Dialog for Add/Edit */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? 'Edit Category' : 'Create New Category'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <CategoryForm 
+              initialData={editingCategory} 
+              onClose={handleCloseModal} 
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Table */}
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Parent</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.length === 0 ? (
+              // ... (empty state)
+            ) : (
+              categories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>{category.name}</TableCell>
+                  <TableCell>{category.slug}</TableCell>
+                  <TableCell>
+                    {category.parent_id
+                      ? categories.find(c => c.id === category.parent_id)?.name
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {/* Actions Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleOpenModal(category)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600">
+                          {/* We will add Delete logic in the next step */}
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+};
+
+export default Categories;
+"

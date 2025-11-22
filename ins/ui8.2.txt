@@ -1,0 +1,141 @@
+"Please read the attached AI_CONTEXT.md file (v1.3). We are refactoring the Categories.tsx page for better performance using Zustand.
+
+Task 1: Create Category Type
+
+Create a type definition file src/types/category.ts:
+
+TypeScript
+
+// src/types/category.ts
+export interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+  // Add parent relationship if needed, e.g., parent?: Category;
+  created_at?: string;
+  updated_at?: string;
+}
+Task 2: Create categoryStore.ts
+
+Create a new Zustand store src/stores/categoryStore.ts:
+
+TypeScript
+
+// src/stores/categoryStore.ts
+import create from 'zustand';
+import { Category } from '@/types/category'; // Adjust path if needed
+import apiClient from '@/lib/apiClient'; // From Step 8.1
+
+interface CategoryState {
+  categories: Category[];
+  isLoading: boolean;
+  error: string | null;
+  fetchCategories: () => Promise<void>;
+  // We will add addCategory, updateCategory, deleteCategory later
+}
+
+export const useCategoryStore = create<CategoryState>((set) => ({
+  categories: [],
+  isLoading: false,
+  error: null,
+
+  fetchCategories: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // Assuming the API returns a paginated response or a full list
+      // For now, let's assume it returns the full list
+      const response = await apiClient.get<{ data: Category[] }>('/admin/categories');
+      set({ categories: response.data.data, isLoading: false });
+    } catch (err: any) {
+      console.error("Failed to fetch categories:", err);
+      set({ error: err.message || 'Failed to fetch categories', isLoading: false });
+    }
+  },
+}));
+Task 3: Refactor src/pages/Categories.tsx
+
+Update the Categories.tsx file to use the new useCategoryStore instead of useState and useEffect (from Step 8.1).
+
+TypeScript
+
+// src/pages/Categories.tsx
+import { useEffect } from 'react';
+import { useCategoryStore } from '@/stores/categoryStore'; // Adjust path
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const Categories = () => {
+  // Get state and actions from the Zustand store
+  const { categories, isLoading, fetchCategories } = useCategoryStore((state) => ({
+    categories: state.categories,
+    isLoading: state.isLoading,
+    fetchCategories: state.fetchCategories,
+  }));
+
+  // Fetch categories on component mount (only once)
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  return (
+    <div className="container mx-auto py-6">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Categories</h1>
+        <Button>
+          {/* We will add modal logic here in the next step */}
+          Add New Category
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead>Parent</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center">
+                  No categories found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              categories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>{category.name}</TableCell>
+                  <TableCell>{category.slug}</TableCell>
+                  <TableCell>
+                    {/* Find parent name (simple version) */}
+                    {category.parent_id
+                      ? categories.find(c => c.id === category.parent_id)?.name
+                      : '—'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {/* We will add Edit/Delete buttons here */}
+                    ...
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+};
+
+export default Categories;
+"

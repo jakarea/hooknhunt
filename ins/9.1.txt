@@ -1,0 +1,61 @@
+Please read the attached AI_CONTEXT.md file (v1.3). We will create the state management for Suppliers.
+
+Task 1: Create Supplier Type
+
+Based on the suppliers table in AI_CONTEXT.md (Section 6), create a new type definition file: src/types/supplier.ts.
+
+Make the supplier list page. It must fetch data from GET /api/v1/admin/suppliers and use the role:store_keeper to show/hide buttons
+
+TypeScript
+
+// src/types/supplier.ts
+export interface Supplier {
+  id: number;
+  name: string; // Contact person name
+  shop_name: string | null;
+  email: string | null;
+  shop_url: string | null;
+  wechat_id: string | null;
+  alipay_id: string | null;
+  // Add other fields if needed (e.g., QR codes)
+  contact_info: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+Task 2: Create supplierStore.ts
+
+Create a new Zustand store src/stores/supplierStore.ts. This store will manage the state for suppliers.
+
+TypeScript
+
+// src/stores/supplierStore.ts
+import create from 'zustand';
+import { Supplier } from '@/types/supplier';
+import apiClient from '@/lib/apiClient'; // Import the shared API client
+
+interface SupplierState {
+  suppliers: Supplier[];
+  isLoading: boolean;
+  error: string | null;
+  fetchSuppliers: () => Promise<void>;
+  // (We will add addSupplier, updateSupplier, deleteSupplier later)
+}
+
+export const useSupplierStore = create<SupplierState>((set) => ({
+  suppliers: [],
+  isLoading: false,
+  error: null,
+
+  fetchSuppliers: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      // API endpoint is GET /api/v1/admin/suppliers (from AI_CONTEXT.md Section 9.2)
+      const response = await apiClient.get<{ data: Supplier[] }>('/admin/suppliers');
+      set({ suppliers: response.data.data, isLoading: false });
+    } catch (err: any) {
+      console.error("Failed to fetch suppliers:", err);
+      set({ error: err.message || 'Failed to fetch suppliers', isLoading: false });
+    }
+  },
+}));
+"

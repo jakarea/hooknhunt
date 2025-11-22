@@ -1,0 +1,92 @@
+"Please read the attached AI_CONTEXT.md file. We need to create the APIs for managing product variation attributes and their options.
+
+Task 1: Create/Update Models
+
+Create app/Models/Attribute.php.
+
+Set $fillable = ['name'].
+
+Add the hasMany relationship: public function options() { return $this->hasMany(AttributeOption::class); }
+
+Create app/Models/AttributeOption.php.
+
+Set $fillable = ['attribute_id', 'value'].
+
+Add the belongsTo relationship: public function attribute() { return $this->belongsTo(Attribute::class); }
+
+Task 2: Create AttributeController
+
+Generate a new controller: app/Http/Controllers/Api/V1/Admin/AttributeController.php.
+
+Implement full API Resource methods: index, store, show, update, destroy.
+
+index(): Return a paginated list of all attributes, eager-loaded with their options: Attribute::with('options')->paginate().
+
+store(Request $request): Validate name (required, unique in attributes table).
+
+show(Attribute $attribute): Return the single attribute, loaded with its options: $attribute->load('options').
+
+update(Request $request, Attribute $attribute): Validate name (required, unique, ignoring the current attribute).
+
+Task 3: Create AttributeOptionController
+
+Generate a new controller: app/Http/Controllers/Api/V1/Admin/AttributeOptionController.php.
+
+Implement full API Resource methods: index, store, show, update, destroy.
+
+index(Request $request): This must only return options filtered by an attribute.
+
+Add validation: attribute_id (required, exists in attributes table).
+
+Return: AttributeOption::where('attribute_id', $request->attribute_id)->get().
+
+store(Request $request): Validate attribute_id (required, exists) and value (required).
+
+show(AttributeOption $attributeOption): Return the single option.
+
+update(Request $request, AttributeOption $attributeOption): Validate value (required).
+
+Task 4: Update routes/api.php
+
+Append the new API resource routes to the routes/api.php file.
+
+Access Control: Based on AI_CONTEXT.md, managing product structure is a job for high-level admins. Place these routes inside the role:super_admin,admin middleware group.
+
+The updated routes/api.php structure should look like this:
+
+PHP
+
+// [File: routes/api.php]
+// ... (The existing /api/v1/store routes are already here) ...
+
+use App\Http\Controllers\Api\V1\Admin\AttributeController;      // Add this
+use App\Http\Controllers\Api\V1\Admin\AttributeOptionController; // Add this
+
+// --- ADMIN API (For React Admin Panel) ---
+Route::prefix('v1/admin')->group(function () {
+    // ... (Public auth/login route) ...
+
+    // Authenticated Admin Routes
+    Route::middleware('auth:sanctum')->group(function () {
+        
+        // ... (logout, me routes) ...
+
+        // --- Super Admin & Admin Routes ---
+        Route::middleware('role:super_admin,admin')->group(function () {
+            Route::apiResource('users', ...);
+            Route::apiResource('attributes', AttributeController::class);         // NEW
+            Route::apiResource('attribute-options', AttributeOptionController::class); // NEW
+        });
+
+        // --- Marketer, Admin, Super Admin Routes ---
+        Route::middleware('role:super_admin,admin,marketer')->group(function () {
+            Route::apiResource('categories', ...);
+        });
+
+        // --- Store Keeper, Admin, Super Admin Routes ---
+        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
+            Route::apiResource('suppliers', ...);
+        });
+    });
+});
+"

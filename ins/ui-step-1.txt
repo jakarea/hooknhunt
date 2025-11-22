@@ -1,0 +1,69 @@
+"Please read the attached AI_CONTEXT.md file (v1.3). I am starting the hooknhunt-ui project.
+
+Tech Stack (must use): React, TypeScript, Shadcn, TailwindCSS, Zustand, React-Router-Dom.
+
+Task 1: Setup Zustand Store (Global State)
+
+Create a Zustand store: src/stores/authStore.ts.
+
+Define a User interface based on AI_CONTEXT.md (e.g., { id, name, email, role, phone_number, ... }).
+
+The store must hold:
+
+user: User | null
+
+token: string | null
+
+isAuthenticated: boolean (derived from token != null)
+
+The store must have actions:
+
+login: (token: string, user: User) => void (saves to state and localStorage)
+
+logout: () => void (clears state and localStorage, redirects to '/login')
+
+loadUserFromStorage: () => void (checks localStorage on app load to keep user logged in)
+
+setUser: (user: User) => void (updates user info in state)
+
+Task 2: Create Login Page
+
+Create a new page component: src/pages/Login.tsx.
+
+Use Shadcn components (Card, Input, Button, Label).
+
+The form must have two fields: phone_number and password.
+
+On Submit:
+
+Show a loading state on the Button.
+
+Call the API endpoint POST /api/v1/admin/auth/login (from AI_CONTEXT.md, Section 9.2).
+
+Use axios (or a custom API client) for the API call.
+
+If successful (HTTP 200), call authStore.login(token, user) and redirect to /dashboard.
+
+If failed (e.g., 401 Unauthorized or 403 Forbidden), show an error message using Shadcn's Toast (Toaster).
+
+Task 3: Create App Router & Protected Routes
+
+Set up react-router-dom in src/App.tsx.
+
+Create a protected route component src/components/ProtectedRoute.tsx.
+
+This component checks the authStore.isAuthenticated.
+
+If true, it renders the child component (e.g., <Outlet />).
+
+If false, it navigates the user to /login.
+
+Set up the main routes:
+
+/login (publicly accessible, shows Login.tsx)
+
+/ (protected, loads the Layout.tsx)
+
+* (any other route)
+
+Provide the code for these files: authStore.ts, Login.tsx, ProtectedRoute.tsx, and App.tsx."

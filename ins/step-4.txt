@@ -1,0 +1,72 @@
+Please read the attached AI_CONTEXT.md file. We have already implemented the AuthController (Step 3). Now, we need to implement Role-Based Access Control (RBAC) for the admin panel.
+
+Task 1: Create Role Middleware
+
+Generate a new middleware named CheckRoleMiddleware.
+
+This middleware must accept parameters (e.g., super_admin, seller).
+
+It must check if the authenticated user's role (from the users table) is present in the list of allowed roles passed to the middleware.
+
+If the user's role does not match, it must return a 403 Forbidden JSON response (e.g., {'message': 'Access Denied'}).
+
+Task 2: Register Middleware
+
+Show how to register this new middleware in app/Http/Kernel.php with the alias 'role'.
+
+Task 3: Create Admin User Management API
+
+Generate a new controller: app/Http/Controllers/Api/V1/Admin/UserController.php.
+
+This controller will be used by the super_admin to manage other staff users.
+
+Implement the following methods in UserController:
+
+index(): Returns a paginated list of all users (except 'retail_customer' and 'wholesale_customer').
+
+store(Request $request):
+
+Validates name, phone_number (unique), password, and role.
+
+Validation rule must ensure the role is one of the staff roles (e.g., 'admin', 'seller', 'store_keeper', 'marketer').
+
+Creates and returns the new user.
+
+show(User $user): Returns a single user's details.
+
+update(Request $request, User $user):
+
+Updates the user's name, phone_number, role.
+
+Can also update password if it's provided.
+
+destroy(User $user): Deletes the user.
+
+Task 4: Define Admin Routes
+
+Update routes/api.php.
+
+Create a new main admin route group with the prefix v1/admin and middleware ['auth:sanctum'].
+
+Inside this group, create another group protected by the new middleware ('role:super_admin').
+
+Add the ApiResource for users (pointing to Admin/UserController) inside this super_admin protected group.
+
+Example Route Structure:
+
+PHP
+
+Route::prefix('v1/admin')->middleware('auth:sanctum')->group(function () {
+    
+    // Routes only Super Admin can access
+    Route::middleware('role:super_admin')->group(function () {
+        Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
+        // ... other super admin routes
+    });
+
+    // Routes other staff (e.g., Seller) can access
+    Route::middleware('role:seller,admin')->group(function () {
+        // ... e.g., POS routes will go here later
+    });
+
+});

@@ -1,0 +1,126 @@
+"Please read the attached AI_CONTEXT.md file (v1.3). We have a bug: the user is logged out on every page reload. We need to fix this by persisting the authStore to localStorage.
+
+Task 1: Update src/stores/authStore.ts
+
+Update the authStore to integrate with localStorage.
+
+TypeScript
+
+// src/stores/authStore.ts
+import create from 'zustand';
+
+// Define the User interface (make sure it's accurate)
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  phone_number: string;
+  // ... add other fields from AI_CONTEXT users table if needed
+}
+
+interface AuthState {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  login: (token: string, user: User) => void;
+  logout: () => void;
+  loadUserFromStorage: () => void; // Renamed to 'init' or 'loadUser'
+  setUser: (user: User) => void;
+}
+
+export const useAuthStore = create<AuthState>((set, get) => ({
+  user: null,
+  token: null,
+  isAuthenticated: false,
+
+  login: (token: string, user: User) => {
+    // Save to localStorage
+    localStorage.setItem('authToken', token);
+    localStorage.setItem('authUser', JSON.stringify(user));
+    
+    // Set state
+    set({ user, token, isAuthenticated: true });
+  },
+
+  logout: () => {
+    // Clear from localStorage
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
+    
+    // Clear state
+    set({ user: null, token: null, isAuthenticated: false });
+    // Optional: redirect to login
+    // window.location.href = '/login'; 
+  },
+
+  loadUserFromStorage: () => {
+    const token = localStorage.getItem('authToken');
+    const userJson = localStorage.getItem('authUser');
+
+    if (token && userJson) {
+      try {
+        const user = JSON.parse(userJson) as User;
+        set({ user, token, isAuthenticated: true });
+      } catch (e) {
+        console.error("Failed to parse auth user from localStorage", e);
+        get().logout(); // Clear corrupted storage
+      }
+    }
+  },
+
+  setUser: (user: User) => {
+    // Update user in both state and localStorage
+    localStorage.setItem('authUser', JSON.stringify(user));
+    set({ user });
+  },
+}));
+Task 2: Update App Entry Point (e.g., src/App.tsx or src/main.tsx)
+
+We must call loadUserFromStorage() once when the app loads.
+
+Update src/App.tsx (or src/main.tsx if you call App from there):
+
+TypeScript
+
+// src/App.tsx
+import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/guards/ProtectedRoute';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Categories from './pages/Categories';
+// ... import other pages
+import { useAuthStore } from './stores/authStore'; // Import the store
+
+function App() {
+  // Call loadUserFromStorage on initial app load
+  useEffect(() => {
+    useAuthStore.getState().loadUserFromStorage();
+  }, []);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route 
+          path="/*" 
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          {/* Nested routes render inside Layout's <Outlet /> */}
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="catalog/categories" element={<Categories />} />
+          {/* ... Add all other routes ... */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}
+export default App;
+"
