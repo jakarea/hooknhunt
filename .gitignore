@@ -1,0 +1,299 @@
+# ===========================
+# Hook & Hunt Monorepo
+# ===========================
+
+# ===========================
+# Laravel (hooknhunt-api/)
+# ===========================
+
+# Dependencies
+hooknhunt-api/vendor/
+hooknhunt-api/node_modules/
+
+# Environment files
+hooknhunt-api/.env
+hooknhunt-api/.env.backup
+hooknhunt-api/.env.production
+
+# Laravel specific
+hooknhunt-api/storage/*.key
+hooknhunt-api/storage/app/public/*
+!hooknhunt-api/storage/app/public/.gitignore
+hooknhunt-api/storage/framework/cache/*
+!hooknhunt-api/storage/framework/cache/.gitignore
+hooknhunt-api/storage/framework/sessions/*
+!hooknhunt-api/storage/framework/sessions/.gitignore
+hooknhunt-api/storage/framework/testing/*
+!hooknhunt-api/storage/framework/testing/.gitignore
+hooknhunt-api/storage/framework/views/*
+!hooknhunt-api/storage/framework/views/.gitignore
+hooknhunt-api/storage/logs/*
+!hooknhunt-api/storage/logs/.gitignore
+
+# Laravel cache
+hooknhunt-api/bootstrap/cache/*
+!hooknhunt-api/bootstrap/cache/.gitignore
+
+# Laravel IDE Helper
+hooknhunt-api/_ide_helper.php
+hooknhunt-api/_ide_helper_models.php
+hooknhunt-api/.phpstorm.meta.php
+
+# Laravel Mix / Vite
+hooknhunt-api/public/hot
+hooknhunt-api/public/storage
+hooknhunt-api/public/build
+hooknhunt-api/public/css
+hooknhunt-api/public/js
+
+# Testing
+hooknhunt-api/.phpunit.result.cache
+hooknhunt-api/.phpunit.cache
+hooknhunt-api/coverage/
+
+# ===========================
+# React Admin UI (hooknhunt-ui/)
+# ===========================
+
+# Dependencies
+hooknhunt-ui/node_modules/
+
+# Environment files
+hooknhunt-ui/.env
+hooknhunt-ui/.env.local
+hooknhunt-ui/.env.development.local
+hooknhunt-ui/.env.test.local
+hooknhunt-ui/.env.production.local
+
+# Build output
+hooknhunt-ui/dist/
+hooknhunt-ui/dist-ssr/
+hooknhunt-ui/build/
+
+# Vite cache
+hooknhunt-ui/.vite/
+
+# TypeScript
+hooknhunt-ui/*.tsbuildinfo
+
+# Testing
+hooknhunt-ui/coverage/
+
+# ===========================
+# Next.js Website (hooknhunt/)
+# ===========================
+
+# Dependencies
+hooknhunt/node_modules/
+
+# Environment files
+hooknhunt/.env
+hooknhunt/.env*.local
+hooknhunt/.env.development.local
+hooknhunt/.env.test.local
+hooknhunt/.env.production.local
+
+# Next.js build output
+hooknhunt/.next/
+hooknhunt/out/
+
+# Next.js cache
+hooknhunt/.next/cache/
+
+# TypeScript
+hooknhunt/*.tsbuildinfo
+hooknhunt/next-env.d.ts
+
+# Testing
+hooknhunt/coverage/
+
+# ===========================
+# OS & Editor Files
+# ===========================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===========================
+# IDE & Editor Files
+# ===========================
+
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# JetBrains (PhpStorm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+.idea_modules/
+atlassian-ide-plugin.xml
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+.netrwhist
+*~
+tags
+[._]*.un~
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===========================
+# Development Tools
+# ===========================
+
+# NPM/Yarn/PNPM
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+.npm
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# Composer
+composer.phar
+auth.json
+
+# PHP
+*.cache
+
+# Debug logs
+debug.log
+
+# ===========================
+# Temporary & Cache Files
+# ===========================
+
+# General
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*.bak
+*.old
+*.orig
+
+# Cache directories
+.cache/
+tmp/
+temp/
+
+# ===========================
+# Security & Secrets
+# ===========================
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# API keys and secrets
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+secrets.json
+credentials.json
+
+# ===========================
+# Deployment & Production
+# ===========================
+
+# Production builds (uncomment if needed)
+# public/build/
+# public/hot
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# ===========================
+# Miscellaneous
+# ===========================
+
+# Archives
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Database dumps
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+
+# Uploads (adjust based on your needs)
+# storage/app/uploads/*
+# public/uploads/*
