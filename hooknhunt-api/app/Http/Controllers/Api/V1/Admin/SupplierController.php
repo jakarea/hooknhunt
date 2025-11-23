@@ -3,10 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreSupplierRequest;
+use App\Http\Requests\UpdateSupplierRequest;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class SupplierController extends Controller
 {
@@ -21,25 +22,25 @@ class SupplierController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreSupplierRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'shop_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255|unique:suppliers',
-            'shop_url' => 'nullable|url',
-            'wechat_id' => 'nullable|string|max:255',
-            'wechat_qr_url' => 'nullable|string|max:255',
-            'alipay_id' => 'nullable|string|max:255',
-            'alipay_qr_url' => 'nullable|string|max:255',
-            'contact_info' => 'nullable|string',
-        ]);
+        $data = $request->except(['wechat_qr_file', 'alipay_qr_file']);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        // Handle WeChat QR code file upload
+        if ($request->hasFile('wechat_qr_file')) {
+            $wechatFile = $request->file('wechat_qr_file');
+            $wechatPath = $wechatFile->store('suppliers/qrcodes', 'public');
+            $data['wechat_qr_url'] = $wechatPath;
         }
 
-        $supplier = Supplier::create($request->all());
+        // Handle Alipay QR code file upload
+        if ($request->hasFile('alipay_qr_file')) {
+            $alipayFile = $request->file('alipay_qr_file');
+            $alipayPath = $alipayFile->store('suppliers/qrcodes', 'public');
+            $data['alipay_qr_url'] = $alipayPath;
+        }
+
+        $supplier = Supplier::create($data);
 
         return response()->json($supplier, 201);
     }
@@ -55,25 +56,35 @@ class SupplierController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Supplier $supplier)
+    public function update(UpdateSupplierRequest $request, Supplier $supplier)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'shop_name' => 'nullable|string|max:255',
-            'email' => ['nullable', 'email', 'max:255', Rule::unique('suppliers')->ignore($supplier->id)],
-            'shop_url' => 'nullable|url',
-            'wechat_id' => 'nullable|string|max:255',
-            'wechat_qr_url' => 'nullable|string|max:255',
-            'alipay_id' => 'nullable|string|max:255',
-            'alipay_qr_url' => 'nullable|string|max:255',
-            'contact_info' => 'nullable|string',
-        ]);
+        $data = $request->except(['wechat_qr_file', 'alipay_qr_file']);
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        // Handle WeChat QR code file upload
+        if ($request->hasFile('wechat_qr_file')) {
+            // Delete old file if exists
+            if ($supplier->wechat_qr_url) {
+                Storage::delete($supplier->wechat_qr_url);
+            }
+
+            $wechatFile = $request->file('wechat_qr_file');
+            $wechatPath = $wechatFile->store('suppliers/qrcodes', 'public');
+            $data['wechat_qr_url'] = $wechatPath;
         }
 
-        $supplier->update($request->all());
+        // Handle Alipay QR code file upload
+        if ($request->hasFile('alipay_qr_file')) {
+            // Delete old file if exists
+            if ($supplier->alipay_qr_url) {
+                Storage::delete($supplier->alipay_qr_url);
+            }
+
+            $alipayFile = $request->file('alipay_qr_file');
+            $alipayPath = $alipayFile->store('suppliers/qrcodes', 'public');
+            $data['alipay_qr_url'] = $alipayPath;
+        }
+
+        $supplier->update($data);
 
         return response()->json($supplier);
     }
@@ -86,5 +97,31 @@ class SupplierController extends Controller
         $supplier->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Remove WeChat QR code for the specified supplier.
+     */
+    public function removeWechatQr(Supplier $supplier)
+    {
+        if ($supplier->wechat_qr_url) {
+            Storage::delete($supplier->wechat_qr_url);
+            $supplier->update(['wechat_qr_url' => null]);
+        }
+
+        return response()->json(['message' => 'WeChat QR code removed successfully']);
+    }
+
+    /**
+     * Remove Alipay QR code for the specified supplier.
+     */
+    public function removeAlipayQr(Supplier $supplier)
+    {
+        if ($supplier->alipay_qr_url) {
+            Storage::delete($supplier->alipay_qr_url);
+            $supplier->update(['alipay_qr_url' => null]);
+        }
+
+        return response()->json(['message' => 'Alipay QR code removed successfully']);
     }
 }

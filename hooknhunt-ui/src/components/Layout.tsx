@@ -12,7 +12,6 @@ import {
   Settings,
   LogOut,
   Menu,
-  X,
   ChevronDown, // Import ChevronDown for expandable menus
 } from 'lucide-react';
 
@@ -108,11 +107,8 @@ const Layout = () => {
         } bg-gray-900 text-white transition-all duration-300 overflow-hidden flex flex-col`}
       >
         {/* Logo */}
-        <div className="p-4 flex items-center justify-between border-b border-gray-800">
-          <div className="flex items-center gap-2">
-            <img src="/logo.svg" alt="Hook & Hunt" className="h-10 w-10" />
-            <span className="font-bold text-lg">Hook & Hunt</span>
-          </div>
+        <div className="p-4 flex items-center justify-center border-b border-gray-800">
+          <img src="/logo.svg" alt="Hook & Hunt" className="h-14 w-14" />
         </div>
 
         {/* Navigation Menu */}
@@ -217,7 +213,7 @@ const Layout = () => {
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-gray-600"
             >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <Menu className="h-5 w-5" />
             </Button>
 
             <div className="flex items-center gap-4">

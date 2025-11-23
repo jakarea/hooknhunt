@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Card,
   CardContent,
@@ -14,6 +15,7 @@ import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import api from "@/lib/api"
 import { useToast } from "@/components/ui/use-toast"
+import { Eye, EyeOff } from "lucide-react"
 
 interface ApiErrorResponse {
   response?: {
@@ -27,6 +29,8 @@ export function LoginForm() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
   const { login } = useAuthStore()
   const navigate = useNavigate()
   const { toast } = useToast()
@@ -93,13 +97,37 @@ export function LoginForm() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember_me"
+                checked={rememberMe}
+                onCheckedChange={setRememberMe}
               />
+              <Label htmlFor="remember_me" className="text-sm">
+                Remember me
+              </Label>
             </div>
           </CardContent>
           <CardFooter>

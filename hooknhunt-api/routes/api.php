@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Admin\AttributeController;
 use App\Http\Controllers\Api\V1\Admin\AttributeOptionController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
+use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\SupplierController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
@@ -49,8 +50,31 @@ Route::prefix('v1/admin')->group(function () {
         // --- Super Admin & Admin Routes ---
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
+
+            // User Verification Routes
+            Route::post('/users/{user}/verify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'verifyPhone']);
+            Route::post('/users/{user}/unverify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'unverifyPhone']);
+
             Route::apiResource('attributes', AttributeController::class);
             Route::apiResource('attribute-options', AttributeOptionController::class);
+        });
+
+        // --- Marketer, Admin, Super Admin Routes ---
+        Route::middleware('role:super_admin,admin,marketer')->group(function () {
+            Route::apiResource('categories', CategoryController::class);
+        });
+
+        // --- Super Admin & Admin Routes ---
+        Route::middleware('role:super_admin,admin')->group(function () {
+            Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
+
+            // User Verification Routes
+            Route::post('/users/{user}/verify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'verifyPhone']);
+            Route::post('/users/{user}/unverify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'unverifyPhone']);
+
+            Route::apiResource('attributes', AttributeController::class);
+            Route::apiResource('attribute-options', AttributeOptionController::class);
+            Route::apiResource('products', ProductController::class);
         });
 
         // --- Marketer, Admin, Super Admin Routes ---
@@ -61,6 +85,8 @@ Route::prefix('v1/admin')->group(function () {
         // --- Store Keeper, Admin, Super Admin Routes ---
         Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
             Route::apiResource('suppliers', SupplierController::class);
+            Route::delete('/suppliers/{supplier}/wechat-qr', [SupplierController::class, 'removeWechatQr']);
+            Route::delete('/suppliers/{supplier}/alipay-qr', [SupplierController::class, 'removeAlipayQr']);
         });
         
         // ... (other roles will be added later) ...

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreUserRequest;
+use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
@@ -25,28 +25,12 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20|unique:users',
-            'password' => 'required|string|min:8',
-            'role' => ['required', Rule::in(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'])],
-            'email' => 'required|string|email|max:255|unique:users',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $auth_user = auth()->user();
-        if ($auth_user->role !== 'super_admin' && $request->role === 'super_admin') {
-            return response()->json(['message' => 'Forbidden. Only super admins can create other super admins.'], 403);
-        }
-
         $user = User::create([
             'name' => $request->name,
             'phone_number' => $request->phone_number,
+            'whatsapp_number' => $request->whatsapp_number,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
@@ -67,23 +51,11 @@ class UserController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'phone_number' => ['sometimes', 'required', 'string', 'max:20', Rule::unique('users')->ignore($user->id)],
-            'password' => 'sometimes|nullable|string|min:8',
-            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'])],
-            'email' => ['sometimes', 'required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $auth_user = auth()->user();
-        if ($auth_user->role !== 'super_admin' && $request->role === 'super_admin') {
-            return response()->json(['message' => 'Forbidden. Only super admins can promote users to super admin.'], 403);
+        // Prevent editing super_admin if not a super_admin
+        if (auth()->user()->role !== 'super_admin' && $user->role === 'super_admin') {
+            return response()->json(['message' => 'Forbidden. Cannot modify super admin users.'], 403);
         }
 
         $data = $request->except('password');
@@ -111,5 +83,50 @@ class UserController extends Controller
         $user->delete();
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Verify user phone number
+     */
+    public function verifyPhone(User $user)
+    {
+        // Only admin and super_admin can verify users
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
+            return response()->json(['message' => 'Forbidden. Only admins can verify users.'], 403);
+        }
+
+        $user->update([
+            'phone_verified_at' => now(),
+        ]);
+
+        return response()->json([
+            'message' => 'User phone number verified successfully.',
+            'user' => $user
+        ]);
+    }
+
+    /**
+     * Unverify user phone number
+     */
+    public function unverifyPhone(User $user)
+    {
+        // Only admin and super_admin can unverify users
+        if (!in_array(auth()->user()->role, ['admin', 'super_admin'])) {
+            return response()->json(['message' => 'Forbidden. Only admins can unverify users.'], 403);
+        }
+
+        // Prevent unverifying super_admin
+        if ($user->role === 'super_admin') {
+            return response()->json(['message' => 'Cannot unverify super admin users.'], 403);
+        }
+
+        $user->update([
+            'phone_verified_at' => null,
+        ]);
+
+        return response()->json([
+            'message' => 'User phone number unverified successfully.',
+            'user' => $user
+        ]);
     }
 }
