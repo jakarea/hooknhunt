@@ -3,15 +3,16 @@ You are an expert software developer. You must follow all rules defined in this 
 ### 1. Project Overview
 A 'headless' e-commerce ERP system.
 
-### 2. Folder Structure (Monorepo) - CURRENT STATUS
+### 2. Folder Structure (Monorepo)
 - `/hooknhunt-api` (Backend: Laravel) ✅ **IMPLEMENTED**
 - `/hooknhunt-ui` (Admin Panel: React.js) ✅ **IMPLEMENTED**
-- `/hooknhunt` (Website: Next.js) ❌ **NOT YET IMPLEMENTED**
+- `/hooknhunt` (Website: Next.js) ❌ **NOT STARTED**
 
-### 3. Technology Stack - CURRENT STATUS
-- **Backend API:** Laravel (Hosted on cPanel/VPS) ✅ **IMPLEMENTED**
-- **Admin Panel UI:** React.js (Hosted on cPanel as static files) ✅ **IMPLEMENTED**
-- **Website UI:** Next.js (Hosted on Vercel) ❌ **NOT YET IMPLEMENTED**
+### 3. Technology Stack
+- **Backend API:** Laravel (Hosted on cPanel/VPS)
+- **Admin Panel UI:** React.js (Hosted on cPanel as static files)
+- **Website UI:** Next.js (Hosted on Vercel)
+- **Security:** Laravel Sanctum
 
 ### 4. Core Business Logic & Features
 - **Product Architecture:** Must support **Product Variations** using a **"Flat Variant" (Option 1)** model.
@@ -24,437 +25,71 @@ A 'headless' e-commerce ERP system.
     4.  **POS (Admin Panel):** A React.js interface for `seller` role to create orders.
 - **Supplier Logic:**
     - Suppliers store `shop_name`, `shop_url`, `email`, `wechat_id`, `alipay_id`, etc.
-    - A single `product` (Parent) can be linked to multiple suppliers.
+    - A single `product` (Parent) can be linked to multiple suppliers via `product_supplier` pivot (stores JSON array of URLs).
 - **Inventory Logic:**
     - Stock is tracked at the `product_variant` level (SKU).
     - `landed_cost` is calculated and updated when a Purchase Order is received.
 - **Loyalty System:**
     - Customers earn points based on their `role` (Retail vs. Wholesale).
 - **Workflow (Product Entry):**
-    1.  **Admin/StoreKeeper:** Creates a `product` (parent) and `product_variants` with basic info (SKU, Landed Cost, Prices). Status is `draft`.
-    2.  **Marketer:** Receives a notification, finds the `draft` product, adds marketing info (`meta_title`, `gallery`), and changes status to `published`.
-- **Security:**
-    - API is secured by Laravel Sanctum.
-    - Website orders (Cash on Delivery) must be verified via SMS (OTP).
-    - API must use CORS to allow requests *only* from Vercel (`hooknhunt`) and cPanel (`hooknhunt-ui`) domains.
+    1.  **Admin/StoreKeeper:** Creates a `product` (parent) and `product_variants`. Status is `draft`.
+    2.  **Marketer:** Adds marketing info (`meta_title`, `gallery`), and changes status to `published`.
+- **Purchase Order Workflow:**
+    1.  **Draft:** Select Supplier -> Load Products -> Input RMB/Qty -> Save.
+    2.  **Payment Confirmed:** Input Exchange Rate -> Generate PO Number.
+    3.  **Dispatched:** Input Intl Courier & Tracking.
+    4.  **Shipped to BD:** Input Lot Number.
+    5.  **Arrived in BD:** Enable Shipping Cost input (Air/Sea).
+    6.  **Transit to Bogura:** Input BD Tracking.
+    7.  **Received at Hub:** Input Weight & Extra Cost -> **System calculates Landed Cost & Updates Stock**.
 
-### 5. Branding (Initial)
-- **Logo:** `./hook-and-hunt-logo.svg`
-- **Primary Color:** Red (related to logo)
-- **Reference Website:** `https://naviforce.com.bd/`
-- **BG Color:** `very light bg: #fcf8f6` (suggestion, not bound)
+### 5. Branding
+- **Primary Color:** Red.
+- **BG Color:** `#fcf8f6`.
 
 ### 6. Database Schema (YAML)
-```yaml
-Tables:
-  - users:
-      - id (PK)
-      - name: string
-      - email: string (unique)
-      - password: string
-      - role: enum('super_admin', 'admin', 'seller', 'store_keeper', 'marketer', 'retail_customer', 'wholesale_customer')
-      - phone_number: string (unique)
-      - whatsapp_number: string (nullable)
-      - otp_code: string (nullable)
-      - otp_expires_at: timestamp (nullable)
-      - phone_verified_at: timestamp (nullable)
-      - created_at, updated_at
-
-  - addresses:
-      - id (PK)
-      - user_id: foreign (references 'users', onDelete 'cascade')
-      - type: enum('shipping', 'billing') (default: 'shipping')
-      - is_default: boolean (default: false)
-      - full_name: string
-      - address_line_1: string
-      - address_line_2: string (nullable)
-      - city: string
-      - district: string
-      - post_code: string (nullable)
-      - phone_number: string (Address-specific phone)
-      - created_at, updated_at
-
-  - categories:
-      - id (PK)
-      - name: string
-      - slug: string (unique)
-      - parent_id: foreign (nullable, references 'id' on 'categories', onDelete 'set null')
-      - created_at, updated_at
-
-  - suppliers:
-      - id (PK)
-      - name: string (Contact person name)
-      - shop_name: string (nullable)
-      - email: string (nullable, unique)
-      - shop_url: string (nullable)
-      - wechat_id: string (nullable)
-      - wechat_qr_url: string (nullable)
-      - alipay_id: string (nullable)
-      - alipay_qr_url: string (nullable)
-      - contact_info: text (nullable)
-      - created_at, updated_at
-
-  - products: (The "Parent" Product)
-      - id (PK)
-      - base_name: string (e.g., "T-Shirt")
-      - slug: string (unique)
-      - status: enum('draft', 'published') (default: 'draft')
-      - meta_title: string (nullable, Marketer entry)
-      - meta_description: text (nullable)
-      - base_thumbnail_url: string (nullable)
-      - gallery_images: json (nullable)
-      - created_at, updated_at
-
-  - attributes: (e.g., "Color", "Size")
-      - id (PK)
-      - name: string (unique)
-
-  - attribute_options: (e.g., "Red", "Blue", "M", "L")
-      - id (PK)
-      - attribute_id: foreign (references 'attributes', onDelete 'cascade')
-      - value: string (e.g., "Red")
-
-  - product_variants: (The "Sellable" SKU - Flat Model "Option 1")
-      - id (PK)
-      - product_id: foreign (references 'products', onDelete 'cascade')
-      - sku: string (unique)
-      - landed_cost: decimal(10, 2) (default: 0)
-      
-      # --- Retail Channel Fields ---
-      - retail_name: string
-      - retail_price: decimal(10, 2) (default: 0)
-      - retail_offer_discount_type: enum('flat', 'percentage') (nullable)
-      - retail_offer_discount_value: decimal(10, 2) (nullable)
-      - retail_offer_start_date: timestamp (nullable)
-      - retail_offer_end_date: timestamp (nullable)
-      
-      # --- Wholesale Channel Fields ---
-      - wholesale_name: string
-      - wholesale_price: decimal(10, 2) (default: 0)
-      - moq_wholesale: integer (default: 10)
-      - wholesale_offer_discount_type: enum('flat', 'percentage') (nullable)
-      - wholesale_offer_discount_value: decimal(10, 2) (nullable)
-      - wholesale_offer_start_date: timestamp (nullable)
-      - wholesale_offer_end_date: timestamp (nullable)
-
-      # --- Daraz Channel Fields (NEW) ---
-      - daraz_name: string (nullable)
-      - daraz_price: decimal(10, 2) (default: 0)
-      - moq_daraz: integer (default: 1)
-      - daraz_offer_discount_type: enum('flat', 'percentage') (nullable)
-      - daraz_offer_discount_value: decimal(10, 2) (nullable)
-      - daraz_offer_start_date: timestamp (nullable)
-      - daraz_offer_end_date: timestamp (nullable)
-
-      # --- Other Fields ---
-      - variant_thumbnail_url: string (nullable)
-      - created_at, updated_at
-
-  - variant_attribute_options: (Pivot: Links a Variant to its options, e.g., Variant 1 -> Option 'L')
-      - product_variant_id: foreign (references 'product_variants', onDelete 'cascade')
-      - attribute_option_id: foreign (references 'attribute_options', onDelete 'cascade')
-      - (Primary key: [product_variant_id, attribute_option_id])
-
-  - product_category: (Pivot: Links Parent Product to Categories)
-      - product_id: foreign (references 'products', onDelete 'cascade')
-      - category_id: foreign (references 'categories', onDelete 'cascade')
-      - (Primary key: [product_id, category_id])
-
-  - product_supplier: (Pivot: Links Parent Product to Suppliers)
-      - product_id: foreign (references 'products', onDelete 'cascade')
-      - supplier_id: foreign (references 'suppliers', onDelete 'cascade')
-      - supplier_product_url: string (nullable)
-      - (Primary key: [product_id, supplier_id])
-
-  - purchase_orders:
-      - id (PK)
-      - supplier_id: foreign (references 'suppliers', onDelete 'set null', nullable)
-      - status: enum('draft', 'payment_confirmed', 'supplier_dispatched', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub', 'completed', 'lost') (default: 'draft')
-      - created_at, updated_at
-
-  - purchase_order_items:
-      - id (PK)
-      - po_id: foreign (references 'purchase_orders', onDelete 'cascade')
-      - product_variant_id: foreign (references 'product_variants', onDelete 'set null', nullable)
-      - china_price: decimal(10, 2)
-      - quantity: integer
-      - shipping_cost: decimal(10, 2) (nullable)
-      - extra_cost: decimal(10, 2) (nullable)
-      - lost_value: decimal(10, 2) (nullable)
-
-  - inventory:
-      - id (PK)
-      - product_variant_id: foreign (references 'product_variants', onDelete 'cascade', unique)
-      - quantity: integer (default: 0)
-
-  - sales_orders:
-      - id (PK)
-      - user_id: foreign (references 'users', onDelete 'set null', nullable)
-      - status: enum('pending_verification', 'processing', 'completed', 'cancelled')
-      - total_amount: decimal(10, 2)
-      - discount_amount: decimal(10, 2) (default: 0)
-      - delivery_charge: decimal(10, 2) (default: 0)
-      - order_type: enum('pos', 'web')
-      - order_channel: enum('retail', 'wholesale', 'daraz') (UPDATED)
-      - otp_code: string (nullable)
-      - shipping_address_snapshot: json (nullable)
-      - billing_address_snapshot: json (nullable)
-      - created_at, updated_at
-
-  - sales_order_items:
-      - id (PK)
-      - order_id: foreign (references 'sales_orders', onDelete 'cascade')
-      - product_variant_id: foreign (references 'product_variants', onDelete 'set null', nullable)
-      - quantity: integer
-      - unit_price: decimal(10, 2) (The price at the time of sale)
-      - landed_cost_at_sale: decimal(10, 2)
-
-  - loyalty_rules:
-      - id (PK)
-      - role_type: enum('retail_customer', 'wholesale_customer') (unique)
-      - points_per_taka: decimal(8, 4) (e.g., 0.01)
-
-  - loyalty_transactions:
-      - id (PK)
-      - user_id: foreign (references 'users', onDelete 'cascade')
-      - order_id: foreign (references 'sales_orders', onDelete 'set null', nullable)
-      - points_earned: decimal(10, 2)
-      - description: string
-      - created_at, updated_at
-```
-
-### 6.5. Implementation Status (CURRENT AS OF NOV 2025)
-
-#### 6.5.1. Laravel API Implementation Status ✅ **85% COMPLETE**
-
-**✅ COMPLETED:**
-- **Database Schema**: All 22 migration files created and implemented
-- **Authentication**: Laravel Sanctum fully implemented with OTP verification
-- **Role-Based Access Control**: Complete middleware system for all roles
-- **User Management**: Full CRUD operations with role-based restrictions
-- **Categories**: Full CRUD with parent-child relationships
-- **Suppliers**: Full CRUD with QR code support (WeChat, Alipay)
-- **Attributes & Attribute Options**: Complete management system
-- **Products**: Basic CRUD with image upload support
-- **Product-Supplier Relationships**: Pivot table implemented
-- **API Structure**: Properly versioned `/api/v1/` endpoints
-- **Request Validation**: Form Request classes implemented
-- **File Upload**: Image storage with proper validation
-
-**❌ MISSING/INCOMPLETE:**
-- **Product Variants**: Not yet implemented in controllers/models
-- **Purchase Orders**: Schema exists but no controllers implemented
-- **Inventory Management**: Schema exists but no controllers implemented
-- **Sales Orders**: Schema exists but no controllers implemented
-- **Loyalty System**: Schema exists but no controllers implemented
-- **Storefront Product APIs**: No public product listing endpoints
-
-#### 6.5.2. React Admin UI Implementation Status ✅ **75% COMPLETE**
-
-**✅ COMPLETED:**
-- **Tech Stack**: React 19 + TypeScript + Vite + TailwindCSS v4 + Zustand
-- **UI Components**: Full Shadcn UI component library implemented
-- **Authentication**: Login system with role-based routing
-- **State Management**: Zustand stores for auth, users, categories, products, suppliers
-- **Layout**: Complete admin dashboard layout with navigation
-- **Pages**: Dashboard, Login, Categories, Products, Suppliers, Users
-- **CRUD Operations**: Full Create, Read, Update, Delete for Users, Categories, Products, Suppliers
-- **Forms**: React Hook Form + Zod validation for all forms
-- **Image Upload**: File upload components with preview
-- **Responsive Design**: Mobile-first responsive layout
-- **Toast Notifications**: Sonner for success/error messages
-
-**✅ PAGES IMPLEMENTED:**
-- Dashboard (with statistics)
-- Login/Authentication
-- Categories (CRUD with parent-child support)
-- Products (Basic CRUD - no variants yet)
-- Suppliers (CRUD with QR code upload)
-- Users (CRUD with role management)
-
-**❌ MISSING/INCOMPLETE:**
-- **Product Variants**: UI for managing product variations not implemented
-- **Purchase Orders**: No UI for PO management
-- **Inventory**: No inventory management interface
-- **Sales/POS**: No sales order management or POS interface
-- **Reports**: No dashboard analytics or financial reports
-- **Attributes Management**: No UI for managing product attributes
-- **Settings**: No system settings page
-- **Dark Mode**: Not implemented
-- **i18n**: Translation system not implemented
-
-#### 6.5.3. Next.js Website Implementation Status ❌ **0% COMPLETE**
-
-**❌ NOT STARTED:**
-- No Next.js project created yet
-- No storefront implementation
-- No product catalog pages
-- No customer authentication (uses same API as admin)
-- No shopping cart functionality
-- No checkout process
-
-### 7.  Role Management & Permissions (NEW SECTION)
-
-This section defines the Access Control (RBAC) for the entire system.
-
-Super Admin (super_admin):
-
-Access: Full system access. Unrestricted.
-
-Abilities: Can see all financial reports. Can create, read, update, and delete all other users, including other super_admins. Can change system settings.
-
-Admin (admin):
-
-Access: Full access to all operational modules (Products, Purchase, Sales, Inventory, Marketing).
-
-Abilities: Can create, read, update, and delete admin, seller, store_keeper, and marketer users.
-
-Restrictions:
-
-CANNOT see sensitive financial reports (e.g., Balance Sheet, final Profit/Loss).
-
-CANNOT create or delete super_admin users.
-
-Seller (seller):
-
-Access: Limited to POS, Sales Orders, and Customer modules.
-
-Abilities: Can create new sales orders (POS), see stock levels (inventory quantity), and view customer info.
-
-Restrictions:
-
-CANNOT see landed_cost or wholesale_price (unless specified).
-
-CANNOT access Purchase Orders, Suppliers, or System Settings.
-
-Store Keeper (store_keeper):
-
-Access: Limited to Purchase Orders and Inventory modules.
-
-Abilities: Can update PO status (e.g., 'Received at Hub'), input landed_cost upon receiving stock, and manage inventory counts. Can view Sales Orders to pack items.
-
-Restrictions:
-
-CANNOT see any selling prices (retail_price, wholesale_price, daraz_price).
-
-CANNOT create sales orders or access customer financial data.
-
-Marketer (marketer):
-
-Access: Limited to Product module (marketing fields).
-
-Abilities: Can update meta_title, meta_description, gallery_images, and change product status from 'draft' to 'published'.
-
-Restrictions:
-
-CANNOT change prices or landed_cost.
-
-CANNOT access Sales, Purchase, or System Settings.
-
-Retail Customer (retail_customer):
-
-Access: Website (/hooknhunt) only.
-
-Abilities: Sees retail_price. Earns retail loyalty points. Manages own profile and addresses.
-
-Restrictions: NO access to Admin Panel (/hooknhunt-ui).
-
-Wholesale Customer (wholesale_customer):
-
-Access: Website (/hooknhunt) only.
-
-Abilities: Sees wholesale_price. Must adhere to moq_wholesale. Earns wholesale loyalty points.
-
-Restrictions: NO access to Admin Panel (/hooknhunt-ui).
-
-### 8. Admin UI (hooknhunt-ui) Stack (NEW SECTION)
-- **Framework:** React.js
-- **Language:** TypeScript
-- **UI:** Shadcn (Component Library)
-- **Styling:** TailwindCSS
-- **State Management:** Zustand (preferred) or Redux
-- **Features:**
-    - Light/Dark Mode
-    - Translation (i18n) - English & Bangla
-    - Skeleton Preloaders for all data-fetching pages.
-
-### 9. API Contract (Endpoints) - IMPLEMENTATION STATUS
-This is the single source of truth for all API endpoints. The UI must be built against these contracts.
-
-#### 9.1 Storefront API (`/api/v1/store`) - ✅ **PARTIALLY IMPLEMENTED**
-- **Auth (Public):** ✅ **IMPLEMENTED**
-    - `POST /auth/register` (Body: name, email, phone_number, password)
-    - `POST /auth/login` (Body: phone_number, password) -> Returns Token
-    - `POST /auth/send-otp` (Body: phone_number)
-    - `POST /auth/verify-otp` (Body: phone_number, otp_code) -> Returns Token
-- **Account (Protected: auth:sanctum):** ✅ **IMPLEMENTED**
-    - `GET /account/me` -> Returns User (with addresses)
-    - `POST /account/logout`
-    - `PUT /account/profile` (Body: name, whatsapp_number, email)
-    - `GET /account/addresses`
-    - `POST /account/addresses` (Body: type, is_default, full_name, address_line_1, etc.)
-    - `DELETE /account/addresses/{address}`
-- **Products (Public):** ❌ **NOT IMPLEMENTED**
-    - (Future) - Product listing, filtering, and detail endpoints needed
-- **Orders (Protected):** ❌ **NOT IMPLEMENTED**
-    - (Future) - Cart, checkout, order management endpoints needed
-
-#### 9.2 Admin API (`/api/v1/admin`) - ✅ **80% IMPLEMENTED**
-- **Auth (Public):** ✅ **IMPLEMENTED**
-    - `POST /auth/login` (Body: phone_number, password) -> Returns Token
-- **Auth (Protected: auth:sanctum):** ✅ **IMPLEMENTED**
-    - `POST /auth/logout`
-    - `GET /me` -> Returns Staff User (with role)
-- **User Management (Protected: role:super_admin,admin):** ✅ **IMPLEMENTED**
-    - `GET /users`
-    - `POST /users` (Body: name, phone_number, password, role)
-    - `GET /users/{user}`
-    - `PUT /users/{user}` (Body: name, phone_number, role, password?)
-    - `DELETE /users/{user}`
-    - `POST /users/{user}/verify-phone`
-    - `POST /users/{user}/unverify-phone`
-- **Categories (Protected: role:super_admin,admin,marketer):** ✅ **IMPLEMENTED**
-    - `GET /categories`
-    - `POST /categories` (Body: name, slug, parent_id?)
-    - `GET /categories/{category}`
-    - `PUT /categories/{category}` (Body: name, slug, parent_id?)
-    - `DELETE /categories/{category}`
-- **Suppliers (Protected: role:super_admin,admin,store_keeper):** ✅ **IMPLEMENTED**
-    - `GET /suppliers`
-    - `POST /suppliers` (Body: name, shop_name, email, etc.)
-    - `GET /suppliers/{supplier}`
-    - `PUT /suppliers/{supplier}` (Body: ...)
-    - `DELETE /suppliers/{supplier}`
-    - `DELETE /suppliers/{supplier}/wechat-qr`
-    - `DELETE /suppliers/{supplier}/alipay-qr`
-    - `GET /suppliers/{supplier}/products-count`
-- **Products (Protected: role:super_admin,admin,store_keeper):** ✅ **BASIC IMPLEMENTED**
-    - `GET /products` -> Returns basic products (no variants yet)
-    - `POST /products` (Body: base_name, meta_description, status, thumbnail)
-    - `GET /products/{product}`
-    - `PUT /products/{product}` (Body: ...)
-    - `DELETE /products/{product}`
-- **Product-Supplier Relationships:** ✅ **IMPLEMENTED**
-    - `POST /products/{product}/suppliers`
-    - `DELETE /products/{product}/suppliers/{supplier}`
-- **Attributes (Protected: role:super_admin,admin):** ✅ **IMPLEMENTED**
-    - `GET /attributes`
-    - `POST /attributes` (Body: name)
-    - `GET /attributes/{attribute}`
-    - `PUT /attributes/{attribute}` (Body: name)
-    - `DELETE /attributes/{attribute}`
-- **Attribute Options (Protected: role:super_admin,admin):** ✅ **IMPLEMENTED**
-    - `GET /attribute-options` (Query Param: `attribute_id`)
-    - `POST /attribute-options` (Body: attribute_id, value)
-    - `GET /attribute-options/{attributeOption}`
-    - `PUT /attribute-options/{attributeOption}` (Body: value)
-    - `DELETE /attribute-options/{attributeOption}`
-
-**❌ MISSING ENDPOINTS:**
-- Product Variants management
-- Purchase Orders management
-- Inventory management
-- Sales Orders management
-- POS endpoints
-- Loyalty system endpoints
-- Reports and analytics endpoints
+*(Refer to v1.3 Schema - Users, Addresses, Categories, Suppliers, Products, ProductVariants, PurchaseOrders, Inventory, SalesOrders, etc.)*
+
+### 6.5. Implementation Status (AS OF NOV 2025)
+
+#### 6.5.1. Laravel API Status ✅ **85% COMPLETE**
+- **Auth/Users:** ✅ Full Login, Register, OTP, RBAC, User CRUD.
+- **Catalog:** ✅ Categories, Attributes, Attribute Options.
+- **Suppliers:** ✅ Full CRUD + File Upload (QR).
+- **Products:** ✅ Basic CRUD (Parent) + Image Upload.
+- **Product-Supplier:** ✅ Attach/Detach with Multiple Links (JSON).
+- **Missing:** Product Variant Logic, Purchase Order Logic, Inventory Logic.
+
+#### 6.5.2. React Admin UI Status ✅ **75% COMPLETE**
+- **Core:** ✅ Layout, Auth (Zustand), Role Guard.
+- **Pages:** ✅ Dashboard, Categories, Suppliers (Page + Form), Users, Products (Basic + Supplier Tab).
+- **Missing:** Product Variant Tab, Purchase Order Pages, Inventory Pages.
+
+### 7. Role Management & Permissions
+*(Refer to previous context for detailed RBAC rules)*
+
+### 8. Admin UI Stack
+- React, TypeScript, Shadcn, TailwindCSS, Zustand.
+
+### 9. API Contract (Endpoints)
+
+#### 9.1 Storefront API (`/api/v1/store`)
+- `POST /auth/register`, `/auth/login`, `/auth/send-otp`, `/auth/verify-otp` ✅
+- `GET /account/me`, `/addresses` ✅
+
+#### 9.2 Admin API (`/api/v1/admin`)
+- **Auth:** `POST /auth/login`, `POST /auth/logout`, `GET /me` ✅
+- **Users:** CRUD `/users` ✅
+- **Categories:** CRUD `/categories` ✅
+- **Suppliers:** CRUD `/suppliers` (+ File Upload) ✅
+- **Attributes:** CRUD `/attributes`, `/attribute-options` ✅
+- **Products:**
+    - `GET /products`, `POST /products`, `GET /products/{id}`, `PUT /products/{id}` ✅
+    - `POST /products/{id}/suppliers` (Attach) ✅
+    - `DELETE /products/{id}/suppliers/{supplier}` (Detach) ✅
+- **Purchase Orders:** (NEXT)
+    - `GET /purchase-orders`
+    - `POST /purchase-orders` (Draft)
+    - `PUT /purchase-orders/{id}/status` (Workflow)
+- **Settings:** (NEXT)
+    - `GET /settings`, `PUT /settings` (Exchange Rate)
