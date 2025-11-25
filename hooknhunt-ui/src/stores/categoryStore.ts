@@ -26,6 +26,7 @@ export type CategoryFormData = {
   name: string;
   slug: string;
   parent_id: number | null;
+  image?: File;
 };
 
 export const useCategoryStore = create<CategoryState>((set: (fn: (state: CategoryState) => CategoryState) => void) => ({
@@ -46,7 +47,21 @@ export const useCategoryStore = create<CategoryState>((set: (fn: (state: Categor
 
   addCategory: async (data: CategoryFormData) => {
     try {
-      const response = await apiClient.post<{ data: Category }>('/admin/categories', data);
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('slug', data.slug);
+      if (data.parent_id) {
+        formData.append('parent_id', data.parent_id.toString());
+      }
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+
+      const response = await apiClient.post<{ data: Category }>('/admin/categories', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       set((state: CategoryState) => ({
         ...state,
         categories: [...state.categories, response.data.data],
@@ -61,7 +76,21 @@ export const useCategoryStore = create<CategoryState>((set: (fn: (state: Categor
 
   updateCategory: async (id: number, data: CategoryFormData) => {
     try {
-      const response = await apiClient.put<{ data: Category }>(`/admin/categories/${id}`, data);
+      const formData = new FormData();
+      formData.append('name', data.name);
+      formData.append('slug', data.slug);
+      if (data.parent_id) {
+        formData.append('parent_id', data.parent_id.toString());
+      }
+      if (data.image) {
+        formData.append('image', data.image);
+      }
+
+      const response = await apiClient.post<{ data: Category }>(`/admin/categories/${id}?_method=PUT`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       const updatedCategory = response.data.data;
       set((state: CategoryState) => ({
         ...state,

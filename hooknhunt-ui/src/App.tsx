@@ -9,8 +9,11 @@ import ProductDetail from './pages/products/ProductDetail';
 import ProductCreate from './pages/products/ProductCreate';
 import ProductEdit from './pages/products/ProductEdit';
 import Suppliers from './pages/purchase/Suppliers';
+import { SupplierProfile } from './pages/purchase/SupplierProfile';
 import SuppliersCreate from './pages/purchase/SuppliersCreate';
 import SuppliersEdit from './pages/purchase/SuppliersEdit';
+import { PurchaseNew } from './pages/purchase/PurchaseNew';
+import { PurchaseList } from './pages/purchase/PurchaseList';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
@@ -39,7 +42,12 @@ function App() {
               {/* Supplier Routes */}
               <Route path="dashboard/suppliers" element={<Suppliers />} />
               <Route path="dashboard/suppliers/create" element={<SuppliersCreate />} />
+              <Route path="dashboard/suppliers/:id" element={<SupplierProfile />} />
               <Route path="dashboard/suppliers/:id/edit" element={<SuppliersEdit />} />
+
+              {/* Purchase Routes */}
+              <Route path="dashboard/purchase/new" element={<PurchaseNew />} />
+              <Route path="dashboard/purchase/list" element={<PurchaseList />} />
 
               {/* User Routes */}
               <Route path="dashboard/users" element={<Users />} />

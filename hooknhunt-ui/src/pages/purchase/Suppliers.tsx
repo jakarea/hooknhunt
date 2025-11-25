@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, Plus, QrCode, Eye, Edit, Trash2, User, Building, Mail, Phone } from 'lucide-react';
+import { MoreHorizontal, Plus, QrCode, Eye, Edit, Trash2, User, Building, Mail, Phone, Package } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { SupplierImage } from '@/components/SupplierImage';
 import api from '@/lib/api';
@@ -28,7 +28,7 @@ const Suppliers = () => {
   const [deletingSupplierId, setDeletingSupplierId] = useState<number | null>(null);
 
   // State for QR Code Preview
-  const [qrPreview, setQrPreview] = useState<{ type: 'wechat' | 'alipay'; url: string } | null>(null);
+  const [qrPreview, setQrPreview] = useState<{ type: 'wechat' | 'alipay'; url: string; supplier?: any } | null>(null);
 
   // Fetch suppliers from API
   const fetchSuppliers = async () => {
@@ -40,7 +40,29 @@ const Suppliers = () => {
 
       // Handle Laravel pagination response
       const suppliersData = response.data.data || response.data;
-      setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+      const suppliersArray = Array.isArray(suppliersData) ? suppliersData : [];
+
+      // Fetch product counts for each supplier
+      const suppliersWithCounts = await Promise.all(
+        suppliersArray.map(async (supplier) => {
+          try {
+            const productsResponse = await api.get(`/admin/suppliers/${supplier.id}/products-count`);
+            const productCount = productsResponse.data?.count || 0;
+            return {
+              ...supplier,
+              product_count: productCount
+            };
+          } catch (error) {
+            console.error(`Failed to fetch product count for supplier ${supplier.id}:`, error);
+            return {
+              ...supplier,
+              product_count: 0
+            };
+          }
+        })
+      );
+
+      setSuppliers(suppliersWithCounts);
     } catch (error: any) {
       console.error('❌ Error fetching suppliers:', error);
       toast({
@@ -85,6 +107,11 @@ const Suppliers = () => {
         setDeletingSupplierId(null);
       }
     }
+  };
+
+  // --- Profile Navigation Handler ---
+  const handleViewProfile = (supplier: any) => {
+    navigate(`/dashboard/suppliers/${supplier.id}`);
   };
 
   // --- QR Code Handlers ---
@@ -194,6 +221,12 @@ const Suppliers = () => {
                   Alipay
                 </div>
               </TableHead>
+              <TableHead>
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4" />
+                  Products
+                </div>
+              </TableHead>
               {['super_admin', 'admin', 'store_keeper'].includes(userRole || '') && (
                 <TableHead className="text-right">Actions</TableHead>
               )}
@@ -208,98 +241,69 @@ const Suppliers = () => {
                 <TableCell>{supplier.name || '--'}</TableCell>
                 <TableCell>{supplier.email || '--'}</TableCell>
                 <TableCell>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">{supplier.wechat_id || '--'}</span>
-                    {supplier.wechat_qr_url && (
-                      <div className="flex items-center space-x-1">
-                        <div
-                          className="cursor-pointer hover:scale-110 transition-transform"
-                          onClick={() => setQrPreview({ type: 'wechat', url: supplier.wechat_qr_url! })}
-                        >
-                          <SupplierImage
-                            src={supplier.wechat_qr_url}
-                            alt="WeChat QR"
-                            size="sm"
-                            className="w-8 h-8"
-                          />
-                        </div>
-                        {['super_admin', 'admin', 'store_keeper'].includes(userRole || '') && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => setQrPreview({ type: 'wechat', url: supplier.wechat_qr_url! })}
-                              >
-                                View QR Code
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteWechatQr(supplier.id)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                Remove QR Code
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{supplier.wechat_id || '--'}</span>
+                    </div>
+                    {supplier.wechat_qr_url ? (
+                      <div
+                        className="cursor-pointer hover:scale-110 transition-transform"
+                        onClick={() => setQrPreview({ type: 'wechat', url: supplier.wechat_qr_url!, supplier: supplier })}
+                      >
+                        <SupplierImage
+                          src={supplier.wechat_qr_url}
+                          alt="WeChat QR"
+                          size="sm"
+                          className="w-12 h-12 border border-gray-200 rounded-md"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
+                        <QrCode className="h-6 w-6 text-gray-400" />
                       </div>
                     )}
+                    <span className="text-xs text-gray-600 text-center">
+                      {supplier.wechat_id || 'No WeChat ID'}
+                    </span>
+                    
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col items-center space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{supplier.alipay_id || '--'}</span>
+                    </div>
+                    {supplier.alipay_qr_url ? (
+                      <div
+                        className="cursor-pointer hover:scale-110 transition-transform"
+                        onClick={() => setQrPreview({ type: 'alipay', url: supplier.alipay_qr_url!, supplier: supplier })}
+                      >
+                        <SupplierImage
+                          src={supplier.alipay_qr_url}
+                          alt="Alipay QR"
+                          size="sm"
+                          className="w-12 h-12 border border-gray-200 rounded-md"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
+                        <QrCode className="h-6 w-6 text-gray-400" />
+                      </div>
+                    )}
+                    <span className="text-xs text-gray-600 text-center">
+                      {supplier.alipay_id || 'No Alipay ID'}
+                    </span>
+                    
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500">{supplier.alipay_id || '--'}</span>
-                    {supplier.alipay_qr_url && (
-                      <div className="flex items-center space-x-1">
-                        <div
-                          className="cursor-pointer hover:scale-110 transition-transform"
-                          onClick={() => setQrPreview({ type: 'alipay', url: supplier.alipay_qr_url! })}
-                        >
-                          <SupplierImage
-                            src={supplier.alipay_qr_url}
-                            alt="Alipay QR"
-                            size="sm"
-                            className="w-8 h-8"
-                          />
-                        </div>
-                        {['super_admin', 'admin', 'store_keeper'].includes(userRole || '') && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => setQrPreview({ type: 'alipay', url: supplier.alipay_qr_url! })}
-                              >
-                                View QR Code
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteAlipayQr(supplier.id)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                Remove QR Code
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </div>
-                    )}
+                    <Badge variant="secondary" className="text-xs">
+                      {supplier.product_count || 0} product
+                      {(supplier.product_count || 0) !== 1 ? 's' : ''}
+                    </Badge>
                   </div>
+
                 </TableCell>
                 {['super_admin', 'admin', 'store_keeper'].includes(userRole || '') && (
                   <TableCell className="text-right">
@@ -310,13 +314,19 @@ const Suppliers = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewProfile(supplier)}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Profile
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEditSupplier(supplier)}>
+                          <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => openDeleteConfirm(supplier.id)}
                           className="text-red-600 focus:text-red-600"
                         >
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -331,24 +341,77 @@ const Suppliers = () => {
 
       {/* QR Code Preview Dialog */}
       <Dialog open={!!qrPreview} onOpenChange={() => setQrPreview(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>
-              {qrPreview?.type === 'wechat' ? 'WeChat' : 'Alipay'} QR Code
+            <DialogTitle className="flex items-center gap-2">
+              {qrPreview?.type === 'wechat' ? (
+                <>
+                  <div className="bg-green-100 p-2 rounded-lg">
+                    <QrCode className="h-5 w-5 text-green-600" />
+                  </div>
+                  WeChat QR Code
+                </>
+              ) : (
+                <>
+                  <div className="bg-blue-100 p-2 rounded-lg">
+                    <QrCode className="h-5 w-5 text-blue-600" />
+                  </div>
+                  Alipay QR Code
+                </>
+              )}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex justify-center p-4">
+          <div className="flex flex-col items-center p-6 space-y-4">
             {qrPreview && (
-              <SupplierImage
-                src={qrPreview.url}
-                alt={`${qrPreview.type} QR Code`}
-                size="lg"
-                className="max-w-full h-auto rounded-lg"
-              />
+              <>
+                <SupplierImage
+                  src={qrPreview.url}
+                  alt={`${qrPreview.type} QR Code`}
+                  size="lg"
+                  className="max-w-full h-auto rounded-lg border-2 border-gray-200 cursor-pointer hover:scale-105 transition-transform"
+                  onClick={() => {
+                    // Open QR code in new tab/window
+                    window.open(qrPreview.url, '_blank');
+                  }}
+                />
+                {qrPreview.supplier && (
+                  <div className="text-center space-y-1">
+                    <p className="font-medium text-gray-900">
+                      {qrPreview.type === 'wechat' ? 'WeChat ID' : 'Alipay ID'}
+                    </p>
+                    <p className="text-lg font-semibold text-gray-700">
+                      {qrPreview.type === 'wechat'
+                        ? qrPreview.supplier.wechat_id || 'No ID'
+                        : qrPreview.supplier.alipay_id || 'No ID'
+                      }
+                    </p>
+                    {qrPreview.supplier.shop_name && (
+                      <p className="text-sm text-gray-600">
+                        {qrPreview.supplier.shop_name}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="flex justify-center pt-2">
+                  <Button
+                    onClick={() => {
+                      // Open QR code in new tab/window
+                      window.open(qrPreview.url, '_blank');
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4" />
+                    Open in New Tab
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </DialogContent>
       </Dialog>
+
           </CardContent>
         </Card>
       </div>

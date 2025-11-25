@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AttributeController;
 use App\Http\Controllers\Api\V1\Admin\AttributeOptionController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
+use App\Http\Controllers\Api\V1\Admin\ProductSupplierController;
 use App\Http\Controllers\Api\V1\Admin\SupplierController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
@@ -64,6 +65,15 @@ Route::prefix('v1/admin')->group(function () {
             Route::apiResource('categories', CategoryController::class);
         });
 
+        // --- Super Admin & Admin & Store Keeper Routes (Products & Suppliers) ---
+        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
+            Route::apiResource('products', ProductController::class);
+
+            // Product-Supplier relationship routes
+            Route::post('/products/{product}/suppliers', [ProductSupplierController::class, 'store']);
+            Route::delete('/products/{product}/suppliers/{supplier}', [ProductSupplierController::class, 'destroy']);
+        });
+
         // --- Super Admin & Admin Routes ---
         Route::middleware('role:super_admin,admin')->group(function () {
             Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
@@ -74,7 +84,6 @@ Route::prefix('v1/admin')->group(function () {
 
             Route::apiResource('attributes', AttributeController::class);
             Route::apiResource('attribute-options', AttributeOptionController::class);
-            Route::apiResource('products', ProductController::class);
         });
 
         // --- Marketer, Admin, Super Admin Routes ---
@@ -82,11 +91,13 @@ Route::prefix('v1/admin')->group(function () {
             Route::apiResource('categories', CategoryController::class);
         });
 
-        // --- Store Keeper, Admin, Super Admin Routes ---
+        // --- Store Keeper, Admin, Super Admin Routes (Suppliers) ---
         Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
             Route::apiResource('suppliers', SupplierController::class);
             Route::delete('/suppliers/{supplier}/wechat-qr', [SupplierController::class, 'removeWechatQr']);
             Route::delete('/suppliers/{supplier}/alipay-qr', [SupplierController::class, 'removeAlipayQr']);
+            Route::get('/suppliers/{supplier}/products-count', [SupplierController::class, 'productsCount']);
+            Route::get('/suppliers/{supplier}/products', [SupplierController::class, 'products']);
         });
         
         // ... (other roles will be added later) ...

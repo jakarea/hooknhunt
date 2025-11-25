@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,10 @@ import {
   Settings,
   LogOut,
   Menu,
-  ChevronDown, // Import ChevronDown for expandable menus
+  ChevronDown,
+  ArrowRightFromLine,
+  Plus,
+  List,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -54,6 +58,18 @@ const menuItems: MenuItem[] = [
     roles: ['super_admin', 'admin', 'store_keeper'], // Roles for Purchase section
     children: [
       {
+        name: 'New',
+        path: '/dashboard/purchase/new',
+        icon: <Plus className="h-5 w-5" />, // Icon for New
+        roles: ['super_admin', 'admin', 'store_keeper'],
+      },
+      {
+        name: 'List',
+        path: '/dashboard/purchase/list',
+        icon: <List className="h-5 w-5" />, // Icon for List
+        roles: ['super_admin', 'admin', 'store_keeper'],
+      },
+      {
         name: 'Suppliers',
         path: '/dashboard/suppliers',
         icon: <Truck className="h-5 w-5" />, // Icon for Suppliers
@@ -80,6 +96,7 @@ const Layout = () => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({}); // State to manage open/closed nested menus
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const hasAccess = (roles: string[]) => {
     if (!user) return false;
@@ -98,17 +115,28 @@ const Layout = () => {
     setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }));
   };
 
+  const handleLogout = () => {
+    logout();
+    setShowLogoutConfirm(false);
+  };
+
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <aside
         className={`${
           sidebarOpen ? 'w-64' : 'w-0'
-        } bg-gray-900 text-white transition-all duration-300 overflow-hidden flex flex-col`}
+        } bg-gradient-to-b from-red-700 to-red-900 text-white transition-all duration-300 overflow-hidden flex flex-col shadow-xl`}
       >
         {/* Logo */}
-        <div className="p-4 flex items-center justify-center border-b border-gray-800">
-          <img src="/logo.svg" alt="Hook & Hunt" className="h-14 w-14" />
+        <div className="p-6 flex flex-col items-center justify-center border-b border-red-800 bg-black/20">
+          <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg mb-3">
+            <span className="text-2xl font-bold text-red-700">H&H</span>
+          </div>
+          <div className="text-center">
+            <h1 className="text-lg font-bold text-white">Hook & Hunt</h1>
+            <p className="text-xs text-red-200">Admin Panel</p>
+          </div>
         </div>
 
         {/* Navigation Menu */}
@@ -126,8 +154,8 @@ const Layout = () => {
                         onClick={() => toggleMenu(item.name)}
                         className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors ${
                           isOpen
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                            ? 'bg-red-600 text-white shadow-lg'
+                            : 'text-red-100 hover:bg-red-800 hover:text-white'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -148,8 +176,8 @@ const Layout = () => {
                                   to={child.path || '#'} // Fallback for path if somehow missing
                                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                                     isChildActive
-                                      ? 'bg-blue-600 text-white'
-                                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                                      ? 'bg-red-600 text-white shadow-lg'
+                                      : 'text-red-100 hover:bg-red-800 hover:text-white'
                                   }`}
                                 >
                                   {child.icon}
@@ -166,8 +194,8 @@ const Layout = () => {
                       to={item.path || '#'} // Fallback for path if somehow missing
                       className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                         isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                          ? 'bg-red-600 text-white shadow-lg'
+                          : 'text-red-100 hover:bg-red-800 hover:text-white'
                       }`}
                     >
                       {item.icon}
@@ -181,23 +209,25 @@ const Layout = () => {
         </nav>
 
         {/* User Info */}
-        <div className="p-4 border-t border-gray-800">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold">
+        <div className="p-4 border-t border-red-800 bg-black/20">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-red-400/50">
               {user?.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name}</p>
-              <p className="text-xs text-gray-400 capitalize">{user?.role.replace('_', ' ')}</p>
+              <p className="text-sm font-semibold text-white truncate">{user?.name}</p>
+              <p className="text-xs text-red-200 capitalize">{user?.role.replace('_', ' ')}</p>
             </div>
           </div>
+
+          {/* Logout Button */}
           <Button
             variant="outline"
-            className="w-full text-gray-300 border-gray-700 hover:bg-gray-800 hover:text-white"
-            onClick={logout}
+            className="w-full bg-red-600/20 border-red-500/50 text-red-100 hover:bg-red-600/30 hover:border-red-400 hover:text-white transition-all duration-200 group"
+            onClick={() => setShowLogoutConfirm(true)}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
+            <ArrowRightFromLine className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+            <span className="font-medium">Logout</span>
           </Button>
         </div>
       </aside>
@@ -229,6 +259,33 @@ const Layout = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <LogOut className="h-5 w-5 text-red-600" />
+              Confirm Logout
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout? You'll need to sign in again to access the admin panel.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="hover:bg-gray-100">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              <ArrowRightFromLine className="h-4 w-4 mr-2" />
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

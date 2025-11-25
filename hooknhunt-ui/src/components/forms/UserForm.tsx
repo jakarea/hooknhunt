@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { Mail, Phone, MessageSquare, Shield, Lock, Key } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Shield, Lock, Key, User as UserIcon } from 'lucide-react';
 
 // Validation Schema
 const formSchema = z.object({
@@ -137,7 +137,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-2xl">
-              <User className="h-6 w-6 text-primary" />
+              <UserIcon className="h-6 w-6 text-primary" />
               {isEdit ? 'Edit User' : 'Create New User'}
             </CardTitle>
             <CardDescription>
@@ -153,7 +153,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <User className="h-5 w-5 text-muted-foreground" />
+              <UserIcon className="h-5 w-5 text-muted-foreground" />
               User Information
             </CardTitle>
             <CardDescription>
@@ -169,7 +169,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
+                      <UserIcon className="h-4 w-4 text-muted-foreground" />
                       Full Name <span className="text-red-500">*</span>
                     </FormLabel>
                     <FormControl>

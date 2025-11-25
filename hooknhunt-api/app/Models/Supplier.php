@@ -107,4 +107,14 @@ class Supplier extends Model
             }
         });
     }
+
+    /**
+     * Get the products for the supplier.
+     */
+    public function products()
+    {
+        return $this->belongsToMany(Product::class, 'product_supplier')
+            ->withPivot('supplier_product_urls')
+            ->withTimestamps();
+    }
 }

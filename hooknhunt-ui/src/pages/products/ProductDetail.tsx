@@ -21,10 +21,24 @@ import { toast } from '@/components/ui/use-toast';
 import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
 
+// Inline type definition to avoid import issues
+interface Product {
+  id: number;
+  base_name: string;
+  slug: string;
+  status: 'draft' | 'published';
+  meta_title?: string;
+  meta_description?: string;
+  base_thumbnail_url?: string | null;
+  gallery_images?: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -154,7 +168,7 @@ const ProductDetail = () => {
                 Back to Products
               </Button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{product.base_name || product.name}</h1>
+                <h1 className="text-3xl font-bold text-gray-900">{product.base_name}</h1>
                 <div className="flex items-center gap-4 mt-1">
                   <span className="text-gray-600">Slug: {product.slug}</span>
                   <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
@@ -195,7 +209,7 @@ const ProductDetail = () => {
               <CardContent className="flex justify-center">
                 <ProductImage
                   src={product.base_thumbnail_url}
-                  alt={product.base_name || product.name || 'Product'}
+                  alt={product.base_name || 'Product'}
                   size="lg"
                   className="border-2 border-gray-200"
                 />

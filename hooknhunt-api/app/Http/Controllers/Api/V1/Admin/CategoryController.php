@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
@@ -27,13 +28,23 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories',
             'slug' => 'required|string|max:255|unique:categories',
             'parent_id' => 'nullable|exists:categories,id',
+            'image' => 'nullable|file|image|max:15', // 15KB max
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $category = Category::create($request->all());
+        $data = $request->except('image');
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $path = $image->store('categories', 'public');
+            $data['image_url'] = $path;
+        }
+
+        $category = Category::create($data);
 
         return response()->json($category, 201);
     }
@@ -55,13 +66,28 @@ class CategoryController extends Controller
             'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('categories')->ignore($category->id)],
             'slug' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('categories')->ignore($category->id)],
             'parent_id' => 'nullable|exists:categories,id',
+            'image' => 'nullable|file|image|max:15', // 15KB max
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $category->update($request->all());
+        $data = $request->except('image');
+
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($category->image_url) {
+                Storage::delete($category->image_url);
+            }
+
+            $image = $request->file('image');
+            $path = $image->store('categories', 'public');
+            $data['image_url'] = $path;
+        }
+
+        $category->update($data);
 
         return response()->json($category);
     }

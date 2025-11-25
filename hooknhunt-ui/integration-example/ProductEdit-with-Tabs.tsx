@@ -1,3 +1,5 @@
+// Example: Updated ProductEdit.tsx with Shadcn Tabs and ProductSuppliersTab integration
+
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoleGuard } from '@/components/guards/RoleGuard';
@@ -5,7 +7,7 @@ import { ProductForm } from '@/components/forms/ProductForm';
 import { ProductSuppliersTab } from '@/components/forms/product/ProductSuppliersTab';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { SimpleTabs as Tabs, SimpleTabsContent as TabsContent, SimpleTabsList as TabsList, SimpleTabsTrigger as TabsTrigger } from '@/components/ui/simple-tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Package, FileText, Building } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useProductStore } from '@/stores/productStore';
@@ -57,15 +59,9 @@ const ProductEdit = () => {
 
         // Also fetch from API directly to get product data for form
         const response = await api.get(`/admin/products/${id}?include=suppliers`);
-        console.log('📡 Initial Load API Response:', response);
-        console.log('📦 Initial Load Response data:', response.data);
+        console.log('✅ Product details fetched:', response.data);
 
-        // Handle both nested and direct response structures
-        const productData = response.data.data || response.data;
-        console.log('🏷️ Initial Load Final product data:', productData);
-        console.log('👥 Initial Load Suppliers in product:', productData.suppliers);
-
-        setProduct(productData);
+        setProduct(response.data);
       } catch (error: any) {
         console.error('❌ Error fetching product:', error);
         toast({
@@ -94,23 +90,11 @@ const ProductEdit = () => {
   const handleSuppliersUpdated = () => {
     // Refresh product data when suppliers are updated
     if (product?.id) {
-      console.log('🔄 handleSuppliersUpdated called for product:', product.id);
       fetchProduct(product.id).then(() => {
         // Re-fetch from API to get updated product with suppliers
         api.get(`/admin/products/${product.id}?include=suppliers`)
           .then(response => {
-            console.log('📡 API Response:', response);
-            console.log('📦 Response data:', response.data);
-
-            // Handle both nested and direct response structures
-            const productData = response.data.data || response.data;
-            console.log('🏷️ Final product data:', productData);
-            console.log('👥 Suppliers in product:', productData.suppliers);
-
-            setProduct(productData);
-          })
-          .catch(error => {
-            console.error('❌ Error fetching updated product:', error);
+            setProduct(response.data);
           });
       });
     }
@@ -151,33 +135,18 @@ const ProductEdit = () => {
               </div>
             </div>
 
-            {/* Form Skeleton */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div className="space-y-8">
-                {/* Basic Information Section */}
-                <div className="space-y-6">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                  </div>
+            {/* Tabs Skeleton */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="border-b border-gray-200">
+                <div className="flex space-x-8 px-6 pt-6">
+                  <Skeleton className="h-10 w-32" />
+                  <Skeleton className="h-10 w-32" />
                 </div>
-
-                {/* Pricing Section */}
-                <div className="space-y-6">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 pt-8 border-t border-gray-200">
-                  <Skeleton className="h-11 w-20" />
-                  <Skeleton className="h-11 w-32" />
-                </div>
+              </div>
+              <div className="p-8">
+                <Skeleton className="h-4 w-full mb-4" />
+                <Skeleton className="h-4 w-3/4 mb-4" />
+                <Skeleton className="h-4 w-1/2" />
               </div>
             </div>
           </div>
@@ -243,18 +212,18 @@ const ProductEdit = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <Tabs defaultValue="details" className="w-full">
                 {/* Tab Headers */}
-                <div className="border-b border-gray-200 p-6">
-                  <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent">
+                <div className="border-b border-gray-200">
+                  <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent px-6">
                     <TabsTrigger
                       value="details"
-                      className="rounded-none"
+                      className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none"
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Product Details
                     </TabsTrigger>
                     <TabsTrigger
                       value="suppliers"
-                      className="rounded-none"
+                      className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:bg-transparent rounded-none"
                     >
                       <Building className="h-4 w-4 mr-2" />
                       Suppliers ({product.suppliers?.length || 0})
@@ -263,13 +232,16 @@ const ProductEdit = () => {
                 </div>
 
                 {/* Tab Content */}
-                <div className="px-6 pb-6">
-                  <TabsContent value="details">
+                <div className="p-6">
+                  <TabsContent value="details" className="mt-0">
                     <ProductForm initialData={product} onClose={handleSuccess} />
                   </TabsContent>
 
-                  <TabsContent value="suppliers">
-                    <ProductSuppliersTab product={product} onSuppliersUpdated={handleSuppliersUpdated} />
+                  <TabsContent value="suppliers" className="mt-0">
+                    <ProductSuppliersTab
+                      product={product}
+                      // The component will handle its own state management and updates
+                    />
                   </TabsContent>
                 </div>
               </Tabs>

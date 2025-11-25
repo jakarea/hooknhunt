@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoleGuard } from '@/components/guards/RoleGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Package, Search, Filter, Edit, Eye, MoreHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,23 +16,108 @@ import api from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { ProductImage } from '@/components/ProductImage';
 
+// Inline type definition to avoid import issues
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id?: number;
+  parent?: Category; // For breadcrumb support
+}
+
+interface Supplier {
+  id: number;
+  name: string;
+  shop_name?: string;
+  email?: string;
+}
+
+interface Product {
+  id: number;
+  base_name: string;
+  slug: string;
+  status: 'draft' | 'published';
+  meta_title?: string;
+  meta_description?: string;
+  base_thumbnail_url?: string | null;
+  gallery_images?: string[] | null;
+  category_id?: number;
+  category?: Category; // Include category data
+  suppliers?: Supplier[]; // Include suppliers data
+  created_at: string;
+  updated_at: string;
+}
+
 const Products = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSupplier, setSelectedSupplier] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+
+  // Fetch categories from API
+  const fetchCategories = async () => {
+    try {
+      console.log('📡 Fetching categories from API...');
+      const response = await api.get('/admin/categories');
+      console.log('✅ Categories fetched:', response.data);
+
+      const categoriesData = response.data.data || response.data;
+      setCategories(Array.isArray(categoriesData) ? categoriesData : []);
+    } catch (error: any) {
+      console.error('❌ Error fetching categories:', error);
+    }
+  };
+
+  // Fetch suppliers from API
+  const fetchSuppliers = async () => {
+    try {
+      console.log('📡 Fetching suppliers from API...');
+      const response = await api.get('/admin/suppliers');
+      console.log('✅ Suppliers fetched:', response.data);
+
+      const suppliersData = response.data.data || response.data;
+      setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
+    } catch (error: any) {
+      console.error('❌ Error fetching suppliers:', error);
+    }
+  };
 
   // Fetch products from API
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
       console.log('📡 Fetching products from API...');
-      const response = await api.get('/admin/products');
+
+      // Build query string based on filters
+      const queryParams = new URLSearchParams();
+      queryParams.append('include', 'category,suppliers');
+
+      if (selectedCategory && selectedCategory !== 'all') {
+        queryParams.append('category_id', selectedCategory);
+      }
+      if (selectedSupplier && selectedSupplier !== 'all') {
+        queryParams.append('supplier_id', selectedSupplier);
+      }
+
+      const response = await api.get(`/admin/products?${queryParams.toString()}`);
       console.log('✅ Products fetched:', response.data);
 
       // Handle Laravel pagination response
       const productsData = response.data.data || response.data;
-      setProducts(Array.isArray(productsData) ? productsData : []);
+      const productsArray = Array.isArray(productsData) ? productsData : [];
+
+      // Process products to ensure data structure
+      const processedProducts = productsArray.map((product: any) => ({
+        ...product,
+        category: product.category || null,
+        suppliers: product.suppliers || []
+      }));
+
+      setProducts(processedProducts);
     } catch (error: any) {
       console.error('❌ Error fetching products:', error);
       toast({
@@ -46,8 +131,14 @@ const Products = () => {
   };
 
   useEffect(() => {
+    fetchCategories();
+    fetchSuppliers();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategory, selectedSupplier]);
 
   const handleCreateProduct = () => {
     navigate('/dashboard/products/create');
@@ -61,21 +152,57 @@ const Products = () => {
     navigate(`/dashboard/products/${id}/edit`);
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'published':
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Published</Badge>;
-      case 'draft':
-        return <Badge variant="secondary">Draft</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+  // Helper function to create category breadcrumb
+  const getCategoryBreadcrumb = (category?: Category) => {
+    if (!category) return null;
+
+    const breadcrumbParts: string[] = [];
+    let currentCategory: Category | undefined = category;
+
+    // Build breadcrumb by traversing up the parent chain
+    while (currentCategory) {
+      breadcrumbParts.unshift(currentCategory.name);
+      currentCategory = currentCategory.parent;
     }
+
+    return (
+      <div className="flex items-center gap-1 text-sm text-gray-600">
+        {breadcrumbParts.length > 1 ? (
+          <>
+            {breadcrumbParts.map((name, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && <span className="text-gray-400">›</span>}
+                <span className={index === breadcrumbParts.length - 1 ? 'font-medium text-gray-800' : 'text-gray-500'}>
+                  {name}
+                </span>
+              </React.Fragment>
+            ))}
+          </>
+        ) : (
+          <span className="font-medium text-gray-800">{breadcrumbParts[0]}</span>
+        )}
+      </div>
+    );
   };
 
-  const filteredProducts = products.filter(product =>
-    (product.base_name && product.base_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (product.slug && product.slug.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredProducts = products.filter(product => {
+    // Text search filter
+    const matchesSearch = !searchTerm ||
+      (product.base_name && product.base_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (product.slug && product.slug.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // Category filter
+    const matchesCategory = selectedCategory === 'all' ||
+      (product.category && product.category.id.toString() === selectedCategory);
+
+    // Supplier filter
+    const matchesSupplier = selectedSupplier === 'all' ||
+      (product.suppliers && product.suppliers.some(supplier =>
+        supplier.id.toString() === selectedSupplier
+      ));
+
+    return matchesSearch && matchesCategory && matchesSupplier;
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -102,8 +229,9 @@ const Products = () => {
         {/* Search and Filter */}
         <Card className="mb-6">
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 relative">
+            <div className="space-y-4">
+              {/* Search Bar */}
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
                   placeholder="Search products by name or SKU..."
@@ -112,10 +240,54 @@ const Products = () => {
                   className="pl-10"
                 />
               </div>
-              <Button variant="outline">
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
+
+              {/* Filter Dropdowns */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1 min-w-0">
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by Category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {categories.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by Supplier" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Suppliers</SelectItem>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id.toString()}>
+                          {supplier.shop_name || supplier.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSelectedSupplier('all');
+                    setSearchTerm('');
+                  }}
+                  disabled={selectedCategory === 'all' && selectedSupplier === 'all' && !searchTerm}
+                >
+                  <Filter className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -145,7 +317,7 @@ const Products = () => {
                   <div className="flex items-start gap-4">
                     <ProductImage
                       src={product.base_thumbnail_url}
-                      alt={product.base_name || product.name || 'Product'}
+                      alt={product.base_name || 'Product'}
                       size="md"
                     />
                     <div className="flex-1">
@@ -153,12 +325,11 @@ const Products = () => {
                         className="text-lg cursor-pointer hover:text-primary transition-colors"
                         onClick={() => handleViewProduct(product.id)}
                       >
-                        {product.base_name || product.name}
+                        {product.base_name}
                       </CardTitle>
                       <CardDescription className="mt-1">Slug: {product.slug}</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(product.status)}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -187,10 +358,32 @@ const Products = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">Status:</span>
-                      {getStatusBadge(product.status)}
-                    </div>
+                    {product.category && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Category:</span>
+                        {getCategoryBreadcrumb(product.category)}
+                      </div>
+                    )}
+                    {product.suppliers && product.suppliers.length > 0 && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Suppliers:</span>
+                        <div className="flex flex-wrap gap-1">
+                          {product.suppliers.slice(0, 2).map((supplier) => (
+                            <span
+                              key={supplier.id}
+                              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                            >
+                              {supplier.shop_name || supplier.name}
+                            </span>
+                          ))}
+                          {product.suppliers.length > 2 && (
+                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                              +{product.suppliers.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Created:</span>
                       <span className="text-sm text-gray-500">

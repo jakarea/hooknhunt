@@ -16,9 +16,34 @@ import { Package, Image, Upload } from 'lucide-react';
 import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
 
+// Inline type definition to avoid import issues
+interface Product {
+  id: number;
+  base_name: string;
+  slug: string;
+  status: 'draft' | 'published';
+  meta_title?: string;
+  meta_description?: string;
+  description?: string; // Legacy field for backward compatibility
+  category_id?: number; // Legacy field for backward compatibility
+  base_thumbnail_url?: string | null;
+  gallery_images?: string[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface ProductFormData {
+  base_name: string;
+  description?: string;
+  category_id?: string;
+  status: 'draft' | 'published';
+  thumbnail?: File;
+  base_thumbnail_url?: string;
+}
+
 // Validation Schema
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
+  base_name: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
   description: z.string().optional(),
   category_id: z.string().optional(),
   status: z.enum(['draft', 'published'], {
@@ -27,11 +52,12 @@ const formSchema = z.object({
 });
 
 interface ProductFormProps {
-  initialData?: any;
+  initialData?: Product;
   onClose: () => void;
+  onProductCreated?: (product: any) => void;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, onProductCreated }) => {
   const isEdit = !!initialData;
   const [thumbnail, setThumbnail] = useState<File | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
@@ -40,7 +66,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: initialData?.base_name || initialData?.name || '',
+      base_name: initialData?.base_name || '',
       description: initialData?.description || initialData?.meta_description || '',
       category_id: initialData?.category_id?.toString() || '',
       status: initialData?.status || 'draft',
@@ -131,7 +157,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }
       const formData = new FormData();
 
       // Add form fields
-      formData.append('name', values.name);
+      formData.append('base_name', values.base_name);
       if (values.description) {
         formData.append('description', values.description);
       }
@@ -169,6 +195,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }
         title: "Success",
         description: `Product ${isEdit ? 'updated' : 'created'} successfully!`
       });
+
+      // Call onProductCreated callback for new products with suppliers data
+      if (!isEdit && onProductCreated && result.data) {
+        onProductCreated({
+          ...result.data,
+          suppliers: [], // Start with empty suppliers array
+        });
+      }
+
       onClose();
     } catch (error: unknown) {
       console.error('❌ Form submission error:', error);
@@ -245,7 +280,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }
           <CardContent className="space-y-6">
             <FormField
               control={form.control}
-              name="name"
+              name="base_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2">
@@ -383,7 +418,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose }
                   <div className="flex items-center gap-4">
                     <ProductImage
                       src={initialData.base_thumbnail_url}
-                      alt={initialData.base_name || initialData.name || 'Current product image'}
+                      alt={initialData.base_name || 'Current product image'}
                       size="lg"
                       className="border-2 border-gray-200"
                     />

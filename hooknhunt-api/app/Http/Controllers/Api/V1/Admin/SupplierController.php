@@ -124,4 +124,55 @@ class SupplierController extends Controller
 
         return response()->json(['message' => 'Alipay QR code removed successfully']);
     }
+
+    /**
+     * Get the count of products for the specified supplier.
+     */
+    public function productsCount(Supplier $supplier)
+    {
+        try {
+            // Count products associated with this supplier through the pivot table
+            $productCount = $supplier->products()->count();
+
+            return response()->json([
+                'count' => $productCount,
+                'supplier_id' => $supplier->id,
+                'supplier_name' => $supplier->name
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch product count',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get the products for the specified supplier.
+     */
+    public function products(Supplier $supplier)
+    {
+        try {
+            // Get products associated with this supplier through the pivot table
+            $products = $supplier->products()
+                ->withPivot('supplier_product_urls')
+                ->get()
+                ->map(function ($product) {
+                    $productData = $product->toArray();
+                    $productData['pivot']['supplier_product_urls'] = json_decode($productData['pivot']['supplier_product_urls'], true) ?? [];
+                    return $productData;
+                });
+
+            return response()->json([
+                'products' => $products,
+                'supplier' => $supplier->only(['id', 'name', 'shop_name', 'email']),
+                'count' => $products->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Failed to fetch supplier products',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
