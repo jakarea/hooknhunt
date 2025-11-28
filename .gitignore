@@ -2,6 +2,9 @@
 # Hook & Hunt Monorepo
 # ===========================
 
+# Root level dependencies
+node_modules/
+
 # ===========================
 # Laravel (hooknhunt-api/)
 # ===========================
@@ -78,6 +81,34 @@ hooknhunt-ui/*.tsbuildinfo
 
 # Testing
 hooknhunt-ui/coverage/
+
+# ===========================
+# React Frontend (frontend/)
+# ===========================
+
+# Dependencies
+frontend/node_modules/
+
+# Environment files
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+
+# Build output
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+
+# Vite cache
+frontend/.vite/
+
+# TypeScript
+frontend/*.tsbuildinfo
+
+# Testing
+frontend/coverage/
 
 # ===========================
 # Next.js Website (hooknhunt/)
