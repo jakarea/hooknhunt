@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Admin\AttributeOptionController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductSupplierController;
+use App\Http\Controllers\Api\V1\Admin\SettingController;
 use App\Http\Controllers\Api\V1\Admin\SupplierController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
@@ -74,23 +75,6 @@ Route::prefix('v1/admin')->group(function () {
             Route::delete('/products/{product}/suppliers/{supplier}', [ProductSupplierController::class, 'destroy']);
         });
 
-        // --- Super Admin & Admin Routes ---
-        Route::middleware('role:super_admin,admin')->group(function () {
-            Route::apiResource('users', App\Http\Controllers\Api\V1\Admin\UserController::class);
-
-            // User Verification Routes
-            Route::post('/users/{user}/verify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'verifyPhone']);
-            Route::post('/users/{user}/unverify-phone', [App\Http\Controllers\Api\V1\Admin\UserController::class, 'unverifyPhone']);
-
-            Route::apiResource('attributes', AttributeController::class);
-            Route::apiResource('attribute-options', AttributeOptionController::class);
-        });
-
-        // --- Marketer, Admin, Super Admin Routes ---
-        Route::middleware('role:super_admin,admin,marketer')->group(function () {
-            Route::apiResource('categories', CategoryController::class);
-        });
-
         // --- Store Keeper, Admin, Super Admin Routes (Suppliers) ---
         Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
             Route::apiResource('suppliers', SupplierController::class);
@@ -99,7 +83,22 @@ Route::prefix('v1/admin')->group(function () {
             Route::get('/suppliers/{supplier}/products-count', [SupplierController::class, 'productsCount']);
             Route::get('/suppliers/{supplier}/products', [SupplierController::class, 'products']);
         });
-        
+
+        // --- Store Keeper, Admin, Super Admin Routes (Purchase Orders) ---
+        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
+            Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
+            Route::get('/purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'show']);
+            Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
+            Route::put('/purchase-orders/{purchase_order}/status', [PurchaseOrderController::class, 'updateStatus']);
+            Route::post('/purchase-orders/{purchase_order}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
+        });
+
+        // --- Super Admin Only Routes (Settings) ---
+        Route::middleware('role:super_admin')->group(function () {
+            Route::get('/settings', [SettingController::class, 'index']);
+            Route::post('/settings', [SettingController::class, 'update']);
+        });
+
         // ... (other roles will be added later) ...
     });
 });

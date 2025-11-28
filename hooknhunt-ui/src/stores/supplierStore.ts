@@ -14,9 +14,11 @@ interface ApiErrorResponse {
 
 interface SupplierState {
   suppliers: Supplier[];
+  supplierProducts: any[];
   isLoading: boolean;
   error: string | null;
   fetchSuppliers: () => Promise<void>;
+  getSupplierProducts: (supplierId: number) => Promise<void>;
   addSupplier: (data: CreateSupplierData) => Promise<void>;
   updateSupplier: (id: number, data: UpdateSupplierData) => Promise<void>;
   deleteSupplier: (id: number) => Promise<void>;
@@ -26,6 +28,7 @@ interface SupplierState {
 
 export const useSupplierStore = create<SupplierState>((set) => ({
   suppliers: [],
+  supplierProducts: [],
   isLoading: false,
   error: null,
 
@@ -40,6 +43,24 @@ export const useSupplierStore = create<SupplierState>((set) => ({
       console.error("Failed to fetch suppliers:", err);
       const errorMessage = (err instanceof Error) ? err.message : 'Failed to fetch suppliers';
       set((state) => ({ ...state, error: errorMessage, isLoading: false }));
+    }
+  },
+
+  getSupplierProducts: async (supplierId: number) => {
+    set((state) => ({ ...state, isLoading: true, error: null }));
+    try {
+      // API endpoint is GET /api/v1/admin/suppliers/{id}/products
+      const response = await apiClient.get(`/admin/suppliers/${supplierId}/products`);
+      set((state) => ({
+        ...state,
+        supplierProducts: response.data.data || response.data,
+        isLoading: false
+      }));
+    } catch (err: unknown) {
+      console.error("Failed to fetch supplier products:", err);
+      const errorMessage = (err instanceof Error) ? err.message : 'Failed to fetch supplier products';
+      set((state) => ({ ...state, error: errorMessage, isLoading: false }));
+      throw err;
     }
   },
 

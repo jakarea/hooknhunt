@@ -14,9 +14,12 @@ import SuppliersCreate from './pages/purchase/SuppliersCreate';
 import SuppliersEdit from './pages/purchase/SuppliersEdit';
 import { PurchaseNew } from './pages/purchase/PurchaseNew';
 import { PurchaseList } from './pages/purchase/PurchaseList';
+import { CreatePurchaseOrder } from './pages/purchase/CreatePurchaseOrder';
+import { PurchaseOrderDetails } from './pages/purchase/PurchaseOrderDetails';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
+import { GlobalSettings } from './pages/settings/GlobalSettings';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -47,12 +50,17 @@ function App() {
 
               {/* Purchase Routes */}
               <Route path="dashboard/purchase/new" element={<PurchaseNew />} />
+              <Route path="dashboard/purchase/create-order" element={<CreatePurchaseOrder />} />
               <Route path="dashboard/purchase/list" element={<PurchaseList />} />
+              <Route path="dashboard/purchase/:id" element={<PurchaseOrderDetails />} />
 
               {/* User Routes */}
               <Route path="dashboard/users" element={<Users />} />
               <Route path="dashboard/users/create" element={<UsersCreate />} />
               <Route path="dashboard/users/:id/edit" element={<UsersEdit />} />
+
+              {/* Settings Routes */}
+              <Route path="dashboard/settings" element={<GlobalSettings />} />
 
               {/* Add other protected routes here */}
             </Route>

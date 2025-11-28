@@ -11,6 +11,7 @@ import {
   Tag,
   Truck,
   Settings,
+  Settings2,
   LogOut,
   Menu,
   ChevronDown,
@@ -49,7 +50,7 @@ const menuItems: MenuItem[] = [
   {
     name: 'Attributes',
     path: '/dashboard/attributes',
-    icon: <Settings className="h-5 w-5" />,
+    icon: <Settings2 className="h-5 w-5" />,
     roles: ['super_admin', 'admin'],
   },
   {
@@ -88,6 +89,12 @@ const menuItems: MenuItem[] = [
     path: '/dashboard/orders',
     icon: <ShoppingCart className="h-5 w-5" />,
     roles: ['super_admin', 'admin', 'seller'],
+  },
+  {
+    name: 'Settings',
+    path: '/dashboard/settings',
+    icon: <Settings className="h-5 w-5" />,
+    roles: ['super_admin'], // Only super_admin can access Global Settings
   },
 ];
 
