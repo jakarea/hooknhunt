@@ -87,28 +87,28 @@ hooknhunt-ui/coverage/
 # ===========================
 
 # Dependencies
-frontend/node_modules/
+website/node_modules/
 
 # Environment files
-frontend/.env
-frontend/.env.local
-frontend/.env.development.local
-frontend/.env.test.local
-frontend/.env.production.local
+website/.env
+website/.env.local
+website/.env.development.local
+website/.env.test.local
+website/.env.production.local
 
 # Build output
-frontend/dist/
-frontend/dist-ssr/
-frontend/build/
+website/dist/
+website/dist-ssr/
+website/build/
 
 # Vite cache
-frontend/.vite/
+website/.vite/
 
 # TypeScript
-frontend/*.tsbuildinfo
+website/*.tsbuildinfo
 
 # Testing
-frontend/coverage/
+website/coverage/
 
 # ===========================
 # Next.js Website (hooknhunt/)
