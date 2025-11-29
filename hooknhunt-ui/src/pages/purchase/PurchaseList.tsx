@@ -11,7 +11,7 @@ import { usePurchaseStore } from '@/stores/purchaseStore';
 
 interface PurchaseOrder {
   id: number;
-  order_number?: string;
+  po_number?: string;
   supplier_id: number;
   supplier?: any;
   status: string;
@@ -214,7 +214,7 @@ export function PurchaseList() {
                 purchaseOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono">
-                      {order.order_number || `PO-${order.id}`}
+                      {order.po_number || `PO-${order.id}`}
                     </TableCell>
                     <TableCell>{order.supplier?.shop_name || 'Unknown'}</TableCell>
                     <TableCell>

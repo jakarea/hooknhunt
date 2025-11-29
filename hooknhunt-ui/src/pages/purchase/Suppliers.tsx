@@ -242,9 +242,7 @@ const Suppliers = () => {
                 <TableCell>{supplier.email || '--'}</TableCell>
                 <TableCell>
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">{supplier.wechat_id || '--'}</span>
-                    </div>
+                   
                     {supplier.wechat_qr_url ? (
                       <div
                         className="cursor-pointer hover:scale-110 transition-transform"
@@ -270,9 +268,7 @@ const Suppliers = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">{supplier.alipay_id || '--'}</span>
-                    </div>
+                    
                     {supplier.alipay_qr_url ? (
                       <div
                         className="cursor-pointer hover:scale-110 transition-transform"
@@ -346,17 +342,17 @@ const Suppliers = () => {
             <DialogTitle className="flex items-center gap-2">
               {qrPreview?.type === 'wechat' ? (
                 <>
-                  <div className="bg-green-100 p-2 rounded-lg">
-                    <QrCode className="h-5 w-5 text-green-600" />
+                  <div className="bg-green-100 p-2 rounded-lg flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-green-600" /> <span>WeChat QR Code</span>
                   </div>
-                  WeChat QR Code
+                  
                 </>
               ) : (
                 <>
-                  <div className="bg-blue-100 p-2 rounded-lg">
-                    <QrCode className="h-5 w-5 text-blue-600" />
+                  <div className="bg-blue-100 p-2 rounded-lg flex items-center gap-2">
+                    <QrCode className="h-5 w-5 text-blue-600" />  <span>Alipay QR Code</span>
                   </div>
-                  Alipay QR Code
+                 
                 </>
               )}
             </DialogTitle>

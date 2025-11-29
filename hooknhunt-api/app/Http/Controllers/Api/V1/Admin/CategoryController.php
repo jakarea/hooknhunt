@@ -28,7 +28,7 @@ class CategoryController extends Controller
             'name' => 'required|string|max:255|unique:categories',
             'slug' => 'required|string|max:255|unique:categories',
             'parent_id' => 'nullable|exists:categories,id',
-            'image' => 'nullable|file|image|max:15', // 15KB max
+            'image' => 'nullable|file|image|max:15360', // 15KB max
         ]);
 
         if ($validator->fails()) {

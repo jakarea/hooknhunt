@@ -7,6 +7,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\ProductVariant;
 use App\Models\Inventory;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -47,17 +48,21 @@ class PurchaseOrderController extends Controller
         try {
             DB::beginTransaction();
 
+            // Get default exchange rate from settings
+            $defaultExchangeRate = Setting::where('key', 'exchange_rate_rmb_bdt')->value('value') ?? 17.50;
+
             // Create purchase order with draft status
             $order = PurchaseOrder::create([
                 'supplier_id' => $request->supplier_id,
                 'status' => 'draft',
+                'exchange_rate' => $defaultExchangeRate,
                 'created_by' => auth()->id(),
             ]);
 
             // Create purchase order items
             foreach ($request->items as $itemData) {
                 PurchaseOrderItem::create([
-                    'po_id' => $order->id,
+                    'po_number' => $order->id,
                     'product_id' => $itemData['product_id'],
                     'product_variant_id' => $itemData['product_variant_id'] ?? null,
                     'china_price' => $itemData['china_price'],
@@ -96,7 +101,7 @@ class PurchaseOrderController extends Controller
     public function updateStatus(Request $request, PurchaseOrder $purchaseOrder)
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:draft,payment_confirmed,supplier_dispatched,shipped_bd,arrived_bd,in_transit_bogura,received_hub,completed,lost',
+            'status' => 'required|string|in:draft,payment_confirmed,supplier_dispatched,warehouse_received,shipped_bd,arrived_bd,in_transit_bogura,received_hub,completed,completed_partially,lost',
         ]);
 
         if ($validator->fails()) {
@@ -126,7 +131,7 @@ class PurchaseOrderController extends Controller
                     ]);
 
                     $purchaseOrder->exchange_rate = $request->exchange_rate;
-                    $purchaseOrder->order_number = PurchaseOrder::generateOrderNumber();
+                    $purchaseOrder->po_number = $purchaseOrder->generateOrderNumber();
                     break;
 
                 case 'supplier_dispatched':
@@ -140,6 +145,10 @@ class PurchaseOrderController extends Controller
                     $purchaseOrder->tracking_number = $request->tracking_number;
                     break;
 
+                case 'warehouse_received':
+                    // No input required, just status change
+                    break;
+
                 case 'shipped_bd':
                     // Validate and save lot number
                     $request->validate([
@@ -150,10 +159,14 @@ class PurchaseOrderController extends Controller
                     break;
 
                 case 'arrived_bd':
-                    // Optional: Update shipping costs for items
-                    if ($request->has('items')) {
-                        $this->updateItemShippingCosts($purchaseOrder, $request->items);
-                    }
+                    // Validate and save shipping method and cost
+                    $request->validate([
+                        'shipping_method' => 'required|string|in:air,sea',
+                        'shipping_cost' => 'required|numeric|min:0'
+                    ]);
+
+                    $purchaseOrder->shipping_method = $request->shipping_method;
+                    $purchaseOrder->shipping_cost = $request->shipping_cost;
                     break;
 
                 case 'in_transit_bogura':
@@ -293,23 +306,21 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Receive items and finalize the purchase order.
+     * Receive items at hub and update stock information.
      *
-     * This method handles the critical workflow step where Parent Products
-     * are split into Variants, landed costs are calculated, and inventory is updated.
+     * This method handles receiving stock with unit weight, extra weight, and lost quantities.
+     * Calculates total weight automatically and determines if order is completed or partially completed.
      */
     public function receiveItems(Request $request, PurchaseOrder $purchaseOrder)
     {
         $validator = Validator::make($request->all(), [
-            'extra_cost_global' => 'nullable|numeric|min:0',
-            'total_weight' => 'nullable|numeric|min:0',
+            'additional_cost' => 'nullable|numeric|min:0',
+            'total_weight' => 'required|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.po_item_id' => 'required|exists:purchase_order_items,id',
-            'items.*.shipping_cost' => 'required|numeric|min:0',
-            'items.*.lost_quantity' => 'required|integer|min:0',
-            'items.*.received_variants' => 'required|array|min:1',
-            'items.*.received_variants.*.variant_id' => 'required|exists:product_variants,id',
-            'items.*.received_variants.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_weight' => 'required|numeric|min:0',
+            'items.*.extra_weight' => 'nullable|numeric|min:0',
+            'items.*.lost_quantity' => 'nullable|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -323,105 +334,37 @@ class PurchaseOrderController extends Controller
             ], 422);
         }
 
-        // Validate exchange rate exists
-        if (!$purchaseOrder->exchange_rate) {
-            return response()->json([
-                'message' => 'Exchange rate must be set before receiving items'
-            ], 422);
-        }
-
         try {
             DB::beginTransaction();
 
-            // Update order with global data
-            $purchaseOrder->extra_cost_global = $request->extra_cost_global ?? 0;
-            $purchaseOrder->total_weight = $request->total_weight;
-            $purchaseOrder->status = 'received_hub';
+            // Check if any items have lost quantities
+            $hasLostItems = false;
+            foreach ($request->items as $itemData) {
+                if (($itemData['lost_quantity'] ?? 0) > 0) {
+                    $hasLostItems = true;
+                    break;
+                }
+            }
 
-            // Get total quantity for extra cost distribution
-            $totalOrderQuantity = $purchaseOrder->total_quantity;
-            $extraCostPerUnit = $totalOrderQuantity > 0
-                ? ($purchaseOrder->extra_cost_global ?? 0) / $totalOrderQuantity
-                : 0;
+            // Update purchase order status and global costs
+            $purchaseOrder->status = $hasLostItems ? 'completed_partially' : 'received_hub';
+            $purchaseOrder->extra_cost_global = $request->additional_cost ?? 0;
+            $purchaseOrder->total_weight = $request->total_weight;
 
             // Process each item
             foreach ($request->items as $itemData) {
-                // Get the draft purchase order item
                 $poItem = PurchaseOrderItem::findOrFail($itemData['po_item_id']);
 
                 // Validate this item belongs to the current order
-                if ($poItem->po_id !== $purchaseOrder->id) {
+                if ($poItem->po_number !== $purchaseOrder->id) {
                     throw new \Exception("Item {$itemData['po_item_id']} does not belong to this purchase order");
                 }
 
-                // Update item with shipping and loss data
-                $poItem->shipping_cost = $itemData['shipping_cost'];
-                $poItem->lost_quantity = $itemData['lost_quantity'];
-
-                // 1. Get Draft Data (already have from $poItem)
-                $originalQuantity = $poItem->quantity;
-                $chinaPrice = $poItem->china_price;
-                $exchangeRate = $purchaseOrder->exchange_rate;
-
-                // 2. Calculate Base Cost (BDT): china_price * exchange_rate * quantity
-                $baseCostBdt = $chinaPrice * $exchangeRate * $originalQuantity;
-
-                // 3. Add Costs: shipping_cost + allocated portion of extra_cost_global
-                $shippingCost = $itemData['shipping_cost'];
-                $allocatedExtraCost = $extraCostPerUnit * $originalQuantity;
-                $totalLineCost = $baseCostBdt + $shippingCost + $allocatedExtraCost;
-
-                // 4. Effective Qty: quantity - lost_quantity
-                $effectiveQuantity = $originalQuantity - $itemData['lost_quantity'];
-
-                if ($effectiveQuantity > 0) {
-                    // 5. Calculate Unit Cost (Landed): Total Line Cost / Effective Qty
-                    $landedCostPerUnit = $totalLineCost / $effectiveQuantity;
-
-                    // Update the PO item with final landed cost
-                    $poItem->final_unit_cost = $landedCostPerUnit;
-                    $poItem->save();
-
-                    // 6. Update Variants & Inventory
-                    $totalReceivedQuantity = 0;
-                    foreach ($itemData['received_variants'] as $variantData) {
-                        $variantId = $variantData['variant_id'];
-                        $variantQuantity = $variantData['quantity'];
-                        $totalReceivedQuantity += $variantQuantity;
-
-                        // Update landed cost in product_variants table
-                        $productVariant = ProductVariant::find($variantId);
-                        if ($productVariant) {
-                            $productVariant->landed_cost = $landedCostPerUnit;
-                            $productVariant->save();
-                        }
-
-                        // Update or create inventory record
-                        $inventory = Inventory::where('product_variant_id', $variantId)->first();
-                        if (!$inventory) {
-                            $inventory = Inventory::create([
-                                'product_variant_id' => $variantId,
-                                'quantity' => 0,
-                                'reserved_quantity' => 0,
-                                'available_quantity' => 0,
-                                'low_stock_threshold' => 10, // Default threshold
-                                'last_updated_at' => now(),
-                            ]);
-                        }
-
-                        // Increment inventory quantity
-                        $inventory->addStock($variantQuantity);
-                    }
-
-                    // Validate that received quantities match effective quantity
-                    if ($totalReceivedQuantity !== $effectiveQuantity) {
-                        throw new \Exception("Received quantities ({$totalReceivedQuantity}) do not match effective quantity ({$effectiveQuantity}) for item {$poItem->id}");
-                    }
-                } else {
-                    // All items lost, still update final cost as 0
-                    $poItem->final_unit_cost = 0;
-                    $poItem->save();
-                }
+                // Update item with receive stock data
+                $poItem->unit_weight = $itemData['unit_weight'];
+                $poItem->extra_weight = $itemData['extra_weight'] ?? 0;
+                $poItem->lost_quantity = $itemData['lost_quantity'] ?? 0;
+                $poItem->save();
             }
 
             $purchaseOrder->save();

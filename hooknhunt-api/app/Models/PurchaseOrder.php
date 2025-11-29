@@ -9,12 +9,14 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class PurchaseOrder extends Model
 {
     protected $fillable = [
-        'order_number',
+        'po_number',
         'supplier_id',
         'exchange_rate',
         'courier_name',
         'tracking_number',
         'lot_number',
+        'shipping_method',
+        'shipping_cost',
         'total_weight',
         'extra_cost_global',
         'bd_courier_tracking',
@@ -24,6 +26,7 @@ class PurchaseOrder extends Model
 
     protected $casts = [
         'exchange_rate' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
         'total_weight' => 'decimal:2',
         'extra_cost_global' => 'decimal:2',
         'created_at' => 'datetime',
@@ -38,7 +41,7 @@ class PurchaseOrder extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(PurchaseOrderItem::class);
+        return $this->hasMany(PurchaseOrderItem::class, 'po_number');
     }
 
     public function createdBy(): BelongsTo
@@ -119,6 +122,11 @@ class PurchaseOrder extends Model
         return $this->status === 'supplier_dispatched';
     }
 
+    public function isWarehouseReceived(): bool
+    {
+        return $this->status === 'warehouse_received';
+    }
+
     public function isShippedBd(): bool
     {
         return $this->status === 'shipped_bd';
@@ -157,11 +165,13 @@ class PurchaseOrder extends Model
         $allowedTransitions = [
             'draft' => ['payment_confirmed', 'lost'],
             'payment_confirmed' => ['supplier_dispatched', 'lost'],
-            'supplier_dispatched' => ['shipped_bd', 'lost'],
+            'supplier_dispatched' => ['warehouse_received', 'lost'],
+            'warehouse_received' => ['shipped_bd', 'lost'],
             'shipped_bd' => ['arrived_bd', 'lost'],
             'arrived_bd' => ['in_transit_bogura', 'lost'],
-            'in_transit_bogura' => ['received_hub', 'lost'],
+            'in_transit_bogura' => ['received_hub', 'completed_partially', 'lost'],
             'received_hub' => ['completed', 'lost'],
+            'completed_partially' => [], // Final status (partial completion due to lost items)
             'completed' => [], // Final status
             'lost' => [], // Final status
         ];
@@ -170,11 +180,10 @@ class PurchaseOrder extends Model
     }
 
     // Generate order number
-    public static function generateOrderNumber(): string
+    // Format: PO-{Year}{Month}-{ID} (e.g., PO-202511-15)
+    public function generateOrderNumber(): string
     {
-        $date = now()->format('Ymd');
-        $sequence = static::whereDate('created_at', now()->toDateString())->count() + 1;
-
-        return "PO-{$date}-{$sequence}";
+        $yearMonth = now()->format('Ym');
+        return "PO-{$yearMonth}-{$this->id}";
     }
 }

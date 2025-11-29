@@ -69,14 +69,6 @@ const Categories = () => {
     }
   };
 
-  const formatImageUrl = (url: string | null | undefined) => {
-    if (!url) return null;
-    // If it's already a full URL, return as is
-    if (url.startsWith('http')) return url;
-    // Otherwise, prepend the storage URL
-    return `${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/storage/${url}`;
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       {/* Header */}
@@ -170,7 +162,7 @@ const Categories = () => {
                         <div className="w-12 h-12">
                           {category.image_url ? (
                             <img
-                              src={formatImageUrl(category.image_url)}
+                              src={category.image_url}
                               alt={category.name}
                               className="w-12 h-12 object-cover rounded-md border border-gray-200"
                               onError={(e) => {

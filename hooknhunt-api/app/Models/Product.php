@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -22,6 +23,16 @@ class Product extends Model
     protected $casts = [
         'gallery_images' => 'array',
     ];
+
+    /**
+     * Get the full URL for the base thumbnail.
+     */
+    protected function baseThumbnailUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => $value ? url('storage/' . $value) : null,
+        );
+    }
 
     /**
      * Get the suppliers for the product.

@@ -6,41 +6,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
-import { Plus, Trash2, Package, ChevronRight, CheckCircle, Circle, Truck, Ship, Home, Clock, DollarSign } from 'lucide-react';
+import { Package, CheckCircle, Circle, Truck, Ship, Home, DollarSign } from 'lucide-react';
 
 import { usePurchaseStore } from '@/stores/purchaseStore';
 import { useSettingStore } from '@/stores/settingStore';
-
-// Types
-interface ProductVariant {
-  id: number;
-  sku?: string;
-  retail_name?: string;
-  wholesale_name?: string;
-}
-
-interface OrderItemWithVariants {
-  po_item_id: number;
-  product_id: number;
-  product: any;
-  china_price: number;
-  quantity: number;
-  shipping_cost: number;
-  lost_quantity: number;
-  received_variants: Array<{
-    variant_id: number;
-    quantity: number;
-    variant?: ProductVariant;
-  }>;
-}
 
 // Form types - using type inference from Zod schema
 
@@ -49,11 +25,13 @@ const workflowSteps = [
   { key: 'draft', label: 'Draft', icon: Circle },
   { key: 'payment_confirmed', label: 'Payment', icon: DollarSign },
   { key: 'supplier_dispatched', label: 'Dispatched', icon: Truck },
+  { key: 'warehouse_received', label: 'Warehouse Received', icon: Package },
   { key: 'shipped_bd', label: 'Shipped BD', icon: Ship },
   { key: 'arrived_bd', label: 'Arrived BD', icon: Home },
   { key: 'in_transit_bogura', label: 'Transit Bogura', icon: Truck },
   { key: 'received_hub', label: 'Received', icon: Package },
   { key: 'completed', label: 'Completed', icon: CheckCircle },
+  { key: 'completed_partially', label: 'Partially Completed', icon: CheckCircle },
 ];
 
 // Validation schemas
@@ -70,30 +48,44 @@ const shippedFormSchema = z.object({
   lot_number: z.string().min(1, 'Lot number is required'),
 });
 
+const arrivedFormSchema = z.object({
+  shipping_method: z.enum(['air', 'sea'], {
+    required_error: 'Shipping method is required',
+  }),
+  shipping_cost: z.string().min(1, 'Shipping cost is required'),
+});
+
 const transitFormSchema = z.object({
   bd_courier_tracking: z.string().min(1, 'BD courier tracking is required'),
 });
 
 const receiveStockFormSchema = z.object({
-  total_weight: z.string().optional(),
-  extra_cost_global: z.string().optional(),
+  additional_cost: z.string().optional(),
+  items: z.array(z.object({
+    po_item_id: z.number(),
+    unit_weight: z.string().min(1, 'Unit weight is required'),
+    extra_weight: z.string().optional(),
+    lost_quantity: z.string().optional(),
+  })).optional(),
 });
 
 type PaymentFormData = z.infer<typeof paymentFormSchema>;
 type DispatchFormData = z.infer<typeof dispatchFormSchema>;
 type ShippedFormData = z.infer<typeof shippedFormSchema>;
+type ArrivedFormData = z.infer<typeof arrivedFormSchema>;
 type TransitFormData = z.infer<typeof transitFormSchema>;
 type ReceiveStockFormData = z.infer<typeof receiveStockFormSchema>;
 
 export function PurchaseOrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentOrder, fetchOrder, updateStatus, receiveItems, isLoading } = usePurchaseStore();
+  const { currentOrder, fetchOrder, updateStatus, updateOrderStatus, receiveItems, isLoading } = usePurchaseStore();
   const { settings } = useSettingStore();
 
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDispatchDialog, setShowDispatchDialog] = useState(false);
   const [showShippedDialog, setShowShippedDialog] = useState(false);
+  const [showArrivedDialog, setShowArrivedDialog] = useState(false);
   const [showTransitDialog, setShowTransitDialog] = useState(false);
   const [showReceiveStockDialog, setShowReceiveStockDialog] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -102,11 +94,19 @@ export function PurchaseOrderDetails() {
   const paymentForm = useForm<PaymentFormData>({ resolver: zodResolver(paymentFormSchema) });
   const dispatchForm = useForm<DispatchFormData>({ resolver: zodResolver(dispatchFormSchema) });
   const shippedForm = useForm<ShippedFormData>({ resolver: zodResolver(shippedFormSchema) });
+  const arrivedForm = useForm<ArrivedFormData>({ resolver: zodResolver(arrivedFormSchema) });
   const transitForm = useForm<TransitFormData>({ resolver: zodResolver(transitFormSchema) });
   const receiveStockForm = useForm<ReceiveStockFormData>({ resolver: zodResolver(receiveStockFormSchema) });
 
-  // Receive stock form state
-  const [receiveStockItems, setReceiveStockItems] = useState<OrderItemWithVariants[]>([]);
+  // State for receive stock items
+  const [receiveStockItems, setReceiveStockItems] = useState<Array<{
+    po_item_id: number;
+    product_name: string;
+    quantity: number;
+    unit_weight: string;
+    extra_weight: string;
+    lost_quantity: string;
+  }>>([]);
 
   useEffect(() => {
     if (id) {
@@ -114,19 +114,17 @@ export function PurchaseOrderDetails() {
     }
   }, [id, fetchOrder]);
 
+  // Initialize receive items when order is loaded
   useEffect(() => {
     if (currentOrder?.items) {
-      const initialItems: OrderItemWithVariants[] = currentOrder.items.map(item => ({
+      setReceiveStockItems(currentOrder.items.map(item => ({
         po_item_id: item.id,
-        product_id: item.product_id,
-        product: item.product,
-        china_price: item.china_price,
+        product_name: item.product?.base_name || 'Unknown Product',
         quantity: item.quantity,
-        shipping_cost: item.shipping_cost || 0,
-        lost_quantity: 0,
-        received_variants: [],
-      }));
-      setReceiveStockItems(initialItems);
+        unit_weight: '',
+        extra_weight: '0',
+        lost_quantity: '0',
+      })));
     }
   }, [currentOrder]);
 
@@ -135,11 +133,13 @@ export function PurchaseOrderDetails() {
       draft: 'bg-gray-100 text-gray-800',
       payment_confirmed: 'bg-blue-100 text-blue-800',
       supplier_dispatched: 'bg-yellow-100 text-yellow-800',
+      warehouse_received: 'bg-cyan-100 text-cyan-800',
       shipped_bd: 'bg-orange-100 text-orange-800',
       arrived_bd: 'bg-purple-100 text-purple-800',
       in_transit_bogura: 'bg-indigo-100 text-indigo-800',
       received_hub: 'bg-green-100 text-green-800',
       completed: 'bg-green-600 text-white',
+      completed_partially: 'bg-amber-500 text-white',
       lost: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -151,8 +151,9 @@ export function PurchaseOrderDetails() {
     const actions: Record<string, { label: string; action: () => void; disabled: boolean }> = {
       draft: { label: 'Confirm Payment', action: () => setShowPaymentDialog(true), disabled: false },
       payment_confirmed: { label: 'Mark as Dispatched', action: () => setShowDispatchDialog(true), disabled: false },
-      supplier_dispatched: { label: 'Mark as Shipped BD', action: () => setShowShippedDialog(true), disabled: false },
-      shipped_bd: { label: 'Mark as Arrived BD', action: () => handleStatusUpdate('arrived_bd'), disabled: false },
+      supplier_dispatched: { label: 'Mark as Warehouse Received', action: () => handleStatusUpdate('warehouse_received'), disabled: false },
+      warehouse_received: { label: 'Mark as Shipped BD', action: () => setShowShippedDialog(true), disabled: false },
+      shipped_bd: { label: 'Mark as Arrived BD', action: () => setShowArrivedDialog(true), disabled: false },
       arrived_bd: { label: 'Mark as Transit Bogura', action: () => setShowTransitDialog(true), disabled: false },
       in_transit_bogura: { label: 'Receive Stock', action: () => setShowReceiveStockDialog(true), disabled: false },
       received_hub: { label: 'Mark as Completed', action: () => handleStatusUpdate('completed'), disabled: false },
@@ -163,18 +164,23 @@ export function PurchaseOrderDetails() {
     return actions[currentOrder.status] || { label: 'Unknown Status', action: () => {}, disabled: true };
   };
 
-  const handleStatusUpdate = async (status: string, data?: any) => {
+  const handleStatusUpdate = async (status: string, payload?: any) => {
     if (!currentOrder) return;
 
     setProcessing(true);
     try {
-      await updateStatus(currentOrder.id, status, data);
+      await updateOrderStatus(currentOrder.id, status, payload);
       toast({
         title: 'Success',
         description: `Order status updated to ${status.replace('_', ' ')}`,
       });
     } catch (error: any) {
       console.error('Failed to update status:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update order status',
+        variant: 'destructive',
+      });
     } finally {
       setProcessing(false);
     }
@@ -205,6 +211,15 @@ export function PurchaseOrderDetails() {
     shippedForm.reset();
   };
 
+  const handleArrivedSubmit = async (data: ArrivedFormData) => {
+    await handleStatusUpdate('arrived_bd', {
+      shipping_method: data.shipping_method,
+      shipping_cost: parseFloat(data.shipping_cost),
+    });
+    setShowArrivedDialog(false);
+    arrivedForm.reset();
+  };
+
   const handleTransitSubmit = async (data: TransitFormData) => {
     await handleStatusUpdate('in_transit_bogura', {
       bd_courier_tracking: data.bd_courier_tracking,
@@ -213,130 +228,59 @@ export function PurchaseOrderDetails() {
     transitForm.reset();
   };
 
-  const addVariantRow = (itemIndex: number) => {
+  const updateReceiveItem = (index: number, field: string, value: string) => {
     setReceiveStockItems(items =>
-      items.map((item, index) =>
-        index === itemIndex
-          ? {
-              ...item,
-              received_variants: [...item.received_variants, { variant_id: 0, quantity: 1 }],
-            }
-          : item
-      )
+      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
     );
-  };
-
-  const updateVariantRow = (itemIndex: number, variantIndex: number, field: 'variant_id' | 'quantity', value: any) => {
-    setReceiveStockItems(items =>
-      items.map((item, i) =>
-        i === itemIndex
-          ? {
-              ...item,
-              received_variants: item.received_variants.map((variant, vi) =>
-                vi === variantIndex
-                  ? { ...variant, [field]: field === 'quantity' ? parseInt(value) || 0 : value }
-                  : variant
-              ),
-            }
-          : item
-      )
-    );
-  };
-
-  const removeVariantRow = (itemIndex: number, variantIndex: number) => {
-    setReceiveStockItems(items =>
-      items.map((item, index) =>
-        index === itemIndex
-          ? {
-              ...item,
-              received_variants: item.received_variants.filter((_, vi) => vi !== variantIndex),
-            }
-          : item
-      )
-    );
-  };
-
-  const updateLostQuantity = (itemIndex: number, value: number) => {
-    setReceiveStockItems(items =>
-      items.map((item, index) =>
-        index === itemIndex ? { ...item, lost_quantity: Math.max(0, value) } : item
-      )
-    );
-  };
-
-  const updateShippingCost = (itemIndex: number, value: number) => {
-    setReceiveStockItems(items =>
-      items.map((item, index) =>
-        index === itemIndex ? { ...item, shipping_cost: Math.max(0, value) } : item
-      )
-    );
-  };
-
-  const validateReceiveStock = () => {
-    let isValid = true;
-    const errors: string[] = [];
-
-    for (const item of receiveStockItems) {
-      const totalVariantQuantity = item.received_variants.reduce((sum, v) => sum + v.quantity, 0);
-      const totalQuantity = totalVariantQuantity + item.lost_quantity;
-
-      if (totalQuantity !== item.quantity) {
-        isValid = false;
-        errors.push(`Item "${item.product?.base_name}" quantities don't add up`);
-      }
-
-      if (item.received_variants.length > 0) {
-        for (const variant of item.received_variants) {
-          if (variant.variant_id === 0) {
-            isValid = false;
-            errors.push(`Please select a variant for all rows`);
-            break;
-          }
-        }
-      }
-    }
-
-    return { isValid, errors };
   };
 
   const handleReceiveStockSubmit = async (data: ReceiveStockFormData) => {
     if (!currentOrder) return;
 
-    const validation = validateReceiveStock();
-    if (!validation.isValid) {
-      toast({
-        title: 'Validation Error',
-        description: validation.errors.join(', '),
-        variant: 'destructive',
-      });
-      return;
-    }
-
     setProcessing(true);
     try {
+      // Calculate total weight from all items
+      const totalWeight = receiveStockItems.reduce((sum, item) => {
+        const unitWeight = parseFloat(item.unit_weight) || 0;
+        const extraWeight = parseFloat(item.extra_weight) || 0;
+        const quantity = item.quantity;
+        return sum + ((unitWeight + extraWeight) * quantity);
+      }, 0);
+
+      // Check if any items are lost
+      const hasLostItems = receiveStockItems.some(item => parseFloat(item.lost_quantity || '0') > 0);
+
+      // Prepare payload
       const payload = {
-        total_weight: data.total_weight ? parseFloat(data.total_weight) : undefined,
-        extra_cost_global: data.extra_cost_global ? parseFloat(data.extra_cost_global) : undefined,
+        total_weight: totalWeight,
+        extra_cost_global: parseFloat(data.additional_cost || '0'),
         items: receiveStockItems.map(item => ({
           po_item_id: item.po_item_id,
-          shipping_cost: item.shipping_cost,
-          lost_quantity: item.lost_quantity,
-          received_variants: item.received_variants.map(v => ({
-            variant_id: v.variant_id,
-            quantity: v.quantity,
-          })),
+          unit_weight: parseFloat(item.unit_weight),
+          extra_weight: parseFloat(item.extra_weight || '0'),
+          lost_quantity: parseFloat(item.lost_quantity || '0'),
         })),
+        status: hasLostItems ? 'completed_partially' : 'received_hub',
       };
+
+      console.log('Receive stock payload:', payload);
 
       await receiveItems(currentOrder.id, payload);
       toast({
         title: 'Success',
-        description: 'Stock received and inventory updated successfully',
+        description: hasLostItems
+          ? 'Stock received with partial loss and marked as partially completed'
+          : 'Stock received and inventory updated successfully',
       });
       setShowReceiveStockDialog(false);
       receiveStockForm.reset();
     } catch (error: any) {
       console.error('Failed to receive items:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to receive stock',
+        variant: 'destructive',
+      });
     } finally {
       setProcessing(false);
     }
@@ -375,7 +319,7 @@ export function PurchaseOrderDetails() {
             <div>
               <CardTitle className="flex items-center gap-3">
                 <span>
-                  {currentOrder.order_number || `PO-${currentOrder.id}`}
+                  {currentOrder.po_number || `PO-${currentOrder.id}`}
                 </span>
                 <Badge className={getStatusColor(currentOrder.status)}>
                   {currentOrder.status.replace('_', ' ')}
@@ -395,40 +339,150 @@ export function PurchaseOrderDetails() {
         </CardHeader>
       </Card>
 
-      {/* Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between overflow-x-auto pb-2">
-            {workflowSteps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = index <= currentStepIndex;
-              const isCurrent = index === currentStepIndex;
+      {/* Timeline and Order Items - Side by Side Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Timeline Sidebar */}
+        <div className="lg:col-span-4">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Order Timeline</CardTitle>
+              <CardDescription>Track order progress</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Vertical Timeline */}
+              <div className="space-y-6">
+                {workflowSteps.map((step, index) => {
+                  const Icon = step.icon;
+                  const isActive = index <= currentStepIndex;
+                  const isCurrent = index === currentStepIndex;
+                  const isCompleted = index < currentStepIndex;
 
-              return (
-                <div key={step.key} className="flex items-center">
-                  <div className={`flex flex-col items-center ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                      isActive ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground'
-                    }`}>
-                      <Icon className="w-5 h-5" />
+                  // Get step-specific data
+                  let stepData: { label: string; value: string }[] = [];
+
+                  if (isActive) {
+                    if (step.key === 'draft') {
+                      stepData = [
+                        { label: 'Created', value: new Date(currentOrder.created_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'payment_confirmed' && currentOrder.exchange_rate) {
+                      stepData = [
+                        { label: 'PO Number', value: currentOrder.po_number || 'N/A' },
+                        { label: 'Exchange Rate', value: `1 RMB = ৳${currentOrder.exchange_rate}` },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'supplier_dispatched' && currentOrder.courier_name) {
+                      stepData = [
+                        { label: 'Courier', value: currentOrder.courier_name },
+                        { label: 'Tracking #', value: currentOrder.tracking_number || 'N/A' },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'warehouse_received') {
+                      stepData = [
+                        { label: 'Status', value: 'Received at Warehouse' },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'shipped_bd' && currentOrder.lot_number) {
+                      stepData = [
+                        { label: 'Lot Number', value: currentOrder.lot_number },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'arrived_bd' && currentOrder.shipping_method) {
+                      stepData = [
+                        { label: 'Shipping Method', value: currentOrder.shipping_method === 'air' ? 'Air' : 'Sea' },
+                        { label: 'Shipping Cost', value: `৳${currentOrder.shipping_cost || 0}` },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'in_transit_bogura' && currentOrder.bd_courier_tracking) {
+                      stepData = [
+                        { label: 'BD Tracking', value: currentOrder.bd_courier_tracking },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'received_hub' && currentOrder.total_weight) {
+                      stepData = [
+                        { label: 'Weight', value: `${currentOrder.total_weight} kg` },
+                        { label: 'Extra Cost', value: `৳${currentOrder.extra_cost_global || 0}` },
+                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                    else if (step.key === 'completed' && isCompleted) {
+                      stepData = [
+                        { label: 'Status', value: 'Completed' },
+                        { label: 'Completed', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
+                  }
+
+                  return (
+                    <div key={step.key} className="relative">
+                      <div className="flex items-start gap-3">
+                        {/* Icon and vertical line */}
+                        <div className="flex flex-col items-center">
+                          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 flex-shrink-0 ${
+                            isCompleted ? 'border-green-600 bg-green-600 text-white' :
+                            isCurrent ? 'border-primary bg-primary text-primary-foreground' :
+                            isActive ? 'border-primary bg-primary text-primary-foreground' :
+                            'border-muted-foreground bg-background'
+                          }`}>
+                            {isCompleted ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : (
+                              <Icon className="w-5 h-5" />
+                            )}
+                          </div>
+                          {index < workflowSteps.length - 1 && (
+                            <div className={`w-0.5 h-full min-h-[60px] mt-2 ${
+                              isCompleted ? 'bg-green-600' :
+                              isActive && !isCurrent ? 'bg-primary' :
+                              'bg-muted-foreground/30'
+                            }`} />
+                          )}
+                        </div>
+
+                        {/* Step content */}
+                        <div className="flex-1 pb-6">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className={`text-sm font-semibold ${
+                              isActive ? 'text-foreground' : 'text-muted-foreground'
+                            }`}>
+                              {step.label}
+                            </h4>
+                            {isCurrent && (
+                              <Badge variant="default" className="text-xs">Current</Badge>
+                            )}
+                          </div>
+
+                          {/* Step details */}
+                          {stepData.length > 0 && (
+                            <div className="space-y-1">
+                              {stepData.map((data, idx) => (
+                                <div key={idx} className="text-xs">
+                                  <span className="text-muted-foreground">{data.label}:</span>{' '}
+                                  <span className="font-medium text-foreground">{data.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className="text-xs font-medium mt-1 whitespace-nowrap">{step.label}</span>
-                  </div>
-                  {index < workflowSteps.length - 1 && (
-                    <ChevronRight className={`w-4 h-4 mx-2 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Order Items */}
-      <Card>
+        {/* Order Items */}
+        <div className="lg:col-span-8">
+          <Card>
         <CardHeader>
           <CardTitle>Order Items</CardTitle>
           <CardDescription>
@@ -449,38 +503,46 @@ export function PurchaseOrderDetails() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentOrder.items?.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {item.product?.base_thumbnail_url ? (
-                        <img
-                          src={item.product.base_thumbnail_url}
-                          alt={item.product.base_name}
-                          className="h-10 w-10 object-cover rounded"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
-                          <Package className="w-4 h-4 text-gray-400" />
+              {currentOrder.items?.map((item) => {
+                const chinaPrice = parseFloat(item.china_price) || 0;
+                const quantity = parseInt(item.quantity) || 0;
+                const shippingCost = parseFloat(item.shipping_cost) || 0;
+
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        {item.product?.base_thumbnail_url ? (
+                          <img
+                            src={item.product.base_thumbnail_url}
+                            alt={item.product.base_name}
+                            className="h-10 w-10 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                            <Package className="w-4 h-4 text-gray-400" />
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium">{item.product?.base_name || 'Unknown Product'}</div>
                         </div>
-                      )}
-                      <div>
-                        <div className="font-medium">{item.product?.base_name}</div>
                       </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>¥{item.china_price.toFixed(2)}</TableCell>
-                  <TableCell>{item.quantity}</TableCell>
-                  <TableCell>¥{(item.china_price * item.quantity).toFixed(2)}</TableCell>
-                  {(currentOrder.status === 'arrived_bd' || ['in_transit_bogura', 'received_hub', 'completed'].includes(currentOrder.status)) && (
-                    <TableCell>${(item.shipping_cost || 0).toFixed(2)}</TableCell>
-                  )}
-                </TableRow>
-              ))}
+                    </TableCell>
+                    <TableCell>¥{chinaPrice.toFixed(2)}</TableCell>
+                    <TableCell>{quantity}</TableCell>
+                    <TableCell>¥{(chinaPrice * quantity).toFixed(2)}</TableCell>
+                    {(currentOrder.status === 'arrived_bd' || ['in_transit_bogura', 'received_hub', 'completed'].includes(currentOrder.status)) && (
+                      <TableCell>${shippingCost.toFixed(2)}</TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
-      </Card>
+          </Card>
+        </div>
+      </div>
 
       {/* Payment Confirmation Dialog */}
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
@@ -612,6 +674,69 @@ export function PurchaseOrderDetails() {
         </DialogContent>
       </Dialog>
 
+      {/* Arrived BD Dialog */}
+      <Dialog open={showArrivedDialog} onOpenChange={setShowArrivedDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark as Arrived in Bangladesh</DialogTitle>
+            <DialogDescription>
+              Enter shipping method and cost
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...arrivedForm}>
+            <form onSubmit={arrivedForm.handleSubmit(handleArrivedSubmit)} className="space-y-4">
+              <FormField
+                control={arrivedForm.control}
+                name="shipping_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Shipping Method</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select shipping method" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="air">Air</SelectItem>
+                        <SelectItem value="sea">Sea</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={arrivedForm.control}
+                name="shipping_cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Shipping Cost (BDT)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="5000.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowArrivedDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={processing}>
+                  {processing ? 'Processing...' : 'Mark as Arrived'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
       {/* Transit Bogura Dialog */}
       <Dialog open={showTransitDialog} onOpenChange={setShowTransitDialog}>
         <DialogContent>
@@ -651,133 +776,124 @@ export function PurchaseOrderDetails() {
 
       {/* Receive Stock Dialog */}
       <Dialog open={showReceiveStockDialog} onOpenChange={setShowReceiveStockDialog}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Receive Stock</DialogTitle>
+            <DialogTitle>Receive Stock at Hub</DialogTitle>
             <DialogDescription>
-              Split products into variants and add to inventory
+              Enter details for each item. Additional cost will be distributed across all units.
             </DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-6">
-            {receiveStockItems.map((item, itemIndex) => (
-              <Card key={item.po_item_id}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{item.product?.base_name}</CardTitle>
-                  <CardDescription>
-                    Ordered: {item.quantity} pcs | RMB Price: ¥{item.china_price.toFixed(2)}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Shipping Cost */}
-                  <div>
-                    <label className="text-sm font-medium">Shipping Cost (USD)</label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.shipping_cost}
-                      onChange={(e) => updateShippingCost(itemIndex, parseFloat(e.target.value) || 0)}
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  {/* Lost Quantity */}
-                  <div>
-                    <label className="text-sm font-medium">Lost Quantity</label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max={item.quantity}
-                      value={item.lost_quantity}
-                      onChange={(e) => updateLostQuantity(itemIndex, parseInt(e.target.value) || 0)}
-                      placeholder="0"
-                    />
-                  </div>
-
-                  {/* Variant Rows */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-sm font-medium">Received Variants</label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addVariantRow(itemIndex)}
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add Variant
-                      </Button>
-                    </div>
-
-                    {item.received_variants.map((variant, variantIndex) => (
-                      <div key={variantIndex} className="flex gap-2 items-center">
-                        <Select
-                          value={variant.variant_id.toString()}
-                          onValueChange={(value) => updateVariantRow(itemIndex, variantIndex, 'variant_id', parseInt(value))}
-                        >
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Select variant" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {/* This would need to be populated with actual variants */}
-                            <SelectItem value="1">Red-M</SelectItem>
-                            <SelectItem value="2">Red-L</SelectItem>
-                            <SelectItem value="3">Blue-M</SelectItem>
-                            <SelectItem value="4">Blue-L</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <Input
-                          type="number"
-                          min="1"
-                          value={variant.quantity}
-                          onChange={(e) => updateVariantRow(itemIndex, variantIndex, 'quantity', parseInt(e.target.value) || 0)}
-                          placeholder="Qty"
-                          className="w-20"
-                        />
-
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeVariantRow(itemIndex, variantIndex)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+          <Form {...receiveStockForm}>
+            <form onSubmit={receiveStockForm.handleSubmit(handleReceiveStockSubmit)} className="space-y-6">
+              {/* Items Table */}
+              <div className="border rounded-lg overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Product</TableHead>
+                      <TableHead className="text-center">Qty</TableHead>
+                      <TableHead>Unit Weight (kg)</TableHead>
+                      <TableHead>Extra Weight (kg)</TableHead>
+                      <TableHead>Lost Qty</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {receiveStockItems.map((item, index) => (
+                      <TableRow key={item.po_item_id}>
+                        <TableCell className="font-medium">{item.product_name}</TableCell>
+                        <TableCell className="text-center">{item.quantity}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={item.unit_weight}
+                            onChange={(e) => updateReceiveItem(index, 'unit_weight', e.target.value)}
+                            className="w-24"
+                            required
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            value={item.extra_weight}
+                            onChange={(e) => updateReceiveItem(index, 'extra_weight', e.target.value)}
+                            className="w-24"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            min="0"
+                            max={item.quantity}
+                            placeholder="0"
+                            value={item.lost_quantity}
+                            onChange={(e) => updateReceiveItem(index, 'lost_quantity', e.target.value)}
+                            className="w-20"
+                          />
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-
-                  {/* Validation Summary */}
-                  <div className="text-sm text-muted-foreground">
-                    Total: {item.received_variants.reduce((sum, v) => sum + v.quantity, 0)} pcs + {item.lost_quantity} pcs lost = {(item.received_variants.reduce((sum, v) => sum + v.quantity, 0) + item.lost_quantity)} pcs (Expected: {item.quantity} pcs)
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-
-            {/* Global fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Total Weight (kg)</label>
-                <Input type="number" step="0.01" min="0" placeholder="0.00" />
+                  </TableBody>
+                </Table>
               </div>
-              <div>
-                <label className="text-sm font-medium">Extra Cost (BDT)</label>
-                <Input type="number" step="0.01" min="0" placeholder="0.00" />
-              </div>
-            </div>
-          </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowReceiveStockDialog(false)}>
-              Cancel
-            </Button>
-            <Button type="button" onClick={receiveStockForm.handleSubmit(handleReceiveStockSubmit)} disabled={processing}>
-              {processing ? 'Processing...' : 'Finalize & Add to Inventory'}
-            </Button>
-          </DialogFooter>
+              {/* Summary */}
+              <div className="bg-muted p-4 rounded-lg space-y-2">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Total Weight:</span>{' '}
+                    <span>
+                      {receiveStockItems.reduce((sum, item) => {
+                        const unitWeight = parseFloat(item.unit_weight) || 0;
+                        const extraWeight = parseFloat(item.extra_weight) || 0;
+                        return sum + ((unitWeight + extraWeight) * item.quantity);
+                      }, 0).toFixed(2)} kg
+                    </span>
+                  </div>
+                  <div>
+                    <span className="font-medium">Total Lost Items:</span>{' '}
+                    <span>
+                      {receiveStockItems.reduce((sum, item) => sum + (parseFloat(item.lost_quantity) || 0), 0)} pcs
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Cost */}
+              <FormField
+                control={receiveStockForm.control}
+                name="additional_cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Additional Cost (BDT) - Will be distributed to all units</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowReceiveStockDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={processing}>
+                  {processing ? 'Processing...' : 'Receive Stock'}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>

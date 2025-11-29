@@ -41,12 +41,7 @@ const menuItems: MenuItem[] = [
     icon: <Users className="h-5 w-5" />,
     roles: ['super_admin', 'admin'],
   },
-  {
-    name: 'Categories',
-    path: '/dashboard/categories',
-    icon: <Tag className="h-5 w-5" />,
-    roles: ['super_admin', 'admin', 'marketer'],
-  },
+
   {
     name: 'Attributes',
     path: '/dashboard/attributes',
@@ -75,6 +70,12 @@ const menuItems: MenuItem[] = [
         path: '/dashboard/suppliers',
         icon: <Truck className="h-5 w-5" />, // Icon for Suppliers
         roles: ['super_admin', 'admin', 'store_keeper'],
+      },
+      {
+        name: 'Categories',
+        path: '/dashboard/categories',
+        icon: <Tag className="h-5 w-5" />,
+        roles: ['super_admin', 'admin', 'marketer'],
       },
     ],
   },

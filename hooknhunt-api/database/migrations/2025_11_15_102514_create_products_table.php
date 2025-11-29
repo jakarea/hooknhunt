@@ -17,7 +17,7 @@ public function up(): void
         // Basic Product Info
         $table->string('base_name')->nullable();   // Added from first schema
         $table->string('slug')->unique()->nullable();
-        $table->string('sku')->unique();
+        $table->string('sku')->unique()->nullable();
 
         // Category Relation
         $table->foreignId('category_id')

@@ -15,7 +15,7 @@ interface PurchaseOrderDraftData {
 
 interface PurchaseOrder {
   id: number;
-  order_number?: string;
+  po_number?: string;
   supplier_id: number;
   supplier?: any;
   status: string;
@@ -23,6 +23,8 @@ interface PurchaseOrder {
   courier_name?: string;
   tracking_number?: string;
   lot_number?: string;
+  shipping_method?: 'air' | 'sea';
+  shipping_cost?: number;
   total_weight?: number;
   extra_cost_global?: number;
   bd_courier_tracking?: string;
@@ -34,7 +36,7 @@ interface PurchaseOrder {
 
 interface PurchaseOrderItem {
   id: number;
-  po_id: number;
+  po_number: number;
   product_id: number;
   product_variant_id?: number | null;
   product?: any;
@@ -70,6 +72,7 @@ interface PurchaseState {
   fetchOrder: (id: number) => Promise<void>;
   createDraft: (data: PurchaseOrderDraftData) => Promise<PurchaseOrder>;
   updateStatus: (id: number, status: string, data?: any) => Promise<void>;
+  updateOrderStatus: (id: number, status: string, payload?: any) => Promise<void>;
   receiveItems: (id: number, data: any) => Promise<void>;
   clearError: () => void;
   clearCurrentOrder: () => void;
@@ -159,6 +162,35 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         currentOrder: state.currentOrder?.id === id ? updatedOrder : state.currentOrder,
         isLoading: false,
       }));
+    } catch (error: any) {
+      const errorMessage =
+        (error as ApiErrorResponse)?.response?.data?.message ||
+        'Failed to update purchase order status';
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
+  updateOrderStatus: async (id: number, status: string, payload: any = {}) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.put(`/admin/purchase-orders/${id}/status`, {
+        status,
+        ...payload
+      });
+
+      const updatedOrder = response.data;
+
+      set(state => ({
+        purchaseOrders: state.purchaseOrders.map(order =>
+          order.id === id ? updatedOrder : order
+        ),
+        currentOrder: updatedOrder,
+        isLoading: false,
+      }));
+
+      // Refresh the order to get the latest data
+      await get().fetchOrder(id);
     } catch (error: any) {
       const errorMessage =
         (error as ApiErrorResponse)?.response?.data?.message ||

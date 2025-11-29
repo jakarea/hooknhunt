@@ -13,9 +13,19 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
+
             $table->string('name');
             $table->string('slug')->unique();
-            $table->foreignId('parent_id')->nullable()->constrained('categories')->onDelete('set null');
+
+            // Added image field directly here
+            $table->string('image_url')->nullable();
+
+            // Self-referencing parent category
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('categories')
+                ->onDelete('set null');
+
             $table->timestamps();
         });
     }

@@ -95,7 +95,7 @@ website/.env.local
 website/.env.development.local
 website/.env.test.local
 website/.env.production.local
-
+website/.next
 # Build output
 website/dist/
 website/dist-ssr/
@@ -111,32 +111,41 @@ website/*.tsbuildinfo
 website/coverage/
 
 # ===========================
-# Next.js Website (hooknhunt/)
+# Next.js Website (website/)
 # ===========================
 
 # Dependencies
-hooknhunt/node_modules/
+website/node_modules/
 
 # Environment files
-hooknhunt/.env
-hooknhunt/.env*.local
-hooknhunt/.env.development.local
-hooknhunt/.env.test.local
-hooknhunt/.env.production.local
+website/.env
+website/.env*.local
+website/.env.development.local
+website/.env.test.local
+website/.env.production.local
 
 # Next.js build output
-hooknhunt/.next/
-hooknhunt/out/
+website/.next/
+website/.next/**
+website/out/
 
-# Next.js cache
-hooknhunt/.next/cache/
+# Next.js production build
+website/.next/static/
+website/.next/server/
+website/.next/cache/
+website/.next/trace
+website/.next/*.json
+website/.next/*.js
 
 # TypeScript
-hooknhunt/*.tsbuildinfo
-hooknhunt/next-env.d.ts
+website/*.tsbuildinfo
+website/next-env.d.ts
 
 # Testing
-hooknhunt/coverage/
+website/coverage/
+
+# Vercel deployment
+website/.vercel
 
 # ===========================
 # OS & Editor Files

@@ -16,6 +16,7 @@ import { Plus, Trash2, Package, Calculator, ShoppingCart, Image as ImageIcon } f
 
 import { useSupplierStore } from '@/stores/supplierStore';
 import { usePurchaseStore } from '@/stores/purchaseStore';
+import { useSettingStore } from '@/stores/settingStore';
 
 // Types
 interface Supplier {
@@ -50,6 +51,7 @@ type FormData = z.infer<typeof formSchema>;
 export function CreatePurchaseOrder() {
   const { suppliers, fetchSuppliers, getSupplierProducts, supplierProducts, isLoading: supplierLoading } = useSupplierStore();
   const { createDraft, isLoading: purchaseLoading } = usePurchaseStore();
+  const { fetchSettings, getSetting } = useSettingStore();
 
   const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -59,22 +61,35 @@ export function CreatePurchaseOrder() {
     resolver: zodResolver(formSchema),
   });
 
-  // Fetch suppliers on mount
+  // Fetch suppliers and settings on mount
   useEffect(() => {
     fetchSuppliers();
-  }, [fetchSuppliers]);
+    fetchSettings();
+  }, [fetchSuppliers, fetchSettings]);
+
+  // Update exchange rate when settings are loaded
+  useEffect(() => {
+    const rate = getSetting('exchange_rate');
+    if (rate) {
+      setExchangeRate(parseFloat(rate));
+    }
+  }, [getSetting]);
 
   // Fetch products when supplier is selected
   useEffect(() => {
     if (selectedSupplier) {
+      console.log('[CreatePurchaseOrder] Fetching products for supplier:', selectedSupplier);
       getSupplierProducts(selectedSupplier).then(() => {
-        // Initialize order items when products are loaded
-        setOrderItems([]);
+        console.log('[CreatePurchaseOrder] Products fetched successfully');
+      }).catch((error) => {
+        console.error('[CreatePurchaseOrder] Error fetching products:', error);
       });
     } else {
+      console.log('[CreatePurchaseOrder] No supplier selected, clearing order items');
       setOrderItems([]);
     }
-  }, [selectedSupplier, getSupplierProducts]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSupplier]);
 
   const handleSupplierChange = async (value: string) => {
     const supplierId = parseInt(value);
@@ -170,21 +185,46 @@ export function CreatePurchaseOrder() {
 
   // Initialize order items when supplier products are loaded
   useEffect(() => {
+    console.log('[CreatePurchaseOrder] supplierProducts changed:', {
+      selectedSupplier,
+      supplierProductsLength: supplierProducts.length,
+      supplierProducts: supplierProducts
+    });
+
     if (selectedSupplier && supplierProducts.length > 0) {
-      const initialOrderItems: OrderItem[] = supplierProducts.map(product => ({
-        id: `${product.id}`,
-        product_id: product.id,
-        product: product,
-        selected: false,
-        china_price: 0,
-        quantity: 1,
-        approx_bdt: 0,
-      }));
+      console.log('[CreatePurchaseOrder] Mapping products to order items');
+      const initialOrderItems: OrderItem[] = supplierProducts.map(product => {
+        console.log('[CreatePurchaseOrder] Mapping product:', product);
+        return {
+          id: `${product.id}`,
+          product_id: product.id,
+          product: product,
+          selected: false,
+          china_price: 0,
+          quantity: 1,
+          approx_bdt: 0,
+        };
+      });
+      console.log('[CreatePurchaseOrder] Setting order items:', initialOrderItems);
       setOrderItems(initialOrderItems);
+    } else if (selectedSupplier) {
+      console.log('[CreatePurchaseOrder] Supplier selected but no products available');
     }
   }, [supplierProducts, selectedSupplier]);
 
   const isLoading = supplierLoading || purchaseLoading;
+
+  // Debug: Log current state
+  console.log('[CreatePurchaseOrder] Current State:', {
+    selectedSupplier,
+    orderItems,
+    orderItemsLength: orderItems.length,
+    supplierProducts,
+    supplierProductsLength: supplierProducts.length,
+    isLoading,
+    supplierLoading,
+    purchaseLoading
+  });
 
   if (isLoading && suppliers.length === 0) {
     return (
@@ -263,22 +303,13 @@ export function CreatePurchaseOrder() {
                       </div>
                     </CardContent>
                   </Card>
-                ) : orderItems.length === 0 ? (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <div className="text-center text-muted-foreground">
-                        <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No products available for this supplier</p>
-                      </div>
-                    </CardContent>
-                  </Card>
                 ) : (
                   <Card>
                     <CardContent className="pt-6">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[50px]">Checkbox</TableHead>
+                            <TableHead className="w-[50px]">Select</TableHead>
                             <TableHead>Image & Name</TableHead>
                             <TableHead>RMB Price</TableHead>
                             <TableHead>Quantity</TableHead>
@@ -286,8 +317,35 @@ export function CreatePurchaseOrder() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {orderItems.map((item) => (
-                            <TableRow key={item.id}>
+                          {/* Loading State */}
+                          {supplierLoading && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-8">
+                                <div className="flex items-center justify-center gap-2">
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+                                  <span className="text-gray-500">Loading products...</span>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          )}
+
+                          {/* Empty State */}
+                          {!supplierLoading && orderItems.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={5} className="text-center py-8">
+                                <Package className="h-12 w-12 mx-auto mb-2 opacity-30" />
+                                <p className="text-gray-500">
+                                  No products found for this supplier.
+                                  <br />
+                                  <span className="text-xs">Products may not be linked to this supplier in the database.</span>
+                                </p>
+                              </TableCell>
+                            </TableRow>
+                          )}
+
+                          {/* Data State - Render Products */}
+                          {!supplierLoading && orderItems.length > 0 && orderItems.map((item, index) => (
+                            <TableRow key={item.id || `item-${index}`}>
                               <TableCell>
                                 <Checkbox
                                   checked={item.selected}
@@ -296,18 +354,22 @@ export function CreatePurchaseOrder() {
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-3">
-                                  {item.product.base_thumbnail_url ? (
+                                  {item.product?.base_thumbnail_url ? (
                                     <img
                                       src={item.product.base_thumbnail_url}
-                                      alt={item.product.base_name}
-                                      className="h-10 w-10 object-cover rounded"
+                                      alt={item.product?.base_name || 'Product'}
+                                      className="h-10 w-10 object-cover rounded border"
+                                      onError={(e) => {
+                                        console.error('[CreatePurchaseOrder] Image load error:', item.product.base_thumbnail_url);
+                                        e.currentTarget.style.display = 'none';
+                                      }}
                                     />
                                   ) : (
-                                    <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                                    <div className="h-10 w-10 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
                                       <ImageIcon className="h-4 w-4 text-gray-400" />
                                     </div>
                                   )}
-                                  <span className="font-medium">{item.product.base_name}</span>
+                                  <span className="font-medium">{item.product?.base_name || 'Unknown Product'}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -320,6 +382,7 @@ export function CreatePurchaseOrder() {
                                     updateOrderItem(item.product_id, 'china_price', parseFloat(e.target.value) || 0)
                                   }
                                   className="w-24"
+                                  placeholder="0.00"
                                 />
                               </TableCell>
                               <TableCell>

@@ -12,10 +12,22 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_supplier', function (Blueprint $table) {
-            $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->foreignId('supplier_id')->constrained('suppliers')->onDelete('cascade');
-            $table->string('supplier_product_url')->nullable();
+            $table->foreignId('product_id')
+                ->constrained('products')
+                ->onDelete('cascade');
+
+            $table->foreignId('supplier_id')
+                ->constrained('suppliers')
+                ->onDelete('cascade');
+
+            // New JSON column for multiple URLs
+            $table->json('supplier_product_urls')->nullable()->default(null);
+
+            // Composite primary key
             $table->primary(['product_id', 'supplier_id']);
+
+            // Add timestamps
+            $table->timestamps();
         });
     }
 

@@ -16,6 +16,7 @@ import { PurchaseNew } from './pages/purchase/PurchaseNew';
 import { PurchaseList } from './pages/purchase/PurchaseList';
 import { CreatePurchaseOrder } from './pages/purchase/CreatePurchaseOrder';
 import { PurchaseOrderDetails } from './pages/purchase/PurchaseOrderDetails';
+import { PurchaseOrderDemo } from './pages/purchase/PurchaseOrderDemo';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
@@ -52,6 +53,7 @@ function App() {
               <Route path="dashboard/purchase/new" element={<PurchaseNew />} />
               <Route path="dashboard/purchase/create-order" element={<CreatePurchaseOrder />} />
               <Route path="dashboard/purchase/list" element={<PurchaseList />} />
+              <Route path="dashboard/purchase/demo" element={<PurchaseOrderDemo />} />
               <Route path="dashboard/purchase/:id" element={<PurchaseOrderDetails />} />
 
               {/* User Routes */}

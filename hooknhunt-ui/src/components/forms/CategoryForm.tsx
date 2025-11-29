@@ -74,9 +74,9 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
     setImageError(null);
 
     if (file) {
-      // Validate file size (15KB = 15360 bytes)
-      if (file.size > 15360) {
-        setImageError('Image size must be less than 15KB');
+      // Validate file size (100KB = 102400 bytes)
+      if (file.size > 102400) {
+        setImageError('Image size must be less than 100KB');
         return;
       }
 
@@ -134,7 +134,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
           render={({ field }: { field: ControllerRenderProps<CategoryFormData, "name"> }) => (
             <FormItem>
               <FormLabel>Name</FormLabel>
-              <FormControl><Input placeholder="e.g., T-Shirts" {...field} /></FormControl>
+              <FormControl><Input placeholder="Fishing Rod" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -145,7 +145,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
           render={({ field }: { field: ControllerRenderProps<CategoryFormData, "slug"> }) => (
             <FormItem>
               <FormLabel>Slug</FormLabel>
-              <FormControl><Input placeholder="e.g., t-shirts" {...field} /></FormControl>
+              <FormControl><Input placeholder="fishing-rod" {...field} /></FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -221,7 +221,7 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
               {imageError && (
                 <p className="text-sm text-red-600 mt-1">{imageError}</p>
               )}
-              <p className="text-xs text-gray-500 mt-1">Maximum file size: 15KB</p>
+              <p className="text-xs text-gray-500 mt-1">Maximum file size: 100KB</p>
             </div>
           </div>
         </div>

@@ -67,4 +67,19 @@ export function DialogTitle({ children }: { children: React.ReactNode }) {
 	return <h3 className="text-lg font-semibold">{children}</h3>;
 }
 
+export function DialogDescription({ children }: { children: React.ReactNode }) {
+	return <p className="text-sm text-muted-foreground mt-1">{children}</p>;
+}
+
+export function DialogFooter({ children, className }: { children: React.ReactNode; className?: string }) {
+	return (
+		<div className={cn("flex justify-end gap-2 mt-6", className)}>
+			{children}
+		</div>
+	);
+}
+
+export function DialogTrigger({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
+	return <>{children}</>;
+}
 

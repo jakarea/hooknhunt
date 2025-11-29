@@ -6,26 +6,34 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('purchase_order_items', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('po_id')->constrained('purchase_orders')->onDelete('cascade');
-            $table->foreignId('product_variant_id')->nullable()->constrained('product_variants')->onDelete('set null');
-            $table->decimal('china_price', 10, 2);
-            $table->integer('quantity');
-            $table->decimal('shipping_cost', 10, 2)->nullable();
-            $table->decimal('extra_cost', 10, 2)->nullable();
-            $table->decimal('lost_value', 10, 2)->nullable();
+
+            $table->unsignedBigInteger('po_number');
+            $table->unsignedBigInteger('product_id')->nullable();
+
+            $table->integer('quantity')->default(1);
+            $table->decimal('china_price', 10, 2)->default(0);
+            $table->decimal('unit_price', 10, 2)->default(0);
+            $table->decimal('total_price', 10, 2)->default(0);
+            $table->unsignedBigInteger('product_variant_id')->nullable();
+            $table->timestamps();
+
+            // Foreign keys
+            $table->foreign('po_number')
+                  ->references('id')
+                  ->on('purchase_orders')
+                  ->cascadeOnDelete();
+
+            $table->foreign('product_id')
+                  ->references('id')
+                  ->on('products')
+                  ->nullOnDelete();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('purchase_order_items');
