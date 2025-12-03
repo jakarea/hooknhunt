@@ -12,6 +12,9 @@ class PurchaseOrder extends Model
         'po_number',
         'supplier_id',
         'exchange_rate',
+        'order_date',
+        'expected_date',
+        'total_amount',
         'courier_name',
         'tracking_number',
         'lot_number',
@@ -29,6 +32,9 @@ class PurchaseOrder extends Model
         'shipping_cost' => 'decimal:2',
         'total_weight' => 'decimal:2',
         'extra_cost_global' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+        'order_date' => 'date',
+        'expected_date' => 'date',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -57,12 +63,12 @@ class PurchaseOrder extends Model
 
     public function getTotalLostQuantityAttribute(): int
     {
-        return $this->items->sum('lost_quantity');
+        return $this->items->sum('received_quantity');
     }
 
     public function getEffectiveQuantityAttribute(): int
     {
-        return $this->total_quantity - $this->total_lost_quantity;
+        return $this->total_quantity - $this->total_received_quantity;
     }
 
     public function getTotalChinaCostAttribute(): float
@@ -85,9 +91,9 @@ class PurchaseOrder extends Model
     public function getTotalLostValueAttribute(): float
     {
         return $this->items->sum(function ($item) {
-            return ($item->lost_quantity * $item->china_price * ($this->exchange_rate ?? 0)) +
-                   ($item->lost_quantity * $item->shipping_cost) +
-                   ($item->lost_quantity * $item->lost_item_price);
+            return ($item->received_quantity * $item->china_price * ($this->exchange_rate ?? 0)) +
+                   ($item->received_quantity * $item->shipping_cost) +
+                   ($item->received_quantity * $item->lost_item_price);
         });
     }
 

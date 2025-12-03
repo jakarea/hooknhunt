@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\ProductVariant;
-use App\Models\Inventory;
+// use App\Models\Inventory; // TODO: Uncomment when inventory table is created
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,6 +56,8 @@ class PurchaseOrderController extends Controller
                 'supplier_id' => $request->supplier_id,
                 'status' => 'draft',
                 'exchange_rate' => $defaultExchangeRate,
+                'order_date' => now(),
+                'expected_date' => now()->addWeeks(3), // Default 3 weeks from order date
                 'created_by' => auth()->id(),
             ]);
 
@@ -69,6 +71,9 @@ class PurchaseOrderController extends Controller
                     'quantity' => $itemData['quantity'],
                 ]);
             }
+
+            // Calculate and update total_amount (China price total in RMB)
+            $this->updateTotalAmount($order);
 
             DB::commit();
 
@@ -132,6 +137,8 @@ class PurchaseOrderController extends Controller
 
                     $purchaseOrder->exchange_rate = $request->exchange_rate;
                     $purchaseOrder->po_number = $purchaseOrder->generateOrderNumber();
+                    // Recalculate total amount with updated exchange rate
+                    $this->updateTotalAmount($purchaseOrder);
                     break;
 
                 case 'supplier_dispatched':
@@ -167,6 +174,8 @@ class PurchaseOrderController extends Controller
 
                     $purchaseOrder->shipping_method = $request->shipping_method;
                     $purchaseOrder->shipping_cost = $request->shipping_cost;
+                    // Recalculate total amount with updated shipping cost
+                    $this->updateTotalAmount($purchaseOrder);
                     break;
 
                 case 'in_transit_bogura':
@@ -188,15 +197,37 @@ class PurchaseOrderController extends Controller
                     $purchaseOrder->total_weight = $request->total_weight;
                     $purchaseOrder->extra_cost_global = $request->extra_cost_global ?? 0;
 
-                    // Optional: Update lost quantities
+                    // Optional: Update received quantities
                     if ($request->has('items')) {
-                        $this->updateLostQuantities($purchaseOrder, $request->items);
+                        $this->updateReceivedQuantities($purchaseOrder, $request->items);
                     }
+                    // Recalculate total amount with updated extra cost
+                    $this->updateTotalAmount($purchaseOrder);
                     break;
 
                 case 'completed':
+                    // Check if there are any lost items (received < quantity)
+                    $hasLostItems = $purchaseOrder->items->contains(function ($item) {
+                        return $item->received_quantity < $item->quantity;
+                    });
+
+                    if ($hasLostItems) {
+                        // Override to completed_partially if items were lost
+                        $newStatus = 'completed_partially';
+                        $purchaseOrder->status = $newStatus;
+                    }
+
                     // Trigger landed cost calculation
                     $this->calculateAndFinalize($purchaseOrder);
+                    // Ensure total amount reflects final values
+                    $this->updateTotalAmount($purchaseOrder);
+                    break;
+
+                case 'completed_partially':
+                    // Trigger landed cost calculation for partial completion
+                    $this->calculateAndFinalize($purchaseOrder);
+                    // Ensure total amount reflects final values
+                    $this->updateTotalAmount($purchaseOrder);
                     break;
 
                 case 'lost':
@@ -239,9 +270,9 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Update lost quantities for items.
+     * Update received quantities for items.
      */
-    private function updateLostQuantities(PurchaseOrder $order, array $itemsData)
+    private function updateReceivedQuantities(PurchaseOrder $order, array $itemsData)
     {
         foreach ($itemsData as $itemData) {
             if (!isset($itemData['id'])) {
@@ -249,8 +280,8 @@ class PurchaseOrderController extends Controller
             }
 
             $item = $order->items()->find($itemData['id']);
-            if ($item && isset($itemData['lost_quantity'])) {
-                $item->lost_quantity = $itemData['lost_quantity'];
+            if ($item && isset($itemData['received_quantity'])) {
+                $item->received_quantity = $itemData['received_quantity'];
                 $item->save();
             }
         }
@@ -264,45 +295,72 @@ class PurchaseOrderController extends Controller
         // Load order with items to ensure we have the latest data
         $order->load('items');
 
+        // 1. Normalize received_quantity (if null, assume = quantity)
         foreach ($order->items as $item) {
-            // 1. Base Cost (BDT): china_price * exchange_rate
-            $baseCost = $item->china_price * $order->exchange_rate;
-
-            // 2. Add shipping cost
-            $shippingCost = $item->shipping_cost * $item->quantity;
-
-            // 3. Distribute Global Extra Cost
-            $extraCostPerUnit = ($order->extra_cost_global ?? 0) / $order->total_quantity;
-            $distributedExtraCost = $extraCostPerUnit * $item->quantity;
-
-            // 4. Effective quantity after losses
-            $effectiveQty = $item->quantity - $item->lost_quantity;
-
-            if ($effectiveQty > 0) {
-                // 5. Calculate total line cost (including loss distribution)
-                $totalLineCost = ($item->quantity * $baseCost) + ($item->quantity * $item->shipping_cost) + $distributedExtraCost;
-
-                // 6. Final landed cost per effective unit (loss value distributed to remaining items)
-                $finalLandedCost = $totalLineCost / $effectiveQty;
-
-                // 7. Update final_unit_cost in purchase_order_items
-                $item->final_unit_cost = $finalLandedCost;
+            if ($item->received_quantity === null) {
+                $item->received_quantity = $item->quantity;
                 $item->save();
-
-                // 8. Update product_variants -> landed_cost
-                if ($item->productVariant) {
-                    $item->productVariant->landed_cost = $finalLandedCost;
-                    $item->productVariant->save();
-                }
-
-                // 9. Update inventory -> increment quantity
-                $inventory = Inventory::where('product_variant_id', $item->product_variant_id)->first();
-                if ($inventory) {
-                    $inventory->quantity += $effectiveQty;
-                    $inventory->save();
-                }
             }
         }
+
+        // 2. Calculate total received quantity for distributing shipping and extra costs
+        // We use received quantity because shipping/extra costs are typically associated with the physical goods received
+        $totalReceivedQty = (int) $order->items->sum('received_quantity');
+        
+        $orderShippingCost = (float) ($order->shipping_cost ?? 0);
+        $orderExtraCost = (float) ($order->extra_cost_global ?? 0);
+        
+        // Distribute shipping + extra cost per RECEIVED unit
+        $overheadPerUnit = $totalReceivedQty > 0
+            ? ($orderShippingCost + $orderExtraCost) / $totalReceivedQty
+            : 0.0;
+
+        foreach ($order->items as $item) {
+            $quantity = (int) $item->quantity;
+            $receivedQty = (int) $item->received_quantity;
+            
+            $effectiveQty = $receivedQty;
+            
+            // Skip if nothing received
+            if ($effectiveQty <= 0) {
+                $item->final_unit_cost = 0;
+                $item->save();
+                continue;
+            }
+
+            // 1. Total item cost in BDT (china_price * exchange_rate * quantity)
+            // We pay for what we ordered (usually), so the product cost is fixed based on order quantity.
+            $totalItemCost = (float) $item->china_price * (float) $order->exchange_rate * $quantity;
+
+            // 2. Overhead for this line (shipping + extra cost allocated to received units)
+            $lineOverhead = $overheadPerUnit * $effectiveQty;
+
+            // 3. Total line cost including overhead
+            $totalLineCost = $totalItemCost + $lineOverhead;
+
+            // 4. Final unit cost = total line cost / effective quantity (received quantity)
+            $finalLandedCost = $totalLineCost / $effectiveQty;
+
+            // Update final_unit_cost in purchase_order_items
+            $item->final_unit_cost = $finalLandedCost;
+            $item->save();
+
+            // Update product_variants -> landed_cost
+            if ($item->productVariant) {
+                $item->productVariant->landed_cost = $finalLandedCost;
+                $item->productVariant->save();
+            }
+
+            // Inventory update placeholder (when inventory table exists)
+            // $inventory = Inventory::where('product_variant_id', $item->product_variant_id)->first();
+            // if ($inventory) {
+            //     $inventory->quantity += $effectiveQty;
+            //     $inventory->save();
+            // }
+        }
+
+        // After updating item costs, also refresh the order total amount
+        $this->updateTotalAmount($order);
     }
 
     /**
@@ -320,7 +378,7 @@ class PurchaseOrderController extends Controller
             'items.*.po_item_id' => 'required|exists:purchase_order_items,id',
             'items.*.unit_weight' => 'required|numeric|min:0',
             'items.*.extra_weight' => 'nullable|numeric|min:0',
-            'items.*.lost_quantity' => 'nullable|integer|min:0',
+            'items.*.received_quantity' => 'nullable|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -337,17 +395,9 @@ class PurchaseOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            // Check if any items have lost quantities
-            $hasLostItems = false;
-            foreach ($request->items as $itemData) {
-                if (($itemData['lost_quantity'] ?? 0) > 0) {
-                    $hasLostItems = true;
-                    break;
-                }
-            }
-
-            // Update purchase order status and global costs
-            $purchaseOrder->status = $hasLostItems ? 'completed_partially' : 'received_hub';
+            // Update purchase order status to received_hub
+            // The final completion status (completed or completed_partially) will be set via updateStatus endpoint
+            $purchaseOrder->status = 'received_hub';
             $purchaseOrder->extra_cost_global = $request->additional_cost ?? 0;
             $purchaseOrder->total_weight = $request->total_weight;
 
@@ -363,11 +413,18 @@ class PurchaseOrderController extends Controller
                 // Update item with receive stock data
                 $poItem->unit_weight = $itemData['unit_weight'];
                 $poItem->extra_weight = $itemData['extra_weight'] ?? 0;
-                $poItem->lost_quantity = $itemData['lost_quantity'] ?? 0;
+                $poItem->received_quantity = $itemData['received_quantity'] ?? 0;
                 $poItem->save();
             }
 
             $purchaseOrder->save();
+
+            // Calculate final unit costs immediately after receiving stock
+            $this->calculateAndFinalize($purchaseOrder);
+
+            // Recalculate total amount considering updated extra cost
+            $this->updateTotalAmount($purchaseOrder);
+
             DB::commit();
 
             // Load order with relationships for response
@@ -382,5 +439,28 @@ class PurchaseOrderController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Update the total_amount field for the purchase order.
+     * Total amount is calculated as the sum of (china_price * quantity) for all items.
+     */
+    private function updateTotalAmount(PurchaseOrder $order)
+    {
+        // Ensure items are available
+        $order->loadMissing('items');
+
+        $exchangeRate = (float) ($order->exchange_rate ?? 0);
+        $itemsTotalBDT = $order->items->sum(function ($item) use ($exchangeRate) {
+            return ((float) $item->china_price) * ((int) $item->quantity) * $exchangeRate;
+        });
+
+        $shipping = (float) ($order->shipping_cost ?? 0);
+        $extra = (float) ($order->extra_cost_global ?? 0);
+
+        $total = $itemsTotalBDT + $shipping + $extra;
+
+        $order->total_amount = $total;
+        $order->save();
     }
 }

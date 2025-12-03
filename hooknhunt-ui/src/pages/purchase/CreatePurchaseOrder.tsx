@@ -16,7 +16,7 @@ import { Plus, Trash2, Package, Calculator, ShoppingCart, Image as ImageIcon } f
 
 import { useSupplierStore } from '@/stores/supplierStore';
 import { usePurchaseStore } from '@/stores/purchaseStore';
-import { useSettingStore } from '@/stores/settingStore';
+import { useSettingStore, useSetting } from '@/stores/settingStore';
 
 // Types
 interface Supplier {
@@ -51,7 +51,8 @@ type FormData = z.infer<typeof formSchema>;
 export function CreatePurchaseOrder() {
   const { suppliers, fetchSuppliers, getSupplierProducts, supplierProducts, isLoading: supplierLoading } = useSupplierStore();
   const { createDraft, isLoading: purchaseLoading } = usePurchaseStore();
-  const { fetchSettings, getSetting } = useSettingStore();
+  const { fetchSettings } = useSettingStore();
+  const exchangeRateSetting = useSetting('exchange_rate_rmb_bdt');
 
   const [selectedSupplier, setSelectedSupplier] = useState<number | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -69,11 +70,10 @@ export function CreatePurchaseOrder() {
 
   // Update exchange rate when settings are loaded
   useEffect(() => {
-    const rate = getSetting('exchange_rate');
-    if (rate) {
-      setExchangeRate(parseFloat(rate));
+    if (exchangeRateSetting) {
+      setExchangeRate(parseFloat(exchangeRateSetting));
     }
-  }, [getSetting]);
+  }, [exchangeRateSetting]);
 
   // Fetch products when supplier is selected
   useEffect(() => {

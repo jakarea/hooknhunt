@@ -15,14 +15,14 @@ class PurchaseOrderItem extends Model
         'quantity',
         'unit_weight',
         'extra_weight',
-        'lost_quantity',
+        'received_quantity',
     ];
 
     protected $casts = [
         'china_price' => 'decimal:2',
         'unit_weight' => 'decimal:2',
         'extra_weight' => 'decimal:2',
-        'lost_quantity' => 'integer',
+        'received_quantity' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -46,7 +46,7 @@ class PurchaseOrderItem extends Model
     // Computed properties
     public function getEffectiveQuantityAttribute(): int
     {
-        return $this->quantity - ($this->lost_quantity ?? 0);
+        return $this->received_quantity ?? $this->quantity;
     }
 
     public function getTotalWeightAttribute(): float

@@ -15,7 +15,7 @@ return new class extends Migration
             // Add fields for receiving stock at hub
             $table->decimal('unit_weight', 10, 2)->nullable()->after('quantity');
             $table->decimal('extra_weight', 10, 2)->nullable()->after('unit_weight');
-            $table->integer('lost_quantity')->default(0)->after('extra_weight');
+            $table->integer('received_quantity')->default(0)->after('extra_weight');
 
             // Remove old fields that are no longer used
             if (Schema::hasColumn('purchase_order_items', 'shipping_cost')) {
@@ -36,7 +36,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('purchase_order_items', function (Blueprint $table) {
-            $table->dropColumn(['unit_weight', 'extra_weight', 'lost_quantity']);
+            $table->dropColumn(['unit_weight', 'extra_weight', 'received_quantity']);
         });
     }
 };

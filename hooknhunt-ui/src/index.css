@@ -119,4 +119,31 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Global button cursor pointer */
+  button {
+    @apply cursor-pointer;
+  }
+
+  button:disabled {
+    @apply cursor-not-allowed;
+  }
+
+  /* Global interactive element cursors */
+  a,
+  [role="button"],
+  [type="submit"],
+  [type="button"],
+  [type="reset"],
+  label[for] {
+    @apply cursor-pointer;
+  }
+
+  /* Disabled state for all interactive elements */
+  button:disabled,
+  a:disabled,
+  [role="button"]:disabled,
+  [aria-disabled="true"] {
+    @apply cursor-not-allowed;
+  }
 }

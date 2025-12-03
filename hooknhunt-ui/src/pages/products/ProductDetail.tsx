@@ -1,73 +1,50 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoleGuard } from '@/components/guards/RoleGuard';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
 import {
   ArrowLeft,
   Edit,
   Package,
-  Tag,
-  DollarSign,
   BarChart3,
   Truck,
-  Box,
-  Eye,
-  Share2
+  ExternalLink,
+  Calendar,
+  Hash,
+  FileText,
+  Image as ImageIcon
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
-
-// Inline type definition to avoid import issues
-interface Product {
-  id: number;
-  base_name: string;
-  slug: string;
-  status: 'draft' | 'published';
-  meta_title?: string;
-  meta_description?: string;
-  base_thumbnail_url?: string | null;
-  gallery_images?: string[] | null;
-  created_at: string;
-  updated_at: string;
-}
+import { useProductStore } from '@/stores/productStore';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { product, isLoading, error, fetchProduct } = useProductStore();
 
   useEffect(() => {
     const loadProduct = async () => {
       if (!id) return;
 
       try {
-        setIsLoading(true);
-        console.log('📡 Fetching product details for ID:', id);
-
-        const response = await api.get(`/admin/products/${id}`);
-        console.log('✅ Product details fetched:', response.data);
-
-        setProduct(response.data);
+        await fetchProduct(Number(id));
       } catch (error: any) {
         console.error('❌ Error fetching product:', error);
         toast({
           title: "Error",
-          description: "Failed to load product details.",
+          description: error.message || "Failed to load product details.",
           variant: "destructive"
         });
-        setProduct(null);
-      } finally {
-        setIsLoading(false);
       }
     };
 
     loadProduct();
-  }, [id, navigate]);
+  }, [id, fetchProduct]);
 
   const handleEdit = () => {
     navigate(`/dashboard/products/${id}/edit`);
@@ -79,77 +56,43 @@ const ProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="container mx-auto px-6 py-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Button variant="ghost" onClick={handleBack} className="mr-4">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Products
-                </Button>
-                <div>
-                  <Skeleton className="h-9 w-64 mb-2" />
-                  <Skeleton className="h-5 w-48" />
-                </div>
-              </div>
-              <Skeleton className="h-11 w-24" />
-            </div>
-          </div>
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="flex items-center gap-4 mb-6">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-8 w-64" />
         </div>
-
-        {/* Content Skeleton */}
-        <div className="container mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-24" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="p-6">
+                <Skeleton className="h-64 w-full" />
+              </CardContent>
+            </Card>
+          </div>
+          <div>
+            <Card>
+              <CardContent className="p-6">
+                <Skeleton className="h-32 w-full" />
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <Card className="w-96">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Product Not Found</h3>
-              <p className="text-gray-600 mb-4">The product you're looking for doesn't exist.</p>
-              <Button onClick={handleBack}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Products
-              </Button>
-            </div>
+      <div className="container mx-auto p-6 max-w-7xl">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Product Not Found</h3>
+            <p className="text-gray-600 mb-4">{error || "The product you're looking for doesn't exist."}</p>
+            <Button onClick={handleBack}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Products
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -157,237 +100,267 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="container mx-auto p-6 max-w-7xl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Button variant="ghost" onClick={handleBack} className="mr-4 hover:bg-gray-100">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Products
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{product.base_name}</h1>
-                <div className="flex items-center gap-4 mt-1">
-                  <span className="text-gray-600">Slug: {product.slug}</span>
-                  <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                    {product.status === 'published' ? 'Published' : 'Draft'}
-                  </Badge>
-                </div>
-              </div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="sm" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-gray-900">{product.base_name}</h1>
+              <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
+                {product.status}
+              </Badge>
             </div>
-            <div className="flex gap-2">
-              <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
-                <Button onClick={handleEdit}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-              </RoleGuard>
-              <Button variant="outline">
-                <Share2 className="h-4 w-4 mr-2" />
-                Share
-              </Button>
-            </div>
+            <p className="text-sm text-gray-500 mt-1">/{product.slug}</p>
           </div>
         </div>
+        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+          <Button onClick={handleEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </RoleGuard>
       </div>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Product Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Product Image */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-muted-foreground" />
-                  Product Image
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex justify-center">
-                <ProductImage
-                  src={product.base_thumbnail_url}
-                  alt={product.base_name || 'Product'}
-                  size="lg"
-                  className="border-2 border-gray-200"
-                />
-              </CardContent>
-            </Card>
-
-            {/* Product Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Package className="h-5 w-5 text-muted-foreground" />
-                  Product Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-semibold mb-2">Description</h4>
-                  <p className="text-gray-600 leading-relaxed">
-                    {product.meta_description || 'No description available.'}
-                  </p>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Product Image & Basic Info */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Image */}
+                <div className="flex justify-center items-start">
+                  <ProductImage
+                    src={product.base_thumbnail_url}
+                    alt={product.base_name || 'Product'}
+                    size="lg"
+                    className="border rounded-lg"
+                  />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                {/* Info */}
+                <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-gray-500">Product ID</h4>
-                    <p className="text-gray-900">{product.id}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-500">Status</h4>
-                    <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                      {product.status === 'published' ? 'Published' : 'Draft'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-500">Slug</h4>
-                    <p className="text-gray-900 font-mono text-sm">{product.slug}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-500">Created</h4>
-                    <p className="text-gray-900">
-                      {product.created_at ? new Date(product.created_at).toLocaleDateString() : 'N/A'}
+                    <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Description
+                    </h3>
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {product.meta_description || 'No description available.'}
                     </p>
                   </div>
-                  {product.base_thumbnail_url && (
-                    <div className="md:col-span-2">
-                      <h4 className="font-medium text-gray-500">Thumbnail URL</h4>
-                      <p className="text-gray-900 text-sm break-all">{product.base_thumbnail_url}</p>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                        <Hash className="h-3 w-3" />
+                        Product ID
+                      </p>
+                      <p className="text-sm font-medium">{product.id}</p>
                     </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        Created
+                      </p>
+                      <p className="text-sm font-medium">
+                        {new Date(product.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {product.gallery_images && product.gallery_images.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
+                          <ImageIcon className="h-3 w-3" />
+                          Gallery Images
+                        </p>
+                        <p className="text-sm font-medium">{product.gallery_images.length} image(s)</p>
+                      </div>
+                    </>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Suppliers */}
+          {product.suppliers && product.suppliers.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Suppliers ({product.suppliers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-3">
+                  {product.suppliers.map((productSupplier, index) => (
+                    <div
+                      key={productSupplier.supplier_id}
+                      className={`p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors ${
+                        index !== product.suppliers!.length - 1 ? 'mb-2' : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <button
+                          onClick={() => navigate(`/dashboard/suppliers/${productSupplier.supplier_id}`)}
+                          className="font-medium text-gray-900 hover:text-blue-600 transition-colors text-left text-sm"
+                        >
+                          {productSupplier.supplier?.name || 'Unknown Supplier'}
+                        </button>
+                        {productSupplier.supplier?.email && (
+                          <Badge variant="outline" className="text-xs">
+                            {productSupplier.supplier.email}
+                          </Badge>
+                        )}
+                      </div>
+
+                      {productSupplier.supplier?.shop_name && (
+                        <p className="text-xs text-gray-600 mb-2">
+                          {productSupplier.supplier.shop_name}
+                        </p>
+                      )}
+
+                      {productSupplier.supplier_product_urls && productSupplier.supplier_product_urls.length > 0 && (
+                        <div className="space-y-1 mt-2">
+                          {productSupplier.supplier_product_urls.map((url, urlIndex) => (
+                            <a
+                              key={urlIndex}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{url}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Tags */}
-            {(product.gallery_images && Array.isArray(product.gallery_images) && product.gallery_images.length > 0) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5 text-muted-foreground" />
-                    Gallery Images
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-gray-600">
-                    {product.gallery_images.length} image(s) in gallery
+          {/* SEO Information */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                SEO Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Meta Title</p>
+                <p className="text-sm text-gray-900">{product.meta_title || 'Not set'}</p>
+              </div>
+              <Separator />
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Meta Description</p>
+                <p className="text-sm text-gray-900">{product.meta_description || 'Not set'}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column - Sidebar */}
+        <div className="space-y-6">
+          {/* Status Card */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                Status
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Publication</span>
+                <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
+                  {product.status}
+                </Badge>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Created</span>
+                <span className="text-gray-900 text-xs">
+                  {new Date(product.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <Separator />
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Updated</span>
+                <span className="text-gray-900 text-xs">
+                  {new Date(product.updated_at).toLocaleDateString()}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Quick Info</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Slug</p>
+                <code className="text-xs bg-gray-100 px-2 py-1 rounded block overflow-x-auto">
+                  {product.slug}
+                </code>
+              </div>
+              {product.base_thumbnail_url && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="text-xs text-gray-500 mb-1">Thumbnail</p>
+                    <a
+                      href={product.base_thumbnail_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      View Image
+                    </a>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* SEO Information */}
+          {/* Quick Actions */}
+          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                  SEO Information
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Actions</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium text-gray-500">Meta Title</h4>
-                  <p className="text-gray-900">{product.meta_title}</p>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-500">Meta Description</h4>
-                  <p className="text-gray-900">{product.meta_description}</p>
-                </div>
+              <CardContent className="pt-0 space-y-2">
+                <Button onClick={handleEdit} className="w-full" size="sm">
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Product
+                </Button>
+                <Button variant="outline" className="w-full" size="sm">
+                  <Truck className="h-4 w-4 mr-2" />
+                  Manage Inventory
+                </Button>
               </CardContent>
             </Card>
-          </div>
-
-          {/* Right Column - Pricing & Actions */}
-          <div className="space-y-6">
-            {/* Product Status */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5 text-muted-foreground" />
-                  Product Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Status</span>
-                  <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                    {product.status === 'published' ? 'Published' : 'Draft'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t">
-                  <span className="font-medium">Created</span>
-                  <span className="text-sm text-gray-600">
-                    {product.created_at ? new Date(product.created_at).toLocaleString() : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-3 border-t">
-                  <span className="font-medium">Last Updated</span>
-                  <span className="text-sm text-gray-600">
-                    {product.updated_at ? new Date(product.updated_at).toLocaleString() : 'N/A'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Eye className="h-5 w-5 text-muted-foreground" />
-                  Product Stats
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Status</span>
-                  <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                    {product.status === 'published' ? 'Live' : 'Draft'}
-                  </Badge>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Last Updated</span>
-                  <span className="text-sm text-gray-600">
-                    {new Date(product.updated_at).toLocaleDateString()}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Created</span>
-                  <span className="text-sm text-gray-600">
-                    {new Date(product.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button onClick={handleEdit} className="w-full">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Product
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Truck className="h-4 w-4 mr-2" />
-                    Manage Inventory
-                  </Button>
-                  <Button variant="outline" className="w-full">
-                    <Box className="h-4 w-4 mr-2" />
-                    View Orders
-                  </Button>
-                </CardContent>
-              </Card>
-            </RoleGuard>
-          </div>
+          </RoleGuard>
         </div>
       </div>
     </div>

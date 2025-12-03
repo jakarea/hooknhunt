@@ -53,7 +53,7 @@ const mockOrder = {
       china_price: 45.00,
       quantity: 100,
       shipping_cost: 0,
-      lost_quantity: 0,
+      received_quantity: 0,
     },
     {
       id: 2,
@@ -65,7 +65,7 @@ const mockOrder = {
       china_price: 12.50,
       quantity: 200,
       shipping_cost: 0,
-      lost_quantity: 0,
+      received_quantity: 0,
     },
   ],
 };

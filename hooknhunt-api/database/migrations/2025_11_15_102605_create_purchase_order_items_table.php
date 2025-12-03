@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('china_price', 10, 2)->default(0);
             $table->decimal('unit_price', 10, 2)->default(0);
             $table->decimal('total_price', 10, 2)->default(0);
+            $table->decimal('final_unit_cost', 10, 2)->default(0);
             $table->unsignedBigInteger('product_variant_id')->nullable();
             $table->timestamps();
 

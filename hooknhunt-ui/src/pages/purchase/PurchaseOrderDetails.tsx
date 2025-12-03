@@ -13,16 +13,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { Package, CheckCircle, Circle, Truck, Ship, Home, DollarSign } from 'lucide-react';
+import { Package, CheckCircle, Truck, Ship, Home, DollarSign, LoaderCircle } from 'lucide-react';
 
 import { usePurchaseStore } from '@/stores/purchaseStore';
-import { useSettingStore } from '@/stores/settingStore';
+import { useSettingStore, useSetting } from '@/stores/settingStore';
 
 // Form types - using type inference from Zod schema
 
 // Workflow steps
 const workflowSteps = [
-  { key: 'draft', label: 'Draft', icon: Circle },
+  { key: 'draft', label: 'Draft', icon: LoaderCircle },
   { key: 'payment_confirmed', label: 'Payment', icon: DollarSign },
   { key: 'supplier_dispatched', label: 'Dispatched', icon: Truck },
   { key: 'warehouse_received', label: 'Warehouse Received', icon: Package },
@@ -65,7 +65,7 @@ const receiveStockFormSchema = z.object({
     po_item_id: z.number(),
     unit_weight: z.string().min(1, 'Unit weight is required'),
     extra_weight: z.string().optional(),
-    lost_quantity: z.string().optional(),
+    received_quantity: z.string().optional(),
   })).optional(),
 });
 
@@ -80,7 +80,8 @@ export function PurchaseOrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentOrder, fetchOrder, updateStatus, updateOrderStatus, receiveItems, isLoading } = usePurchaseStore();
-  const { settings } = useSettingStore();
+  const { fetchSettings } = useSettingStore();
+  const defaultExchangeRate = useSetting('exchange_rate_rmb_bdt');
 
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showDispatchDialog, setShowDispatchDialog] = useState(false);
@@ -105,14 +106,15 @@ export function PurchaseOrderDetails() {
     quantity: number;
     unit_weight: string;
     extra_weight: string;
-    lost_quantity: string;
+    received_quantity: string;
   }>>([]);
 
   useEffect(() => {
     if (id) {
       fetchOrder(parseInt(id));
     }
-  }, [id, fetchOrder]);
+    fetchSettings();
+  }, [id, fetchOrder, fetchSettings]);
 
   // Initialize receive items when order is loaded
   useEffect(() => {
@@ -123,7 +125,7 @@ export function PurchaseOrderDetails() {
         quantity: item.quantity,
         unit_weight: '',
         extra_weight: '0',
-        lost_quantity: '0',
+        received_quantity: item.quantity.toString(),
       })));
     }
   }, [currentOrder]);
@@ -158,6 +160,7 @@ export function PurchaseOrderDetails() {
       in_transit_bogura: { label: 'Receive Stock', action: () => setShowReceiveStockDialog(true), disabled: false },
       received_hub: { label: 'Mark as Completed', action: () => handleStatusUpdate('completed'), disabled: false },
       completed: { label: 'Order Completed', action: () => {}, disabled: true },
+      completed_partially: { label: 'Partially Completed', action: () => {}, disabled: true },
       lost: { label: 'Order Lost', action: () => {}, disabled: true },
     };
 
@@ -247,20 +250,17 @@ export function PurchaseOrderDetails() {
         return sum + ((unitWeight + extraWeight) * quantity);
       }, 0);
 
-      // Check if any items are lost
-      const hasLostItems = receiveStockItems.some(item => parseFloat(item.lost_quantity || '0') > 0);
-
-      // Prepare payload
+      // Prepare payload - always set status to received_hub
+      // The completion status will be determined by the backend when marking as completed
       const payload = {
         total_weight: totalWeight,
-        extra_cost_global: parseFloat(data.additional_cost || '0'),
+        additional_cost: parseFloat(data.additional_cost || '0'),
         items: receiveStockItems.map(item => ({
           po_item_id: item.po_item_id,
           unit_weight: parseFloat(item.unit_weight),
           extra_weight: parseFloat(item.extra_weight || '0'),
-          lost_quantity: parseFloat(item.lost_quantity || '0'),
+          received_quantity: parseFloat(item.received_quantity || '0'),
         })),
-        status: hasLostItems ? 'completed_partially' : 'received_hub',
       };
 
       console.log('Receive stock payload:', payload);
@@ -268,9 +268,7 @@ export function PurchaseOrderDetails() {
       await receiveItems(currentOrder.id, payload);
       toast({
         title: 'Success',
-        description: hasLostItems
-          ? 'Stock received with partial loss and marked as partially completed'
-          : 'Stock received and inventory updated successfully',
+        description: 'Stock received successfully. You can now mark the order as completed.',
       });
       setShowReceiveStockDialog(false);
       receiveStockForm.reset();
@@ -286,9 +284,32 @@ export function PurchaseOrderDetails() {
     }
   };
 
+  // Get workflow steps dynamically based on order status
+  const getWorkflowSteps = () => {
+    if (!currentOrder) return workflowSteps;
+
+    // Filter out the completion status that doesn't apply
+    return workflowSteps.filter(step => {
+      // If order is completed, don't show completed_partially
+      if (currentOrder.status === 'completed' && step.key === 'completed_partially') {
+        return false;
+      }
+      // If order is completed_partially, don't show completed
+      if (currentOrder.status === 'completed_partially' && step.key === 'completed') {
+        return false;
+      }
+      // If order hasn't reached completion yet, only show 'completed' (not both)
+      if (!['completed', 'completed_partially'].includes(currentOrder.status)) {
+        return step.key !== 'completed_partially';
+      }
+      return true;
+    });
+  };
+
   const getCurrentStepIndex = () => {
     if (!currentOrder) return 0;
-    return workflowSteps.findIndex(step => step.key === currentOrder.status);
+    const activeSteps = getWorkflowSteps();
+    return activeSteps.findIndex(step => step.key === currentOrder.status);
   };
 
   if (isLoading || !currentOrder) {
@@ -307,8 +328,10 @@ export function PurchaseOrderDetails() {
   }
 
   const mainAction = getMainActionButton();
+  const activeWorkflowSteps = getWorkflowSteps();
   const currentStepIndex = getCurrentStepIndex();
-  const defaultExchangeRate = settings?.exchange_rate || 15;
+
+  const showReceivedQty = ['received_hub', 'completed', 'completed_partially'].includes(currentOrder.status);
 
   return (
     <div className="space-y-6">
@@ -342,20 +365,21 @@ export function PurchaseOrderDetails() {
       {/* Timeline and Order Items - Side by Side Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Timeline Sidebar */}
-        <div className="lg:col-span-4">
+        <div className="lg:col-span-3">
           <Card className="h-full">
-            <CardHeader>
-              <CardTitle>Order Timeline</CardTitle>
-              <CardDescription>Track order progress</CardDescription>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Order Timeline</CardTitle>
+              <CardDescription className="text-xs">Track order progress</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4">
               {/* Vertical Timeline */}
-              <div className="space-y-6">
-                {workflowSteps.map((step, index) => {
+              <div className="space-y-3">
+                {activeWorkflowSteps.map((step, index) => {
                   const Icon = step.icon;
                   const isActive = index <= currentStepIndex;
                   const isCurrent = index === currentStepIndex;
                   const isCompleted = index < currentStepIndex;
+                  const isCompletionStep = step.key === 'completed' || step.key === 'completed_partially';
 
                   // Get step-specific data
                   let stepData: { label: string; value: string }[] = [];
@@ -418,28 +442,37 @@ export function PurchaseOrderDetails() {
                         { label: 'Completed', value: new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
+                    else if (step.key === 'completed_partially' && isCompleted) {
+                      stepData = [
+                        { label: 'Status', value: 'Partially Completed' },
+                        { label: 'Lost Items', value: 'Yes' },
+                        { label: 'Completed', value: new Date(currentOrder.updated_at).toLocaleString() }
+                      ];
+                    }
                   }
 
                   return (
                     <div key={step.key} className="relative">
-                      <div className="flex items-start gap-3">
+                      <div className="flex items-start gap-2">
                         {/* Icon and vertical line */}
                         <div className="flex flex-col items-center">
-                          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 flex-shrink-0 ${
-                            isCompleted ? 'border-green-600 bg-green-600 text-white' :
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 flex-shrink-0 ${
+                            step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'border-amber-500 bg-amber-500 text-white' :
+                            isCompleted || (isCurrent && isCompletionStep) ? 'border-green-600 bg-green-600 text-white' :
                             isCurrent ? 'border-primary bg-primary text-primary-foreground' :
                             isActive ? 'border-primary bg-primary text-primary-foreground' :
                             'border-muted-foreground bg-background'
                           }`}>
-                            {isCompleted ? (
-                              <CheckCircle className="w-5 h-5" />
+                            {isCompleted || (isCurrent && isCompletionStep) ? (
+                              <CheckCircle className="w-4 h-4" />
                             ) : (
-                              <Icon className="w-5 h-5" />
+                              <LoaderCircle className="w-4 h-4" />
                             )}
                           </div>
-                          {index < workflowSteps.length - 1 && (
-                            <div className={`w-0.5 h-full min-h-[60px] mt-2 ${
-                              isCompleted ? 'bg-green-600' :
+                          {index < activeWorkflowSteps.length - 1 && (
+                            <div className={`w-0.5 h-full min-h-[40px] mt-2 ${
+                              step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'bg-amber-500' :
+                              isCompleted || (isCurrent && isCompletionStep) ? 'bg-green-600' :
                               isActive && !isCurrent ? 'bg-primary' :
                               'bg-muted-foreground/30'
                             }`} />
@@ -447,16 +480,14 @@ export function PurchaseOrderDetails() {
                         </div>
 
                         {/* Step content */}
-                        <div className="flex-1 pb-6">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h4 className={`text-sm font-semibold ${
+                        <div className="flex-1 pb-3">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className={`text-xs font-semibold ${
                               isActive ? 'text-foreground' : 'text-muted-foreground'
                             }`}>
                               {step.label}
                             </h4>
-                            {isCurrent && (
-                              <Badge variant="default" className="text-xs">Current</Badge>
-                            )}
+                           
                           </div>
 
                           {/* Step details */}
@@ -481,7 +512,7 @@ export function PurchaseOrderDetails() {
         </div>
 
         {/* Order Items */}
-        <div className="lg:col-span-8">
+        <div className="lg:col-span-9">
           <Card>
         <CardHeader>
           <CardTitle>Order Items</CardTitle>
@@ -494,22 +525,36 @@ export function PurchaseOrderDetails() {
             <TableHeader>
               <TableRow>
                 <TableHead>Product</TableHead>
-                <TableHead>RMB Price</TableHead>
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>RMB Price</span>
+                    <span className="text-xs text-muted-foreground">
+                      {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
+                    </span>
+                  </div>
+                </TableHead>
                 <TableHead>Quantity</TableHead>
-                <TableHead>Subtotal (RMB)</TableHead>
-                {(currentOrder.status === 'arrived_bd' || ['in_transit_bogura', 'received_hub', 'completed'].includes(currentOrder.status)) && (
-                  <TableHead>Shipping Cost</TableHead>
-                )}
+                {showReceivedQty && <TableHead>Received Qty</TableHead>}
+                <TableHead>Weight</TableHead>
+                <TableHead>Extra Weight</TableHead>
+                <TableHead>
+                  <div className="flex items-center gap-2">
+                    <span>Subtotal (RMB)</span>
+                    <span className="text-xs text-muted-foreground">
+                      {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
+                    </span>
+                  </div>
+                </TableHead>
+                <TableHead>Unit Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentOrder.items?.map((item) => {
-                const chinaPrice = parseFloat(item.china_price) || 0;
-                const quantity = parseInt(item.quantity) || 0;
-                const shippingCost = parseFloat(item.shipping_cost) || 0;
+              {currentOrder.items?.map((item, idx) => {
+                const chinaPrice = Number(item.china_price) || 0;
+                const quantity = Number(item.quantity) || 0;
 
                 return (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className={idx % 2 === 1 ? 'bg-muted/40' : ''}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {item.product?.base_thumbnail_url ? (
@@ -530,10 +575,14 @@ export function PurchaseOrderDetails() {
                     </TableCell>
                     <TableCell>¥{chinaPrice.toFixed(2)}</TableCell>
                     <TableCell>{quantity}</TableCell>
+                    {showReceivedQty && (
+                      <TableCell className={Number(item.received_quantity) < quantity ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                        {item.received_quantity ?? '-'}
+                      </TableCell>
+                    )}<TableCell>{(Number(item.unit_weight || 0)).toFixed(2)} kg</TableCell>
+                    <TableCell>{(Number(item.extra_weight || 0)).toFixed(2)} kg</TableCell>
                     <TableCell>¥{(chinaPrice * quantity).toFixed(2)}</TableCell>
-                    {(currentOrder.status === 'arrived_bd' || ['in_transit_bogura', 'received_hub', 'completed'].includes(currentOrder.status)) && (
-                      <TableCell>${shippingCost.toFixed(2)}</TableCell>
-                    )}
+                    <TableCell>৳{(Number(item.final_unit_cost || 0)).toFixed(2)}</TableCell>
                   </TableRow>
                 );
               })}
@@ -565,7 +614,7 @@ export function PurchaseOrderDetails() {
                       <Input
                         type="number"
                         step="0.01"
-                        placeholder="15.00"
+                        placeholder="17.50"
                         defaultValue={defaultExchangeRate}
                         {...field}
                       />
@@ -794,7 +843,7 @@ export function PurchaseOrderDetails() {
                       <TableHead className="text-center">Qty</TableHead>
                       <TableHead>Unit Weight (kg)</TableHead>
                       <TableHead>Extra Weight (kg)</TableHead>
-                      <TableHead>Lost Qty</TableHead>
+                      <TableHead>Receive Qty</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -829,10 +878,9 @@ export function PurchaseOrderDetails() {
                           <Input
                             type="number"
                             min="0"
-                            max={item.quantity}
-                            placeholder="0"
-                            value={item.lost_quantity}
-                            onChange={(e) => updateReceiveItem(index, 'lost_quantity', e.target.value)}
+                            placeholder={item.quantity.toString()}
+                            value={item.received_quantity}
+                            onChange={(e) => updateReceiveItem(index, 'received_quantity', e.target.value)}
                             className="w-20"
                           />
                         </TableCell>
@@ -856,9 +904,9 @@ export function PurchaseOrderDetails() {
                     </span>
                   </div>
                   <div>
-                    <span className="font-medium">Total Lost Items:</span>{' '}
+                    <span className="font-medium">Total Received Items:</span>{' '}
                     <span>
-                      {receiveStockItems.reduce((sum, item) => sum + (parseFloat(item.lost_quantity) || 0), 0)} pcs
+                      {receiveStockItems.reduce((sum, item) => sum + (parseFloat(item.received_quantity) || 0), 0)} pcs
                     </span>
                   </div>
                 </div>

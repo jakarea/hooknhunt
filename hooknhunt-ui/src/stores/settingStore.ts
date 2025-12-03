@@ -66,7 +66,7 @@ export const useSettingStore = create<SettingState>()(
 
     return {
       settings: cachedSettings || {},
-      isLoading: !cachedSettings, // Only loading if no cache available
+      isLoading: false, // Initialize as false so components can trigger fetch if needed
       error: null,
       lastFetched: cachedSettings ? Date.now() : null,
       isInitialized: !!cachedSettings,
@@ -75,19 +75,25 @@ export const useSettingStore = create<SettingState>()(
         const state = get();
 
         // Skip if already loading
-        if (state.isLoading && !force) return;
+        if (state.isLoading && !force) {
+          console.log('SettingStore - Skipping fetch (already loading)');
+          return;
+        }
 
         // Skip if we have fresh data (unless forced)
         const now = Date.now();
         if (!force && state.lastFetched && (now - state.lastFetched < CACHE_DURATION)) {
+          console.log('SettingStore - Skipping fetch (cache still fresh)');
           return;
         }
 
+        console.log('SettingStore - Fetching settings...');
         set((prevState) => ({ ...prevState, isLoading: true, error: null }));
 
         try {
           const response = await apiClient.get<Record<string, string>>('/admin/settings');
           const newSettings = response.data;
+          console.log('SettingStore - Fetch successful:', newSettings);
 
           set((prevState) => ({
             ...prevState,

@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import {
   LayoutDashboard,
@@ -18,6 +22,11 @@ import {
   ArrowRightFromLine,
   Plus,
   List,
+  Bell,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Clock,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -99,12 +108,86 @@ const menuItems: MenuItem[] = [
   },
 ];
 
+// Notification interface
+interface Notification {
+  id: number;
+  type: 'success' | 'warning' | 'info' | 'error';
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
+// Static notification list
+const staticNotifications: Notification[] = [
+  {
+    id: 1,
+    type: 'success',
+    title: 'Order Completed',
+    message: 'Purchase order #PO-202511-10 has been completed successfully',
+    time: '2 minutes ago',
+    read: false,
+  },
+  {
+    id: 2,
+    type: 'info',
+    title: 'New Product Added',
+    message: 'Product "Fishing Rod Pro X1" has been added to inventory',
+    time: '1 hour ago',
+    read: false,
+  },
+  {
+    id: 3,
+    type: 'warning',
+    title: 'Low Stock Alert',
+    message: 'Product "Fishing Hook Set" is running low on stock (5 units left)',
+    time: '3 hours ago',
+    read: true,
+  },
+  {
+    id: 4,
+    type: 'success',
+    title: 'Payment Confirmed',
+    message: 'Purchase order #PO-202511-09 payment has been confirmed',
+    time: '5 hours ago',
+    read: true,
+  },
+  {
+    id: 5,
+    type: 'error',
+    title: 'Shipment Delayed',
+    message: 'Purchase order #PO-202511-08 shipment has been delayed',
+    time: '1 day ago',
+    read: true,
+  },
+];
+
 const Layout = () => {
   const { user, logout } = useAuthStore();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({}); // State to manage open/closed nested menus
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>(staticNotifications);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const getNotificationIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'warning':
+        return <AlertCircle className="h-4 w-4 text-yellow-600" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-red-600" />;
+      case 'info':
+        return <Info className="h-4 w-4 text-blue-600" />;
+    }
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  };
 
   const hasAccess = (roles: string[]) => {
     if (!user) return false;
@@ -255,6 +338,103 @@ const Layout = () => {
             </Button>
 
             <div className="flex items-center gap-4">
+              {/* Notification Bell */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Bell className="h-5 w-5 text-gray-600" />
+                    {unreadCount > 0 && (
+                      <Badge
+                        variant="destructive"
+                        className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                      >
+                        {unreadCount}
+                      </Badge>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-96 p-0" align="end">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Notifications</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up!'}
+                      </p>
+                    </div>
+                    {unreadCount > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={markAllAsRead}
+                        className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        Mark all read
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Notifications List */}
+                  <ScrollArea className="h-[400px]">
+                    {notifications.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                        <Bell className="h-12 w-12 mb-3 opacity-30" />
+                        <p className="text-sm">No notifications</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y">
+                        {notifications.map((notification) => (
+                          <div
+                            key={notification.id}
+                            className={`p-4 hover:bg-gray-50 transition-colors ${
+                              !notification.read ? 'bg-blue-50/50' : ''
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5 flex-shrink-0">
+                                {getNotificationIcon(notification.type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                  <p className="font-medium text-sm text-gray-900">
+                                    {notification.title}
+                                  </p>
+                                  {!notification.read && (
+                                    <div className="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-1.5" />
+                                  )}
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                  {notification.message}
+                                </p>
+                                <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
+                                  <Clock className="h-3 w-3" />
+                                  {notification.time}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+
+                  {/* Footer */}
+                  {notifications.length > 0 && (
+                    <>
+                      <Separator />
+                      <div className="p-2">
+                        <Button
+                          variant="ghost"
+                          className="w-full text-sm text-gray-600 hover:text-gray-900"
+                        >
+                          View all notifications
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </PopoverContent>
+              </Popover>
+
               <div className="text-sm text-gray-600">
                 Welcome back, <span className="font-semibold text-gray-900">{user?.name}</span>
               </div>

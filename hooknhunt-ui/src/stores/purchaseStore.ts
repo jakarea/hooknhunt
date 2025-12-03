@@ -27,6 +27,7 @@ interface PurchaseOrder {
   shipping_cost?: number;
   total_weight?: number;
   extra_cost_global?: number;
+  total_amount?: number;
   bd_courier_tracking?: string;
   created_by: number;
   items?: PurchaseOrderItem[];
@@ -43,8 +44,10 @@ interface PurchaseOrderItem {
   productVariant?: any;
   china_price: number;
   quantity: number;
+  unit_weight?: number | string;
+  extra_weight?: number | string;
   shipping_cost?: number;
-  lost_quantity: number;
+  received_quantity: number;
   lost_item_price?: number;
   final_unit_cost?: number;
   created_at: string;

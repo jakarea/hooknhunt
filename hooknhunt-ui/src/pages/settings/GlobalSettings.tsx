@@ -81,9 +81,13 @@ export const GlobalSettings = () => {
   const { fetchSettings, updateSingleSetting } = useSettingStore();
 
   // Memoize the initial value to prevent unnecessary form resets
-  const initialValue = useMemo(() => ({
-    exchange_rate_rmb_bdt: settings.exchange_rate_rmb_bdt || '',
-  }), [settings.exchange_rate_rmb_bdt]);
+  const initialValue = useMemo(() => {
+    const value = settings.exchange_rate_rmb_bdt || settings.exchange_rate || '';
+    console.log('GlobalSettings - Initial value:', value, 'from settings:', settings);
+    return {
+      exchange_rate_rmb_bdt: value,
+    };
+  }, [settings.exchange_rate_rmb_bdt, settings.exchange_rate]);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -99,7 +103,9 @@ export const GlobalSettings = () => {
   // Fetch settings only when needed and handle caching
   useEffect(() => {
     const hasSettings = Object.keys(settings).length > 0;
+    console.log('GlobalSettings - hasSettings:', hasSettings, 'isLoading:', isLoading, 'settings:', settings);
     if (!hasSettings && !isLoading) {
+      console.log('GlobalSettings - Fetching settings...');
       fetchSettings();
     } else if (hasSettings) {
       resetForm();
@@ -138,7 +144,10 @@ export const GlobalSettings = () => {
   }, [fetchSettings]);
 
   // Show loading state only on initial load
-  if (isLoading && Object.keys(settings).length === 0) {
+  const hasSettings = Object.keys(settings).length > 0;
+  
+  if ((isLoading || !hasSettings) && !error) {
+    console.log('GlobalSettings - Showing loading skeleton');
     return (
       <RoleGuard allowedRoles={['super_admin']}>
         <div className="space-y-6">
@@ -150,6 +159,7 @@ export const GlobalSettings = () => {
   }
 
   if (error) {
+    console.log('GlobalSettings - Showing error:', error);
     return (
       <RoleGuard allowedRoles={['super_admin']}>
         <div className="space-y-6">

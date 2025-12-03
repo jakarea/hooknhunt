@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { List, Package, Truck, Calendar, CheckCircle, Plus, Eye, Edit } from 'lucide-react';
+import { List, Package, Truck, Calendar, CheckCircle, Plus, Eye } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { toast } from '@/components/ui/use-toast';
+// import { toast } from '@/components/ui/use-toast';
 
 import { usePurchaseStore } from '@/stores/purchaseStore';
 
@@ -13,9 +13,13 @@ interface PurchaseOrder {
   id: number;
   po_number?: string;
   supplier_id: number;
-  supplier?: any;
+  supplier?: { shop_name?: string };
   status: string;
   exchange_rate?: number;
+  shipping_method?: 'air' | 'sea';
+  shipping_cost?: number;
+  extra_cost_global?: number;
+  total_amount?: number;
   created_at: string;
   updated_at: string;
   items?: Array<{
@@ -43,6 +47,7 @@ export function PurchaseList() {
       in_transit_bogura: 'bg-indigo-100 text-indigo-800',
       received_hub: 'bg-green-100 text-green-800',
       completed: 'bg-green-600 text-white',
+      completed_partially: 'bg-amber-500 text-white',
       lost: 'bg-red-100 text-red-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
@@ -70,7 +75,7 @@ export function PurchaseList() {
     total: purchaseOrders.length,
     pending: purchaseOrders.filter(order => ['draft', 'payment_confirmed'].includes(order.status)).length,
     inTransit: purchaseOrders.filter(order => ['supplier_dispatched', 'shipped_bd', 'arrived_bd', 'in_transit_bogura'].includes(order.status)).length,
-    completed: purchaseOrders.filter(order => order.status === 'completed').length,
+    completed: purchaseOrders.filter(order => ['completed', 'completed_partially'].includes(order.status)).length,
   };
 
   return (
@@ -162,10 +167,13 @@ export function PurchaseList() {
               <TableRow>
                 <TableHead>Order #</TableHead>
                 <TableHead>Supplier</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Items</TableHead>
                 <TableHead>Total (RMB)</TableHead>
-                <TableHead>Created</TableHead>
+                <TableHead>Exchange Rate</TableHead>
+                <TableHead>Shipping Cost</TableHead>
+                <TableHead>Extra Cost</TableHead>
+                <TableHead>Total Amount</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -190,6 +198,12 @@ export function PurchaseList() {
                       <div className="h-4 bg-gray-200 rounded w-20 animate-pulse" />
                     </TableCell>
                     <TableCell>
+                      <div className="h-4 bg-gray-200 rounded w-20 animate-pulse" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
+                    </TableCell>
+                    <TableCell>
                       <div className="h-4 bg-gray-200 rounded w-24 animate-pulse" />
                     </TableCell>
                     <TableCell className="text-right">
@@ -199,7 +213,7 @@ export function PurchaseList() {
                 ))
               ) : purchaseOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8">
+                  <TableCell colSpan={10} className="text-center py-8">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Package className="h-12 w-12 opacity-50" />
                       <p>No purchase orders found</p>
@@ -211,23 +225,39 @@ export function PurchaseList() {
                   </TableCell>
                 </TableRow>
               ) : (
-                purchaseOrders.map((order) => (
-                  <TableRow key={order.id}>
+                purchaseOrders.map((order, idx) => (
+                  <TableRow key={order.id} className={idx % 2 === 1 ? 'bg-muted/40' : ''}>
                     <TableCell className="font-mono">
                       {order.po_number || `PO-${order.id}`}
+                      <br />
+                      <small>{new Date(order.created_at).toLocaleDateString()}</small>
                     </TableCell>
                     <TableCell>{order.supplier?.shop_name || 'Unknown'}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(order.status)}>
-                        {getStatusLabel(order.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{order.items?.length || 0}</TableCell>
+                     <TableCell>{order.items?.length || 0}</TableCell>
+                   
+                   
                     <TableCell className="font-medium">
                       ¥{getTotalAmount(order).toFixed(2)}
                     </TableCell>
                     <TableCell>
-                      {new Date(order.created_at).toLocaleDateString()}
+                      {order.exchange_rate !== undefined && order.exchange_rate !== null ? `৳${Number(order.exchange_rate).toFixed(2)}` : '--'}
+                    </TableCell>
+                    
+                    <TableCell>
+                      {order.shipping_cost !== undefined && order.shipping_cost !== null ? `৳${Number(order.shipping_cost).toFixed(2)}` : '--'}
+                       &nbsp;<small>{order.shipping_method ? (order.shipping_method === 'air' ? 'Air' : 'Sea') : '--'}</small>
+                    </TableCell>
+                    <TableCell>
+                      {order.extra_cost_global !== undefined && order.extra_cost_global !== null ? `৳${Number(order.extra_cost_global).toFixed(2)}` : '--'}
+                    </TableCell>
+                    <TableCell>
+                      {order.total_amount !== undefined && order.total_amount !== null ? `৳${Number(order.total_amount).toFixed(2)}` : '--'}
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Badge className={getStatusColor(order.status)}>
+                        {getStatusLabel(order.status)}
+                      </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-2 justify-end">
@@ -241,6 +271,7 @@ export function PurchaseList() {
                         </Button>
                       </div>
                     </TableCell>
+                    
                   </TableRow>
                 ))
               )}

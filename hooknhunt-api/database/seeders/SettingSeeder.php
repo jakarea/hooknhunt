@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use App\Models\Setting;
 
@@ -13,10 +12,20 @@ class SettingSeeder extends Seeder
      */
     public function run(): void
     {
-        // Insert default exchange rate
-        Setting::updateOrCreate(
-            ['key' => 'exchange_rate_rmb_bdt'],
-            ['value' => '17.50']
-        );
+        $defaultSettings = [
+            [
+                'key' => 'exchange_rate_rmb_bdt',
+                'value' => '17.50',
+            ],
+        ];
+
+        foreach ($defaultSettings as $setting) {
+            Setting::updateOrCreate(
+                ['key' => $setting['key']],
+                ['value' => $setting['value']]
+            );
+        }
+
+        $this->command->info('Default settings seeded successfully!');
     }
 }
