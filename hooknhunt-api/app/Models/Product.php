@@ -30,7 +30,7 @@ class Product extends Model
     protected function baseThumbnailUrl(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value) => $value ? url('storage/' . $value) : null,
+            get: fn (?string $value) => $value ? url( $value) : null,
         );
     }
 

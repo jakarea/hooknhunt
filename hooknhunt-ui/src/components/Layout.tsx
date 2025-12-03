@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -172,6 +172,20 @@ const Layout = () => {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Close menus when navigating away from their children
+  useEffect(() => {
+    const newOpenMenus: Record<string, boolean> = {};
+    menuItems.forEach((item) => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => child.path && location.pathname.startsWith(child.path));
+        if (hasActiveChild) {
+          newOpenMenus[item.name] = true;
+        }
+      }
+    });
+    setOpenMenus(newOpenMenus);
+  }, [location.pathname]);
+
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'success':
@@ -234,8 +248,12 @@ const Layout = () => {
         <nav className="flex-1 overflow-y-auto py-4">
           <ul className="space-y-1 px-3">
             {filteredMenuItems.map((item) => {
-              const isActive = item.path && location.pathname.startsWith(item.path);
-              const isOpen = openMenus[item.name] || (item.children && item.children.some(child => child.path && location.pathname.startsWith(child.path)));
+              // Use exact match for Dashboard, startsWith for others
+              const isActive = item.path && (item.path === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(item.path));
+              // Check if any child is currently active
+              const hasActiveChild = item.children && item.children.some(child => child.path && location.pathname.startsWith(child.path));
+              // Menu is open if manually toggled OR has an active child
+              const isOpen = openMenus[item.name] !== undefined ? openMenus[item.name] : hasActiveChild;
 
               return (
                 <li key={item.name}>
