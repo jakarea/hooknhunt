@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 
 export default function RegistrationPage() {
     const [formData, setFormData] = useState({
-        name: '',
         phone: '',
         password: '',
         confirmPassword: '',
@@ -31,13 +30,6 @@ export default function RegistrationPage() {
         e.preventDefault();
         setError('');
         setIsLoading(true);
-
-        // Validate name
-        if (formData.name.trim().length < 2) {
-            setError('Please enter your full name');
-            setIsLoading(false);
-            return;
-        }
 
         // Validate phone number (Bangladesh format)
         const phoneRegex = /^01[3-9]\d{8}$/;
@@ -99,30 +91,6 @@ export default function RegistrationPage() {
                                 {error}
                             </div>
                         )}
-
-                        {/* Name Field */}
-                        <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Full Name
-                            </label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                    </svg>
-                                </div>
-                                <input
-                                    id="name"
-                                    name="name"
-                                    type="text"
-                                    required
-                                    value={formData.name}
-                                    onChange={handleChange}
-                                    className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
-                                    placeholder="Enter your full name"
-                                />
-                            </div>
-                        </div>
 
                         {/* Phone Number Field */}
                         <div>

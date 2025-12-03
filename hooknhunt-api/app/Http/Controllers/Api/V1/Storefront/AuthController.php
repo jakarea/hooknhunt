@@ -11,32 +11,38 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     /**
-     * Register a new user.
+     * Register a new user (Simple: Phone + Password only).
+     * OTP will be sent automatically for verification.
      */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'phone_number' => 'required|string|max:20|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'phone_number' => 'required|string|regex:/^01[3-9]\d{8}$/|unique:users',
+            'password' => 'required|string|min:6',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Generate OTP
+        $otpCode = rand(100000, 999999);
+
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
             'phone_number' => $request->phone_number,
             'password' => Hash::make($request->password),
             'role' => 'retail_customer',
-            'otp_code' => rand(100000, 999999),
+            'otp_code' => $otpCode,
             'otp_expires_at' => now()->addMinutes(5),
         ]);
 
-        return response()->json(['message' => 'Registration successful. Please verify your phone.'], 201);
+        // TODO: Send OTP via SMS (integrate SMS gateway here)
+        // For now, return OTP in response (ONLY FOR DEVELOPMENT)
+        return response()->json([
+            'message' => 'Registration successful. Please verify your phone with OTP.',
+            'phone_number' => $user->phone_number,
+            'otp_code' => $otpCode, // Remove this in production
+        ], 201);
     }
 
     /**
@@ -73,7 +79,8 @@ class AuthController extends Controller
     }
 
     /**
-     * Send OTP to a user.
+     * Send/Resend OTP to a user's phone number.
+     * Used for phone verification after registration.
      */
     public function sendOtp(Request $request)
     {
@@ -87,25 +94,33 @@ class AuthController extends Controller
 
         $user = User::where('phone_number', $request->phone_number)->first();
 
-        if ($user) {
-            $user->otp_code = rand(100000, 999999);
-            $user->otp_expires_at = now()->addMinutes(5);
-            $user->save();
-
-            return response()->json(['message' => 'OTP sent.']);
+        if (!$user) {
+            return response()->json(['message' => 'Phone number not found.'], 404);
         }
 
-        return response()->json(['message' => 'User does not exist.'], 400);
+        // Generate new OTP
+        $otpCode = rand(100000, 999999);
+        $user->otp_code = $otpCode;
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        // TODO: Send OTP via SMS (integrate SMS gateway here)
+        // For now, return OTP in response (ONLY FOR DEVELOPMENT)
+        return response()->json([
+            'message' => 'OTP sent successfully.',
+            'otp_code' => $otpCode, // Remove this in production
+        ]);
     }
 
     /**
-     * Verify OTP and log in the user.
+     * Verify OTP and mark phone as verified.
+     * Returns auth token upon successful verification.
      */
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'phone_number' => 'required|string|exists:users,phone_number',
-            'otp_code' => 'required|string',
+            'otp_code' => 'required|string|size:6',
         ]);
 
         if ($validator->fails()) {
@@ -118,16 +133,22 @@ class AuthController extends Controller
             ->first();
 
         if (!$user) {
-            return response()->json(['message' => 'Invalid or expired OTP.'], 400);
+            return response()->json(['message' => 'Invalid or expired OTP. Please request a new one.'], 400);
         }
 
+        // Mark phone as verified
         $user->phone_verified_at = now();
         $user->otp_code = null;
         $user->otp_expires_at = null;
         $user->save();
 
+        // Create auth token
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json(['token' => $token, 'user' => $user]);
+        return response()->json([
+            'message' => 'Phone verified successfully.',
+            'token' => $token,
+            'user' => $user
+        ]);
     }
 }
