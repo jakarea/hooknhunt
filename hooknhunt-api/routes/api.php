@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductSupplierController;
 use App\Http\Controllers\Api\V1\Admin\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\Admin\SettingController;
+use App\Http\Controllers\Api\V1\Admin\SmsController;
 use App\Http\Controllers\Api\V1\Admin\SupplierController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
@@ -98,6 +99,16 @@ Route::prefix('v1/admin')->group(function () {
         Route::middleware('role:super_admin')->group(function () {
             Route::get('/settings', [SettingController::class, 'index']);
             Route::post('/settings', [SettingController::class, 'update']);
+        });
+
+        // --- SMS Routes (Admin, Super Admin, Senior Staff, Marketer) ---
+        Route::middleware('role:super_admin,admin,store_keeper,marketer')->prefix('sms')->group(function () {
+            Route::get('/', [SmsController::class, 'index']); // Get SMS logs
+            Route::post('/send', [SmsController::class, 'send']); // Send SMS
+            Route::get('/balance', [SmsController::class, 'getBalance']); // Get account balance
+            Route::get('/statistics', [SmsController::class, 'statistics']); // Get statistics
+            Route::get('/{id}/report', [SmsController::class, 'getReport']); // Get delivery report for specific SMS
+            Route::post('/refresh-reports', [SmsController::class, 'refreshReports']); // Refresh all pending reports
         });
 
         // ... (other roles will be added later) ...

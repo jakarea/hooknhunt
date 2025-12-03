@@ -21,6 +21,7 @@ import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
 import { GlobalSettings } from './pages/settings/GlobalSettings';
+import SmsManagement from './pages/sms/SmsManagement';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -63,6 +64,9 @@ function App() {
 
               {/* Settings Routes */}
               <Route path="dashboard/settings" element={<GlobalSettings />} />
+
+              {/* SMS Routes */}
+              <Route path="dashboard/sms" element={<SmsManagement />} />
 
               {/* Add other protected routes here */}
             </Route>

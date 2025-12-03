@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Info,
   Clock,
+  MessageSquare,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -99,6 +100,12 @@ const menuItems: MenuItem[] = [
     path: '/dashboard/orders',
     icon: <ShoppingCart className="h-5 w-5" />,
     roles: ['super_admin', 'admin', 'seller'],
+  },
+  {
+    name: 'SMS',
+    path: '/dashboard/sms',
+    icon: <MessageSquare className="h-5 w-5" />,
+    roles: ['super_admin', 'admin', 'store_keeper', 'marketer'],
   },
   {
     name: 'Settings',
