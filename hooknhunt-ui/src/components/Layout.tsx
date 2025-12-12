@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,15 @@ import {
   AlertCircle,
   Info,
   Clock,
-  MessageSquare,
+  Archive,
+  Globe,
+  PackagePlus,
+  ClipboardList,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface MenuItem {
+  key: string;
   name: string;
   path?: string; // Path is optional for parent items
   icon: React.ReactNode;
@@ -38,160 +43,178 @@ interface MenuItem {
   children?: MenuItem[]; // For nested menu items
 }
 
-const menuItems: MenuItem[] = [
-  {
-    name: 'Dashboard',
-    path: '/dashboard',
-    icon: <LayoutDashboard className="h-5 w-5" />,
-    roles: ['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'],
-  },
-  {
-    name: 'Users',
-    path: '/dashboard/users',
-    icon: <Users className="h-5 w-5" />,
-    roles: ['super_admin', 'admin'],
-  },
-
-  {
-    name: 'Attributes',
-    path: '/dashboard/attributes',
-    icon: <Settings2 className="h-5 w-5" />,
-    roles: ['super_admin', 'admin'],
-  },
-  {
-    name: 'Purchase', // Parent menu item
-    icon: <Truck className="h-5 w-5" />, // Using Truck icon for Purchase for now
-    roles: ['super_admin', 'admin', 'store_keeper'], // Roles for Purchase section
-    children: [
-      {
-        name: 'New',
-        path: '/dashboard/purchase/new',
-        icon: <Plus className="h-5 w-5" />, // Icon for New
-        roles: ['super_admin', 'admin', 'store_keeper'],
-      },
-      {
-        name: 'List',
-        path: '/dashboard/purchase/list',
-        icon: <List className="h-5 w-5" />, // Icon for List
-        roles: ['super_admin', 'admin', 'store_keeper'],
-      },
-      {
-        name: 'Suppliers',
-        path: '/dashboard/suppliers',
-        icon: <Truck className="h-5 w-5" />, // Icon for Suppliers
-        roles: ['super_admin', 'admin', 'store_keeper'],
-      },
-      {
-        name: 'Categories',
-        path: '/dashboard/categories',
-        icon: <Tag className="h-5 w-5" />,
-        roles: ['super_admin', 'admin', 'marketer'],
-      },
-    ],
-  },
-  {
-    name: 'Products',
-    path: '/dashboard/products',
-    icon: <Package className="h-5 w-5" />,
-    roles: ['super_admin', 'admin', 'store_keeper', 'seller'],
-  },
-  {
-    name: 'Orders',
-    path: '/dashboard/orders',
-    icon: <ShoppingCart className="h-5 w-5" />,
-    roles: ['super_admin', 'admin', 'seller'],
-  },
-  {
-    name: 'SMS',
-    path: '/dashboard/sms',
-    icon: <MessageSquare className="h-5 w-5" />,
-    roles: ['super_admin', 'admin', 'store_keeper', 'marketer'],
-  },
-  {
-    name: 'Settings',
-    path: '/dashboard/settings',
-    icon: <Settings className="h-5 w-5" />,
-    roles: ['super_admin'], // Only super_admin can access Global Settings
-  },
-];
-
-// Notification interface
 interface Notification {
-  id: number;
-  type: 'success' | 'warning' | 'info' | 'error';
+  id: string;
+  type: 'success' | 'warning' | 'error' | 'info';
   title: string;
   message: string;
   time: string;
   read: boolean;
 }
 
-// Static notification list
-const staticNotifications: Notification[] = [
-  {
-    id: 1,
-    type: 'success',
-    title: 'Order Completed',
-    message: 'Purchase order #PO-202511-10 has been completed successfully',
-    time: '2 minutes ago',
-    read: false,
-  },
-  {
-    id: 2,
-    type: 'info',
-    title: 'New Product Added',
-    message: 'Product "Fishing Rod Pro X1" has been added to inventory',
-    time: '1 hour ago',
-    read: false,
-  },
-  {
-    id: 3,
-    type: 'warning',
-    title: 'Low Stock Alert',
-    message: 'Product "Fishing Hook Set" is running low on stock (5 units left)',
-    time: '3 hours ago',
-    read: true,
-  },
-  {
-    id: 4,
-    type: 'success',
-    title: 'Payment Confirmed',
-    message: 'Purchase order #PO-202511-09 payment has been confirmed',
-    time: '5 hours ago',
-    read: true,
-  },
-  {
-    id: 5,
-    type: 'error',
-    title: 'Shipment Delayed',
-    message: 'Purchase order #PO-202511-08 shipment has been delayed',
-    time: '1 day ago',
-    read: true,
-  },
-];
+const shallowEqual = (obj1: Record<string, boolean>, obj2: Record<string, boolean>) => {
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
+
+  for (const key of keys1) {
+    if (obj1[key] !== obj2[key]) {
+      return false;
+    }
+  }
+  return true;
+};
 
 const Layout = () => {
   const { user, logout } = useAuthStore();
+  const { t, i18n } = useTranslation(['navigation', 'login']);
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({}); // State to manage open/closed nested menus
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>(staticNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const hasAccess = useCallback((roles: string[]) => {
+    if (!user) return false;
+    return roles.includes(user.role);
+  }, [user]);
+
+    const menuItems: MenuItem[] = useMemo(() => [
+    {
+      key: 'dashboard',
+      name: t('dashboard'),
+      path: '/dashboard',
+      icon: <LayoutDashboard className="h-5 w-5" />,
+      roles: ['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'],
+    },
+    {
+      key: 'users',
+      name: t('users'),
+      path: '/users',
+      icon: <Users className="h-5 w-5" />,
+      roles: ['super_admin', 'admin'],
+    },
+
+    {
+      key: 'attributes',
+      name: t('attributes'),
+      path: '/attributes',
+      icon: <Settings2 className="h-5 w-5" />,
+      roles: ['super_admin', 'admin'],
+    },
+    {
+      key: 'purchase',
+      name: t('purchase'), // Parent menu item
+      icon: <Truck className="h-5 w-5" />, // Using Truck icon for Purchase for now
+      roles: ['super_admin', 'admin', 'store_keeper'], // Roles for Purchase section
+      children: [
+        {
+          key: 'new',
+          name: t('new'),
+          path: '/purchase/new',
+          icon: <Plus className="h-5 w-5" />, // Icon for New
+          roles: ['super_admin', 'admin', 'store_keeper'],
+        },
+        {
+          key: 'list',
+          name: t('list'),
+          path: '/purchase/list',
+          icon: <List className="h-5 w-5" />, // Icon for List
+          roles: ['super_admin', 'admin', 'store_keeper'],
+        },
+        {
+          key: 'suppliers',
+          name: t('suppliers'),
+          path: '/suppliers',
+          icon: <Truck className="h-5 w-5" />, // Icon for Suppliers
+          roles: ['super_admin', 'admin', 'store_keeper'],
+        },
+        {
+          key: 'categories',
+          name: t('categories'),
+          path: '/categories',
+          icon: <Tag className="h-5 w-5" />,
+          roles: ['super_admin', 'admin', 'marketer'],
+        },
+      ],
+    },
+    {
+      key: 'products',
+      name: t('products'),
+      path: '/products',
+      icon: <Package className="h-5 w-5" />,
+      roles: ['super_admin', 'admin', 'store_keeper', 'seller'],
+    },
+    {
+      key: 'inventory',
+      name: t('inventory'),
+      icon: <Archive className="h-5 w-5" />,
+      roles: ['super_admin', 'admin', 'store_keeper'],
+      children: [
+        {
+          key: 'inventory-list',
+          name: t('inventoryList'),
+          path: '/inventory',
+          icon: <ClipboardList className="h-5 w-5" />,
+          roles: ['super_admin', 'admin', 'store_keeper'],
+        },
+        {
+          key: 'manual-entry',
+          name: t('manualEntry'),
+          path: '/inventory/manual-entry',
+          icon: <PackagePlus className="h-5 w-5" />,
+          roles: ['super_admin', 'admin', 'store_keeper'],
+        },
+      ],
+    },
+    {
+      key: 'orders',
+      name: t('orders'),
+      path: '/orders',
+      icon: <ShoppingCart className="h-5 w-5" />,
+      roles: ['super_admin', 'admin', 'seller'],
+    },
+    {
+      key: 'settings',
+      name: t('settings'),
+      path: '/settings',
+      icon: <Settings className="h-5 w-5" />,
+      roles: ['super_admin'], // Only super_admin can access Settings (includes SMS)
+    },
+  ], [t]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Close menus when navigating away from their children
+  /* eslint-disable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */
   useEffect(() => {
     const newOpenMenus: Record<string, boolean> = {};
     menuItems.forEach((item) => {
       if (item.children) {
-        const hasActiveChild = item.children.some(child => child.path && location.pathname.startsWith(child.path));
+        // Check if current path matches any child path exactly OR starts with child path (for nested routes)
+        const hasActiveChild = item.children.some(child => {
+          if (!child.path) return false;
+          // Exact match OR current path is a sub-route of the child path
+          return location.pathname === child.path ||
+                 (location.pathname.startsWith(child.path + '/'));
+        });
         if (hasActiveChild) {
-          newOpenMenus[item.name] = true;
+          newOpenMenus[item.key] = true;
         }
       }
     });
-    setOpenMenus(newOpenMenus);
-  }, [location.pathname]);
+
+    setOpenMenus(prevOpenMenus => {
+      if (!shallowEqual(newOpenMenus, prevOpenMenus)) {
+        return newOpenMenus;
+      }
+      return prevOpenMenus;
+    });
+  }, [location.pathname, i18n.language, menuItems]);
+  /* eslint-enable react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -210,21 +233,18 @@ const Layout = () => {
     setNotifications(notifications.map(n => ({ ...n, read: true })));
   };
 
-  const hasAccess = (roles: string[]) => {
-    if (!user) return false;
-    return roles.includes(user.role);
-  };
+  const filteredMenuItems = useMemo(() => {
+    return menuItems.filter((item) => {
+      if (item.children) {
+        // If parent has children, check if any child is accessible
+        return item.children.some((child) => hasAccess(child.roles));
+      }
+      return hasAccess(item.roles);
+    });
+  }, [menuItems, hasAccess]);
 
-  const filteredMenuItems = menuItems.filter((item) => {
-    if (item.children) {
-      // If parent has children, check if any child is accessible
-      return item.children.some((child) => hasAccess(child.roles));
-    }
-    return hasAccess(item.roles);
-  });
-
-  const toggleMenu = (name: string) => {
-    setOpenMenus((prev) => ({ ...prev, [name]: !prev[name] }));
+  const toggleMenu = (key: string) => {
+    setOpenMenus((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   const handleLogout = () => {
@@ -238,13 +258,11 @@ const Layout = () => {
       <aside
         className={`${
           sidebarOpen ? 'w-64' : 'w-0'
-        } bg-gradient-to-b from-red-700 to-red-900 text-white transition-all duration-300 overflow-hidden flex flex-col shadow-xl`}
+        } bg-linear-to-b from-red-700 to-red-900 text-white transition-all duration-300 overflow-hidden flex flex-col shadow-xl`}
       >
         {/* Logo */}
         <div className="p-6 flex flex-col items-center justify-center border-b border-red-800 bg-black/20">
-          <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shadow-lg mb-3">
-            <span className="text-2xl font-bold text-red-700">H&H</span>
-          </div>
+          
           <div className="text-center">
             <h1 className="text-lg font-bold text-white">Hook & Hunt</h1>
             <p className="text-xs text-red-200">Admin Panel</p>
@@ -257,17 +275,20 @@ const Layout = () => {
             {filteredMenuItems.map((item) => {
               // Use exact match for Dashboard, startsWith for others
               const isActive = item.path && (item.path === '/dashboard' ? location.pathname === '/dashboard' : location.pathname.startsWith(item.path));
-              // Check if any child is currently active
-              const hasActiveChild = item.children && item.children.some(child => child.path && location.pathname.startsWith(child.path));
+              // Check if any child is currently active (exact match or sub-route)
+              const hasActiveChild = item.children && item.children.some(child => {
+                if (!child.path) return false;
+                return location.pathname === child.path || location.pathname.startsWith(child.path + '/');
+              });
               // Menu is open if manually toggled OR has an active child
-              const isOpen = openMenus[item.name] !== undefined ? openMenus[item.name] : hasActiveChild;
+              const isOpen = openMenus[item.key] !== undefined ? openMenus[item.key] : hasActiveChild;
 
               return (
-                <li key={item.name}>
+                <li key={item.key}>
                   {item.children ? (
                     <>
                       <button
-                        onClick={() => toggleMenu(item.name)}
+                        onClick={() => toggleMenu(item.key)}
                         className={`flex items-center justify-between w-full px-3 py-2 rounded-lg transition-colors ${
                           isOpen
                             ? 'bg-red-600 text-white shadow-lg'
@@ -285,9 +306,13 @@ const Layout = () => {
                       {isOpen && (
                         <ul className="ml-6 mt-1 space-y-1">
                           {item.children.filter(child => hasAccess(child.roles)).map((child) => {
-                            const isChildActive = child.path && location.pathname.startsWith(child.path);
+                            // Check if child is active: exact match OR current path is a sub-route
+                            const isChildActive = child.path && (
+                              location.pathname === child.path ||
+                              location.pathname.startsWith(child.path + '/')
+                            );
                             return (
-                              <li key={child.path}>
+                              <li key={child.key}>
                                 <Link
                                   to={child.path || '#'} // Fallback for path if somehow missing
                                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
@@ -327,7 +352,7 @@ const Layout = () => {
         {/* User Info */}
         <div className="p-4 border-t border-red-800 bg-black/20">
           <div className="flex items-center gap-3 mb-4">
-            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-red-400/50">
+            <div className="h-12 w-12 rounded-full bg-linear-to-br from-red-500 to-red-700 flex items-center justify-center text-white font-bold shadow-lg ring-2 ring-red-400/50">
               {user?.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
@@ -343,7 +368,7 @@ const Layout = () => {
             onClick={() => setShowLogoutConfirm(true)}
           >
             <ArrowRightFromLine className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-            <span className="font-medium">Logout</span>
+            <span className="font-medium">{t('logout_button', { ns: 'login' })}</span>
           </Button>
         </div>
       </aside>
@@ -362,7 +387,34 @@ const Layout = () => {
               <Menu className="h-5 w-5" />
             </Button>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              {/* Language Switcher */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <Globe className="h-5 w-5 text-gray-600" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-40 p-2" align="end">
+                  <div className="grid gap-1">
+                    <Button
+                      variant={i18n.language === 'en' ? 'secondary' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => i18n.changeLanguage('en')}
+                    >
+                      English
+                    </Button>
+                    <Button
+                      variant={i18n.language === 'bn' ? 'secondary' : 'ghost'}
+                      className="w-full justify-start"
+                      onClick={() => i18n.changeLanguage('bn')}
+                    >
+                      বাংলা (Bengali)
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               {/* Notification Bell */}
               <Popover>
                 <PopoverTrigger asChild>
@@ -416,7 +468,7 @@ const Layout = () => {
                             }`}
                           >
                             <div className="flex items-start gap-3">
-                              <div className="mt-0.5 flex-shrink-0">
+                              <div className="mt-0.5 shrink-0">
                                 {getNotificationIcon(notification.type)}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -425,7 +477,7 @@ const Layout = () => {
                                     {notification.title}
                                   </p>
                                   {!notification.read && (
-                                    <div className="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-1.5" />
+                                    <div className="h-2 w-2 rounded-full bg-blue-600 shrink-0 mt-1.5" />
                                   )}
                                 </div>
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">
@@ -479,7 +531,7 @@ const Layout = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <LogOut className="h-5 w-5 text-red-600" />
-              Confirm Logout
+              {t('confirm_logout', { ns: 'login' })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to logout? You'll need to sign in again to access the admin panel.
@@ -494,7 +546,7 @@ const Layout = () => {
               className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
             >
               <ArrowRightFromLine className="h-4 w-4 mr-2" />
-              Logout
+              {t('logout_button', { ns: 'login' })}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
