@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/account/affiliate/page": "/account/affiliate",
+  "/account/orders/page": "/account/orders",
+  "/account/page": "/account",
+  "/account/profile/page": "/account/profile",
+  "/account/wishlist/page": "/account/wishlist",
+  "/cart/page": "/cart",
+  "/checkout/page": "/checkout",
+  "/favicon.ico/route": "/favicon.ico",
+  "/order-success/page": "/order-success",
+  "/page": "/",
+  "/products/[slug]/page": "/products/[slug]",
+  "/products/page": "/products"
+}

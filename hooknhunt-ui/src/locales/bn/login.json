@@ -1,0 +1,14 @@
+{
+  "login": {
+    "admin_login": "অ্যাডমিন লগইন",
+    "login_description": "আপনার অ্যাকাউন্টে লগইন করতে আপনার ফোন নম্বর এবং পাসওয়ার্ড লিখুন।",
+    "phone_number": "ফোন নম্বর",
+    "phone_placeholder": "যেমন 017xxxxxxxx",
+    "password": "পাসওয়ার্ড",
+    "remember_me": "আমাকে মনে রাখবেন",
+    "sign_in": "সাইন ইন করুন",
+    "signing_in": "সাইন ইন করা হচ্ছে...",
+    "error_title": "উফ! কিছু একটা ভুল হয়েছে।",
+    "unknown_error": "একটি অজানা ত্রুটি ঘটেছে"
+  }
+}

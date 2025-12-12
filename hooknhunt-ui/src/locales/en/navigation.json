@@ -1,0 +1,16 @@
+{
+  "dashboard": "Dashboard",
+  "users": "Users",
+  "attributes": "Attributes",
+  "purchase": "Purchase",
+  "new": "New",
+  "list": "List",
+  "suppliers": "Suppliers",
+  "categories": "Categories",
+  "products": "Products",
+  "inventory": "Inventory",
+  "inventoryList": "Inventory List",
+  "manualEntry": "Manual Entry",
+  "orders": "Orders",
+  "settings": "Settings"
+}

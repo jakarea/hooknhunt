@@ -1,0 +1,32 @@
+{
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome back! Here's what's happening in your store today.",
+    "role": "Admin",
+    "welcome_back": "Welcome back, {{name}}! 👋",
+    "logged_in_as": "You're logged in as <1>{{role}}</1>",
+    "total_users": "Total Users",
+    "from_last_month": "+{{percent}}% from last month",
+    "total_products": "Total Products",
+    "total_orders": "Total Orders",
+    "revenue": "Revenue",
+    "quick_actions": "Quick Actions",
+    "quick_actions_desc": "Frequently used features and shortcuts",
+    "manage_users": "Manage Users",
+    "manage_users_desc": "Add, edit, or remove users",
+    "add_product": "Add Product",
+    "add_product_desc": "Add new products to inventory",
+    "view_orders": "View Orders",
+    "view_orders_desc": "Check and manage customer orders",
+    "suppliers": "Suppliers",
+    "suppliers_desc": "Manage supplier contacts",
+    "recent_activity": "Recent Activity",
+    "recent_activity_desc": "Latest updates in your system",
+    "new_order_received": "New order received",
+    "minutes_ago": "{{count}} minutes ago",
+    "product_added": "Product added to catalog",
+    "hours_ago": "{{count}} hours ago",
+    "user_registered": "User registered",
+    "supplier_updated": "Supplier updated"
+  }
+}

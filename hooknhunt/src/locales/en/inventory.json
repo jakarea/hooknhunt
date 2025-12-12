@@ -1,0 +1,51 @@
+{
+  "inventory": {
+    "title": "Inventory",
+    "subtitle": "Manage your current stock levels",
+    "noVariants": "No variants",
+    "noItems": "No inventory items found",
+    "stats": {
+      "totalItems": "Total Items",
+      "totalQuantity": "Total Quantity",
+      "totalValue": "Total Value",
+      "alerts": "Alerts",
+      "alertsDetail": "{{out}} out, {{low}} low"
+    },
+    "filters": {
+      "title": "Filters",
+      "searchPlaceholder": "Search products...",
+      "stockStatusPlaceholder": "Stock Status",
+      "allStatus": "All Status",
+      "locationPlaceholder": "Filter by location...",
+      "clear": "Clear Filters"
+    },
+    "currentStock": {
+      "title": "Current Stock",
+      "showing": "Showing {{from}} to {{to}} of {{total}} items"
+    },
+    "table": {
+      "product": "Product",
+      "variant": "Variant",
+      "sku": "SKU",
+      "landedCost": "Landed Cost",
+      "retailPrice": "Retail Price",
+      "quantity": "Quantity",
+      "reserved": "Reserved",
+      "available": "Available",
+      "stockValue": "Stock Value",
+      "status": "Status"
+    },
+    "status": {
+      "outOfStock": "Out of Stock",
+      "lowStock": "Low Stock",
+      "reorderNeeded": "Reorder Needed",
+      "overstocked": "Overstocked",
+      "inStock": "In Stock"
+    },
+    "pagination": {
+      "page": "Page {{current}} of {{last}}",
+      "previous": "Previous",
+      "next": "Next"
+    }
+  }
+}
