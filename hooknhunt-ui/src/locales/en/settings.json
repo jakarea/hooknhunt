@@ -1,0 +1,246 @@
+
+{
+  "title": "System Settings",
+  "description": "Configure and manage application settings",
+  "tabs": {
+    "general": "General",
+    "pricing": "Pricing",
+    "payment": "Payment",
+    "tracking": "Tracking",
+    "sms": "SMS",
+    "notifications": "Notifications",
+    "inventory": "Inventory"
+  },
+  "general": {
+    "title": "General Settings",
+    "description": "Configure currency exchange rates and global settings"
+  },
+  "pricing": {
+    "title": "Pricing & Margins",
+    "description": "Configure default profit margins for automatic price calculation"
+  },
+  "payment": {
+    "title": "Payment Gateways",
+    "description": "Configure payment gateway integrations"
+  },
+  "tracking": {
+    "title": "Tracking & Analytics",
+    "description": "Configure marketing pixels and analytics tools"
+  },
+  "sms": {
+    "title": "SMS Settings",
+    "description": "Manage SMS gateway configuration and send messages"
+  },
+  "notifications_tab": {
+    "title": "Notification Settings",
+    "description": "Configure notification preferences and channels",
+    "coming_soon": "Coming soon..."
+  },
+  "security": {
+    "title": "Security Settings",
+    "description": "Manage authentication, passwords, and security policies"
+  },
+  "inventory_tab": {
+    "title": "Inventory Settings",
+    "description": "Configure low stock alerts, reorder points, and warehouse settings"
+  },
+  "general_tab": {
+    "validation": {
+      "exchange_rate_required": "Exchange rate is required.",
+      "exchange_rate_positive": "Exchange rate must be a positive number."
+    },
+    "toast": {
+      "no_changes_title": "No Changes",
+      "no_changes_description": "No changes detected in the settings.",
+      "success_title": "Success",
+      "success_description": "Exchange rate has been updated successfully.",
+      "error_title": "Error",
+      "error_description": "Failed to update exchange rate. Please try again."
+    },
+    "exchange_rates_card": {
+      "title": "Exchange Rates",
+      "description": "Configure currency exchange rates used throughout the system",
+      "description_skeleton": "Configure currency exchange rates"
+    },
+    "error_loading": "Error loading settings",
+    "retry_button": "Retry",
+    "form": {
+      "label": "Current Exchange Rate (1 RMB = ? BDT)",
+      "placeholder": "Enter exchange rate",
+      "saving": "Saving...",
+      "save_button": "Save Settings",
+      "reset_button": "Reset"
+    },
+    "app_settings_card": {
+      "title": "Application Settings",
+      "description": "General application configuration",
+      "coming_soon": "Additional settings coming soon..."
+    }
+  },
+  "pricing_tab": {
+    "validation": {
+      "retail_margin_required": "Retail margin is required.",
+      "wholesale_margin_required": "Wholesale margin is required.",
+      "daraz_margin_required": "Daraz margin is required.",
+      "percentage_range": "Must be a percentage between 0 and 100."
+    },
+    "toast": {
+      "success_title": "Success",
+      "success_description": "Pricing margins have been updated successfully.",
+      "error_title": "Error",
+      "error_description": "Failed to update pricing margins. Please try again."
+    },
+    "title": "Default Profit Margins",
+    "description": "Configure default profit margins for pricing",
+    "long_description": "Set default profit margin percentages for automatic price calculation during stock entry. These margins will be applied on top of the landed cost.",
+    "error_loading": "Error loading settings",
+    "retry_button": "Retry",
+    "form": {
+      "retail_label": "Retail Margin (%)",
+      "retail_description": "Default margin for retail customers",
+      "wholesale_label": "Wholesale Margin (%)",
+      "wholesale_description": "Default margin for wholesale customers",
+      "daraz_label": "Daraz Margin (%)",
+      "daraz_description": "Default margin for Daraz marketplace",
+      "saving": "Saving...",
+      "save_button": "Save Margins",
+      "reset_button": "Reset"
+    },
+    "info_box": {
+      "title": "How margins work:",
+      "formula": "Selling Price = Landed Cost + (Landed Cost × Margin %)",
+      "example": "Example: If landed cost is ৳100 and retail margin is 50%, the retail price will be ৳150."
+    }
+  },
+  "payment_tab": {
+    "toast": {
+      "success_title": "Success",
+      "success_description": "Payment gateway settings have been updated successfully.",
+      "error_title": "Error",
+      "error_description": "Failed to update payment settings. Please try again."
+    },
+    "error_loading": "Error loading settings",
+    "retry_button": "Retry",
+    "ssl_card": {
+      "title": "SSLCOMMERZ Integration",
+      "description": "Configure SSLCOMMERZ payment gateway for online payments (Credit/Debit cards, bKash, Nagad, etc.)",
+      "store_id_label": "Store ID",
+      "store_id_placeholder": "your_store_id",
+      "store_id_description": "Your SSLCOMMERZ store ID",
+      "store_password_label": "Store Password",
+      "store_password_description": "Your SSLCOMMERZ store password",
+      "sandbox_label": "Sandbox Mode",
+      "sandbox_description": "Enable sandbox/test mode for development and testing"
+    },
+    "bkash_card": {
+      "title": "bKash Integration",
+      "description": "Configure bKash direct integration for mobile payments",
+      "app_key_label": "App Key",
+      "app_key_placeholder": "Your bKash app key",
+      "app_key_description": "bKash application key",
+      "app_secret_label": "App Secret",
+      "app_secret_description": "bKash application secret key",
+      "info_title": "Direct bKash Integration",
+      "info_description": "Requires merchant account approval from bKash. Contact bKash for registration and API credentials."
+    },
+    "form": {
+      "saving": "Saving...",
+      "save_button": "Save Payment Settings",
+      "reset_button": "Reset"
+    }
+  },
+  "tracking_tab": {
+    "toast": {
+      "success_title": "Success",
+      "success_description": "Tracking settings have been updated successfully.",
+      "error_title": "Error",
+      "error_description": "Failed to update tracking settings. Please try again."
+    },
+    "error_loading": "Error loading settings",
+    "retry_button": "Retry",
+    "facebook_card": {
+      "title": "Facebook Pixel",
+      "description": "Track website visitors, conversions, and run Facebook ad campaigns",
+      "pixel_id_label": "Pixel ID",
+      "pixel_id_placeholder": "1234567890123456",
+      "pixel_id_description": "Your Facebook Pixel ID (15-16 digits)",
+      "info_title": "How to find your Pixel ID:",
+      "info_step1": "Go to Facebook Events Manager",
+      "info_step2": "Select your Pixel",
+      "info_step3": "Copy the Pixel ID from the top"
+    },
+    "google_card": {
+      "title": "Google Analytics",
+      "description": "Monitor website traffic, user behavior, and e-commerce conversions",
+      "measurement_id_label": "Measurement ID",
+      "measurement_id_placeholder": "G-XXXXXXXXXX or UA-XXXXXXXXX-X",
+      "measurement_id_description": "Your Google Analytics Measurement ID (GA4) or Tracking ID (Universal Analytics)",
+      "info_title": "Measurement ID Formats:",
+      "info_ga4": "GA4: Starts with \"G-\" (e.g., G-XXXXXXXXXX)",
+      "info_ua": "Universal Analytics: Starts with \"UA-\" (e.g., UA-XXXXXXXXX-X)",
+      "info_footer": "Find this in Google Analytics → Admin → Property → Property Settings"
+    },
+    "why_card": {
+      "title": "Why use tracking?",
+      "item1": "Understand customer behavior and shopping patterns",
+      "item2": "Measure ROI of marketing campaigns",
+      "item3": "Optimize ad spending with conversion tracking",
+      "item4": "Retarget visitors who didn't complete purchases"
+    },
+    "form": {
+      "saving": "Saving...",
+      "save_button": "Save Tracking Settings",
+      "reset_button": "Reset"
+    }
+  },
+  "sms_tab": {
+    "alert": {
+      "sent_success": "SMS sent successfully!",
+      "sent_fail": "Failed to send SMS"
+    },
+    "balance": "Balance",
+    "loading": "Loading...",
+    "stats": {
+      "total_sent": "Total Sent",
+      "total_failed": "Total Failed",
+      "this_month": "This Month",
+      "remaining_sms": "Remaining SMS"
+    },
+    "tabs": {
+      "send": "Send SMS",
+      "history": "History"
+    },
+    "send_form": {
+      "title": "Send New SMS",
+      "description": "Send SMS to one or multiple recipients",
+      "message_label": "Message",
+      "message_placeholder": "Type your message here...",
+      "chars": "characters",
+      "recipients_label": "Recipients",
+      "recipient_placeholder": "01XXXXXXXXX or 8801XXXXXXXXX",
+      "add_recipient": "Add Recipient",
+      "sender_id_label": "Sender ID (Optional)",
+      "sender_id_placeholder": "Your approved sender ID",
+      "sender_id_description": "Must be an approved sender ID from Alpha SMS",
+      "sending": "Sending...",
+      "send_button": "Send SMS"
+    },
+    "history_tab": {
+      "title": "SMS History",
+      "description": "View all sent SMS messages",
+      "refresh_button": "Refresh Reports",
+      "search_placeholder": "Search by message or phone number...",
+      "all_status": "All Status",
+      "status_sent": "Sent",
+      "status_pending": "Pending",
+      "status_failed": "Failed",
+      "status_complete": "Complete",
+      "no_logs": "No SMS logs found",
+      "sent_by": "by",
+      "to": "To:",
+      "cost": "Cost:",
+      "id": "ID:",
+      "report_button": "Report"
+    }
+  }
+}

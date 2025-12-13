@@ -1,0 +1,16 @@
+{
+  "dashboard": "ড্যাশবোর্ড",
+  "users": "ব্যবহারকারীরা",
+  "attributes": "বৈশিষ্ট্য",
+  "purchase": "ক্রয়",
+  "new": "নতুন",
+  "list": "তালিকা",
+  "suppliers": "সরবরাহকারী",
+  "categories": "বিভাগ",
+  "products": "পণ্য",
+  "inventory": "ইনভেন্টরি",
+  "inventoryList": "ইনভেন্টরি তালিকা",
+  "manualEntry": "ম্যানুয়াল এন্ট্রি",
+  "orders": "আদেশ",
+  "settings": "সেটিংস"
+}
