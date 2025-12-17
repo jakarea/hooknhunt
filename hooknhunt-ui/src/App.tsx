@@ -4,23 +4,33 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
+import Attributes from './pages/Attributes';
 import Products from './pages/products/Products';
 import ProductDetail from './pages/products/ProductDetail';
 import ProductCreate from './pages/products/ProductCreate';
 import ProductEdit from './pages/products/ProductEdit';
 import Suppliers from './pages/purchase/Suppliers';
 import { SupplierProfile } from './pages/purchase/SupplierProfile';
+import { SupplierProducts } from './pages/purchase/SupplierProducts';
+import { SupplierPurchaseHistory } from './pages/purchase/SupplierPurchaseHistory';
 import SuppliersCreate from './pages/purchase/SuppliersCreate';
 import SuppliersEdit from './pages/purchase/SuppliersEdit';
 import { PurchaseNew } from './pages/purchase/PurchaseNew';
 import { PurchaseList } from './pages/purchase/PurchaseList';
 import { CreatePurchaseOrder } from './pages/purchase/CreatePurchaseOrder';
 import { PurchaseOrderDetails } from './pages/purchase/PurchaseOrderDetails';
+import { PurchaseOrderEdit } from './pages/purchase/PurchaseOrderEdit';
 import { PurchaseOrderDemo } from './pages/purchase/PurchaseOrderDemo';
+import { PurchaseReceive } from './pages/purchase/PurchaseReceive';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
-import { GlobalSettings } from './pages/settings/GlobalSettings';
+import { GeneralSettings } from './pages/settings/tabs/GeneralSettings';
+import { PricingSettings } from './pages/settings/tabs/PricingSettings';
+import { PaymentSettings } from './pages/settings/tabs/PaymentSettings';
+import { TrackingSettings } from './pages/settings/tabs/TrackingSettings';
+import { Settings } from './pages/settings/Settings';
+import { SmsSettings } from './pages/settings/tabs/SmsSettings';
 import SmsManagement from './pages/sms/SmsManagement';
 import { Toaster } from './components/ui/toaster';
 
@@ -36,39 +46,103 @@ function App() {
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route element={<Layout />}>
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="dashboard/categories" element={<Categories />} />
+              <Route path="dashboard/alerts" element={<div>Live Alerts</div>} />
 
-              {/* Product Routes */}
-              <Route path="dashboard/products" element={<Products />} />
-              <Route path="dashboard/products/create" element={<ProductCreate />} />
-              <Route path="dashboard/products/:id" element={<ProductDetail />} />
-              <Route path="dashboard/products/:id/edit" element={<ProductEdit />} />
+              {/* POS Routes */}
+              <Route path="pos" element={<div>POS Terminal</div>} />
+              <Route path="pos/history" element={<div>Register History</div>} />
+              <Route path="pos/hold" element={<div>Hold Orders</div>} />
 
-              {/* Supplier Routes */}
-              <Route path="dashboard/suppliers" element={<Suppliers />} />
-              <Route path="dashboard/suppliers/create" element={<SuppliersCreate />} />
-              <Route path="dashboard/suppliers/:id" element={<SupplierProfile />} />
-              <Route path="dashboard/suppliers/:id/edit" element={<SuppliersEdit />} />
+              {/* Inventory Routes */}
+              <Route path="products" element={<Products />} />
+              <Route path="products/create" element={<ProductCreate />} />
+              <Route path="products/:id" element={<ProductDetail />} />
+              <Route path="products/:id/edit" element={<ProductEdit />} />
+              <Route path="products/categories" element={<Categories />} />
+              <Route path="products/attributes" element={<Attributes />} />
+              <Route path="products/stock" element={<div>Current Stock</div>} />
+              <Route path="products/adjustment" element={<div>Stock Adjustment</div>} />
+              <Route path="products/transfer" element={<div>Stock Transfer</div>} />
+              <Route path="products/audit" element={<div>Stock Count / Audit</div>} />
+              <Route path="products/labels" element={<div>Print Labels</div>} />
 
               {/* Purchase Routes */}
-              <Route path="dashboard/purchase/new" element={<PurchaseNew />} />
-              <Route path="dashboard/purchase/create-order" element={<CreatePurchaseOrder />} />
-              <Route path="dashboard/purchase/list" element={<PurchaseList />} />
-              <Route path="dashboard/purchase/demo" element={<PurchaseOrderDemo />} />
-              <Route path="dashboard/purchase/:id" element={<PurchaseOrderDetails />} />
+              <Route path="purchase/new" element={<PurchaseNew />} />
+              <Route path="purchase/create-order" element={<CreatePurchaseOrder />} />
+              <Route path="purchase/list" element={<PurchaseList />} />
+              <Route path="purchase/demo" element={<PurchaseOrderDemo />} />
+              <Route path="purchase/:id" element={<PurchaseOrderDetails />} />
+              <Route path="purchase/:id/edit" element={<PurchaseOrderEdit />} />
+              <Route path="purchase/receive" element={<PurchaseReceive />} />
 
-              {/* User Routes */}
-              <Route path="dashboard/users" element={<Users />} />
-              <Route path="dashboard/users/create" element={<UsersCreate />} />
-              <Route path="dashboard/users/:id/edit" element={<UsersEdit />} />
+              {/* Supplier Routes */}
+              <Route path="purchase/suppliers" element={<Suppliers />} />
+              <Route path="purchase/suppliers/create" element={<SuppliersCreate />} />
+              <Route path="purchase/suppliers/:id" element={<SupplierProfile />} />
+              <Route path="purchase/suppliers/:id/products" element={<SupplierProducts />} />
+              <Route path="purchase/suppliers/:id/purchase" element={<SupplierPurchaseHistory />} />
+              <Route path="purchase/suppliers/:id/edit" element={<SuppliersEdit />} />
+              <Route path="purchase/suppliers/transactions" element={<div>Supplier Transactions</div>} />
+              <Route path="purchase/suppliers/map" element={<div>Product-Supplier Map</div>} />
+
+              {/* Sales Routes */}
+              <Route path="sales/orders" element={<div>All Orders</div>} />
+              <Route path="sales/orders/verify" element={<div>Verify Orders</div>} />
+              <Route path="sales/orders/packaging" element={<div>Packaging List</div>} />
+              <Route path="sales/orders/ready" element={<div>Ready to Ship</div>} />
+              <Route path="sales/orders/website" element={<div>Website Orders</div>} />
+              <Route path="sales/orders/wholesale" element={<div>Wholesale Orders</div>} />
+              <Route path="sales/orders/daraz" element={<div>Daraz Orders</div>} />
+              <Route path="sales/returns" element={<div>Returns & Refunds</div>} />
+              <Route path="sales/exchanges" element={<div>Exchange Requests</div>} />
+
+              {/* Delivery Routes */}
+              <Route path="delivery/create" element={<div>Create Consignment</div>} />
+              <Route path="delivery/labels" element={<div>Bulk Label Print</div>} />
+              <Route path="delivery/tracking" element={<div>Live Tracking</div>} />
+              <Route path="delivery/payments" element={<div>Courier Payment Report</div>} />
+
+              {/* Marketing Routes */}
+              <Route path="marketing/coupons" element={<div>Coupons & Vouchers</div>} />
+              <Route path="marketing/flash-sales" element={<div>Flash Sales</div>} />
+              <Route path="marketing/sms" element={<SmsManagement />} />
+              <Route path="marketing/sms/logs" element={<div>SMS Logs</div>} />
+              <Route path="marketing/loyalty/rules" element={<div>Reward Rules</div>} />
+              <Route path="marketing/loyalty/history" element={<div>Points History</div>} />
+
+              {/* CRM Routes */}
+              <Route path="crm/retail-customers" element={<Users />} />
+              <Route path="crm/retail-customers/create" element={<UsersCreate />} />
+              <Route path="crm/retail-customers/:id/edit" element={<UsersEdit />} />
+              <Route path="crm/wholesale-clients" element={<div>Wholesale Clients</div>} />
+              <Route path="crm/blacklisted" element={<div>Blacklisted</div>} />
+
+              {/* HRM Routes */}
+              <Route path="hrm/staff" element={<div>Staff List</div>} />
+              <Route path="hrm/attendance" element={<div>Attendance</div>} />
+              <Route path="hrm/payroll" element={<div>Payroll</div>} />
+
+              {/* Finance Routes */}
+              <Route path="finance/expense" element={<div>Record Expense</div>} />
+              <Route path="finance/daily-sales" element={<div>Daily Sales Report</div>} />
+              <Route path="finance/coa" element={<div>Chart of Accounts</div>} />
+              <Route path="finance/assets" element={<div>Asset Management</div>} />
+              <Route path="finance/balance-sheet" element={<div>Balance Sheet</div>} />
+
+              {/* Reports Routes */}
+              <Route path="reports/inventory" element={<div>Inventory Reports</div>} />
+              <Route path="reports/sales" element={<div>Sales Reports</div>} />
+              <Route path="reports/finance" element={<div>Financial Reports</div>} />
 
               {/* Settings Routes */}
-              <Route path="dashboard/settings" element={<GlobalSettings />} />
-
-              {/* SMS Routes */}
-              <Route path="dashboard/sms" element={<SmsManagement />} />
-
-              {/* Add other protected routes here */}
+              <Route path="settings" element={<Settings />} />
+              <Route path="settings/global" element={<GeneralSettings />} />
+              <Route path="settings/pricing" element={<PricingSettings />} />
+              <Route path="settings/payment" element={<PaymentSettings />} />
+              <Route path="settings/tracking" element={<TrackingSettings />} />
+              <Route path="settings/sms" element={<SmsSettings />} />
+              <Route path="settings/integrations" element={<div>Integrations</div>} />
+              <Route path="settings/rbac" element={<div>Access Control</div>} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

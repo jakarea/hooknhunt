@@ -8,7 +8,8 @@
     "option_singular": "অপশন",
     "option_plural": "অপশন",
     "add_option_button": "অপশন যোগ করুন",
-    "default_badge": "ডিফল্ট"
+    "default_badge": "ডিফল্ট",
+    "no_options": "এখনো কোন অপশন নেই।"
   },
   "create_attribute_dialog": {
     "title": "নতুন বৈশিষ্ট্য তৈরি করুন",
@@ -55,7 +56,7 @@
     "delete_button": "মুছে ফেলুন"
   },
   "add_option_dialog": {
-    "title": "{{attributeName}} এ অপশন যোগ করুন",
+    "title": "নতুন অপশন যোগ করুন - {{attributeName}}",
     "description": "এই বৈশিষ্ট্যের জন্য একটি নতুন মান যোগ করুন",
     "form": {
       "value_label": "মান *",

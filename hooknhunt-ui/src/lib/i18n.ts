@@ -18,7 +18,7 @@ const loadLocales = () => {
       resources[lang] = {};
     }
 
-    resources[lang][namespace] = loadedModule.default;
+    resources[lang][namespace] = loadedModule;
   }
 
   return resources;

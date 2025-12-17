@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { RoleGuard } from '@/components/guards/RoleGuard';
 import { ProductForm } from '@/components/forms/ProductForm';
 import { ProductSuppliersTab } from '@/components/forms/product/ProductSuppliersTab';
+import { ProductSeoTab } from '@/components/forms/product/ProductSeoTab';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SimpleTabs as Tabs, SimpleTabsContent as TabsContent, SimpleTabsList as TabsList, SimpleTabsTrigger as TabsTrigger } from '@/components/ui/simple-tabs';
-import { ArrowLeft, Package, FileText, Building } from 'lucide-react';
+import { ArrowLeft, Package, FileText, Building, Search } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useProductStore } from '@/stores/productStore';
 import api from '@/lib/api';
@@ -40,9 +42,14 @@ interface Product {
 const ProductEdit = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { fetchProduct } = useProductStore();
+
+  // Get the tab from URL parameters, default to 'details'
+  const activeTab = searchParams.get('tab') || 'details';
+  console.log('📋 Active tab from URL:', activeTab);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -74,7 +81,7 @@ const ProductEdit = () => {
           variant: "destructive"
         });
         setProduct(null);
-        navigate('/dashboard/products');
+        navigate('/inventory/products');
       } finally {
         setIsLoading(false);
       }
@@ -84,11 +91,11 @@ const ProductEdit = () => {
   }, [id, navigate, fetchProduct]);
 
   const handleBack = () => {
-    navigate('/dashboard/products');
+    navigate('/inventory/products');
   };
 
   const handleSuccess = () => {
-    navigate('/dashboard/products');
+    navigate('/inventory/products');
   };
 
   const handleSuppliersUpdated = () => {
@@ -118,67 +125,28 @@ const ProductEdit = () => {
 
   if (isLoading || !product) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 shadow-sm">
-          <div className="container mx-auto px-6 py-6">
-            <div className="flex items-center">
-              <Button variant="ghost" onClick={handleBack} className="mr-4">
+      <div className="flex flex-col h-full">
+        {/* Compact Header */}
+        <div className="border-b bg-white">
+          <div className="flex items-center justify-between px-6 py-4">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={handleBack} className="h-8">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Products
+                Back
               </Button>
-              <div>
-                <Skeleton className="h-9 w-48 mb-2" />
-                <Skeleton className="h-5 w-64" />
-              </div>
+              <div className="h-4 w-px bg-border" />
+              <Package className="h-5 w-5 text-primary" />
+              <Skeleton className="h-6 w-48" />
             </div>
           </div>
         </div>
 
-        {/* Form Container */}
-        <div className="container mx-auto px-6 py-8 max-w-4xl">
-          <div className="space-y-6">
-            {/* Instructions Card Skeleton */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <div className="flex items-start gap-3">
-                <div className="bg-red-100 p-2 rounded-full">
-                  <Package className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <Skeleton className="h-6 w-32 mb-2" />
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              </div>
-            </div>
-
-            {/* Form Skeleton */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-              <div className="space-y-8">
-                {/* Basic Information Section */}
-                <div className="space-y-6">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                  </div>
-                </div>
-
-                {/* Pricing Section */}
-                <div className="space-y-6">
-                  <Skeleton className="h-6 w-48" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                    <Skeleton className="h-11 w-full" />
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end gap-4 pt-8 border-t border-gray-200">
-                  <Skeleton className="h-11 w-20" />
-                  <Skeleton className="h-11 w-32" />
-                </div>
-              </div>
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto bg-gray-50">
+          <div className="max-w-5xl mx-auto px-6 py-6">
+            <div className="bg-white rounded-lg border p-6">
+              <Skeleton className="h-8 w-32 mb-4" />
+              <Skeleton className="h-64 w-full" />
             </div>
           </div>
         </div>
@@ -187,89 +155,75 @@ const ProductEdit = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                onClick={handleBack}
-                className="mr-4 hover:bg-gray-100"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Products
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Edit Product</h1>
-                <p className="text-gray-600 mt-1">
-                  Updating <span className="font-semibold text-primary">{product.base_name}</span>
-                </p>
+    <div className="flex flex-col h-full">
+      {/* Compact Header */}
+      <div className="border-b bg-white">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="h-8">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="h-4 w-px bg-border" />
+            <Package className="h-5 w-5 text-primary" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">Edit Product</h1>
+                <Badge variant={product.status === 'published' ? 'default' : 'secondary'} className="text-xs">
+                  {product.status}
+                </Badge>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Form Container */}
+      {/* Main Content */}
       <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
-        <div className="container mx-auto px-6 py-8 max-w-6xl">
-          <div className="space-y-6">
-            {/* Product Info Card */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <div className="flex items-center gap-4">
-                <div className="bg-red-100 p-3 rounded-full">
-                  <Package className="h-6 w-6 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-red-900 mb-1">Editing Product</h3>
-                  <div className="flex flex-wrap gap-4 text-sm text-red-800">
-                    <span className="flex items-center gap-1">
-                      ID: {product.id}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      Slug: {product.slug}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      Status: {product.status === 'published' ? 'Published' : 'Draft'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+        <div className="flex-1 overflow-auto bg-gray-50">
+          <div className="max-w-5xl mx-auto px-6 py-6">
             {/* Tabs Container */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <Tabs defaultValue="details" className="w-full">
+            <div className="bg-white rounded-lg border">
+              <Tabs defaultValue={activeTab} className="w-full">
                 {/* Tab Headers */}
-                <div className="border-b border-gray-200 p-6">
-                  <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent">
+                <div className="border-b px-6 pt-4">
+                  <TabsList className="w-full justify-start rounded-none border-b-0 bg-transparent h-auto p-0">
                     <TabsTrigger
                       value="details"
-                      className="rounded-none"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       <FileText className="h-4 w-4 mr-2" />
-                      Product Details
+                      Details
                     </TabsTrigger>
                     <TabsTrigger
                       value="suppliers"
-                      className="rounded-none"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
                       <Building className="h-4 w-4 mr-2" />
                       Suppliers ({product.suppliers?.length || 0})
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="seo"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                    >
+                      <Search className="h-4 w-4 mr-2" />
+                      SEO
                     </TabsTrigger>
                   </TabsList>
                 </div>
 
                 {/* Tab Content */}
-                <div className="px-6 pb-6">
-                  <TabsContent value="details">
+                <div className="p-6">
+                  <TabsContent value="details" className="mt-0">
                     <ProductForm initialData={product} onClose={handleSuccess} />
                   </TabsContent>
 
-                  <TabsContent value="suppliers">
+                  <TabsContent value="suppliers" className="mt-0">
                     <ProductSuppliersTab product={product} onSuppliersUpdated={handleSuppliersUpdated} />
+                  </TabsContent>
+
+                  <TabsContent value="seo" className="mt-0">
+                    <ProductSeoTab product={product} onSeoUpdated={handleSuppliersUpdated} />
                   </TabsContent>
                 </div>
               </Tabs>

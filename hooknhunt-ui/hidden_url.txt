@@ -1,0 +1,35 @@
+http://localhost:5173/purchase/suppliers/map
+http://localhost:5173/purchase/suppliers/transactions
+
+http://localhost:5173/dashboard/alerts
+POS Terminal http://localhost:5173/pos
+Register History http://localhost:5173/pos/history
+Hold Orders http://localhost:5173/pos/hold
+Current Stock http://localhost:5173/inventory/stock
+Stock Adjustment http://localhost:5173/inventory/adjustment
+Stock Transfer http://localhost:5173/inventory/transfer
+Stock Count / Audit http://localhost:5173/inventory/audit
+Print Labels http://localhost:5173/inventory/labels
+All Orders http://localhost:5173/sales/orders
+Verify Orders http://localhost:5173/sales/orders/verify
+Packaging List http://localhost:5173/sales/orders/packaging
+Ready to Ship http://localhost:5173/sales/orders/ready
+Website Orders http://localhost:5173/sales/orders/website
+Wholesale Orders http://localhost:5173/sales/orders/wholesale
+Daraz Orders http://localhost:5173/sales/orders/daraz
+Returns & Refunds http://localhost:5173/sales/returns
+Exchange Requests http://localhost:5173/sales/exchanges
+Exchange Requests http://localhost:5173/sales/exchanges
+
+Delivery & Courier
+Create Consignment http://localhost:5173/delivery/create
+Bulk Label Print http://localhost:5173/delivery/labels
+Live Tracking http://localhost:5173/delivery/tracking
+Courier Payment Report http://localhost:5173/delivery/payments
+
+Marketing & Loyalty
+Coupons & Vouchers http://localhost:5173/marketing/coupons
+
+
+Integrations http://localhost:5173/settings/integrations
+Access Control http://localhost:5173/settings/rbac

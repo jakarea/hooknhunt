@@ -35,7 +35,7 @@ const SuppliersEdit = () => {
           variant: "destructive"
         });
         setSupplier(null);
-        navigate('/dashboard/suppliers');
+        navigate('/purchase/suppliers');
       } finally {
         setIsLoading(false);
       }
@@ -45,11 +45,11 @@ const SuppliersEdit = () => {
   }, [id, navigate]);
 
   const handleBack = () => {
-    navigate('/dashboard/suppliers');
+    navigate('/purchase/suppliers');
   };
 
   const handleSuccess = () => {
-    navigate('/dashboard/suppliers');
+    navigate('/purchase/suppliers');
   };
 
   if (isLoading) {

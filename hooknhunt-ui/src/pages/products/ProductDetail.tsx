@@ -47,11 +47,11 @@ const ProductDetail = () => {
   }, [id, fetchProduct]);
 
   const handleEdit = () => {
-    navigate(`/dashboard/products/${id}/edit`);
+    navigate(`/inventory/products/${id}/edit`);
   };
 
   const handleBack = () => {
-    navigate('/dashboard/products');
+    navigate('/inventory/products');
   };
 
   if (isLoading) {
@@ -100,42 +100,44 @@ const ProductDetail = () => {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={handleBack}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{product.base_name}</h1>
-              <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                {product.status}
-              </Badge>
+    <div className="flex flex-col h-full">
+      {/* Compact Header */}
+      <div className="border-b bg-white">
+        <div className="flex items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={handleBack} className="h-8">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div className="h-4 w-px bg-border" />
+            <Package className="h-5 w-5 text-primary" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-semibold">{product.base_name}</h1>
+                <Badge variant={product.status === 'published' ? 'default' : 'secondary'} className="text-xs">
+                  {product.status}
+                </Badge>
+              </div>
             </div>
-            <p className="text-sm text-gray-500 mt-1">/{product.slug}</p>
           </div>
+          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+            <Button onClick={handleEdit} size="sm">
+              <Edit className="h-4 w-4 mr-2" />
+              Edit
+            </Button>
+          </RoleGuard>
         </div>
-        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
-          <Button onClick={handleEdit}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
-        </RoleGuard>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Product Image & Basic Info */}
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto bg-gray-50">
+        <div className="max-w-5xl mx-auto px-6 py-6 space-y-4">
+          {/* Product Image & Description */}
           <Card>
             <CardContent className="p-6">
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex gap-6">
                 {/* Image */}
-                <div className="flex justify-center items-start">
+                <div className="flex-shrink-0">
                   <ProductImage
                     src={product.base_thumbnail_url}
                     alt={product.base_name || 'Product'}
@@ -145,50 +147,38 @@ const ProductDetail = () => {
                 </div>
 
                 {/* Info */}
-                <div className="space-y-4">
+                <div className="flex-1 space-y-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2 flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
-                      Description
-                    </h3>
-                    <p className="text-gray-700 text-sm leading-relaxed">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Description</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       {product.meta_description || 'No description available.'}
                     </p>
                   </div>
 
                   <Separator />
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-3 gap-4 text-sm">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                        <Hash className="h-3 w-3" />
-                        Product ID
-                      </p>
-                      <p className="text-sm font-medium">{product.id}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Product ID</p>
+                      <p className="font-medium">#{product.id}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Created
-                      </p>
-                      <p className="text-sm font-medium">
-                        {new Date(product.created_at).toLocaleDateString()}
+                      <p className="text-xs text-muted-foreground mb-1">Created</p>
+                      <p className="font-medium">
+                        {new Date(product.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
                       </p>
                     </div>
-                  </div>
-
-                  {product.gallery_images && product.gallery_images.length > 0 && (
-                    <>
-                      <Separator />
+                    {product.gallery_images && product.gallery_images.length > 0 && (
                       <div>
-                        <p className="text-xs text-gray-500 mb-1 flex items-center gap-1">
-                          <ImageIcon className="h-3 w-3" />
-                          Gallery Images
-                        </p>
-                        <p className="text-sm font-medium">{product.gallery_images.length} image(s)</p>
+                        <p className="text-xs text-muted-foreground mb-1">Gallery Images</p>
+                        <p className="font-medium">{product.gallery_images.length} image(s)</p>
                       </div>
-                    </>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -198,24 +188,22 @@ const ProductDetail = () => {
           {product.suppliers && product.suppliers.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Truck className="h-4 w-4 text-muted-foreground" />
                   Suppliers ({product.suppliers.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-3">
-                  {product.suppliers.map((productSupplier, index) => (
+                <div className="space-y-2">
+                  {product.suppliers.map((productSupplier) => (
                     <div
                       key={productSupplier.supplier_id}
-                      className={`p-3 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors ${
-                        index !== product.suppliers!.length - 1 ? 'mb-2' : ''
-                      }`}
+                      className="p-3 rounded-lg border hover:bg-accent transition-colors"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <button
-                          onClick={() => navigate(`/dashboard/suppliers/${productSupplier.supplier_id}`)}
-                          className="font-medium text-gray-900 hover:text-blue-600 transition-colors text-left text-sm"
+                          onClick={() => navigate(`/purchase/suppliers/${productSupplier.supplier_id}`)}
+                          className="font-medium text-sm hover:text-primary transition-colors text-left"
                         >
                           {productSupplier.supplier?.name || 'Unknown Supplier'}
                         </button>
@@ -227,7 +215,7 @@ const ProductDetail = () => {
                       </div>
 
                       {productSupplier.supplier?.shop_name && (
-                        <p className="text-xs text-gray-600 mb-2">
+                        <p className="text-xs text-muted-foreground mb-2">
                           {productSupplier.supplier.shop_name}
                         </p>
                       )}
@@ -258,109 +246,25 @@ const ProductDetail = () => {
           {/* SEO Information */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 SEO Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Meta Title</p>
-                <p className="text-sm text-gray-900">{product.meta_title || 'Not set'}</p>
-              </div>
-              <Separator />
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Meta Description</p>
-                <p className="text-sm text-gray-900">{product.meta_description || 'Not set'}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column - Sidebar */}
-        <div className="space-y-6">
-          {/* Status Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                Status
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Publication</span>
-                <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                  {product.status}
-                </Badge>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Created</span>
-                <span className="text-gray-900 text-xs">
-                  {new Date(product.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-gray-500">Updated</span>
-                <span className="text-gray-900 text-xs">
-                  {new Date(product.updated_at).toLocaleDateString()}
-                </span>
+            <CardContent className="pt-0">
+              <div className="space-y-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Meta Title</p>
+                  <p className="font-medium">{product.meta_title || 'Not set'}</p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Meta Description</p>
+                  <p className="font-medium">{product.meta_description || 'Not set'}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Quick Info */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Quick Info</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <div>
-                <p className="text-xs text-gray-500 mb-1">Slug</p>
-                <code className="text-xs bg-gray-100 px-2 py-1 rounded block overflow-x-auto">
-                  {product.slug}
-                </code>
-              </div>
-              {product.base_thumbnail_url && (
-                <>
-                  <Separator />
-                  <div>
-                    <p className="text-xs text-gray-500 mb-1">Thumbnail</p>
-                    <a
-                      href={product.base_thumbnail_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      View Image
-                    </a>
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-2">
-                <Button onClick={handleEdit} className="w-full" size="sm">
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Product
-                </Button>
-                <Button variant="outline" className="w-full" size="sm">
-                  <Truck className="h-4 w-4 mr-2" />
-                  Manage Inventory
-                </Button>
-              </CardContent>
-            </Card>
-          </RoleGuard>
         </div>
       </div>
     </div>

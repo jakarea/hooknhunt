@@ -152,6 +152,12 @@ class SupplierController extends Controller
      */
     public function products(Supplier $supplier)
     {
+        // Add debugging
+        \Log::info('SupplierController::products called');
+        \Log::info('Supplier ID:', ['id' => $supplier->id]);
+        \Log::info('Current user:', ['user' => auth()->user()]);
+        \Log::info('User role:', ['role' => auth()->user()?->role]);
+
         try {
             // Get products associated with this supplier through the pivot table
             $products = $supplier->products()
@@ -163,12 +169,19 @@ class SupplierController extends Controller
                     return $productData;
                 });
 
+            \Log::info('Products found:', ['count' => $products->count()]);
+
             return response()->json([
                 'products' => $products,
                 'supplier' => $supplier->only(['id', 'name', 'shop_name', 'email']),
                 'count' => $products->count()
             ]);
         } catch (\Exception $e) {
+            \Log::error('SupplierController::products error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'error' => 'Failed to fetch supplier products',
                 'message' => $e->getMessage()

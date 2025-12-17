@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,9 +12,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { Package, Image, Upload } from 'lucide-react';
+import { Package, Image, Upload, Loader2, Search, X } from 'lucide-react';
 import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
+import { useCategoryStore } from '@/stores/categoryStore';
 
 // Inline type definition to avoid import issues
 interface Product {
@@ -35,7 +36,7 @@ interface Product {
 interface ProductFormData {
   base_name: string;
   description?: string;
-  category_id?: string;
+  category_ids?: string[];
   status: 'draft' | 'published';
   thumbnail?: File;
   base_thumbnail_url?: string;
@@ -45,7 +46,7 @@ interface ProductFormData {
 const formSchema = z.object({
   base_name: z.string().min(2, { message: 'Product name must be at least 2 characters.' }),
   description: z.string().optional(),
-  category_id: z.string().optional(),
+  category_ids: z.array(z.string()).optional(),
   status: z.enum(['draft', 'published'], {
     message: 'Please select a valid status.',
   }),
@@ -63,12 +64,20 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Get categories from store
+  const { categories, isLoading: categoriesLoading, fetchCategories } = useCategoryStore();
+
+  // Search state for categories
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       base_name: initialData?.base_name || '',
       description: initialData?.description || initialData?.meta_description || '',
-      category_id: initialData?.category_id?.toString() || '',
+      category_ids: [], // Initialize as empty array for multi-select
       status: initialData?.status || 'draft',
     },
   });
@@ -80,18 +89,38 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     { value: 'published', label: 'Published' },
   ];
 
-  const mockCategories = [
-    { value: '1', label: 'Electronics' },
-    { value: '2', label: 'Clothing' },
-    { value: '3', label: 'Accessories' },
-    { value: '4', label: 'Home & Garden' },
-    { value: '5', label: 'Sports' },
-  ];
+  // Fetch categories on component mount
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Filter categories based on search term
+  const filteredCategories = categories.filter(category =>
+    category.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  // Get selected categories for display
+  const selectedCategoryIds = form.watch('category_ids') || [];
+  const selectedCategories = categories.filter(cat =>
+    selectedCategoryIds.includes(cat.id.toString())
+  );
 
   const validateImageFile = (file: File): boolean => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setThumbnailError('Please select a valid image file (PNG, JPG, GIF)');
+      setThumbnailError('Please select a valid image file (WEBP, PNG, JPG, GIF)');
       return false;
     }
 
@@ -161,8 +190,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
       if (values.description) {
         formData.append('description', values.description);
       }
-      if (values.category_id) {
-        formData.append('category_id', values.category_id);
+      if (values.category_ids && values.category_ids.length > 0) {
+        values.category_ids.forEach((categoryId) => {
+          formData.append('category_ids[]', categoryId);
+        });
       }
       formData.append('status', values.status);
 
@@ -179,32 +210,56 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
         console.log(`  ${key}:`, value);
       }
 
-      const response = await api.post('/admin/products', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Use PUT for edit, POST for create
+      const response = isEdit
+        ? await api.post(`/admin/products/${initialData!.id}?_method=PUT`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          })
+        : await api.post('/admin/products', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
 
       console.log('📡 Response status:', response.status);
       console.log('📡 Response data:', response.data);
 
       const result = response.data;
       console.log('✅ API Success:', result);
+      console.log('📋 Product ID:', result.id || result.data?.id);
 
       toast({
         title: "Success",
         description: `Product ${isEdit ? 'updated' : 'created'} successfully!`
       });
 
-      // Call onProductCreated callback for new products with suppliers data
-      if (!isEdit && onProductCreated && result.data) {
-        onProductCreated({
-          ...result.data,
-          suppliers: [], // Start with empty suppliers array
-        });
+      // Call onProductCreated callback for new products
+      if (!isEdit && onProductCreated) {
+        // Handle different API response structures
+        const createdProduct = result.data || result;
+        console.log('🎯 Created Product:', createdProduct);
+
+        if (createdProduct && createdProduct.id) {
+          onProductCreated({
+            ...createdProduct,
+            suppliers: [], // Start with empty suppliers array
+          });
+        } else {
+          console.error('❌ No product ID found in response');
+          toast({
+            title: "Error",
+            description: "Product was created but unable to redirect. Please go to products list.",
+            variant: "destructive"
+          });
+        }
       }
 
-      onClose();
+      // For edit mode, just close the form
+      if (isEdit) {
+        onClose();
+      }
     } catch (error: unknown) {
       console.error('❌ Form submission error:', error);
 
@@ -249,49 +304,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {/* Header Card */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2 text-2xl">
-              <Package className="h-6 w-6 text-primary" />
-              {isEdit ? 'Edit Product' : 'Create New Product'}
-            </CardTitle>
-            <CardDescription>
-              {isEdit
-                ? 'Update product information and pricing'
-                : 'Add a new product to your catalog'
-              }
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 
         {/* Basic Information */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Package className="h-5 w-5 text-muted-foreground" />
-              Basic Information
-            </CardTitle>
-            <CardDescription>
-              Essential product details
-            </CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Basic Information</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             <FormField
               control={form.control}
               name="base_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
+                  <FormLabel>
                     Product Name <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g., Wireless Bluetooth Headphones"
                       {...field}
-                      className="h-11"
+                      className="h-9"
                     />
                   </FormControl>
                   <FormMessage />
@@ -304,14 +337,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    Description
-                  </FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder="Describe your product..."
-                      className="min-h-[100px]"
+                      className="min-h-[80px] resize-none"
                       {...field}
                     />
                   </FormControl>
@@ -320,27 +350,123 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="category_id"
+                name="category_ids"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Category <span className="text-red-500">*</span></FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <FormLabel>Categories</FormLabel>
+                    <div ref={categoryDropdownRef} className="relative">
                       <FormControl>
-                        <SelectTrigger className="h-11">
-                          <SelectValue placeholder="Select a category" />
-                        </SelectTrigger>
+                        <div
+                          className="flex h-auto min-h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                          onClick={() => !categoriesLoading && setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                        >
+                          {categoriesLoading ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Loading categories...
+                            </div>
+                          ) : selectedCategories.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 w-full">
+                              {selectedCategories.map((category) => (
+                                <div
+                                  key={category.id}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded-md"
+                                >
+                                  {category.name}
+                                  <X
+                                    className="h-3 w-3 cursor-pointer hover:text-background"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const newIds = selectedCategoryIds.filter(id => id !== category.id.toString());
+                                      field.onChange(newIds);
+                                    }}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-muted-foreground">
+                              <Search className="h-4 w-4 mr-2" />
+                              Select categories...
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
-                      <SelectContent>
-                        {mockCategories.map((category) => (
-                          <SelectItem key={category.value} value={category.value}>
-                            {category.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+
+                      {isCategoryDropdownOpen && !categoriesLoading && (
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 w-full overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md">
+                          <div className="p-2">
+                            <div className="relative">
+                              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                              <Input
+                                placeholder="Type to search..."
+                                value={categorySearchTerm}
+                                onChange={(e) => setCategorySearchTerm(e.target.value)}
+                                className="pl-8 h-8"
+                                autoFocus
+                              />
+                            </div>
+                          </div>
+                          <div className="max-h-48 overflow-y-auto p-1">
+                            {filteredCategories.length === 0 ? (
+                              <div className="py-2 px-2 text-sm text-muted-foreground">
+                                {categorySearchTerm ? 'No categories found' : 'No categories available'}
+                              </div>
+                            ) : (
+                              filteredCategories.map((category) => {
+                                const isSelected = selectedCategoryIds.includes(category.id.toString());
+                                return (
+                                  <div
+                                    key={category.id}
+                                    className={`relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 px-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground ${
+                                      isSelected ? 'bg-accent text-accent-foreground' : ''
+                                    }`}
+                                    onClick={() => {
+                                      if (isSelected) {
+                                        // Remove from selection
+                                        const newIds = selectedCategoryIds.filter(id => id !== category.id.toString());
+                                        field.onChange(newIds);
+                                      } else {
+                                        // Add to selection
+                                        const newIds = [...selectedCategoryIds, category.id.toString()];
+                                        field.onChange(newIds);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center gap-2 flex-1">
+                                      <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                                        isSelected
+                                          ? 'border-primary bg-primary text-primary-foreground'
+                                          : 'border-input'
+                                      }`}>
+                                        {isSelected && (
+                                          <svg
+                                            className="h-3 w-3"
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                            xmlns="http://www.w3.org/2000/svg"
+                                          >
+                                            <path
+                                              fillRule="evenodd"
+                                              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                              clipRule="evenodd"
+                                            />
+                                          </svg>
+                                        )}
+                                      </div>
+                                      <span className="truncate">{category.name}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -354,19 +480,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                     <FormLabel>Status <span className="text-red-500">*</span></FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger className="h-11">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {statusOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
-                            <div className="flex items-center gap-2">
-                              <span>{option.label}</span>
-                              {option.value === 'published' && (
-                                <Badge className="text-xs">Live</Badge>
-                              )}
-                            </div>
+                            {option.label}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -381,53 +502,32 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
 
         {/* Product Image */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Image className="h-5 w-5 text-muted-foreground" />
-              Product Image
-            </CardTitle>
-            <CardDescription>
-              Upload a product thumbnail image
-            </CardDescription>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Product Image</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {/* Image Requirements Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Image Requirements:</h4>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Maximum file size: <span className="font-semibold">300KB</span></li>
-                  <li>• Recommended dimensions: <span className="font-semibold">800x600px</span> (4:3 ratio)</li>
-                  <li>• Supported formats: <span className="font-semibold">PNG, JPG, JPEG, GIF</span></li>
-                  <li>• Optimal quality: <span className="font-semibold">Medium compression</span></li>
-                </ul>
-              </div>
-
+            <div className="space-y-3">
               {/* Error Display */}
               {thumbnailError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-red-900 mb-1">Image Error:</h4>
-                  <p className="text-sm text-red-800">{thumbnailError}</p>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-900">{thumbnailError}</p>
                 </div>
               )}
 
               {/* Existing Image Display */}
               {isEdit && initialData?.base_thumbnail_url && !thumbnail && (
-                <div className="mb-6">
-                  <h4 className="font-medium text-gray-700 mb-3">Current Product Image</h4>
-                  <div className="flex items-center gap-4">
-                    <ProductImage
-                      src={initialData.base_thumbnail_url}
-                      alt={initialData.base_name || 'Current product image'}
-                      size="lg"
-                      className="border-2 border-gray-200"
-                    />
-                    <div className="text-sm text-gray-600">
-                      <p className="font-medium">Existing image</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Upload a new image to replace this one
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+                  <ProductImage
+                    src={initialData.base_thumbnail_url}
+                    alt={initialData.base_name || 'Current image'}
+                    size="md"
+                    className="border"
+                  />
+                  <div className="flex-1 text-sm">
+                    <p className="font-medium text-gray-900">Current Image</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Upload new image to replace
+                    </p>
                   </div>
                 </div>
               )}
@@ -435,7 +535,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
               {/* Upload Area */}
               <div className="flex items-center justify-center w-full">
                 <label
-                  className={`flex flex-col items-center justify-center w-full h-64 border-2 ${
+                  className={`flex flex-col items-center justify-center w-full h-48 border-2 ${
                     thumbnailError
                       ? 'border-red-300 bg-red-50 hover:bg-red-100'
                       : thumbnail
@@ -450,65 +550,61 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     {thumbnail ? (
-                      <div className="space-y-4">
-                        <div className="relative">
+                      <div className="space-y-3 text-center">
+                        <div className="relative inline-block">
                           <img
                             src={URL.createObjectURL(thumbnail)}
-                            alt="Thumbnail preview"
-                            className="h-32 w-32 object-cover rounded-lg border-2 border-green-200"
+                            alt="Preview"
+                            className="h-24 w-24 object-cover rounded-lg border-2 border-green-300"
                           />
-                          <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1">
-                            <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <div className="absolute -top-1.5 -right-1.5 bg-green-500 rounded-full p-1">
+                            <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                             </svg>
                           </div>
                         </div>
-                        <div className="text-center">
-                          <p className="text-sm font-medium text-green-800">{thumbnail.name}</p>
-                          <p className="text-xs text-green-600">
-                            {(thumbnail.size / 1024).toFixed(2)} KB • {thumbnail.type}
+                        <div>
+                          <p className="text-sm font-medium text-green-900">{thumbnail.name}</p>
+                          <p className="text-xs text-green-700 mt-0.5">
+                            {(thumbnail.size / 1024).toFixed(0)} KB
                           </p>
                         </div>
-                        <button
+                        <Button
                           type="button"
+                          variant="outline"
+                          size="sm"
                           onClick={(e) => {
                             e.preventDefault();
                             setThumbnail(null);
                             setThumbnailError(null);
                           }}
-                          className="mt-2 px-3 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                          className="h-7 text-xs"
                         >
-                          Remove Image
-                        </button>
+                          Remove
+                        </Button>
                       </div>
                     ) : (
                       <>
-                        <Upload className={`h-10 w-10 mb-3 ${
+                        <Upload className={`h-8 w-8 mb-2 ${
                           isDragging
-                            ? 'text-blue-500 animate-bounce'
+                            ? 'text-primary animate-bounce'
                             : thumbnailError
                             ? 'text-red-400'
-                            : 'text-gray-400'
+                            : 'text-muted-foreground'
                         }`} />
-                        <p className={`mb-2 text-sm ${
-                          isDragging ? 'text-blue-600 font-semibold' : 'text-gray-500'
+                        <p className={`mb-1 text-sm ${
+                          isDragging ? 'text-primary font-semibold' : 'text-muted-foreground'
                         }`}>
-                          {isDragging ? (
-                            <>Drop your image here</>
-                          ) : (
-                            <>
-                              <span className="font-semibold">Click to upload</span> or drag and drop
-                            </>
-                          )}
+                          {isDragging ? 'Drop here' : 'Click to upload or drag & drop'}
                         </p>
-                        <p className="text-xs text-gray-500">PNG, JPG, JPEG, GIF up to 300KB</p>
+                        <p className="text-xs text-muted-foreground">WEBP, PNG, JPG • Max 300KB</p>
                       </>
                     )}
                   </div>
                   <input
                     type="file"
                     className="hidden"
-                    accept="image/png,image/jpeg,image/jpg,image/gif"
+                    accept="image/webp,image/png,image/jpeg,image/jpg,image/gif"
                     onChange={handleFileInputChange}
                   />
                 </label>
@@ -518,35 +614,31 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
         </Card>
 
         {/* Action Buttons */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-                className="px-6 h-11"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="px-6 h-11"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    {isEdit ? 'Saving...' : 'Creating...'}
-                  </div>
-                ) : (
-                  isEdit ? 'Save Changes' : 'Create Product'
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isLoading}
+            size="sm"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            size="sm"
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                {isEdit ? 'Saving...' : 'Creating...'}
+              </div>
+            ) : (
+              isEdit ? 'Save Changes' : 'Create Product'
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );

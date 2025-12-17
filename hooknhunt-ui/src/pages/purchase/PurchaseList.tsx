@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RoleGuard } from '@/components/guards/RoleGuard';
 // import { toast } from '@/components/ui/use-toast';
 
 import { usePurchaseStore } from '@/stores/purchaseStore';
@@ -30,11 +31,22 @@ interface PurchaseOrder {
 }
 
 export function PurchaseList() {
+  return (
+    <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'senior_staff']}>
+      <PurchaseListContent />
+    </RoleGuard>
+  );
+}
+
+function PurchaseListContent() {
   const navigate = useNavigate();
-  const { purchaseOrders, fetchPurchaseOrders, isLoading } = usePurchaseStore();
+  const { purchaseOrders, fetchPurchaseOrders, isLoading, error } = usePurchaseStore();
 
   useEffect(() => {
-    fetchPurchaseOrders();
+    console.log('[PurchaseList] Component mounted, fetching purchase orders...');
+    fetchPurchaseOrders().catch(error => {
+      console.error('[PurchaseList] Failed to fetch purchase orders:', error);
+    });
   }, [fetchPurchaseOrders]);
 
   const getStatusColor = (status: string) => {
@@ -63,11 +75,11 @@ export function PurchaseList() {
   };
 
   const handleViewDetails = (orderId: number) => {
-    navigate(`/dashboard/purchase/${orderId}`);
+    navigate(`/purchase/${orderId}`);
   };
 
   const handleCreateNew = () => {
-    navigate('/dashboard/purchase/create-order');
+    navigate('/purchase/create-order');
   };
 
   // Calculate stats
@@ -91,11 +103,31 @@ export function PurchaseList() {
             <p className="text-gray-600">View and manage all purchase orders and procurement requests</p>
           </div>
         </div>
-        <Button onClick={handleCreateNew} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Order
-        </Button>
+        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+          <Button onClick={handleCreateNew} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Order
+          </Button>
+        </RoleGuard>
       </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <span className="text-red-600">⚠️</span>
+            <span className="text-red-800 font-medium">Error: {error}</span>
+          </div>
+          <Button
+            onClick={() => window.location.reload()}
+            variant="outline"
+            size="sm"
+            className="mt-2"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -217,10 +249,12 @@ export function PurchaseList() {
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
                       <Package className="h-12 w-12 opacity-50" />
                       <p>No purchase orders found</p>
-                      <Button onClick={handleCreateNew} variant="outline">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Your First Order
-                      </Button>
+                      <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+                        <Button onClick={handleCreateNew} variant="outline">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create Your First Order
+                        </Button>
+                      </RoleGuard>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -261,14 +295,16 @@ export function PurchaseList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewDetails(order.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'senior_staff']}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(order.id)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                        </RoleGuard>
                       </div>
                     </TableCell>
                     

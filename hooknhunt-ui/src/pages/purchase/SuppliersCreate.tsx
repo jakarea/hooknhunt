@@ -9,11 +9,11 @@ const SuppliersCreate = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/dashboard/suppliers');
+    navigate('/purchase/suppliers');
   };
 
   const handleSuccess = () => {
-    navigate('/dashboard/suppliers');
+    navigate('/purchase/suppliers');
   };
 
   return (
