@@ -81,11 +81,11 @@ const Suppliers = () => {
 
   // --- Navigation Handlers ---
   const handleCreateSupplier = () => {
-    navigate('/dashboard/suppliers/create');
+    navigate('/purchase/suppliers/create');
   };
 
   const handleEditSupplier = (supplier: Supplier) => {
-    navigate(`/dashboard/suppliers/${supplier.id}/edit`);
+    navigate(`/purchase/suppliers/${supplier.id}/edit`);
   };
 
   // --- Delete Alert Handlers ---
@@ -111,7 +111,7 @@ const Suppliers = () => {
 
   // --- Profile Navigation Handler ---
   const handleViewProfile = (supplier: any) => {
-    navigate(`/dashboard/suppliers/${supplier.id}`);
+    navigate(`/purchase/suppliers/${supplier.id}`);
   };
 
   // --- QR Code Handlers ---

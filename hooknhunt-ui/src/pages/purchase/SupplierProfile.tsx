@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ExternalLink, Package, User, Building, Mail, Phone, QrCode, Globe, Edit } from 'lucide-react';
+import { ArrowLeft, ExternalLink, User, Building, Mail, Phone, QrCode, Globe, Edit, Package, Calendar, TrendingUp, CheckCircle, Clock } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { SupplierImage } from '@/components/SupplierImage';
 import api from '@/lib/api';
 
 // Define the Supplier interface
@@ -24,24 +25,15 @@ interface Supplier {
   updated_at?: string;
 }
 
-interface Product {
-  id: number;
-  base_name: string;
-  slug: string;
-  status: string;
-  pivot: {
-    supplier_product_urls: string[];
-  };
-}
-
 export function SupplierProfile() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch supplier data and products
+  // Fetch supplier data
   useEffect(() => {
     if (id) {
       fetchSupplierData();
@@ -59,10 +51,17 @@ export function SupplierProfile() {
       const supplierData = supplierResponse.data;
       setSupplier(supplierData);
 
-      // Fetch supplier products
+      // Fetch supplier products for summary
       const productsResponse = await api.get(`/admin/suppliers/${id}/products`);
-      console.log('📦 Supplier products fetched:', productsResponse.data);
       setProducts(productsResponse.data.products || []);
+
+      // Fetch all purchase orders and filter by supplier for summary
+      const purchaseResponse = await api.get('/admin/purchase-orders');
+      const allOrders = purchaseResponse.data.data || purchaseResponse.data || [];
+      const supplierOrders = Array.isArray(allOrders)
+        ? allOrders.filter(order => order.supplier_id === parseInt(id))
+        : [];
+      setPurchaseOrders(supplierOrders);
     } catch (error: any) {
       console.error('❌ Error fetching supplier data:', error);
       toast({
@@ -77,8 +76,52 @@ export function SupplierProfile() {
 
   const handleEditSupplier = () => {
     if (supplier) {
-      navigate(`/dashboard/suppliers/${supplier.id}/edit`);
+      navigate(`/purchase/suppliers/${supplier.id}/edit`);
     }
+  };
+
+  // Helper functions for summary calculations
+  const getPublishedProductsCount = () => {
+    return products.filter(product => product.status === 'published').length;
+  };
+
+  const getDraftProductsCount = () => {
+    return products.filter(product => product.status === 'draft').length;
+  };
+
+  const getTotalItemsOrdered = () => {
+    return purchaseOrders.reduce((total, order) => {
+      if (!order.items) return total;
+      return total + order.items.reduce((itemTotal, item) => itemTotal + (item.quantity || 0), 0);
+    }, 0);
+  };
+
+  const getTotalChinaValue = () => {
+    return purchaseOrders.reduce((total, order) => {
+      if (!order.items) return total;
+      return total + order.items.reduce((itemTotal, item) => {
+        return itemTotal + ((item.china_price || 0) * (item.quantity || 0));
+      }, 0);
+    }, 0);
+  };
+
+  const getTotalAmount = () => {
+    return purchaseOrders.reduce((total, order) => {
+      const amount = parseFloat(order.total_amount?.toString() || '0');
+      return total + (isNaN(amount) ? 0 : amount);
+    }, 0);
+  };
+
+  const getCompletedOrdersCount = () => {
+    return purchaseOrders.filter(order =>
+      order.status === 'completed' || order.status === 'completed_partially'
+    ).length;
+  };
+
+  const getActiveOrdersCount = () => {
+    return purchaseOrders.filter(order =>
+      ['draft', 'payment_confirmed', 'supplier_dispatched', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub'].includes(order.status)
+    ).length;
   };
 
   if (isLoading) {
@@ -97,43 +140,70 @@ export function SupplierProfile() {
           </div>
         </div>
 
-        {/* Main Content */}
+        {/* Contact Information Skeleton */}
         <div className="container mx-auto px-6 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="space-y-2">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-4">
+                    <Skeleton className="h-20 w-20 mx-auto rounded-lg" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
                       <Skeleton className="h-4 w-24" />
                       <Skeleton className="h-4 w-40" />
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <Skeleton className="h-6 w-32" />
-                  <Skeleton className="h-4 w-48" />
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="border rounded-lg p-4">
-                        <Skeleton className="h-5 w-3/4 mb-2" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </div>
-                    ))}
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Summary Cards Skeleton */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="text-center p-4 bg-gray-50 rounded-lg">
+                    <Skeleton className="h-8 w-16 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-20 mx-auto" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
@@ -145,7 +215,7 @@ export function SupplierProfile() {
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Supplier Not Found</h2>
           <p className="text-gray-600 mb-6">The supplier you're looking for doesn't exist.</p>
-          <Button onClick={() => navigate('/dashboard/suppliers')}>
+          <Button onClick={() => navigate('/purchase/suppliers')}>
             Back to Suppliers
           </Button>
         </div>
@@ -163,7 +233,7 @@ export function SupplierProfile() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate('/dashboard/suppliers')}
+                onClick={() => navigate('/purchase/suppliers')}
                 className="flex items-center gap-2"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -182,169 +252,268 @@ export function SupplierProfile() {
         </div>
       </div>
 
-      {/* Main Content */}
+      {/* Contact Information - Full Width */}
       <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Supplier Information */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Contact Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5" />
+              Contact Information
+            </CardTitle>
+            <CardDescription>
+              Complete contact and payment details for this supplier
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {/* Basic Information */}
+              <div className="space-y-6">
                 <div>
-                  <label className="text-sm font-medium text-gray-600">Contact Person</label>
-                  <p className="font-medium">{supplier.name || '--'}</p>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Basic Information
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Contact Person</label>
+                      <p className="font-medium">{supplier.name || '--'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Shop Name</label>
+                      <p className="font-medium">{supplier.shop_name || '--'}</p>
+                    </div>
+                    {supplier.contact_info && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          Additional Contact
+                        </label>
+                        <p className="font-medium">{supplier.contact_info}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600">Shop Name</label>
-                  <p className="font-medium">{supplier.shop_name || '--'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <Mail className="h-3 w-3" />
-                    Email
-                  </label>
-                  <p className="font-medium">{supplier.email || '--'}</p>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                    <Globe className="h-3 w-3" />
-                    Shop URL
-                  </label>
-                  {supplier.shop_url ? (
-                    <a
-                      href={supplier.shop_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      Visit Shop
-                      <ExternalLink className="h-3 w-3" />
-                    </a>
-                  ) : (
-                    <p className="font-medium">--</p>
-                  )}
-                </div>
+              </div>
 
-                {/* Payment Information */}
-                <div className="border-t pt-4">
-                  <h4 className="font-medium text-gray-700 mb-3 flex items-center gap-2">
+              {/* Online Presence */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    Online Presence
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        Email
+                      </label>
+                      <p className="font-medium">{supplier.email || '--'}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">Shop URL</label>
+                      {supplier.shop_url ? (
+                        <a
+                          href={supplier.shop_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                        >
+                          Visit Shop
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <p className="font-medium">--</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* WeChat Payment */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <QrCode className="h-4 w-4" />
-                    Payment Information
+                    WeChat Payment
                   </h4>
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium text-gray-600">WeChat ID</label>
                       <p className="font-medium">{supplier.wechat_id || '--'}</p>
                     </div>
+                    <div className="flex justify-center">
+                      {supplier.wechat_qr_url ? (
+                        <SupplierImage
+                          src={supplier.wechat_qr_url}
+                          alt="WeChat QR Code"
+                          size="md"
+                          className="w-24 h-24 border border-gray-200 rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                          <QrCode className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Alipay Payment */}
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <QrCode className="h-4 w-4" />
+                    Alipay Payment
+                  </h4>
+                  <div className="space-y-3">
                     <div>
                       <label className="text-sm font-medium text-gray-600">Alipay ID</label>
                       <p className="font-medium">{supplier.alipay_id || '--'}</p>
                     </div>
+                    <div className="flex justify-center">
+                      {supplier.alipay_qr_url ? (
+                        <SupplierImage
+                          src={supplier.alipay_qr_url}
+                          alt="Alipay QR Code"
+                          size="md"
+                          className="w-24 h-24 border border-gray-200 rounded-lg"
+                        />
+                      ) : (
+                        <div className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                          <QrCode className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
-                {supplier.contact_info && (
-                  <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      Additional Contact Info
-                    </label>
-                    <p className="font-medium">{supplier.contact_info}</p>
+        {/* Summary Cards */}
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Products Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Products Summary
+              </CardTitle>
+              <CardDescription>
+                Overview of products sourced from this supplier
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">{products.length}</div>
+                  <div className="text-sm text-gray-600">Total Products</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{getPublishedProductsCount()}</div>
+                  <div className="text-sm text-green-600">Published</div>
+                </div>
+                <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                  <div className="text-2xl font-bold text-yellow-600">{getDraftProductsCount()}</div>
+                  <div className="text-sm text-yellow-600">Draft</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="flex items-center justify-center gap-1">
+                    <TrendingUp className="h-5 w-5 text-blue-600" />
+                    <span className="text-2xl font-bold text-blue-600">
+                      {products.length > 0 ? Math.round((getPublishedProductsCount() / products.length) * 100) : 0}%
+                    </span>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  <div className="text-sm text-blue-600">Published Rate</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Products Section */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Products
+          {/* Purchase History Summary */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Purchase History Summary
+              </CardTitle>
+              <CardDescription>
+                Overview of purchase orders and financial summary
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-gray-50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-900">{purchaseOrders.length}</div>
+                  <div className="text-sm text-gray-600">Total Orders</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{getCompletedOrdersCount()}</div>
+                  <div className="text-sm text-green-600">Completed</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">{getTotalItemsOrdered()}</div>
+                  <div className="text-sm text-blue-600">Total Items</div>
+                </div>
+                <div className="text-center p-4 bg-purple-50 rounded-lg">
+                  <div className="text-2xl font-bold text-purple-600">¥{getTotalChinaValue().toFixed(0)}</div>
+                  <div className="text-sm text-purple-600">China Value</div>
+                </div>
+              </div>
+              <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
+                <div className="text-center p-4 bg-orange-50 rounded-lg">
+                  <div className="flex items-center justify-center gap-1">
+                    <Clock className="h-4 w-4 text-orange-600" />
+                    <span className="text-2xl font-bold text-orange-600">{getActiveOrdersCount()}</span>
                   </div>
-                  <Badge variant="secondary">
-                    {products.length} product{products.length !== 1 ? 's' : ''}
-                  </Badge>
-                </CardTitle>
-                <CardDescription>
-                  Products sourced from this supplier
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {products.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                    <p className="text-gray-600">This supplier doesn't have any associated products yet.</p>
+                  <div className="text-sm text-orange-600">Active Orders</div>
+                </div>
+                <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                  <div className="flex items-center justify-center gap-1">
+                    <CheckCircle className="h-4 w-4 text-emerald-600" />
+                    <span className="text-2xl font-bold text-emerald-600">৳{getTotalAmount().toFixed(0)}</span>
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {products.map((product) => (
-                      <div
-                        key={product.id}
-                        className="border rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-gray-900 mb-2">{product.base_name}</h4>
-                            <div className="flex items-center gap-3 mb-3">
-                              <Badge
-                                variant={product.status === 'published' ? 'default' : 'secondary'}
-                                className="text-xs"
-                              >
-                                {product.status}
-                              </Badge>
-                              <span className="text-xs text-gray-500">ID: {product.id}</span>
-                              <span className="text-xs text-gray-500">Slug: {product.slug}</span>
-                            </div>
+                  <div className="text-sm text-emerald-600">Total Amount (BDT)</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-                            {/* Supplier Product URLs */}
-                            {product.pivot.supplier_product_urls && product.pivot.supplier_product_urls.length > 0 && (
-                              <div className="mb-3">
-                                <p className="text-sm font-medium text-gray-600 mb-2">Supplier Product Links:</p>
-                                <div className="flex flex-wrap gap-2">
-                                  {product.pivot.supplier_product_urls.map((url, index) => (
-                                    <a
-                                      key={index}
-                                      href={url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded"
-                                    >
-                                      <ExternalLink className="h-3 w-3" />
-                                      Link {index + 1}
-                                    </a>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
+        {/* Action Buttons */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/purchase/suppliers/${id}/products`)}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <Package className="h-8 w-8 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">Products</h3>
+                  <p className="text-gray-600">View all products sourced from this supplier</p>
+                </div>
+                <ArrowLeft className="h-5 w-5 text-gray-400 rotate-180" />
+              </div>
+            </CardContent>
+          </Card>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/dashboard/products/${product.id}`)}
-                            className="ml-4"
-                          >
-                            <ExternalLink className="h-3 w-3 mr-1" />
-                            View Product
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(`/purchase/suppliers/${id}/purchase`)}>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="bg-green-100 p-3 rounded-lg">
+                  <Calendar className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900">Purchase History</h3>
+                  <p className="text-gray-600">View all purchase orders and invoices from this supplier</p>
+                </div>
+                <ArrowLeft className="h-5 w-5 text-gray-400 rotate-180" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

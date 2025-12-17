@@ -8,7 +8,8 @@
     "option_singular": "option",
     "option_plural": "options",
     "add_option_button": "Add Option",
-    "default_badge": "Default"
+    "default_badge": "Default",
+    "no_options": "No options yet."
   },
   "create_attribute_dialog": {
     "title": "Create New Attribute",
@@ -55,7 +56,7 @@
     "delete_button": "Delete"
   },
   "add_option_dialog": {
-    "title": "Add Option to {{attributeName}}",
+    "title": "Add New Option - {{attributeName}}",
     "description": "Add a new value for this attribute",
     "form": {
       "value_label": "Value *",

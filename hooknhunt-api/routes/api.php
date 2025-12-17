@@ -77,8 +77,8 @@ Route::prefix('v1/admin')->group(function () {
             Route::delete('/products/{product}/suppliers/{supplier}', [ProductSupplierController::class, 'destroy']);
         });
 
-        // --- Store Keeper, Admin, Super Admin Routes (Suppliers) ---
-        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
+        // --- Store Keeper, Admin, Super Admin, Senior Staff Routes (Suppliers) ---
+        Route::middleware('role:super_admin,admin,store_keeper,senior_staff')->group(function () {
             Route::apiResource('suppliers', SupplierController::class);
             Route::delete('/suppliers/{supplier}/wechat-qr', [SupplierController::class, 'removeWechatQr']);
             Route::delete('/suppliers/{supplier}/alipay-qr', [SupplierController::class, 'removeAlipayQr']);
@@ -86,11 +86,12 @@ Route::prefix('v1/admin')->group(function () {
             Route::get('/suppliers/{supplier}/products', [SupplierController::class, 'products']);
         });
 
-        // --- Store Keeper, Admin, Super Admin Routes (Purchase Orders) ---
-        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
+        // --- Store Keeper, Admin, Super Admin, Senior Staff Routes (Purchase Orders) ---
+        Route::middleware('role:super_admin,admin,store_keeper,senior_staff')->group(function () {
             Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
             Route::get('/purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'show']);
             Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
+            Route::put('/purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update']);
             Route::put('/purchase-orders/{purchase_order}/status', [PurchaseOrderController::class, 'updateStatus']);
             Route::post('/purchase-orders/{purchase_order}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
         });

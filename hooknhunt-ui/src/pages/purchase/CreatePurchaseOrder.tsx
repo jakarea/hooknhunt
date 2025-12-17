@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -49,6 +50,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 export function CreatePurchaseOrder() {
+  const navigate = useNavigate();
   const { suppliers, fetchSuppliers, getSupplierProducts, supplierProducts, isLoading: supplierLoading } = useSupplierStore();
   const { createDraft, isLoading: purchaseLoading } = usePurchaseStore();
   const { fetchSettings } = useSettingStore();
@@ -127,6 +129,12 @@ export function CreatePurchaseOrder() {
       .reduce((total, item) => total + item.approx_bdt, 0);
   };
 
+  const calculateTotalRMB = () => {
+    return orderItems
+      .filter(item => item.selected)
+      .reduce((total, item) => total + (item.china_price * item.quantity), 0);
+  };
+
   const calculateTotalQuantity = () => {
     return orderItems
       .filter(item => item.selected)
@@ -177,9 +185,17 @@ export function CreatePurchaseOrder() {
         description: 'Purchase order draft created successfully',
       });
 
+      // Redirect to purchase list after successful creation
+      navigate('/purchase/list');
+
     } catch (error: any) {
       console.error('Failed to create purchase order:', error);
-      // Error handling is done in the store
+
+      toast({
+        title: 'Error',
+        description: error?.response?.data?.message || 'Failed to create purchase order draft. Please try again.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -397,7 +413,12 @@ export function CreatePurchaseOrder() {
                                 />
                               </TableCell>
                               <TableCell className="font-medium">
-                                ৳{item.approx_bdt.toFixed(2)}
+                                <div>
+                                  ৳{item.approx_bdt.toFixed(2)}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  (¥{(item.china_price * item.quantity).toFixed(2)} RMB)
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))}
@@ -412,8 +433,13 @@ export function CreatePurchaseOrder() {
                           Total Qty: {calculateTotalQuantity()} |
                           Exchange Rate: 1 RMB = {exchangeRate} BDT
                         </div>
-                        <div className="text-lg font-semibold">
-                          Total Est. BDT: ৳{calculateTotal().toFixed(2)}
+                        <div className="text-lg font-semibold text-right">
+                          <div>
+                            Total Est. BDT: ৳{calculateTotal().toFixed(2)}
+                          </div>
+                          <div className="text-sm font-normal text-muted-foreground">
+                            (¥{calculateTotalRMB().toFixed(2)} RMB)
+                          </div>
                         </div>
                       </div>
 

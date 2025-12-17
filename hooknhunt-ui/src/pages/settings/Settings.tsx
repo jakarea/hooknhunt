@@ -11,12 +11,12 @@ import { PaymentSettings } from './tabs/PaymentSettings';
 import { TrackingSettings } from './tabs/TrackingSettings';
 import { SmsSettings } from './tabs/SmsSettings';
 
+
 export const Settings = () => {
   const { t } = useTranslation('settings');
   const [activeTab, setActiveTab] = useState('general');
 
   return (
-    <RoleGuard allowedRoles={['super_admin']}>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         {/* Header */}
         <div className="bg-white border-b border-gray-200 shadow-sm">
@@ -38,7 +38,7 @@ export const Settings = () => {
           <Card>
             <CardContent className="p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 mb-8">
+                <TabsList className="grid w-full grid-cols-5 lg:grid-cols-7 mb-8">
                   <TabsTrigger value="general" className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" />
                     <span className="hidden sm:inline">{t('tabs.general')}</span>
@@ -157,6 +157,5 @@ export const Settings = () => {
           </Card>
         </div>
       </div>
-    </RoleGuard>
   );
 };

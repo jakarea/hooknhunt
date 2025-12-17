@@ -16,12 +16,15 @@ class Product extends Model
         'status',
         'meta_title',
         'meta_description',
+        'description',
+        'category_ids', // Store multiple categories as JSON array
         'base_thumbnail_url',
         'gallery_images',
     ];
 
     protected $casts = [
         'gallery_images' => 'array',
+        'category_ids' => 'array',
     ];
 
     /**
@@ -32,6 +35,32 @@ class Product extends Model
         return Attribute::make(
             get: fn (?string $value) => $value ? url( $value) : null,
         );
+    }
+
+    /**
+     * Get categories from the JSON field.
+     */
+    public function getCategoriesAttribute()
+    {
+        if (empty($this->category_ids)) {
+            return collect([]);
+        }
+
+        try {
+            return Category::whereIn('id', $this->category_ids)->get();
+        } catch (\Exception $e) {
+            \Log::error('Error loading categories for product ' . $this->id . ': ' . $e->getMessage());
+            return collect([]);
+        }
+    }
+
+    /**
+     * Get category names as comma-separated string (for backward compatibility).
+     */
+    public function getCategoryNamesAttribute()
+    {
+        $categories = $this->categories;
+        return $categories->pluck('name')->implode(', ');
     }
 
     /**

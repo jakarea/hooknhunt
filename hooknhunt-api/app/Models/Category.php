@@ -41,6 +41,8 @@ class Category extends Model
         return $this->hasMany(Category::class, 'parent_id');
     }
 
+    // Products are now stored in product.category_ids JSON field, no reverse relationship needed
+
     /**
      * Get the full URL for the image.
      */

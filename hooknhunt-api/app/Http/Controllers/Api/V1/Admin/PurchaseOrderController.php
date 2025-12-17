@@ -20,6 +20,11 @@ class PurchaseOrderController extends Controller
      */
     public function index()
     {
+        // Add debugging
+        \Log::info('PurchaseOrderController::index called');
+        \Log::info('Current user:', ['user' => auth()->user()]);
+        \Log::info('User role:', ['role' => auth()->user()?->role]);
+
         $orders = PurchaseOrder::with(['supplier', 'items.productVariant'])
             ->latest()
             ->paginate(15);
@@ -101,6 +106,231 @@ class PurchaseOrderController extends Controller
     }
 
     /**
+     * Update the specified purchase order items.
+     */
+    public function update(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        // Add debugging
+        \Log::info('PurchaseOrderController::update called');
+        \Log::info('Purchase Order ID:', ['id' => $purchaseOrder->id]);
+        \Log::info('Request data:', $request->all());
+
+        // Check if this is an order field update (like exchange_rate) or items update
+        if (isset($request->exchange_rate) || isset($request->courier_name) || isset($request->tracking_number) || isset($request->lot_number) || isset($request->shipping_method) || isset($request->shipping_cost) || isset($request->bd_courier_tracking) || isset($request->total_weight) || isset($request->extra_cost_global)) {
+            // This is an order field update, not items update
+            return $this->updateOrderFields($request, $purchaseOrder);
+        }
+
+        $inputData = $request->all();
+        \Log::info('Raw request input:', $inputData);
+        \Log::info('Request content type:', ['content_type' => $request->header('Content-Type')]);
+        \Log::info('Request is JSON:', ['is_json' => $request->isJson()]);
+
+        // Debug the exact structure of the request data
+        if (isset($inputData['items'])) {
+            \Log::info('Items found in request, type:', ['type' => gettype($inputData['items'])]);
+            if (is_array($inputData['items'])) {
+                \Log::info('Items is array, count:', ['count' => count($inputData['items'])]);
+                foreach ($inputData['items'] as $index => $item) {
+                    \Log::info("Item $index structure:", [
+                        'type' => gettype($item),
+                        'keys' => is_array($item) ? array_keys($item) : 'not_array',
+                        'content' => $item
+                    ]);
+                }
+            }
+        }
+
+        // Ensure items is an array
+        if (!isset($inputData['items']) || !is_array($inputData['items'])) {
+            \Log::error('Items validation failed:', ['items' => $inputData['items'] ?? 'not_set']);
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['items' => ['Items field is required and must be an array']]
+            ], 422);
+        }
+
+        // Manual validation to debug the issue
+        $items = $inputData['items'] ?? [];
+        \Log::info('Items array for validation:', ['items' => $items]);
+
+        $validationErrors = [];
+        $validatedItems = [];
+
+        if (empty($items)) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => ['items' => ['At least one item is required']]
+            ], 422);
+        }
+
+        foreach ($items as $index => $item) {
+            // Check if this is a new item (null ID) or existing item
+            if (!isset($item['id']) || is_null($item['id'])) {
+                // New item - id is null/not set, but product_id is required
+                if (!isset($item['product_id'])) {
+                    $validationErrors["items.$index.product_id"] = 'Product ID is required for new items';
+                    continue;
+                }
+            } else {
+                // Existing item - validate ID
+                if (!is_numeric($item['id']) || (int)$item['id'] <= 0) {
+                    $validationErrors["items.$index.id"] = 'ID must be a positive integer or null for new items';
+                    continue;
+                }
+
+                // Check if item exists in database for existing items
+                $exists = PurchaseOrderItem::where('id', $item['id'])
+                    ->where('po_number', $purchaseOrder->id)
+                    ->exists();
+
+                if (!$exists) {
+                    $validationErrors["items.$index.id"] = "Item ID {$item['id']} does not exist for this purchase order";
+                    continue;
+                }
+            }
+
+            if (!isset($item['china_price'])) {
+                $validationErrors["items.$index.china_price"] = 'China price is required';
+                continue;
+            }
+
+            if (!is_numeric($item['china_price']) || (float)$item['china_price'] < 0) {
+                $validationErrors["items.$index.china_price"] = 'China price must be a non-negative number';
+                continue;
+            }
+
+            if (!isset($item['quantity'])) {
+                $validationErrors["items.$index.quantity"] = 'Quantity is required';
+                continue;
+            }
+
+            if (!is_numeric($item['quantity']) || (int)$item['quantity'] <= 0) {
+                $validationErrors["items.$index.quantity"] = 'Quantity must be a positive integer';
+                continue;
+            }
+
+            $validatedItems[] = [
+                'id' => isset($item['id']) ? (int) $item['id'] : null,
+                'product_id' => (int) $item['product_id'],
+                'china_price' => (float) $item['china_price'],
+                'quantity' => (int) $item['quantity'],
+            ];
+        }
+
+        if (!empty($validationErrors)) {
+            \Log::error('Manual validation failed:', ['validation_errors' => $validationErrors]);
+
+            // Convert to Laravel format - each error key should map to an array of messages
+            $laravelErrors = [];
+            foreach ($validationErrors as $key => $message) {
+                $laravelErrors[$key] = [$message];
+            }
+
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $laravelErrors
+            ], 422);
+        }
+
+        \Log::info('Manual validation passed. Validated items:', ['validated_items' => $validatedItems]);
+
+        try {
+            DB::beginTransaction();
+
+            // Get all existing items for this purchase order
+            $existingItemIds = PurchaseOrderItem::where('po_number', $purchaseOrder->id)
+                ->pluck('id')
+                ->toArray();
+
+            // Get IDs of items that should be kept (submitted items with valid IDs)
+            $submittedItemIds = collect($validatedItems)
+                ->filter(fn($item) => $item['id'] !== null)
+                ->map(fn($item) => $item['id'])
+                ->toArray();
+
+            // Find items to delete (existing items not in submitted list)
+            $itemsToDelete = array_diff($existingItemIds, $submittedItemIds);
+
+            // Delete unchecked items
+            foreach ($itemsToDelete as $itemIdToDelete) {
+                PurchaseOrderItem::where('id', $itemIdToDelete)->delete();
+                \Log::info('Deleted purchase order item:', ['item_id' => $itemIdToDelete]);
+            }
+
+            // Process submitted items (update existing or create new)
+            foreach ($validatedItems as $itemData) {
+                if ($itemData['id'] === null) {
+                    // Create new item
+                    \Log::info('Creating new purchase order item:', [
+                        'product_id' => $itemData['product_id'],
+                        'china_price' => $itemData['china_price'],
+                        'quantity' => $itemData['quantity']
+                    ]);
+
+                    PurchaseOrderItem::create([
+                        'po_number' => $purchaseOrder->id,
+                        'product_id' => $itemData['product_id'],
+                        'china_price' => $itemData['china_price'],
+                        'quantity' => $itemData['quantity'],
+                    ]);
+                } else {
+                    // Update existing item
+                    $purchaseOrderItem = PurchaseOrderItem::where('id', $itemData['id'])
+                        ->where('po_number', $purchaseOrder->id)
+                        ->first();
+
+                    if ($purchaseOrderItem) {
+                        $purchaseOrderItem->update([
+                            'china_price' => $itemData['china_price'],
+                            'quantity' => $itemData['quantity'],
+                        ]);
+
+                        \Log::info('Updated purchase order item:', [
+                            'item_id' => $purchaseOrderItem->id,
+                            'china_price' => $itemData['china_price'],
+                            'quantity' => $itemData['quantity']
+                        ]);
+                    } else {
+                        \Log::warning('Purchase order item not found for update:', ['id' => $itemData['id']]);
+                    }
+                }
+            }
+
+            // Recalculate total amount if needed
+            $totalChinaPrice = $purchaseOrder->items()->sum(DB::raw('china_price * quantity'));
+            $purchaseOrder->update([
+                'total_amount' => $totalChinaPrice * ($purchaseOrder->exchange_rate ?? 1),
+            ]);
+
+            DB::commit();
+
+            \Log::info('Purchase order updated successfully', ['purchase_order_id' => $purchaseOrder->id]);
+
+            // Reload the purchase order with updated items
+            $purchaseOrder->load(['supplier', 'items.product', 'items.productVariant']);
+
+            return response()->json([
+                'message' => 'Purchase order updated successfully',
+                'purchase_order' => $purchaseOrder
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            \Log::error('PurchaseOrderController::update error:', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to update purchase order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update the status of a purchase order (The Workflow Engine).
      */
     public function updateStatus(Request $request, PurchaseOrder $purchaseOrder)
@@ -142,10 +372,10 @@ class PurchaseOrderController extends Controller
                     break;
 
                 case 'supplier_dispatched':
-                    // Validate and save courier info
+                    // Validate and save courier info (optional fields)
                     $request->validate([
-                        'courier_name' => 'required|string|max:255',
-                        'tracking_number' => 'required|string|max:255'
+                        'courier_name' => 'nullable|string|max:255',
+                        'tracking_number' => 'nullable|string|max:255'
                     ]);
 
                     $purchaseOrder->courier_name = $request->courier_name;
@@ -157,19 +387,19 @@ class PurchaseOrderController extends Controller
                     break;
 
                 case 'shipped_bd':
-                    // Validate and save lot number
+                    // Validate and save lot number (optional field)
                     $request->validate([
-                        'lot_number' => 'required|string|max:255'
+                        'lot_number' => 'nullable|string|max:255'
                     ]);
 
                     $purchaseOrder->lot_number = $request->lot_number;
                     break;
 
                 case 'arrived_bd':
-                    // Validate and save shipping method and cost
+                    // Validate and save shipping method and cost (optional fields)
                     $request->validate([
-                        'shipping_method' => 'required|string|in:air,sea',
-                        'shipping_cost' => 'required|numeric|min:0'
+                        'shipping_method' => 'nullable|string|in:air,sea',
+                        'shipping_cost' => 'nullable|numeric|min:0'
                     ]);
 
                     $purchaseOrder->shipping_method = $request->shipping_method;
@@ -179,9 +409,9 @@ class PurchaseOrderController extends Controller
                     break;
 
                 case 'in_transit_bogura':
-                    // Validate and save BD courier tracking
+                    // Validate and save BD courier tracking (optional field)
                     $request->validate([
-                        'bd_courier_tracking' => 'required|string|max:255'
+                        'bd_courier_tracking' => 'nullable|string|max:255'
                     ]);
 
                     $purchaseOrder->bd_courier_tracking = $request->bd_courier_tracking;
@@ -462,5 +692,77 @@ class PurchaseOrderController extends Controller
 
         $order->total_amount = $total;
         $order->save();
+    }
+
+    /**
+     * Update order fields without changing status.
+     */
+    private function updateOrderFields(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Update allowed fields
+            if ($request->has('exchange_rate')) {
+                $purchaseOrder->exchange_rate = $request->exchange_rate;
+                // Recalculate total amount with updated exchange rate
+                $this->updateTotalAmount($purchaseOrder);
+            }
+
+            if ($request->has('courier_name')) {
+                $purchaseOrder->courier_name = $request->courier_name;
+            }
+
+            if ($request->has('tracking_number')) {
+                $purchaseOrder->tracking_number = $request->tracking_number;
+            }
+
+            if ($request->has('lot_number')) {
+                $purchaseOrder->lot_number = $request->lot_number;
+            }
+
+            if ($request->has('shipping_method')) {
+                $purchaseOrder->shipping_method = $request->shipping_method;
+            }
+
+            if ($request->has('shipping_cost')) {
+                $purchaseOrder->shipping_cost = $request->shipping_cost;
+                // Recalculate total amount
+                $this->updateTotalAmount($purchaseOrder);
+            }
+
+            if ($request->has('bd_courier_tracking')) {
+                $purchaseOrder->bd_courier_tracking = $request->bd_courier_tracking;
+            }
+
+            if ($request->has('total_weight')) {
+                $purchaseOrder->total_weight = $request->total_weight;
+            }
+
+            if ($request->has('extra_cost_global')) {
+                $purchaseOrder->extra_cost_global = $request->extra_cost_global;
+                // Recalculate total amount
+                $this->updateTotalAmount($purchaseOrder);
+            }
+
+            $purchaseOrder->save();
+
+            DB::commit();
+
+            \Log::info('Purchase order fields updated successfully', ['purchase_order_id' => $purchaseOrder->id]);
+
+            // Load order with relationships for response
+            $purchaseOrder->load(['supplier', 'items.product', 'items.productVariant']);
+
+            return response()->json($purchaseOrder);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to update purchase order fields:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'message' => 'Failed to update purchase order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

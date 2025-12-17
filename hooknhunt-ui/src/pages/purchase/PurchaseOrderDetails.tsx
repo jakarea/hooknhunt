@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -13,10 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { Package, CheckCircle, Truck, Ship, Home, DollarSign, LoaderCircle } from 'lucide-react';
+import { Package, CheckCircle, Truck, Ship, Home, DollarSign, LoaderCircle, Edit, Save, X, Plus, Trash2 } from 'lucide-react';
 
 import { usePurchaseStore } from '@/stores/purchaseStore';
+import { useSupplierStore } from '@/stores/supplierStore';
 import { useSettingStore, useSetting } from '@/stores/settingStore';
+import apiClient from '@/lib/apiClient';
 
 // Form types - using type inference from Zod schema
 
@@ -40,23 +42,21 @@ const paymentFormSchema = z.object({
 });
 
 const dispatchFormSchema = z.object({
-  courier_name: z.string().min(1, 'Courier name is required'),
-  tracking_number: z.string().min(1, 'Tracking number is required'),
+  courier_name: z.string().optional(),
+  tracking_number: z.string().optional(),
 });
 
 const shippedFormSchema = z.object({
-  lot_number: z.string().min(1, 'Lot number is required'),
+  lot_number: z.string().optional(),
 });
 
 const arrivedFormSchema = z.object({
-  shipping_method: z.enum(['air', 'sea'], {
-    required_error: 'Shipping method is required',
-  }),
-  shipping_cost: z.string().min(1, 'Shipping cost is required'),
+  shipping_method: z.enum(['air', 'sea']).optional(),
+  shipping_cost: z.string().optional(),
 });
 
 const transitFormSchema = z.object({
-  bd_courier_tracking: z.string().min(1, 'BD courier tracking is required'),
+  bd_courier_tracking: z.string().optional(),
 });
 
 const receiveStockFormSchema = z.object({
@@ -79,7 +79,9 @@ type ReceiveStockFormData = z.infer<typeof receiveStockFormSchema>;
 export function PurchaseOrderDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentOrder, fetchOrder, updateStatus, updateOrderStatus, receiveItems, isLoading } = usePurchaseStore();
+  const currentOrder = usePurchaseStore((state) => state.currentOrder);
+  const { fetchOrder, updateOrder, updateStatus, updateOrderStatus, receiveItems, isLoading: storeLoading } = usePurchaseStore();
+  const { getSupplierProducts, supplierProducts } = useSupplierStore();
   const { fetchSettings } = useSettingStore();
   const defaultExchangeRate = useSetting('exchange_rate_rmb_bdt');
 
@@ -90,6 +92,27 @@ export function PurchaseOrderDetails() {
   const [showTransitDialog, setShowTransitDialog] = useState(false);
   const [showReceiveStockDialog, setShowReceiveStockDialog] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editableItems, setEditableItems] = useState<any[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
+
+  // Check which columns have data to hide empty ones
+  const hasWeightData = currentOrder?.items?.some(item =>
+    item.unit_weight && Number(item.unit_weight) > 0
+  ) || false;
+
+  const hasExtraWeightData = currentOrder?.items?.some(item =>
+    item.extra_weight && Number(item.extra_weight) > 0
+  ) || false;
+
+  const hasReceivedQtyData = currentOrder?.items?.some(item =>
+    item.received_quantity && Number(item.received_quantity) > 0
+  ) || false;
+
+  const hasFinalCostData = currentOrder?.items?.some(item =>
+    item.final_unit_cost && Number(item.final_unit_cost) > 0
+  ) || false;
 
   // Forms
   const paymentForm = useForm<PaymentFormData>({ resolver: zodResolver(paymentFormSchema) });
@@ -116,6 +139,22 @@ export function PurchaseOrderDetails() {
     fetchSettings();
   }, [id, fetchOrder, fetchSettings]);
 
+  // Force timeline update when currentOrder changes
+  useEffect(() => {
+    if (currentOrder) {
+      console.log('🔄 currentOrder changed (Zustand subscription working):', {
+        id: currentOrder.id,
+        status: currentOrder.status,
+        updated_at: currentOrder.updated_at,
+        exchange_rate: currentOrder.exchange_rate,
+        courier_name: currentOrder.courier_name,
+        tracking_number: currentOrder.tracking_number,
+        bd_courier_tracking: currentOrder.bd_courier_tracking,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [currentOrder]);
+
   // Initialize receive items when order is loaded
   useEffect(() => {
     if (currentOrder?.items) {
@@ -123,12 +162,29 @@ export function PurchaseOrderDetails() {
         po_item_id: item.id,
         product_name: item.product?.base_name || 'Unknown Product',
         quantity: item.quantity,
-        unit_weight: '',
-        extra_weight: '0',
-        received_quantity: item.quantity.toString(),
+        unit_weight: item.unit_weight ? item.unit_weight.toString() : '',
+        extra_weight: item.extra_weight ? item.extra_weight.toString() : '0',
+        received_quantity: item.received_quantity ? item.received_quantity.toString() : item.quantity.toString(),
       })));
     }
   }, [currentOrder]);
+
+  // Update available products when supplier products are loaded (in edit mode)
+  useEffect(() => {
+    if (isEditMode && currentOrder && supplierProducts.length > 0) {
+      console.log('[PurchaseOrderDetails] Updating available products from supplierProducts');
+      console.log('[PurchaseOrderDetails] Current order items:', currentOrder.items?.length);
+      console.log('[PurchaseOrderDetails] Supplier products loaded:', supplierProducts.length);
+
+      // Filter out products that are already in the order
+      const availableProductsList = supplierProducts.filter((product: any) =>
+        !currentOrder.items?.some((item: any) => item.product_id === product.id)
+      );
+
+      setAvailableProducts(availableProductsList);
+      console.log('[PurchaseOrderDetails] Available products for adding:', availableProductsList.length);
+    }
+  }, [supplierProducts, isEditMode, currentOrder]);
 
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
@@ -147,38 +203,124 @@ export function PurchaseOrderDetails() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Helper functions to open dialogs with current data
+  const openPaymentDialog = () => {
+    if (currentOrder?.exchange_rate) {
+      paymentForm.reset({
+        exchange_rate: currentOrder.exchange_rate.toString(),
+      });
+    } else if (defaultExchangeRate) {
+      paymentForm.reset({
+        exchange_rate: defaultExchangeRate.toString(),
+      });
+    }
+    setShowPaymentDialog(true);
+  };
+
+  const openDispatchDialog = () => {
+    if (currentOrder?.courier_name || currentOrder?.tracking_number) {
+      dispatchForm.reset({
+        courier_name: currentOrder.courier_name || '',
+        tracking_number: currentOrder.tracking_number || '',
+      });
+    }
+    setShowDispatchDialog(true);
+  };
+
+  const openShippedDialog = () => {
+    if (currentOrder?.lot_number) {
+      shippedForm.reset({
+        lot_number: currentOrder.lot_number,
+      });
+    }
+    setShowShippedDialog(true);
+  };
+
+  const openArrivedDialog = () => {
+    if (currentOrder?.shipping_method || currentOrder?.shipping_cost) {
+      arrivedForm.reset({
+        shipping_method: currentOrder.shipping_method || 'air',
+        shipping_cost: currentOrder.shipping_cost?.toString() || '',
+      });
+    }
+    setShowArrivedDialog(true);
+  };
+
+  const openTransitDialog = () => {
+    if (currentOrder?.bd_courier_tracking) {
+      transitForm.reset({
+        bd_courier_tracking: currentOrder.bd_courier_tracking,
+      });
+    }
+    setShowTransitDialog(true);
+  };
+
+  const openReceiveStockDialog = () => {
+    // Reset form with current order data if available
+    receiveStockForm.reset({
+      additional_cost: currentOrder?.extra_cost_global ? currentOrder.extra_cost_global.toString() : '',
+    });
+    setShowReceiveStockDialog(true);
+  };
+
   const getMainActionButton = () => {
     if (!currentOrder) return null;
 
     const actions: Record<string, { label: string; action: () => void; disabled: boolean }> = {
-      draft: { label: 'Confirm Payment', action: () => setShowPaymentDialog(true), disabled: false },
-      payment_confirmed: { label: 'Mark as Dispatched', action: () => setShowDispatchDialog(true), disabled: false },
+      draft: { label: 'Confirm Payment', action: () => openPaymentDialog(), disabled: false },
+      payment_confirmed: { label: 'Mark as Dispatched', action: () => openDispatchDialog(), disabled: false },
       supplier_dispatched: { label: 'Mark as Warehouse Received', action: () => handleStatusUpdate('warehouse_received'), disabled: false },
-      warehouse_received: { label: 'Mark as Shipped BD', action: () => setShowShippedDialog(true), disabled: false },
-      shipped_bd: { label: 'Mark as Arrived BD', action: () => setShowArrivedDialog(true), disabled: false },
-      arrived_bd: { label: 'Mark as Transit Bogura', action: () => setShowTransitDialog(true), disabled: false },
-      in_transit_bogura: { label: 'Receive Stock', action: () => setShowReceiveStockDialog(true), disabled: false },
+      warehouse_received: { label: 'Mark as Shipped BD', action: () => openShippedDialog(), disabled: false },
+      shipped_bd: { label: 'Mark as Arrived BD', action: () => openArrivedDialog(), disabled: false },
+      arrived_bd: { label: 'Mark as Transit Bogura', action: () => openTransitDialog(), disabled: false },
+      in_transit_bogura: { label: 'Receive Stock', action: () => openReceiveStockDialog(), disabled: false },
       received_hub: { label: 'Mark as Completed', action: () => handleStatusUpdate('completed'), disabled: false },
-      completed: { label: 'Order Completed', action: () => {}, disabled: true },
-      completed_partially: { label: 'Partially Completed', action: () => {}, disabled: true },
-      lost: { label: 'Order Lost', action: () => {}, disabled: true },
+      completed: { label: 'Order Completed', action: () => { }, disabled: true },
+      completed_partially: { label: 'Partially Completed', action: () => { }, disabled: true },
+      lost: { label: 'Order Lost', action: () => { }, disabled: true },
     };
 
-    return actions[currentOrder.status] || { label: 'Unknown Status', action: () => {}, disabled: true };
+    return actions[currentOrder.status] || { label: 'Unknown Status', action: () => { }, disabled: true };
   };
 
   const handleStatusUpdate = async (status: string, payload?: any) => {
+    console.log('🔄 handleStatusUpdate called:', { status, payload, currentOrderStatus: currentOrder?.status });
     if (!currentOrder) return;
+
+    const originalStatus = currentOrder.status;
 
     setProcessing(true);
     try {
+      console.log('🔄 About to call updateOrderStatus...');
       await updateOrderStatus(currentOrder.id, status, payload);
+      console.log('🔄 updateOrderStatus completed successfully');
+
+      // Check if the store was updated
+      const updatedOrder = usePurchaseStore.getState().currentOrder;
+      console.log('🔄 Store update check:', {
+        originalStatus,
+        newStatus: updatedOrder?.status,
+        statusChanged: updatedOrder?.status !== originalStatus,
+        currentOrderId: currentOrder.id,
+        storeOrderId: updatedOrder?.id
+      });
+
+      // Status changed - Zustand will automatically trigger re-render
+      if (updatedOrder?.status !== originalStatus) {
+        console.log('🔄 Status changed - Zustand will trigger automatic re-render');
+      }
+
       toast({
         title: 'Success',
         description: `Order status updated to ${status.replace('_', ' ')}`,
       });
     } catch (error: any) {
-      console.error('Failed to update status:', error);
+      console.error('🔄 Failed to update status:', error);
+      console.error('🔄 Error details:', {
+        status: error?.response?.status,
+        message: error?.response?.data?.message,
+        isAuthError: error?.response?.status === 401 || error?.response?.status === 403
+      });
       toast({
         title: 'Error',
         description: error.message || 'Failed to update order status',
@@ -190,43 +332,197 @@ export function PurchaseOrderDetails() {
   };
 
   const handlePaymentSubmit = async (data: PaymentFormData) => {
-    await handleStatusUpdate('payment_confirmed', {
-      exchange_rate: parseFloat(data.exchange_rate),
-    });
+    console.log('🔄 Payment submit called');
+    if (currentOrder?.status === 'draft') {
+      // For orders at draft stage, confirm payment and set status
+      console.log('🔄 Calling handleStatusUpdate for payment_confirmed');
+      await handleStatusUpdate('payment_confirmed', {
+        exchange_rate: parseFloat(data.exchange_rate),
+      });
+    } else {
+      // For orders already past payment stage, just update the exchange rate without status change
+      try {
+        setProcessing(true);
+
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          exchange_rate: parseFloat(data.exchange_rate),
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'Exchange rate updated successfully',
+        });
+      } catch (error: any) {
+        console.error('Failed to update exchange rate:', error);
+        toast({
+          title: 'Error',
+          description: error?.response?.data?.message || 'Failed to update exchange rate',
+          variant: 'destructive',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    }
+
     setShowPaymentDialog(false);
     paymentForm.reset();
   };
 
   const handleDispatchSubmit = async (data: DispatchFormData) => {
-    await handleStatusUpdate('supplier_dispatched', {
-      courier_name: data.courier_name,
-      tracking_number: data.tracking_number,
-    });
+    if (currentOrder?.status === 'payment_confirmed') {
+      // For orders at payment stage, confirm dispatch and set status
+      await handleStatusUpdate('supplier_dispatched', {
+        courier_name: data.courier_name,
+        tracking_number: data.tracking_number,
+      });
+    } else {
+      // For orders already past dispatch stage, just update courier info without status change
+      try {
+        setProcessing(true);
+
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          courier_name: data.courier_name,
+          tracking_number: data.tracking_number,
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'Courier information updated successfully',
+        });
+      } catch (error: any) {
+        console.error('Failed to update courier information:', error);
+        toast({
+          title: 'Error',
+          description: error?.response?.data?.message || 'Failed to update courier information',
+          variant: 'destructive',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    }
+
     setShowDispatchDialog(false);
     dispatchForm.reset();
   };
 
   const handleShippedSubmit = async (data: ShippedFormData) => {
-    await handleStatusUpdate('shipped_bd', {
-      lot_number: data.lot_number,
-    });
+    if (currentOrder?.status === 'warehouse_received') {
+      // For orders at warehouse stage, confirm shipped and set status
+      await handleStatusUpdate('shipped_bd', {
+        lot_number: data.lot_number,
+      });
+    } else {
+      // For orders already past shipped stage, just update lot number without status change
+      try {
+        setProcessing(true);
+
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          lot_number: data.lot_number,
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'Lot number updated successfully',
+        });
+      } catch (error: any) {
+        console.error('Failed to update lot number:', error);
+        toast({
+          title: 'Error',
+          description: error?.response?.data?.message || 'Failed to update lot number',
+          variant: 'destructive',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    }
+
     setShowShippedDialog(false);
     shippedForm.reset();
   };
 
   const handleArrivedSubmit = async (data: ArrivedFormData) => {
-    await handleStatusUpdate('arrived_bd', {
-      shipping_method: data.shipping_method,
-      shipping_cost: parseFloat(data.shipping_cost),
-    });
+    if (currentOrder?.status === 'shipped_bd') {
+      // For orders at shipped stage, confirm arrived and set status
+      await handleStatusUpdate('arrived_bd', {
+        shipping_method: data.shipping_method,
+        shipping_cost: parseFloat(data.shipping_cost),
+      });
+    } else {
+      // For orders already past arrived stage, just update shipping info without status change
+      try {
+        setProcessing(true);
+
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          shipping_method: data.shipping_method,
+          shipping_cost: data.shipping_cost ? parseFloat(data.shipping_cost) : undefined,
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'Shipping information updated successfully',
+        });
+      } catch (error: any) {
+        console.error('Failed to update shipping information:', error);
+        toast({
+          title: 'Error',
+          description: error?.response?.data?.message || 'Failed to update shipping information',
+          variant: 'destructive',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    }
+
     setShowArrivedDialog(false);
     arrivedForm.reset();
   };
 
   const handleTransitSubmit = async (data: TransitFormData) => {
-    await handleStatusUpdate('in_transit_bogura', {
-      bd_courier_tracking: data.bd_courier_tracking,
-    });
+    if (currentOrder?.status === 'arrived_bd') {
+      // For orders at arrived stage, confirm transit and set status
+      await handleStatusUpdate('in_transit_bogura', {
+        bd_courier_tracking: data.bd_courier_tracking,
+      });
+    } else {
+      // For orders already past transit stage, just update tracking without status change
+      try {
+        setProcessing(true);
+
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          bd_courier_tracking: data.bd_courier_tracking,
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'BD courier tracking updated successfully',
+        });
+      } catch (error: any) {
+        console.error('Failed to update BD courier tracking:', error);
+        toast({
+          title: 'Error',
+          description: error?.response?.data?.message || 'Failed to update BD courier tracking',
+          variant: 'destructive',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    }
+
     setShowTransitDialog(false);
     transitForm.reset();
   };
@@ -250,33 +546,56 @@ export function PurchaseOrderDetails() {
         return sum + ((unitWeight + extraWeight) * quantity);
       }, 0);
 
-      // Prepare payload - always set status to received_hub
-      // The completion status will be determined by the backend when marking as completed
-      const payload = {
-        total_weight: totalWeight,
-        additional_cost: parseFloat(data.additional_cost || '0'),
-        items: receiveStockItems.map(item => ({
-          po_item_id: item.po_item_id,
-          unit_weight: parseFloat(item.unit_weight),
-          extra_weight: parseFloat(item.extra_weight || '0'),
-          received_quantity: parseFloat(item.received_quantity || '0'),
-        })),
-      };
+      if (currentOrder.status === 'in_transit_bogura') {
+        // First time receiving stock - change status to received_hub
+        const payload = {
+          total_weight: totalWeight,
+          additional_cost: parseFloat(data.additional_cost || '0'),
+          items: receiveStockItems.map(item => ({
+            po_item_id: item.po_item_id,
+            unit_weight: parseFloat(item.unit_weight),
+            extra_weight: parseFloat(item.extra_weight || '0'),
+            received_quantity: parseFloat(item.received_quantity || '0'),
+          })),
+        };
 
-      console.log('Receive stock payload:', payload);
+        console.log('Receive stock payload:', payload);
 
-      await receiveItems(currentOrder.id, payload);
-      toast({
-        title: 'Success',
-        description: 'Stock received successfully. You can now mark the order as completed.',
-      });
+        await receiveItems(currentOrder.id, payload);
+        toast({
+          title: 'Success',
+          description: 'Stock received successfully. You can now mark the order as completed.',
+        });
+      } else {
+        // Already received - just update the stock data without status change
+        await apiClient.put(`/admin/purchase-orders/${currentOrder.id}`, {
+          total_weight: totalWeight,
+          extra_cost_global: parseFloat(data.additional_cost || '0'),
+          items: receiveStockItems.map(item => ({
+            id: item.po_item_id,
+            unit_weight: parseFloat(item.unit_weight),
+            extra_weight: parseFloat(item.extra_weight || '0'),
+            received_quantity: parseFloat(item.received_quantity || '0'),
+          })),
+        });
+
+        // Refetch the order to update the store and trigger re-render
+        await fetchOrder(currentOrder.id);
+
+        toast({
+          title: 'Success',
+          description: 'Stock information updated successfully.',
+        });
+      }
+
       setShowReceiveStockDialog(false);
       receiveStockForm.reset();
+
     } catch (error: any) {
-      console.error('Failed to receive items:', error);
+      console.error('Failed to update stock information:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to receive stock',
+        description: error?.response?.data?.message || error.message || 'Failed to update stock information',
         variant: 'destructive',
       });
     } finally {
@@ -284,9 +603,169 @@ export function PurchaseOrderDetails() {
     }
   };
 
-  // Get workflow steps dynamically based on order status
-  const getWorkflowSteps = () => {
+  // Edit mode functions
+  const startEditMode = async () => {
+    if (currentOrder?.items) {
+      // Set editable items
+      setEditableItems(currentOrder.items.map(item => ({
+        ...item,
+        china_price: Number(item.china_price) || 0,
+        quantity: Number(item.quantity) || 1,
+      })));
+
+      // Load all supplier products
+      try {
+        if (currentOrder.supplier_id) {
+          console.log('[PurchaseOrderDetails] Current order details:', {
+            orderId: currentOrder.id,
+            supplierId: currentOrder.supplier_id,
+            supplierName: currentOrder.supplier?.shop_name || 'Unknown'
+          });
+          console.log('[PurchaseOrderDetails] Loading products for supplier ID:', currentOrder.supplier_id);
+          await getSupplierProducts(currentOrder.supplier_id);
+          console.log('[PurchaseOrderDetails] Supplier products loaded successfully');
+        } else {
+          console.warn('[PurchaseOrderDetails] No supplier_id found in current order:', currentOrder);
+        }
+      } catch (error) {
+        console.error('[PurchaseOrderDetails] Error loading supplier products:', error);
+        console.error('[PurchaseOrderDetails] Order data that caused the error:', {
+          orderId: currentOrder?.id,
+          supplierId: currentOrder?.supplier_id,
+          hasSupplier: !!currentOrder?.supplier
+        });
+        toast({
+          title: 'Warning',
+          description: `Could not load products for supplier ID ${currentOrder?.supplier_id}. You can still edit existing items.`,
+          variant: 'destructive',
+        });
+        // Continue with edit mode even if supplier products fail to load
+      }
+
+      setIsEditMode(true);
+    }
+  };
+
+  const cancelEditMode = () => {
+    setIsEditMode(false);
+    setEditableItems([]);
+    setAvailableProducts([]);
+  };
+
+  const updateEditableItem = (index: number, field: string, value: string | number) => {
+    setEditableItems(items =>
+      items.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  };
+
+  const removeEditableItem = (index: number) => {
+    // Check if this is the last item
+    if (editableItems.length <= 1) {
+      setShowDeleteAlert(true);
+      return;
+    }
+    setEditableItems(items => items.filter((_, i) => i !== index));
+  };
+
+  const addProductToOrder = (product: any) => {
+    // Check if product is already in the order (shouldn't happen with our filtering, but safety check)
+    if (editableItems.some(item => item.product_id === product.id)) {
+      toast({
+        title: 'Product Already Added',
+        description: 'This product is already in the order',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Add new item with default values
+    const newItem = {
+      id: `new-${Date.now()}`, // Temporary ID for new items
+      product_id: product.id,
+      product: product,
+      china_price: 0,
+      quantity: 1,
+      is_new: true, // Flag to identify new items
+    };
+
+    setEditableItems(prev => [...prev, newItem]);
+
+    // Remove from available products
+    setAvailableProducts(prev => prev.filter(p => p.id !== product.id));
+
+    toast({
+      title: 'Product Added',
+      description: `${product.base_name} has been added to the order`,
+    });
+  };
+
+  const saveEditedOrder = async () => {
+    if (!currentOrder) return;
+
+    try {
+      setProcessing(true);
+
+      // Validate editable items before saving
+      const validItems = editableItems.filter(item => {
+        // Only include items that are not new (have real IDs)
+        return !item.is_new && item.id && !item.id.toString().startsWith('new-');
+      });
+
+      if (validItems.length === 0) {
+        toast({
+          title: 'Error',
+          description: 'No valid items to update',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const payload = {
+        items: validItems.map(item => ({
+          id: item.id,
+          china_price: Number(item.china_price),
+          quantity: Number(item.quantity),
+        })),
+      };
+
+      console.log('[PurchaseOrderDetails] Saving order with payload:', payload);
+      console.log('[PurchaseOrderDetails] Valid items count:', validItems.length);
+      console.log('[PurchaseOrderDetails] Valid items details:', validItems.map(item => ({
+        id: item.id,
+        id_type: typeof item.id,
+        china_price: item.china_price,
+        quantity: item.quantity
+      })));
+
+      // Call the API to update the order
+      await updateOrder(currentOrder.id, payload);
+
+      toast({
+        title: 'Success',
+        description: 'Order updated successfully',
+      });
+
+      setIsEditMode(false);
+      setEditableItems([]);
+      setAvailableProducts([]);
+
+    } catch (error: any) {
+      console.error('Failed to update order:', error);
+      toast({
+        title: 'Error',
+        description: error?.response?.data?.message || error?.response?.data?.error || 'Failed to update order',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Get workflow steps dynamically based on order status - real-time update
+  const getWorkflowSteps = useCallback(() => {
     if (!currentOrder) return workflowSteps;
+
+    console.log('🔄 getWorkflowSteps recalculating for status:', currentOrder.status);
 
     // Filter out the completion status that doesn't apply
     return workflowSteps.filter(step => {
@@ -304,32 +783,140 @@ export function PurchaseOrderDetails() {
       }
       return true;
     });
-  };
+  }, [currentOrder?.status]);
 
-  const getCurrentStepIndex = () => {
+  const getCurrentStepIndex = useCallback(() => {
     if (!currentOrder) return 0;
     const activeSteps = getWorkflowSteps();
-    return activeSteps.findIndex(step => step.key === currentOrder.status);
-  };
+    const index = activeSteps.findIndex(step => step.key === currentOrder.status);
+    console.log('🔄 getCurrentStepIndex:', { status: currentOrder.status, index });
+    return index;
+  }, [currentOrder?.status, getWorkflowSteps]);
 
-  if (isLoading || !currentOrder) {
+  // Loading skeleton that matches the actual page layout
+  if (!currentOrder) {
     return (
       <div className="space-y-6">
+        {/* Header skeleton */}
         <Card>
           <CardHeader>
-            <CardTitle>Loading Purchase Order...</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2 flex-1">
+                <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse" />
+                <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse" />
+              </div>
+              <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse" />
+                  <div className="h-6 bg-gray-200 rounded w-3/4 animate-pulse" />
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Timeline skeleton */}
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <div className="h-6 bg-gray-200 rounded w-1/2 animate-pulse" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className="flex items-start space-x-3">
+                    <div className={`h-8 w-8 rounded-full ${i === 0 ? 'bg-blue-200' : 'bg-gray-200'} animate-pulse`} />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                      <div className="h-3 bg-gray-200 rounded w-1/2 animate-pulse" />
+                      <div className="space-y-1">
+                        <div className="h-2 bg-gray-200 rounded w-full animate-pulse" />
+                        <div className="h-2 bg-gray-200 rounded w-2/3 animate-pulse" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Order items table skeleton */}
+          <Card className="lg:col-span-3">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div className="h-6 bg-gray-200 rounded w-1/3 animate-pulse" />
+                <div className="h-9 bg-gray-200 rounded w-36 animate-pulse" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      {Array.from({ length: 8 }).map((_, i) => (
+                        <th key={i} className="text-left p-2 pb-3">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={i} className="border-b">
+                        <td className="p-2">
+                          <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
+                        </td>
+                        <td className="p-2">
+                          <div className="h-4 bg-gray-200 rounded w-full animate-pulse" />
+                        </td>
+                        <td className="p-2">
+                          <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse" />
+                        </td>
+                        <td className="p-2 text-right">
+                          <div className="h-4 bg-gray-200 rounded w-1/2 ml-auto animate-pulse" />
+                        </td>
+                        <td className="p-2 text-right">
+                          <div className="h-4 bg-gray-200 rounded w-1/2 ml-auto animate-pulse" />
+                        </td>
+                        <td className="p-2 text-right">
+                          <div className="h-4 bg-gray-200 rounded w-1/2 ml-auto animate-pulse" />
+                        </td>
+                        <td className="p-2 text-right">
+                          <div className="h-4 bg-gray-200 rounded w-2/3 ml-auto animate-pulse" />
+                        </td>
+                        <td className="p-2 text-right">
+                          <div className="h-4 bg-gray-200 rounded w-1/2 ml-auto animate-pulse" />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
 
+  // Force recalculation on every render to ensure timeline updates with store changes
   const mainAction = getMainActionButton();
   const activeWorkflowSteps = getWorkflowSteps();
   const currentStepIndex = getCurrentStepIndex();
+
+  // Debug logging
+  console.log('🔄 PurchaseOrderDetails render:', {
+    currentOrderId: currentOrder?.id,
+    currentOrderStatus: currentOrder?.status,
+    currentStepIndex,
+    activeSteps: activeWorkflowSteps.map(s => s.key),
+    timestamp: new Date().toISOString()
+  });
 
   const showReceivedQty = ['received_hub', 'completed', 'completed_partially'].includes(currentOrder.status);
 
@@ -360,6 +947,46 @@ export function PurchaseOrderDetails() {
             </Button>
           </div>
         </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+            <div className="text-center">
+              <div className="text-sm text-gray-500">Total Items</div>
+              <div className="text-2xl font-bold">{currentOrder.items?.length || 0}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-gray-500">Total Amount (RMB)</div>
+              <div className="text-2xl font-bold">
+                ¥{(currentOrder.items?.reduce((sum, item) => sum + (Number(item.china_price) * Number(item.quantity)), 0) || 0).toFixed(2)}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-sm text-gray-500">Total Amount (BDT)</div>
+              <div className="text-2xl font-bold">
+                {(() => {
+                  const totalRMB = currentOrder.items?.reduce((sum, item) => sum + (Number(item.china_price) * Number(item.quantity)), 0) || 0;
+                  const exchangeRate = currentOrder.exchange_rate || Number(defaultExchangeRate) || 0;
+                  const totalBDT = totalRMB * exchangeRate;
+
+                  return currentOrder.exchange_rate ? (
+                    <>
+                      ৳{totalBDT.toFixed(2)}
+                      <div className="text-xs text-gray-400 font-normal">
+                        (¥{totalRMB.toFixed(2)} × ৳{currentOrder.exchange_rate})
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      ৳{totalBDT.toFixed(2)}
+                      <div className="text-xs text-gray-400 font-normal">
+                        (Estimated at ৳{Number(defaultExchangeRate) || 0}/RMB)
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Timeline and Order Items - Side by Side Layout */}
@@ -394,46 +1021,48 @@ export function PurchaseOrderDetails() {
                       stepData = [
                         { label: 'PO Number', value: currentOrder.po_number || 'N/A' },
                         { label: 'Exchange Rate', value: `1 RMB = ৳${currentOrder.exchange_rate}` },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'supplier_dispatched' && currentOrder.courier_name) {
                       stepData = [
                         { label: 'Courier', value: currentOrder.courier_name },
                         { label: 'Tracking #', value: currentOrder.tracking_number || 'N/A' },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'warehouse_received') {
                       stepData = [
                         { label: 'Status', value: 'Received at Warehouse' },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'shipped_bd' && currentOrder.lot_number) {
                       stepData = [
                         { label: 'Lot Number', value: currentOrder.lot_number },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'arrived_bd' && currentOrder.shipping_method) {
                       stepData = [
                         { label: 'Shipping Method', value: currentOrder.shipping_method === 'air' ? 'Air' : 'Sea' },
                         { label: 'Shipping Cost', value: `৳${currentOrder.shipping_cost || 0}` },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'in_transit_bogura' && currentOrder.bd_courier_tracking) {
                       stepData = [
                         { label: 'BD Tracking', value: currentOrder.bd_courier_tracking },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'received_hub' && currentOrder.total_weight) {
+                      const weight = Number(currentOrder.total_weight);
+                      const weightInKg = weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`;
                       stepData = [
-                        { label: 'Weight', value: `${currentOrder.total_weight} kg` },
+                        { label: 'Weight', value: weightInKg },
                         { label: 'Extra Cost', value: `৳${currentOrder.extra_cost_global || 0}` },
-                        { label: 'Updated', value: new Date(currentOrder.updated_at).toLocaleString() }
+                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
                     else if (step.key === 'completed' && isCompleted) {
@@ -456,13 +1085,12 @@ export function PurchaseOrderDetails() {
                       <div className="flex items-start gap-2">
                         {/* Icon and vertical line */}
                         <div className="flex flex-col items-center">
-                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 flex-shrink-0 ${
-                            step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'border-amber-500 bg-amber-500 text-white' :
+                          <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 flex-shrink-0 ${step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'border-amber-500 bg-amber-500 text-white' :
                             isCompleted || (isCurrent && isCompletionStep) ? 'border-green-600 bg-green-600 text-white' :
-                            isCurrent ? 'border-primary bg-primary text-primary-foreground' :
-                            isActive ? 'border-primary bg-primary text-primary-foreground' :
-                            'border-muted-foreground bg-background'
-                          }`}>
+                              isCurrent ? 'border-primary bg-primary text-primary-foreground' :
+                                isActive ? 'border-primary bg-primary text-primary-foreground' :
+                                  'border-muted-foreground bg-background'
+                            }`}>
                             {isCompleted || (isCurrent && isCompletionStep) ? (
                               <CheckCircle className="w-4 h-4" />
                             ) : (
@@ -470,37 +1098,69 @@ export function PurchaseOrderDetails() {
                             )}
                           </div>
                           {index < activeWorkflowSteps.length - 1 && (
-                            <div className={`w-0.5 h-full min-h-[40px] mt-2 ${
-                              step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'bg-amber-500' :
+                            <div className={`w-0.5 h-full min-h-[40px] mt-2 ${step.key === 'completed_partially' && (isCompleted || isCurrent) ? 'bg-amber-500' :
                               isCompleted || (isCurrent && isCompletionStep) ? 'bg-green-600' :
-                              isActive && !isCurrent ? 'bg-primary' :
-                              'bg-muted-foreground/30'
-                            }`} />
+                                isActive && !isCurrent ? 'bg-primary' :
+                                  'bg-muted-foreground/30'
+                              }`} />
                           )}
                         </div>
 
                         {/* Step content */}
                         <div className="flex-1 pb-3">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className={`text-xs font-semibold ${
-                              isActive ? 'text-foreground' : 'text-muted-foreground'
-                            }`}>
+                            <h4 className={`text-xs font-semibold ${isActive ? 'text-foreground' : 'text-muted-foreground'
+                              }`}>
                               {step.label}
                             </h4>
-                           
+                            {/* Edit button for current step */}
+                            {isCurrent && step.key !== 'draft' && step.key !== 'completed' && step.key !== 'completed_partially' && !['completed', 'completed_partially'].includes(currentOrder?.status || '') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-xs"
+                                onClick={() => {
+                                  if (step.key === 'payment_confirmed') openPaymentDialog();
+                                  else if (step.key === 'supplier_dispatched') openDispatchDialog();
+                                  else if (step.key === 'shipped_bd') openShippedDialog();
+                                  else if (step.key === 'arrived_bd') openArrivedDialog();
+                                  else if (step.key === 'in_transit_bogura') openTransitDialog();
+                                  else if (step.key === 'received_hub') openReceiveStockDialog();
+                                }}
+                                title={`Edit ${step.label}`}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            )}
+                            {/* Quick action buttons for completed steps */}
+                            {isCompleted && (step.key === 'payment_confirmed' || step.key === 'supplier_dispatched' || step.key === 'shipped_bd' || step.key === 'arrived_bd' || step.key === 'in_transit_bogura') && !['completed', 'completed_partially'].includes(currentOrder?.status || '') && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-xs"
+                                onClick={() => {
+                                  if (step.key === 'payment_confirmed') openPaymentDialog();
+                                  else if (step.key === 'supplier_dispatched') openDispatchDialog();
+                                  else if (step.key === 'shipped_bd') openShippedDialog();
+                                  else if (step.key === 'arrived_bd') openArrivedDialog();
+                                  else if (step.key === 'in_transit_bogura') openTransitDialog();
+                                }}
+                                title={`Update ${step.label} details`}
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                            )}
                           </div>
 
                           {/* Step details */}
-                          {stepData.length > 0 && (
-                            <div className="space-y-1">
-                              {stepData.map((data, idx) => (
-                                <div key={idx} className="text-xs">
-                                  <span className="text-muted-foreground">{data.label}:</span>{' '}
-                                  <span className="font-medium text-foreground">{data.value}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                          <div className="space-y-1">
+                            {stepData.map((data, idx) => (
+                              <div key={idx} className="text-xs">
+                                <span className="text-muted-foreground">{data.label}:</span>{' '}
+                                <span className="font-medium text-foreground">{data.value}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -514,82 +1174,233 @@ export function PurchaseOrderDetails() {
         {/* Order Items */}
         <div className="lg:col-span-9">
           <Card>
-        <CardHeader>
-          <CardTitle>Order Items</CardTitle>
-          <CardDescription>
-            Total Items: {currentOrder.items?.length || 0}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Order Items</CardTitle>
+                  <CardDescription>
+                    Total Items: {currentOrder.items?.length || 0}
+                  </CardDescription>
+                </div>
+                {currentOrder.status === 'draft' && !isEditMode && (
+                  <Button
+                    onClick={() => navigate(`/purchase/${id}/edit`)}
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit Order
+                  </Button>
+                )}
+                {isEditMode && (
                   <div className="flex items-center gap-2">
-                    <span>RMB Price</span>
-                    <span className="text-xs text-muted-foreground">
-                      {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
-                    </span>
+                    <Button
+                      onClick={saveEditedOrder}
+                      disabled={processing}
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <Save className="w-4 h-4" />
+                      {processing ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button
+                      onClick={cancelEditMode}
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                    >
+                      <X className="w-4 h-4" />
+                      Cancel
+                    </Button>
                   </div>
-                </TableHead>
-                <TableHead>Quantity</TableHead>
-                {showReceivedQty && <TableHead>Received Qty</TableHead>}
-                <TableHead>Weight</TableHead>
-                <TableHead>Extra Weight</TableHead>
-                <TableHead>
-                  <div className="flex items-center gap-2">
-                    <span>Subtotal (RMB)</span>
-                    <span className="text-xs text-muted-foreground">
-                      {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
-                    </span>
-                  </div>
-                </TableHead>
-                <TableHead>Unit Cost</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentOrder.items?.map((item, idx) => {
-                const chinaPrice = Number(item.china_price) || 0;
-                const quantity = Number(item.quantity) || 0;
-
-                return (
-                  <TableRow key={item.id} className={idx % 2 === 1 ? 'bg-muted/40' : ''}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {item.product?.base_thumbnail_url ? (
-                          <img
-                            src={item.product.base_thumbnail_url}
-                            alt={item.product.base_name}
-                            className="h-10 w-10 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
-                            <Package className="w-4 h-4 text-gray-400" />
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium">{item.product?.base_name || 'Unknown Product'}</div>
-                        </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <span>RMB Price</span>
+                        <span className="text-xs text-muted-foreground">
+                          {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
+                        </span>
                       </div>
-                    </TableCell>
-                    <TableCell>¥{chinaPrice.toFixed(2)}</TableCell>
-                    <TableCell>{quantity}</TableCell>
-                    {showReceivedQty && (
-                      <TableCell className={Number(item.received_quantity) < quantity ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                        {item.received_quantity ?? '-'}
-                      </TableCell>
-                    )}<TableCell>{(Number(item.unit_weight || 0)).toFixed(2)} kg</TableCell>
-                    <TableCell>{(Number(item.extra_weight || 0)).toFixed(2)} kg</TableCell>
-                    <TableCell>¥{(chinaPrice * quantity).toFixed(2)}</TableCell>
-                    <TableCell>৳{(Number(item.final_unit_cost || 0)).toFixed(2)}</TableCell>
+                    </TableHead>
+                    <TableHead>Quantity</TableHead>
+                    {hasReceivedQtyData && <TableHead>Received Qty</TableHead>}
+                    {hasWeightData && <TableHead>Weight</TableHead>}
+                    {hasExtraWeightData && <TableHead>Extra Weight</TableHead>}
+                    <TableHead>
+                      <div className="flex items-center gap-2">
+                        <span>Subtotal (RMB)</span>
+                        <span className="text-xs text-muted-foreground">
+                          {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
+                        </span>
+                      </div>
+                    </TableHead>
+                    {hasFinalCostData && <TableHead>Unit Cost</TableHead>}
+                    {isEditMode && <TableHead className="text-center">Actions</TableHead>}
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </CardContent>
+                </TableHeader>
+                <TableBody>
+                  {(isEditMode ? editableItems : currentOrder.items)?.map((item, idx) => {
+                    const chinaPrice = Number(item.china_price) || 0;
+                    const quantity = Number(item.quantity) || 0;
+
+                    return (
+                      <TableRow key={item.id} className={idx % 2 === 1 ? 'bg-muted/40' : ''}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {item.product?.base_thumbnail_url ? (
+                              <img
+                                src={item.product.base_thumbnail_url}
+                                alt={item.product.base_name}
+                                className="h-10 w-10 object-cover rounded"
+                              />
+                            ) : (
+                              <div className="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                                <Package className="w-4 h-4 text-gray-400" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium">{item.product?.base_name || 'Unknown Product'}</div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {isEditMode ? (
+                            <Input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={editableItems[idx]?.china_price || 0}
+                              onChange={(e) => updateEditableItem(idx, 'china_price', parseFloat(e.target.value) || 0)}
+                              className="w-24"
+                            />
+                          ) : (
+                            <>¥{chinaPrice.toFixed(2)}</>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isEditMode ? (
+                            <Input
+                              type="number"
+                              min="1"
+                              value={editableItems[idx]?.quantity || 1}
+                              onChange={(e) => updateEditableItem(idx, 'quantity', parseInt(e.target.value) || 1)}
+                              className="w-20"
+                            />
+                          ) : (
+                            <>{quantity}</>
+                          )}
+                        </TableCell>
+                        {hasReceivedQtyData && (
+                          <TableCell className={Number(item.received_quantity) < quantity ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                            {item.received_quantity ?? '-'}
+                          </TableCell>
+                        )}
+                        {hasWeightData && <TableCell>{(Number(item.unit_weight || 0)).toFixed(2)} g</TableCell>}
+                        {hasExtraWeightData && <TableCell>{(Number(item.extra_weight || 0)).toFixed(2)} g</TableCell>}
+                        <TableCell>¥{(chinaPrice * quantity).toFixed(2)}</TableCell>
+                        {hasFinalCostData && <TableCell>৳{(Number(item.final_unit_cost || 0)).toFixed(2)}</TableCell>}
+                        {isEditMode && (
+                          <TableCell className="text-center">
+                            <Button
+                              onClick={() => removeEditableItem(idx)}
+                              variant="outline"
+                              size="sm"
+                              className="text-red-600 hover:text-red-700 hover:border-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
+
+          {/* Add Products Section - Only show in edit mode */}
+          {isEditMode && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Add More Products
+                </CardTitle>
+                <CardDescription>
+                  Select additional products from this supplier to add to the order
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {availableProducts.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {availableProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => addProductToOrder(product)}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          {product.base_thumbnail_url ? (
+                            <img
+                              src={product.base_thumbnail_url}
+                              alt={product.base_name}
+                              className="h-12 w-12 object-cover rounded border"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="h-12 w-12 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-sm truncate">{product.base_name}</h4>
+                            <p className="text-xs text-gray-500">SKU: {product.sku || 'N/A'}</p>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addProductToOrder(product);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add to Order
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-2 opacity-30" />
+                    <p className="font-medium mb-1">
+                      {supplierProducts.length === 0
+                        ? 'No additional products available'
+                        : 'All supplier products are already in the order'}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {supplierProducts.length === 0
+                        ? 'This supplier may not have any products linked in the system, or there was an issue loading them.'
+                        : 'You can edit existing items or remove items to add different ones.'}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -642,7 +1453,7 @@ export function PurchaseOrderDetails() {
           <DialogHeader>
             <DialogTitle>Mark as Dispatched</DialogTitle>
             <DialogDescription>
-              Enter courier information
+              Enter courier information (optional - you can update later)
             </DialogDescription>
           </DialogHeader>
           <Form {...dispatchForm}>
@@ -692,7 +1503,7 @@ export function PurchaseOrderDetails() {
           <DialogHeader>
             <DialogTitle>Mark as Shipped to Bangladesh</DialogTitle>
             <DialogDescription>
-              Enter the lot number for this shipment
+              Enter the lot number for this shipment (optional - you can update later)
             </DialogDescription>
           </DialogHeader>
           <Form {...shippedForm}>
@@ -729,7 +1540,7 @@ export function PurchaseOrderDetails() {
           <DialogHeader>
             <DialogTitle>Mark as Arrived in Bangladesh</DialogTitle>
             <DialogDescription>
-              Enter shipping method and cost
+              Enter shipping method and cost (optional - you can update later)
             </DialogDescription>
           </DialogHeader>
           <Form {...arrivedForm}>
@@ -792,7 +1603,7 @@ export function PurchaseOrderDetails() {
           <DialogHeader>
             <DialogTitle>Mark as in Transit to Bogura</DialogTitle>
             <DialogDescription>
-              Enter BD courier tracking information
+              Enter BD courier tracking information (optional - you can update later)
             </DialogDescription>
           </DialogHeader>
           <Form {...transitForm}>
@@ -841,8 +1652,8 @@ export function PurchaseOrderDetails() {
                     <TableRow>
                       <TableHead className="w-[200px]">Product</TableHead>
                       <TableHead className="text-center">Qty</TableHead>
-                      <TableHead>Unit Weight (kg)</TableHead>
-                      <TableHead>Extra Weight (kg)</TableHead>
+                      <TableHead>Unit Weight (g)</TableHead>
+                      <TableHead>Extra Weight (g)</TableHead>
                       <TableHead>Receive Qty</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -896,11 +1707,14 @@ export function PurchaseOrderDetails() {
                   <div>
                     <span className="font-medium">Total Weight:</span>{' '}
                     <span>
-                      {receiveStockItems.reduce((sum, item) => {
-                        const unitWeight = parseFloat(item.unit_weight) || 0;
-                        const extraWeight = parseFloat(item.extra_weight) || 0;
-                        return sum + ((unitWeight + extraWeight) * item.quantity);
-                      }, 0).toFixed(2)} kg
+                      {(() => {
+                        const totalWeight = receiveStockItems.reduce((sum, item) => {
+                          const unitWeight = parseFloat(item.unit_weight) || 0;
+                          const extraWeight = parseFloat(item.extra_weight) || 0;
+                          return sum + ((unitWeight + extraWeight) * item.quantity);
+                        }, 0);
+                        return totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(2)} kg` : `${totalWeight.toFixed(2)} g`;
+                      })()}
                     </span>
                   </div>
                   <div>
@@ -944,6 +1758,24 @@ export function PurchaseOrderDetails() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Alert Dialog */}
+      <Dialog open={showDeleteAlert} onOpenChange={setShowDeleteAlert}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cannot Delete Last Item</DialogTitle>
+            <DialogDescription>
+              An order must have at least one item. You cannot delete all items from the purchase order.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setShowDeleteAlert(false)}>
+              OK
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

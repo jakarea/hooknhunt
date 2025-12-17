@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuthStore } from '@/stores/authStore';
+import { Navigate } from 'react-router-dom';
 
 interface RoleGuardProps {
   allowedRoles: string[];
@@ -9,9 +10,21 @@ interface RoleGuardProps {
 export const RoleGuard: React.FC<RoleGuardProps> = ({ allowedRoles, children }) => {
   const userRole = useAuthStore((state) => state.user?.role);
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
-    return null; // Or render a "Not Authorized" message
+  console.log('🔐 RoleGuard checking permissions...');
+  console.log('🔐 User role:', userRole);
+  console.log('🔐 Allowed roles:', allowedRoles);
+
+  if (!userRole) {
+    console.log('❌ No user role found, redirecting to dashboard');
+    return <Navigate to="/dashboard" replace />;
   }
 
+  if (!allowedRoles.includes(userRole)) {
+    console.log('❌ User role not in allowed roles, redirecting to dashboard');
+    console.log('🔐 Role check failed:', { userRole, allowedRoles });
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  console.log('✅ User has required permissions');
   return <>{children}</>;
 };

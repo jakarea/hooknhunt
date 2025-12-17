@@ -47,11 +47,15 @@ export const useSupplierStore = create<SupplierState>((set) => ({
   },
 
   getSupplierProducts: async (supplierId: number) => {
+    console.log('[SupplierStore] Getting products for supplier ID:', supplierId);
     set((state) => ({ ...state, isLoading: true, error: null }));
     try {
       // API endpoint is GET /api/v1/admin/suppliers/{id}/products
       // Backend returns: { products: [...], supplier: {...}, count: 0 }
-      const response = await apiClient.get(`/admin/suppliers/${supplierId}/products`);
+      const apiUrl = `/admin/suppliers/${supplierId}/products`;
+      console.log('[SupplierStore] Making API call to:', apiUrl);
+
+      const response = await apiClient.get(apiUrl);
       console.log('[SupplierStore] Raw API Response:', response);
       console.log('[SupplierStore] Response data:', response.data);
       console.log('[SupplierStore] Products array:', response.data.products);
@@ -68,10 +72,12 @@ export const useSupplierStore = create<SupplierState>((set) => ({
     } catch (err: any) {
       console.error("[SupplierStore] Failed to fetch supplier products:", err);
       console.error("[SupplierStore] Error details:", {
+        supplierId: supplierId,
         message: err.message,
         response: err.response,
         status: err.response?.status,
-        data: err.response?.data
+        data: err.response?.data,
+        url: `/admin/suppliers/${supplierId}/products`
       });
       const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch supplier products';
       set((state) => ({ ...state, error: errorMessage, isLoading: false, supplierProducts: [] }));
