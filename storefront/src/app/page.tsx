@@ -6,46 +6,19 @@ import Image from 'next/image';
 import ProductCard from '@/components/product/ProductCard';
 import HeroSlider from '@/components/home/HeroSlider';
 import TrendingProduct from '@/components/home/TrendingProduct';
+import Categories from '@/components/home/Categories';
+import RecentlySold from '@/components/home/RecentlySold';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import { products } from '@/data/products';
-import { Category } from '@/types';
+import NewArrivals from '@/components/home/NewArrivals';
+
 
 export default function Home() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
-  const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
-  const newArrivals = products.slice(0, 8); // Latest products
   const bestDeals = products.filter(p => p.originalPrice).slice(0, 4);
-  const recentlySold = products.slice(16, 24); // Recently sold
   const recommended = products.slice(0, 8); // Recommended
 
-  // Fetch categories from API
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setCategoriesLoading(true);
-        // Use Next.js API rewrite to avoid CORS issues
-        const response = await fetch('/api/v1/store/categories/');
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch categories');
-        }
-
-        const data = await response.json();
-        // API returns {categories: [...]} so extract the array
-        setCategories(data.categories || data || []);
-        setCategoriesError(null);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        setCategoriesError('Failed to load categories');
-      } finally {
-        setCategoriesLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
 
   return (
     <div className="bg-white">
@@ -56,148 +29,13 @@ export default function Home() {
       <TrendingProduct />
 
       {/* Categories - Minimalist Style */}
-      <section className="py-20 bg-white dark:bg-[#0a0a0a]">
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          {/* Simple Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              Shop by Category
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
-              Find exactly what you&apos;re looking for
-            </p>
-          </div>
-
-          {/* Categories Grid - Clean & Compact Style */}
-          {categoriesLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
-              {[...Array(8)].map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <div className="bg-gray-200 dark:bg-gray-800 p-4 hover:shadow-md transition-all duration-300">
-                    <div className="relative w-full aspect-square mb-3 overflow-hidden bg-gray-300 dark:bg-gray-700"></div>
-                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mx-auto"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : categoriesError ? (
-            <div className="text-center py-12">
-              <p className="text-red-500 dark:text-red-400 text-lg mb-4">{categoriesError}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-6 py-2 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold transition-colors duration-300"
-              >
-                Retry
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
-              {categories.map((category, index) => (
-                <Link
-                  key={category.id}
-                  href={`/products?category=${category.slug}`}
-                  className="group"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-4 hover:shadow-md transition-all duration-300 group-hover:scale-105">
-                    {/* Product Image */}
-                    <div className="relative w-full aspect-square mb-3 overflow-hidden">
-                      {category.image_url ? (
-                        <Image
-                          src={category.image_url}
-                          alt={category.name}
-                          fill
-                          className="object-cover group-hover:scale-110 transition-transform duration-500"
-                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 12.5vw"
-                        />
-                      ) : (
-                        <h6 className='text-center text-gray-800 dark:text-gray-200 font-semibold text-xs md:text-sm leading-tight'>No Image Found!</h6>
-                      )}
-                    </div>
-
-                    {/* Category Name */}
-                    <h3 className="text-center text-gray-800 dark:text-gray-200 font-semibold text-xs md:text-sm leading-tight">
-                      {category.name}
-                    </h3>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          {/* Simple CTA */}
-          {categories.length > 16 && (
-            <div className="text-center mt-16">
-              <Link
-                href="/products"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors duration-300"
-              >
-                <span>View All Categories</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </svg>
-              </Link>
-            </div>
-          )}
-
-        </div>
-      </section >
+      <Categories />
 
       {/* Recently Sold - Social Proof & Trust */}
-      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1 h-8 bg-green-500"></div>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Recently Sold</h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">See what others are buying</p>
-            </div>
-            <Link href="/products?sort=recent-sold" className="group">
-              <span className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold hover:bg-green-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                View All Recently Sold
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-            {recentlySold.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section >
+      <RecentlySold />
 
       {/* New Arrival - Fresh Content */}
-      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1 h-8 bg-[#046bd2]"></div>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">New Arrivals</h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Fresh products just added</p>
-            </div>
-            <Link href="/products?sort=newest" className="group">
-              <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#046bd2] text-white font-semibold hover:bg-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                View All New Arrivals
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-            {newArrivals.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section >
+      <NewArrivals />
 
       {/* Promotional Banners - Mid-Page Engagement */}
       < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12 bg-white dark:bg-[#0a0a0a]" >
