@@ -136,19 +136,21 @@ export default function NewArrivals() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-1 h-8 bg-gradient-to-b from-[#bc1215] to-[#046bd2]"></div>
-                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">Trending Products</h2>
+                            <div className="w-1 h-8 bg-[#046bd2]"></div>
+                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">New Arrivals</h2>
                         </div>
-                        <p className="text-gray-600 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Fresh products just added</p>
                     </div>
-                    <Link href="/products?sort=trending" className="group">
-                        <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-                            View All Trending
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
-                    </Link>
+                    {newArrivals.length > 12 && (
+                        <Link href="/products?sort=newest" className="group">
+                            <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#046bd2] text-white font-semibold hover:bg-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                                View All New Arrivals
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </Link>
+                    )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
                     {[...Array(6)].map((_, index) => (
@@ -173,19 +175,21 @@ export default function NewArrivals() {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
                     <div className="flex-1">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="w-1 h-8 bg-gradient-to-b from-[#bc1215] to-[#046bd2]"></div>
-                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 tracking-tight">Trending Products</h2>
+                            <div className="w-1 h-8 bg-[#046bd2]"></div>
+                            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">New Arrivals</h2>
                         </div>
-                        <p className="text-gray-600 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Fresh products just added</p>
                     </div>
-                    <Link href="/products?sort=trending" className="group">
-                        <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-                            View All Trending
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
-                    </Link>
+                    {newArrivals.length > 12 && (
+                        <Link href="/products?sort=newest" className="group">
+                            <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#046bd2] text-white font-semibold hover:bg-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
+                                View All New Arrivals
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </Link>
+                    )}
                 </div>
                 <div className="text-center py-12">
                     <div className="text-gray-500 text-lg mb-4">

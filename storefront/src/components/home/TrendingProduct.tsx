@@ -141,14 +141,16 @@ export default function TrendingProduct() {
                         </div>
                         <p className="text-gray-600 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
                     </div>
-                    <Link href="/products?sort=trending" className="group">
-                        <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-                            View All Trending
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
-                    </Link>
+                    {trendingProducts.length > 6 && (
+                        <Link href="/products?sort=trending" className="group">
+                            <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
+                                View All Trending
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </Link>
+                    )}
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 lg:gap-3">
                     {[...Array(6)].map((_, index) => (
@@ -178,14 +180,16 @@ export default function TrendingProduct() {
                         </div>
                         <p className="text-gray-600 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
                     </div>
-                    <Link href="/products?sort=trending" className="group">
-                        <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-                            View All Trending
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                            </svg>
-                        </span>
-                    </Link>
+                    {trendingProducts.length > 6 && (
+                        <Link href="/products?sort=trending" className="group">
+                            <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
+                                View All Trending
+                                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                                </svg>
+                            </span>
+                        </Link>
+                    )}
                 </div>
                 <div className="text-center py-12">
                     <div className="text-gray-500 text-lg mb-4">
