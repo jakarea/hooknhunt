@@ -7,21 +7,34 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Inventory extends Model
 {
+    protected $table = 'inventory';
+
     protected $fillable = [
         'product_variant_id',
         'quantity',
         'reserved_quantity',
-        'available_quantity',
-        'low_stock_threshold',
-        'last_updated_at',
+        'min_stock_level',
+        'max_stock_level',
+        'reorder_point',
+        'average_unit_cost',
+        'last_unit_cost',
+        'total_value',
+        'location',
+        'last_stocked_at',
+        'last_sold_at',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'reserved_quantity' => 'integer',
-        'available_quantity' => 'integer',
-        'low_stock_threshold' => 'integer',
-        'last_updated_at' => 'datetime',
+        'min_stock_level' => 'integer',
+        'max_stock_level' => 'integer',
+        'reorder_point' => 'integer',
+        'average_unit_cost' => 'decimal:2',
+        'last_unit_cost' => 'decimal:2',
+        'total_value' => 'decimal:2',
+        'last_stocked_at' => 'datetime',
+        'last_sold_at' => 'datetime',
     ];
 
     // Relationships
@@ -31,14 +44,20 @@ class Inventory extends Model
     }
 
     // Computed properties
+    public function getAvailableQuantityAttribute(): int
+    {
+        return $this->quantity - $this->reserved_quantity;
+    }
+
     public function getIsLowStockAttribute(): bool
     {
-        return $this->available_quantity <= $this->low_stock_threshold;
+        return $this->getAvailableQuantityAttribute() <= $this->min_stock_level;
     }
 
     public function getStockStatusAttribute(): string
     {
-        if ($this->available_quantity <= 0) {
+        $availableQty = $this->getAvailableQuantityAttribute();
+        if ($availableQty <= 0) {
             return 'out_of_stock';
         } elseif ($this->is_low_stock) {
             return 'low_stock';
@@ -50,12 +69,11 @@ class Inventory extends Model
     // Helper methods
     public function reserveStock(int $quantity): bool
     {
-        if ($this->available_quantity < $quantity) {
+        if ($this->getAvailableQuantityAttribute() < $quantity) {
             return false;
         }
 
         $this->reserved_quantity += $quantity;
-        $this->available_quantity = $this->quantity - $this->reserved_quantity;
         $this->last_updated_at = now();
         $this->save();
 
@@ -65,7 +83,6 @@ class Inventory extends Model
     public function releaseReservation(int $quantity): void
     {
         $this->reserved_quantity = max(0, $this->reserved_quantity - $quantity);
-        $this->available_quantity = $this->quantity - $this->reserved_quantity;
         $this->last_updated_at = now();
         $this->save();
     }
@@ -78,7 +95,6 @@ class Inventory extends Model
 
         $this->quantity -= $quantity;
         $this->reserved_quantity -= $quantity;
-        $this->available_quantity = $this->quantity - $this->reserved_quantity;
         $this->last_updated_at = now();
         $this->save();
 
@@ -88,7 +104,6 @@ class Inventory extends Model
     public function addStock(int $quantity): void
     {
         $this->quantity += $quantity;
-        $this->available_quantity = $this->quantity - $this->reserved_quantity;
         $this->last_updated_at = now();
         $this->save();
     }

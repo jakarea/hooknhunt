@@ -16,12 +16,15 @@ interface DatePickerProps {
   onChange: (date: Date | undefined) => void
   placeholder?: string
   className?: string
+  minDate?: Date | string
 }
 
-export function DatePicker({ value, onChange, placeholder = "Pick date", className }: DatePickerProps) {
+export function DatePicker({ value, onChange, placeholder = "Pick date", className, minDate }: DatePickerProps) {
   const [date, setDate] = React.useState<Date | undefined>(
     value ? (typeof value === 'string' ? (value ? new Date(value) : undefined) : value) : undefined
   )
+
+  const minDateObj = minDate ? (typeof minDate === 'string' ? new Date(minDate) : minDate) : undefined
 
   const handleSelect = (selectedDate: Date | undefined) => {
     setDate(selectedDate)
@@ -51,6 +54,7 @@ export function DatePicker({ value, onChange, placeholder = "Pick date", classNa
           selected={date}
           onSelect={handleSelect}
           initialFocus
+          fromDate={minDateObj}
         />
       </PopoverContent>
     </Popover>

@@ -75,10 +75,14 @@ Route::prefix('v1/admin')->group(function () {
             // Product-Supplier relationship routes
             Route::post('/products/{product}/suppliers', [ProductSupplierController::class, 'store']);
             Route::delete('/products/{product}/suppliers/{supplier}', [ProductSupplierController::class, 'destroy']);
+
+            // Product variants route
+            Route::get('/product-variants', [ProductController::class, 'variants']);
+            Route::put('/product-variants/{id}', [ProductController::class, 'updateVariant']);
         });
 
         // --- Store Keeper, Admin, Super Admin, Senior Staff Routes (Suppliers) ---
-        Route::middleware('role:super_admin,admin,store_keeper,senior_staff')->group(function () {
+        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
             Route::apiResource('suppliers', SupplierController::class);
             Route::delete('/suppliers/{supplier}/wechat-qr', [SupplierController::class, 'removeWechatQr']);
             Route::delete('/suppliers/{supplier}/alipay-qr', [SupplierController::class, 'removeAlipayQr']);
@@ -87,13 +91,29 @@ Route::prefix('v1/admin')->group(function () {
         });
 
         // --- Store Keeper, Admin, Super Admin, Senior Staff Routes (Purchase Orders) ---
-        Route::middleware('role:super_admin,admin,store_keeper,senior_staff')->group(function () {
+        Route::middleware('role:super_admin,admin,store_keeper')->group(function () {
             Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
             Route::get('/purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'show']);
             Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
             Route::put('/purchase-orders/{purchase_order}', [PurchaseOrderController::class, 'update']);
             Route::put('/purchase-orders/{purchase_order}/status', [PurchaseOrderController::class, 'updateStatus']);
+            Route::put('/purchase-orders/{purchase_order}/recalculate-costs', [PurchaseOrderController::class, 'recalculateCosts']);
             Route::post('/purchase-orders/{purchase_order}/receive-items', [PurchaseOrderController::class, 'receiveItems']);
+            Route::get('/purchase-order-items/{id}', [PurchaseOrderController::class, 'getItem']);
+            Route::get('/purchase-order-items', [PurchaseOrderController::class, 'getItemsReadyToStock']);
+            Route::post('/inventory/receive-stock', [PurchaseOrderController::class, 'receiveStock']);
+        });
+
+        // --- Inventory Management Routes (Admin, Super Admin, Store Keeper) ---
+        Route::middleware('role:super_admin,admin,store_keeper')->prefix('inventory')->group(function () {
+            Route::get('/stock-summary', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'stockSummary']);
+            Route::get('/stats', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'stats']);
+            Route::get('/', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'index']);
+            Route::get('/{id}', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'show']);
+            Route::post('/bulk-update', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'bulkUpdate']);
+            Route::post('/add-stock', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'addToStock']);
+            Route::post('/manual-entry', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'manualEntry']);
+            Route::put('/{id}', [App\Http\Controllers\Api\V1\Admin\InventoryController::class, 'update']);
         });
 
         // --- Super Admin Only Routes (Settings) ---
@@ -102,7 +122,7 @@ Route::prefix('v1/admin')->group(function () {
             Route::post('/settings', [SettingController::class, 'update']);
         });
 
-        // --- SMS Routes (Admin, Super Admin, Senior Staff, Marketer) ---
+        // --- SMS Routes (Admin, Super Admin, Store Keeper, Marketer) ---
         Route::middleware('role:super_admin,admin,store_keeper,marketer')->prefix('sms')->group(function () {
             Route::get('/', [SmsController::class, 'index']); // Get SMS logs
             Route::post('/send', [SmsController::class, 'send']); // Send SMS

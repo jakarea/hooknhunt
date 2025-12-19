@@ -10,7 +10,7 @@ const ProductCreate = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/inventory/products');
+    navigate('/products');
   };
 
   const handleProductCreated = (createdProduct: any) => {
@@ -29,7 +29,7 @@ const ProductCreate = () => {
 
     // Immediate redirect with tab parameter to open Suppliers tab
     setTimeout(() => {
-      navigate(`/inventory/products/${createdProduct.id}/edit?tab=suppliers`);
+      navigate(`/products/${createdProduct.id}/edit?tab=suppliers`);
     }, 800);
   };
 

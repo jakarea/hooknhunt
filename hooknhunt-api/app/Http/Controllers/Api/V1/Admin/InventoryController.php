@@ -205,7 +205,6 @@ class InventoryController extends Controller
             'variants' => 'required|array|min:1',
             'variants.*.internal_name' => 'required|string|max:255',
             'variants.*.sku' => 'required|string|max:255|unique:product_variants,sku',
-            'variants.*.thumbnail' => 'nullable|string',
             'variants.*.stock_qty' => 'required|integer|min:0',
             'variants.*.landed_cost' => 'required|numeric|min:0',
             // Wholesale
@@ -302,7 +301,6 @@ class InventoryController extends Controller
                     'sku' => $sku,
                     'internal_name' => $variantData['internal_name'],
                     'landed_cost' => $variantData['landed_cost'],
-                    'variant_thumbnail_url' => $variantData['thumbnail'] ?? null,
                     // Retail
                     'retail_name' => $variantData['retail_name'] ?? $variantData['internal_name'],
                     'retail_price' => $variantData['retail_price'] ?? 0,
@@ -481,5 +479,63 @@ class InventoryController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Get stock summary with all product variants and inventory
+     *
+     * @return JsonResponse
+     */
+    public function stockSummary(): JsonResponse
+    {
+        $query = ProductVariant::with(['inventory', 'product'])
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc');
+
+        $variants = $query->get();
+
+        $transformedVariants = [];
+        foreach ($variants as $variant) {
+            // Only include variants that have a product
+            if (!$variant->product) {
+                continue;
+            }
+
+            // Get the first inventory record (since it's hasMany relationship)
+            $inventory = $variant->inventory->first();
+            $availableQuantity = $inventory ? ($inventory->quantity - $inventory->reserved_quantity) : 0;
+            $minStockLevel = $inventory ? $inventory->min_stock_level : 0;
+
+            $transformedVariants[] = [
+                'id' => $variant->id,
+                'sku' => $variant->sku ?? 'N/A',
+                'retail_name' => $variant->retail_name ?? 'N/A',
+                'wholesale_name' => $variant->wholesale_name ?? 'N/A',
+                'daraz_name' => $variant->daraz_name ?? 'N/A',
+                'landed_cost' => (float) ($variant->landed_cost ?? 0),
+                'retail_price' => (float) ($variant->retail_price ?? 0),
+                'wholesale_price' => (float) ($variant->wholesale_price ?? 0),
+                'daraz_price' => (float) ($variant->daraz_price ?? 0),
+                'status' => $variant->status ?? 'active',
+                'product' => [
+                    'id' => $variant->product->id,
+                    'base_name' => $variant->product->base_name ?? 'Unknown Product',
+                    'base_thumbnail_url' => $variant->product->base_thumbnail_url,
+                    'video_url' => $variant->product->video_url,
+                    'gallery_images' => $variant->product->gallery_images,
+                ],
+                'inventory' => $inventory ? [
+                    'id' => $inventory->id,
+                    'quantity' => (int) $inventory->quantity,
+                    'reserved_quantity' => (int) $inventory->reserved_quantity,
+                    'min_stock_level' => (int) $inventory->min_stock_level,
+                ] : null,
+                'available_quantity' => $availableQuantity,
+                'stock_status' => $availableQuantity === 0 ? 'out_of_stock' :
+                                ($availableQuantity <= $minStockLevel ? 'low_stock' : 'in_stock'),
+            ];
+        }
+
+        return response()->json($transformedVariants);
     }
 }

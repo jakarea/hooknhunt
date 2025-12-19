@@ -22,6 +22,13 @@ import { PurchaseOrderDetails } from './pages/purchase/PurchaseOrderDetails';
 import { PurchaseOrderEdit } from './pages/purchase/PurchaseOrderEdit';
 import { PurchaseOrderDemo } from './pages/purchase/PurchaseOrderDemo';
 import { PurchaseReceive } from './pages/purchase/PurchaseReceive';
+import { PurchaseReceiveList } from './pages/purchase/PurchaseReceiveList';
+import { ReceiveStockCompact } from './pages/inventory/ReceiveStockCompact';
+import { ReceiveStockNew } from './pages/inventory/ReceiveStockNew';
+import ManualStockEntry from './pages/inventory/ManualStockEntry';
+import { ReceiveStockTest } from './pages/inventory/ReceiveStockTest';
+import { StockManagement } from './pages/products/StockManagement';
+import { EditProductStock } from './pages/products/EditProductStock';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
@@ -53,18 +60,24 @@ function App() {
               <Route path="pos/history" element={<div>Register History</div>} />
               <Route path="pos/hold" element={<div>Hold Orders</div>} />
 
-              {/* Inventory Routes */}
+              {/* Inventory Management Routes */}
+              <Route path="inventory/manual-entry" element={<ManualStockEntry />} />
+              <Route path="inventory/receive/:poItemId" element={<ReceiveStockNew />} />
+              <Route path="inventory/stock" element={<div>Current Stock</div>} />
+              <Route path="inventory/adjustment" element={<div>Stock Adjustment</div>} />
+              <Route path="inventory/transfer" element={<div>Stock Transfer</div>} />
+              <Route path="inventory/audit" element={<div>Stock Count / Audit</div>} />
+              <Route path="inventory/labels" element={<div>Print Labels</div>} />
+
+              {/* Product Management Routes */}
               <Route path="products" element={<Products />} />
               <Route path="products/create" element={<ProductCreate />} />
               <Route path="products/:id" element={<ProductDetail />} />
               <Route path="products/:id/edit" element={<ProductEdit />} />
               <Route path="products/categories" element={<Categories />} />
               <Route path="products/attributes" element={<Attributes />} />
-              <Route path="products/stock" element={<div>Current Stock</div>} />
-              <Route path="products/adjustment" element={<div>Stock Adjustment</div>} />
-              <Route path="products/transfer" element={<div>Stock Transfer</div>} />
-              <Route path="products/audit" element={<div>Stock Count / Audit</div>} />
-              <Route path="products/labels" element={<div>Print Labels</div>} />
+              <Route path="products/stock" element={<StockManagement />} />
+              <Route path="products/edit/:id" element={<EditProductStock />} />
 
               {/* Purchase Routes */}
               <Route path="purchase/new" element={<PurchaseNew />} />
@@ -73,7 +86,7 @@ function App() {
               <Route path="purchase/demo" element={<PurchaseOrderDemo />} />
               <Route path="purchase/:id" element={<PurchaseOrderDetails />} />
               <Route path="purchase/:id/edit" element={<PurchaseOrderEdit />} />
-              <Route path="purchase/receive" element={<PurchaseReceive />} />
+              <Route path="purchase/receive" element={<PurchaseReceiveList />} />
 
               {/* Supplier Routes */}
               <Route path="purchase/suppliers" element={<Suppliers />} />

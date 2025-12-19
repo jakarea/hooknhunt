@@ -30,6 +30,7 @@ interface PurchaseOrderItem {
   id: number;
   product_id: number;
   quantity: number;
+  received_quantity: number;
   stocked_quantity: number;
   china_price: number;
   purchase_order_id: number;
@@ -52,6 +53,7 @@ interface PurchaseOrderItem {
     status: string;
     created_at: string;
     supplier?: {
+      id: number;
       shop_name?: string;
       name?: string;
     };
@@ -73,7 +75,7 @@ interface PurchaseOrder {
   items?: PurchaseOrderItem[];
 }
 
-type StatusFilter = 'all' | 'arrived_bd' | 'received_hub' | 'in_transit_bogura';
+type StatusFilter = 'all' | 'completed' | 'completed_partially' | 'in_transit_bogura' | 'received_hub' | 'other';
 
 export function PurchaseReceive() {
   const navigate = useNavigate();
@@ -94,44 +96,69 @@ export function PurchaseReceive() {
     try {
       setIsLoading(true);
 
-      // Fetch all purchase orders with items
-      const response = await api.get('/admin/purchase-orders?include=items,supplier');
-      const allOrders = response.data.data || response.data || [];
-
-      // Filter orders that have items ready to receive
-      const readyStatuses = ['arrived_bd', 'received_hub', 'in_transit_bogura'];
-      const ordersWithReadyItems = allOrders.filter((order: PurchaseOrder) =>
-        readyStatuses.includes(order.status) && order.items
-      );
-
-      // Extract all items from ready orders
-      const allItems: PurchaseOrderItem[] = [];
-      const uniqueSuppliers = new Map();
-
-      ordersWithReadyItems.forEach((order: PurchaseOrder) => {
-        if (order.items) {
-          order.items.forEach(item => {
-            // Only include items that haven't been fully stocked
-            if (item.stocked_quantity < item.quantity) {
-              allItems.push({
-                ...item,
-                purchase_order: order,
-                product: item.product,
-                product_variant: item.product_variant
-              });
-            }
-          });
-        }
-
-        // Collect unique suppliers
-        if (order.supplier) {
-          uniqueSuppliers.set(order.supplier.id, order.supplier);
+      // Fetch items where received_quantity > stocked_quantity
+      // These are items that have been received but not yet added to inventory
+      const response = await api.get('/admin/purchase-order-items', {
+        params: {
+          ready_to_stock: true  // This tells backend to filter received_quantity > stocked_quantity
         }
       });
 
-      setPurchaseOrders(ordersWithReadyItems);
-      setItems(allItems);
+      const allItems = response.data.data || response.data || [];
+
+      console.log('🔍 Fetched items ready to stock (received > stocked):', allItems.length);
+
+      // Extract unique suppliers and orders
+      const uniqueSuppliers = new Map();
+      const uniqueOrders = new Map();
+
+      const transformedItems: PurchaseOrderItem[] = allItems
+        .filter((item: any) => {
+          // Double-check on frontend: only show items where received_quantity > stocked_quantity
+          const receivedQty = Number(item.received_quantity || 0);
+          const stockedQty = Number(item.stocked_quantity || 0);
+          const isReady = receivedQty > stockedQty;
+
+          console.log(`📦 Item ${item.id} (${item.product?.base_name}): received=${receivedQty}, stocked=${stockedQty}, ready=${isReady}`);
+
+          return isReady;
+        })
+        .map((item: any) => {
+          // Collect unique suppliers
+          if (item.purchase_order?.supplier) {
+            uniqueSuppliers.set(item.purchase_order.supplier.id, item.purchase_order.supplier);
+          }
+
+          // Collect unique orders
+          if (item.purchase_order) {
+            uniqueOrders.set(item.purchase_order.id, item.purchase_order);
+          }
+
+          return {
+            id: item.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            stocked_quantity: item.stocked_quantity || 0,
+            received_quantity: item.received_quantity || 0,
+            china_price: item.china_price,
+            purchase_order_id: item.purchase_order_id,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            product: item.product,
+            product_variant: item.product_variant,
+            purchase_order: item.purchase_order,
+          };
+        });
+
+      setPurchaseOrders(Array.from(uniqueOrders.values()));
+      setItems(transformedItems);
       setSuppliers(Array.from(uniqueSuppliers.values()));
+
+      console.log(`✅ Found ${transformedItems.length} items ready to stock`);
+
+      if (transformedItems.length === 0) {
+        console.log('⚠️ No items found with received_quantity > stocked_quantity');
+      }
     } catch (error: any) {
       console.error('❌ Error fetching items ready to receive:', error);
       toast({
@@ -153,7 +180,8 @@ export function PurchaseReceive() {
 
     const matchesStatus =
       statusFilter === 'all' ||
-      item.purchase_order?.status === statusFilter;
+      item.purchase_order?.status === statusFilter ||
+      (statusFilter === 'other' && !['completed', 'completed_partially', 'in_transit_bogura', 'received_hub'].includes(item.purchase_order?.status || ''));
 
     const matchesSupplier =
       supplierFilter === 'all' ||
@@ -162,11 +190,24 @@ export function PurchaseReceive() {
     return matchesSearch && matchesStatus && matchesSupplier;
   });
 
+  // Debug logs
+  console.log('🔢 Total items:', items.length);
+  console.log('🔍 Search term:', searchTerm);
+  console.log('📊 Status filter:', statusFilter);
+  console.log('👥 Supplier filter:', supplierFilter);
+  console.log('✅ Filtered items:', filteredItems.length);
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
-      arrived_bd: 'bg-purple-100 text-purple-800',
+      completed: 'bg-green-100 text-green-800',
+      completed_partially: 'bg-amber-100 text-amber-800',
       in_transit_bogura: 'bg-indigo-100 text-indigo-800',
-      received_hub: 'bg-green-100 text-green-800',
+      received_hub: 'bg-blue-100 text-blue-800',
+      draft: 'bg-gray-100 text-gray-800',
+      payment_confirmed: 'bg-purple-100 text-purple-800',
+      supplier_dispatched: 'bg-orange-100 text-orange-800',
+      shipped_bd: 'bg-pink-100 text-pink-800',
+      arrived_bd: 'bg-teal-100 text-teal-800',
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
@@ -176,11 +217,14 @@ export function PurchaseReceive() {
   };
 
   const getPendingQuantity = (item: PurchaseOrderItem) => {
-    return item.quantity - item.stocked_quantity;
+    // Return the quantity that's been received but not yet stocked
+    return item.received_quantity - item.stocked_quantity;
   };
 
   const getProgressPercentage = (item: PurchaseOrderItem) => {
-    return Math.round((item.stocked_quantity / item.quantity) * 100);
+    // Calculate progress based on stocked vs received (not total quantity)
+    if (item.received_quantity === 0) return 0;
+    return Math.round((item.stocked_quantity / item.received_quantity) * 100);
   };
 
   const handleViewItem = (item: PurchaseOrderItem) => {
@@ -255,9 +299,11 @@ export function PurchaseReceive() {
   const totalReadyQuantity = items.reduce((sum, item) => sum + getPendingQuantity(item), 0);
   const totalOrders = purchaseOrders.length;
   const ordersByStatus = {
-    arrived_bd: purchaseOrders.filter(po => po.status === 'arrived_bd').length,
+    completed: purchaseOrders.filter(po => po.status === 'completed').length,
+    completed_partially: purchaseOrders.filter(po => po.status === 'completed_partially').length,
     in_transit_bogura: purchaseOrders.filter(po => po.status === 'in_transit_bogura').length,
     received_hub: purchaseOrders.filter(po => po.status === 'received_hub').length,
+    other: purchaseOrders.filter(po => !['completed', 'completed_partially', 'in_transit_bogura', 'received_hub'].includes(po.status)).length,
   };
 
   return (
@@ -319,12 +365,12 @@ export function PurchaseReceive() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-purple-100 p-2 rounded-lg">
-                  <Clock className="h-5 w-5 text-purple-600" />
+                <div className="bg-blue-100 p-2 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{ordersByStatus.arrived_bd}</p>
-                  <p className="text-sm text-gray-600">Arrived BD</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalReadyQuantity}</p>
+                  <p className="text-sm text-gray-600">Ready to Stock</p>
                 </div>
               </div>
             </CardContent>
@@ -333,12 +379,12 @@ export function PurchaseReceive() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-orange-100 p-2 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-orange-600" />
+                <div className="bg-purple-100 p-2 rounded-lg">
+                  <Package className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{ordersByStatus.in_transit_bogura}</p>
-                  <p className="text-sm text-gray-600">In Transit</p>
+                  <p className="text-2xl font-bold text-gray-900">{totalOrders}</p>
+                  <p className="text-sm text-gray-600">Purchase Orders</p>
                 </div>
               </div>
             </CardContent>
@@ -367,9 +413,11 @@ export function PurchaseReceive() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="arrived_bd">Arrived BD</SelectItem>
-                  <SelectItem value="in_transit_bogura">In Transit Bogura</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="completed_partially">Partially Completed</SelectItem>
                   <SelectItem value="received_hub">Received Hub</SelectItem>
+                  <SelectItem value="in_transit_bogura">In Transit</SelectItem>
+                  <SelectItem value="other">Other Status</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -403,11 +451,15 @@ export function PurchaseReceive() {
               </Badge>
             </CardTitle>
             <CardDescription>
-              Products from purchase orders that are ready to be added to inventory
+              Products that have been received but not yet added to inventory
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {filteredItems.length === 0 ? (
+            {(() => {
+              console.log('🎯 Rendering check - filteredItems.length:', filteredItems.length);
+              console.log('🎯 Rendering check - isLoading:', isLoading);
+              return filteredItems.length === 0;
+            })() ? (
               <div className="text-center py-12">
                 <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No items ready to receive</h3>
@@ -489,11 +541,10 @@ export function PurchaseReceive() {
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-200 rounded-full h-2">
                             <div
-                              className={`h-2 rounded-full ${
-                                getProgressPercentage(item) === 100
-                                  ? 'bg-green-500'
-                                  : 'bg-blue-500'
-                              }`}
+                              className={`h-2 rounded-full ${getProgressPercentage(item) === 100
+                                ? 'bg-green-500'
+                                : 'bg-blue-500'
+                                }`}
                               style={{ width: `${getProgressPercentage(item)}%` }}
                             />
                           </div>

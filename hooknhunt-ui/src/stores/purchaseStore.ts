@@ -143,8 +143,8 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         isLoading: false,
       }));
 
-      // Redirect to purchase orders list on success
-      window.location.href = '/dashboard/purchase/list';
+      // Redirect to the new order detail page on success
+      window.location.href = `/purchase/${newOrder.id}`;
 
       return newOrder;
     } catch (error: any) {
