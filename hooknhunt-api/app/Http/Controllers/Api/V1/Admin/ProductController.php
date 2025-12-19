@@ -212,97 +212,120 @@ class ProductController extends Controller
      */
     public function update(Request $request, Product $product)
     {
-        $validated = $request->validate([
-            'base_name' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'meta_title' => 'nullable|string|max:255',
-            'meta_description' => 'nullable|string',
-            'category_ids' => 'nullable|array',
-            'category_ids.*' => 'integer|exists:categories,id',
-            'status' => 'nullable|in:draft,published',
-            'base_thumbnail_url' => 'nullable|url',
-            'video_url' => 'nullable|url',
-            'gallery_images.*' => 'nullable|file|image|max:500', // 500KB max each
-            'existing_gallery_images' => 'nullable|string', // JSON string
-        ]);
+        try {
+            $validated = $request->validate([
+                'base_name' => 'nullable|string|max:255',
+                'description' => 'nullable|string',
+                'meta_title' => 'nullable|string|max:255',
+                'meta_description' => 'nullable|string',
+                'category_ids' => 'nullable|array',
+                'category_ids.*' => 'integer|exists:categories,id',
+                'status' => 'nullable|in:draft,published',
+                'base_thumbnail_url' => 'nullable|url',
+                'video_url' => 'nullable|url',
+                'gallery_images' => 'nullable|string', // JSON string of URLs (from frontend FormData)
+                'existing_gallery_images' => 'nullable|string', // JSON string (for compatibility)
+            ]);
 
-        // Update fields only if provided
-        $updateData = [];
+            // Update fields only if provided
+            $updateData = [];
 
-        if (isset($validated['base_name'])) {
-            $updateData['base_name'] = $validated['base_name'];
-            $updateData['meta_title'] = $validated['meta_title'] ?? $validated['base_name'];
-        }
-
-        if (isset($validated['meta_title'])) {
-            $updateData['meta_title'] = $validated['meta_title'];
-        }
-
-        if (isset($validated['status'])) {
-            $updateData['status'] = $validated['status'];
-        }
-
-        if (isset($validated['meta_description'])) {
-            $updateData['meta_description'] = $validated['meta_description'];
-        }
-
-        if (isset($validated['description'])) {
-            $updateData['description'] = $validated['description'];
-        }
-
-        if (isset($validated['base_thumbnail_url'])) {
-            $updateData['base_thumbnail_url'] = $validated['base_thumbnail_url'];
-        }
-
-        if (isset($validated['video_url'])) {
-            $updateData['video_url'] = $validated['video_url'];
-        }
-
-        if (isset($validated['category_id'])) {
-            $updateData['category_id'] = $validated['category_id'];
-        }
-
-        
-        // Handle gallery images
-        $galleryImages = [];
-
-        // Keep existing gallery images if provided
-        if ($request->has('existing_gallery_images')) {
-            $existingImages = json_decode($request->get('existing_gallery_images'), true);
-            if (is_array($existingImages)) {
-                $galleryImages = $existingImages;
+            if (isset($validated['base_name'])) {
+                $updateData['base_name'] = $validated['base_name'];
+                $updateData['meta_title'] = $validated['meta_title'] ?? $validated['base_name'];
             }
-        }
 
-        // Add new gallery images
-        if ($request->hasFile('gallery_images')) {
-            foreach ($request->file('gallery_images') as $file) {
-                if ($file->isValid()) {
-                    $path = $file->store('gallery', 'public');
-                    $galleryImages[] = Storage::url($path);
+            if (isset($validated['meta_title'])) {
+                $updateData['meta_title'] = $validated['meta_title'];
+            }
+
+            if (isset($validated['status'])) {
+                $updateData['status'] = $validated['status'];
+            }
+
+            if (isset($validated['meta_description'])) {
+                $updateData['meta_description'] = $validated['meta_description'];
+            }
+
+            if (isset($validated['description'])) {
+                $updateData['description'] = $validated['description'];
+            }
+
+            if (isset($validated['base_thumbnail_url'])) {
+                $updateData['base_thumbnail_url'] = $validated['base_thumbnail_url'];
+            }
+
+            if (isset($validated['video_url'])) {
+                $updateData['video_url'] = $validated['video_url'];
+            }
+
+            // Handle gallery images
+            $galleryImages = [];
+
+            // Debug: Log what we received
+            \Log::info('Gallery images input:', [
+                'request_has_gallery_images' => $request->has('gallery_images'),
+                'validated_gallery_images' => $validated['gallery_images'] ?? 'not_set',
+                'gallery_images_input' => $request->input('gallery_images'),
+                'all_request_data' => $request->all()
+            ]);
+
+            // Handle gallery_images as JSON string (from frontend FormData)
+            if ($request->has('gallery_images') && isset($validated['gallery_images'])) {
+                $decodedImages = json_decode($validated['gallery_images'], true);
+                if (is_array($decodedImages)) {
+                    $galleryImages = $decodedImages;
+                    \Log::info('Gallery images from JSON string:', $galleryImages);
                 }
             }
-        }
 
-        // Only update gallery_images if we have images or if existing_gallery_images was sent (even if empty)
-        if (!empty($galleryImages) || $request->has('existing_gallery_images')) {
-            $updateData['gallery_images'] = $galleryImages;
-        }
-
-        // Update product
-        $product->update($updateData);
-
-        // Handle category_ids (multiple categories)
-        if ($request->has('category_ids')) {
-            $categoryIds = $validated['category_ids'] ?? [];
-            if (is_array($categoryIds)) {
-                // Update category_ids field directly
-                $product->category_ids = $categoryIds;
-                $product->save();
+            // Handle existing_gallery_images for backward compatibility
+            if ($request->has('existing_gallery_images')) {
+                $existingImages = json_decode($request->get('existing_gallery_images'), true);
+                if (is_array($existingImages)) {
+                    // Merge with any existing URLs
+                    $galleryImages = array_merge($galleryImages, $existingImages);
+                    \Log::info('Gallery images after merging with existing:', $galleryImages);
+                }
             }
-        }
 
-        return response()->json($product);
+            // Always update gallery_images if provided (even if empty - allows clearing gallery)
+            if ($request->has('gallery_images') || $request->has('existing_gallery_images')) {
+                $updateData['gallery_images'] = $galleryImages;
+                \Log::info('Update data includes gallery_images:', $updateData['gallery_images']);
+            }
+
+            // Update product
+            $product->update($updateData);
+
+            // Handle category_ids (multiple categories)
+            if ($request->has('category_ids')) {
+                $categoryIds = $validated['category_ids'] ?? [];
+                if (is_array($categoryIds)) {
+                    // Update category_ids field directly
+                    $product->category_ids = $categoryIds;
+                    $product->save();
+                }
+            }
+
+            return response()->json($product);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Product update validation failed:', $e->errors());
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            \Log::error('Product update failed:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Update failed: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -402,6 +425,109 @@ class ProductController extends Controller
         return response()->json([
             'message' => 'Product variant updated successfully',
             'data' => $variant->fresh()
+        ]);
+    }
+
+    /**
+     * Upload a single gallery image and return URL
+     */
+    public function uploadGalleryImage(Request $request)
+    {
+        $validated = $request->validate([
+            'image' => 'required|file|image|max:500', // 500KB max
+        ]);
+
+        try {
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
+                $file = $request->file('image');
+                $path = $file->store('gallery', 'public');
+                $url = Storage::url($path);
+
+                // Fix double storage path issue
+                $url = str_replace('/storage/storage/', '/storage/', $url);
+
+                return response()->json([
+                    'success' => true,
+                    'url' => $url
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid file'
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Upload failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update product media (images and video)
+     */
+    public function updateMedia(Request $request, Product $product)
+    {
+        $validated = $request->validate([
+            'video_url' => 'nullable|url',
+            'gallery_images.*' => 'nullable|file|image|max:500', // 500KB max each
+            'existing_gallery_images' => 'nullable|string', // JSON string
+        ]);
+
+        // Handle gallery images
+        $galleryImages = [];
+
+        // Keep existing gallery images if provided
+        if ($request->has('existing_gallery_images')) {
+            $existingImages = json_decode($request->get('existing_gallery_images'), true);
+            if (is_array($existingImages)) {
+                $galleryImages = $existingImages;
+            }
+        }
+
+        // Add new gallery images
+        if ($request->hasFile('gallery_images')) {
+            $galleryFiles = $request->file('gallery_images');
+
+            // Handle both array and single file cases
+            if (is_array($galleryFiles)) {
+                foreach ($galleryFiles as $file) {
+                    if ($file && $file->isValid()) {
+                        $path = $file->store('gallery', 'public');
+                        $url = Storage::url($path);
+                        // Fix double storage path issue
+                        $url = str_replace('/storage/storage/', '/storage/', $url);
+                        $galleryImages[] = $url;
+                    }
+                }
+            } elseif ($galleryFiles && $galleryFiles->isValid()) {
+                $path = $galleryFiles->store('gallery', 'public');
+                $url = Storage::url($path);
+                // Fix double storage path issue
+                $url = str_replace('/storage/storage/', '/storage/', $url);
+                $galleryImages[] = $url;
+            }
+        }
+
+        // Update fields only if provided
+        $updateData = [];
+
+        if (isset($validated['video_url'])) {
+            $updateData['video_url'] = $validated['video_url'];
+        }
+
+        // Update gallery images
+        if (!empty($galleryImages) || $request->has('existing_gallery_images')) {
+            $updateData['gallery_images'] = $galleryImages;
+        }
+
+        // Update product
+        $product->update($updateData);
+
+        return response()->json([
+            'message' => 'Product media updated successfully',
+            'data' => $product->fresh()
         ]);
     }
 

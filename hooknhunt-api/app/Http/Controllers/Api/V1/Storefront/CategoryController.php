@@ -27,7 +27,7 @@ class CategoryController extends Controller
                 'id' => $rootCategory->id,
                 'name' => $rootCategory->name,
                 'slug' => $rootCategory->slug,
-                'image_url' => $rootCategory->image_url ? url('storage/' . $rootCategory->image_url) : null,
+                'image_url' => $rootCategory->image_url,
                 'children' => $this->buildChildren($rootCategory->id, $categories)
             ];
         }
@@ -40,7 +40,7 @@ class CategoryController extends Controller
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'parent_id' => $category->parent_id,
-                    'image_url' => $category->image_url ? url('storage/' . $category->image_url) : null,
+                    'image_url' => $category->image_url,
                 ];
             })
         ]);
@@ -71,7 +71,7 @@ class CategoryController extends Controller
                     'id' => $child->id,
                     'name' => $child->name,
                     'slug' => $child->slug,
-                    'image_url' => $child->image_url ? url('storage/' . $child->image_url) : null,
+                    'image_url' => $child->image_url,
                 ];
             });
 
@@ -80,7 +80,7 @@ class CategoryController extends Controller
                 'id' => $category->id,
                 'name' => $category->name,
                 'slug' => $category->slug,
-                'image_url' => $category->image_url ? url('storage/' . $category->image_url) : null,
+                'image_url' => $category->image_url,
                 'children' => $children
             ]
         ]);
@@ -101,7 +101,7 @@ class CategoryController extends Controller
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
-                    'image_url' => $category->image_url ? url('storage/' . $category->image_url) : null,
+                    'image_url' => $category->image_url,
                 ];
             });
 
@@ -125,7 +125,7 @@ class CategoryController extends Controller
                 'id' => $child->id,
                 'name' => $child->name,
                 'slug' => $child->slug,
-                'image_url' => $child->image_url ? url('storage/' . $child->image_url) : null,
+                'image_url' => $child->image_url,
                 'children' => $this->buildChildren($child->id, $allCategories)
             ];
         }
