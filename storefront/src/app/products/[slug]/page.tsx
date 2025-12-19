@@ -229,31 +229,98 @@ export default function ProductDetailPage() {
               )}
             </div>
 
+
             {/* Thumbnail Navigation */}
-            {productImages.length > 1 && (
-              <div className="relative">
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {productImages.map((img, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setSelectedImage(index)}
-                      className={`flex-shrink-0 w-20 h-20 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative ${selectedImage === index
-                        ? 'ring-2 ring-[#bc1215] opacity-100'
-                        : 'opacity-60 hover:opacity-100'
-                        }`}
-                    >
-                      <Image
-                        src={img}
-                        alt={`${product.name} ${index + 1}`}
-                        fill
-                        className="object-cover"
-                        sizes="80px"
-                      />
-                    </button>
-                  ))}
-                </div>
+            {/* {productImages.length > 1 && ( */}
+            <div className="relative">
+              <div className="grid grid-cols-7 gap-x-2 overflow-x-auto py-1.5 px-1">
+                {productImages.map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative ${selectedImage === index
+                      ? 'ring-2 ring-[#bc1215] opacity-100'
+                      : 'opacity-60 hover:opacity-100'
+                      }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="72px"
+                    />
+                  </button>
+                ))}
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
+                <button
+                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
+                >
+                  <Image
+                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
+                    alt={`ddd`}
+                    fill
+                    className="object-cover"
+                    sizes="72px"
+                  />
+                </button>
               </div>
-            )}
+            </div>
+            {/* )} */}
           </div>
 
           {/* Product Information */}
@@ -491,36 +558,44 @@ export default function ProductDetailPage() {
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                  </svg>
+
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+
                   <div>
                     <p className="font-semibold text-sm">Premium quality</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Construction for durability</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Ergonomic design</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">for comfortable use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Weather-resistant</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">for outdoor use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300  bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <div>
+                    <p className="font-semibold text-sm">Suitable for both freshwater</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Saltwater fishing</p>
+                  </div>
+                </div>
+                <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <div>
+                    <p className="font-semibold text-sm">Weather-resistant</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">for outdoor use</p>
+                  </div>
+                </div>
+                <div className="flex items-start text-gray-700 dark:text-gray-300  bg-white px-3 py-2">
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Suitable for both freshwater</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Saltwater fishing</p>
@@ -751,7 +826,7 @@ export default function ProductDetailPage() {
           <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white">More Products</h2>
-              <Link href={`/products?category=${category}`} className="text-[#bc1215] hover:text-[#8a0f12] font-semibold flex items-center gap-2">
+              <Link href={`/products?category=${product.categories && product.categories.length > 0 ? product.categories[0].slug : ''}`} className="text-[#bc1215] hover:text-[#8a0f12] font-semibold flex items-center gap-2">
                 View All
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
