@@ -559,7 +559,7 @@ export default function ProductDetailPage() {
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
 
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
 
                   <div>
                     <p className="font-semibold text-sm">Premium quality</p>
@@ -567,35 +567,35 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Ergonomic design</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">for comfortable use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Weather-resistant</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">for outdoor use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300  bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Suitable for both freshwater</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Saltwater fishing</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Weather-resistant</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">for outdoor use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300  bg-white px-3 py-2">
-                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round" stroke="#CCCCCC" stroke-width="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                  <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
                     <p className="font-semibold text-sm">Suitable for both freshwater</p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Saltwater fishing</p>
