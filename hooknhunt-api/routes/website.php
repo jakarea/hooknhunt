@@ -1,0 +1,63 @@
+<?php
+
+use App\Http\Controllers\Api\V1\Storefront\CategoryController;
+use App\Http\Controllers\Api\V1\Storefront\AuthController;
+use App\Http\Controllers\Api\V1\Storefront\AccountController;
+use Illuminate\Support\Facades\Route;
+
+// WEBSITE API (For Next.js Website)
+// This file contains all routes for the public website
+
+Route::prefix('v1/store')->group(function () {
+
+    // ===============================================
+    // PUBLIC ROUTES (No Authentication Required)
+    // ===============================================
+
+    // Public Auth Routes (Registration, Login, OTP)
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
+    Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+
+    // Public Category Routes
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/categories/featured', [CategoryController::class, 'featured']);
+    Route::get('/categories/{slug}', [CategoryController::class, 'show']);
+
+    // We will add public '/products' routes here in a future step
+    // We will add public '/brands' routes here in a future step
+    // We will add public '/pages' routes here in a future step (About, Contact, etc.)
+
+    // ===============================================
+    // AUTHENTICATED CUSTOMER ROUTES
+    // ===============================================
+
+    Route::middleware('auth:sanctum')->prefix('account')->group(function () {
+
+        // Customer Account Management
+        Route::get('/me', [AccountController::class, 'me']);
+        Route::post('/logout', [AccountController::class, 'logout']);
+        Route::put('/profile', [AccountController::class, 'updateProfile']);
+
+        // Customer Addresses
+        Route::get('/addresses', [AccountController::class, 'getAddresses']);
+        Route::post('/addresses', [AccountController::class, 'addAddress']);
+        Route::put('/addresses/{address}', [AccountController::class, 'updateAddress']);
+        Route::delete('/addresses/{address}', [AccountController::class, 'deleteAddress']);
+
+        // We will add '/orders' here in a future step
+        // We will add '/wishlist' here in a future step
+        // We will add '/reviews' here in a future step
+    });
+
+    // ===============================================
+    // WEBSITE FUNCTIONALITY ROUTES
+    // ===============================================
+
+    // We will add '/search' route here in a future step
+    // We will add '/contact' route here in a future step
+    // We will add '/newsletter' route here in a future step
+    // We will add '/reviews' public routes here in a future step
+
+});
