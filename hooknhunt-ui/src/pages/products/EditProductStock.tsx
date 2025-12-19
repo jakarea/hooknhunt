@@ -69,6 +69,7 @@ export function EditProductStock() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [uploadingImages, setUploadingImages] = useState(false);
 
   const [editForm, setEditForm] = useState({
     // Product fields
@@ -102,7 +103,7 @@ export function EditProductStock() {
     location: '',
     // Media fields
     youtube_video_url: '',
-    image_gallery: [] as string[],
+    image_gallery: [] as string[], // Only store valid URLs
   });
 
   // Fetch product data on component mount
@@ -297,25 +298,30 @@ export function EditProductStock() {
 
         await apiClient.put(`/admin/product-variants/${product.id}`, productPayload);
 
-        // Also update product media fields
+        // Filter gallery images to only include valid URLs (not Data URLs)
+        const validGalleryImages = editForm.image_gallery.filter(img => img.startsWith('http'));
+        console.log('Form gallery images:', editForm.image_gallery);
+        console.log('Valid gallery images:', validGalleryImages);
+
+        // Update product media fields
         const productUpdatePayload = {
           base_thumbnail_url: product?.product?.base_thumbnail_url,
           video_url: editForm.youtube_video_url || null,
-          gallery_images: editForm.image_gallery || null,
+          gallery_images: validGalleryImages, // Always send the array, even if empty
         };
 
         await apiClient.put(`/admin/products/${product.product.id}`, productUpdatePayload);
 
         message = 'Product and inventory updated successfully!';
 
-        // Update local product state
+        // Update local product state with the valid gallery images
         setProduct(prev => prev ? {
           ...prev,
           ...productPayload,
           product: {
             ...prev.product,
             video_url: editForm.youtube_video_url,
-            gallery_images: editForm.image_gallery,
+            gallery_images: validGalleryImages,
           }
         } : null);
       }
@@ -626,7 +632,10 @@ export function EditProductStock() {
                       <button
                         onClick={() => {
                           const updatedGallery = editForm.image_gallery.filter((_, i) => i !== index);
-                          setEditForm(prev => ({ ...prev, image_gallery: updatedGallery }));
+                          setEditForm(prev => ({
+                            ...prev,
+                            image_gallery: updatedGallery
+                          }));
                         }}
                         className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                       >
@@ -646,29 +655,59 @@ export function EditProductStock() {
                     type="file"
                     multiple
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const files = Array.from(e.target.files);
-                      const newImages = files.map(file => {
-                        const reader = new FileReader();
-                        reader.readAsDataURL(file);
-                        return new Promise<string>((resolve) => {
-                          reader.onload = () => resolve(reader.result as string);
-                        });
+                      if (files.length === 0) return;
+
+                      setUploadingImages(true);
+                      setError(null);
+
+                      // Upload each file immediately and get URLs
+                      const uploadPromises = files.map(async (file) => {
+                        const formData = new FormData();
+                        formData.append('image', file);
+
+                        try {
+                          const response = await apiClient.post('/admin/products/upload-gallery-image', formData, {
+                            headers: {
+                              'Content-Type': 'multipart/form-data',
+                            },
+                          });
+                          return response.data.url; // Backend should return the uploaded image URL
+                        } catch (error) {
+                          console.error('Failed to upload image:', error);
+                          setError(`Failed to upload ${file.name}`);
+                          return null;
+                        }
                       });
 
-                      Promise.all(newImages).then(images => {
+                      const uploadedUrls = await Promise.all(uploadPromises);
+                      const validUrls = uploadedUrls.filter(url => url !== null);
+
+                      if (validUrls.length > 0) {
                         setEditForm(prev => ({
                           ...prev,
-                          image_gallery: [...(prev.image_gallery || []), ...images]
+                          image_gallery: [...(prev.image_gallery || []), ...validUrls]
                         }));
-                      });
+                      }
+
+                      setUploadingImages(false);
                     }}
                     className="hidden"
                     id="gallery-upload"
                   />
                   <label htmlFor="gallery-upload" className="cursor-pointer">
-                    <Package className="h-6 w-6 text-gray-400 mx-auto mb-1" />
-                    <p className="text-xs text-gray-500">Click to upload images</p>
+                    {uploadingImages ? (
+                      <div className="flex flex-col items-center">
+                        <RefreshCw className="h-6 w-6 text-blue-600 mx-auto mb-1 animate-spin" />
+                        <p className="text-xs text-blue-600">Uploading images...</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center">
+                        <Package className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                        <p className="text-xs text-gray-500">Click to upload images</p>
+                      </div>
+                    )}
                   </label>
                 </div>
               </div>
