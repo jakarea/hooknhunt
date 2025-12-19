@@ -17,7 +17,7 @@ function ProductsPageContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [displayCount, setDisplayCount] = useState(12); // Initial load: 12 products
   const [isLoading, setIsLoading] = useState(false);
-  const [categories, setCategories] = useState<Array<{id: number, name: string, slug: string}>>([]);
+  const [categories, setCategories] = useState<Array<{ id: number, name: string, slug: string }>>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -31,7 +31,7 @@ function ProductsPageContent() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/store/categories');
+        const response = await fetch('http://192.168.0.166:8000/api/v1/store/categories');
         if (response.ok) {
           const data = await response.json();
           // Assuming API returns categories with id, name, slug
@@ -87,7 +87,7 @@ function ProductsPageContent() {
       case 'newest':
         return b.id - a.id;
       default:
-        return b.featured ? 1 : -1;
+        return (b as any).featured ? 1 : -1;
     }
   });
 
@@ -278,11 +278,10 @@ function ProductsPageContent() {
                 <div className="p-4 space-y-1">
                   <button
                     onClick={() => setSelectedCategories(['all'])}
-                    className={`w-full text-left px-4 py-2.5 transition-colors font-medium flex items-center justify-between ${
-                      selectedCategories.includes('all')
+                    className={`w-full text-left px-4 py-2.5 transition-colors font-medium flex items-center justify-between ${selectedCategories.includes('all')
                         ? 'bg-[#bc1215] text-white'
                         : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    }`}
+                      }`}
                   >
                     <span className="flex items-center gap-3">
                       <input
@@ -293,11 +292,10 @@ function ProductsPageContent() {
                       />
                       All Products
                     </span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      selectedCategories.includes('all')
+                    <span className={`text-xs px-2 py-1 rounded-full ${selectedCategories.includes('all')
                         ? 'bg-white/20 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                    }`}>
+                      }`}>
                       {products.length}
                     </span>
                   </button>
@@ -329,11 +327,10 @@ function ProductsPageContent() {
                               setSelectedCategories([...newCategories, category.slug]);
                             }
                           }}
-                          className={`w-full text-left px-4 py-2.5 transition-colors flex items-center justify-between ${
-                            isSelected
+                          className={`w-full text-left px-4 py-2.5 transition-colors flex items-center justify-between ${isSelected
                               ? 'bg-[#bc1215] text-white font-semibold'
                               : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                          }`}
+                            }`}
                         >
                           <span className="flex items-center gap-3">
                             <input
@@ -358,11 +355,10 @@ function ProductsPageContent() {
                             />
                             {category.name}
                           </span>
-                          <span className={`text-xs px-2 py-1 rounded-full ${
-                            isSelected
+                          <span className={`text-xs px-2 py-1 rounded-full ${isSelected
                               ? 'bg-white/20 text-white'
                               : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                          }`}>
+                            }`}>
                             {categoryProductCount}
                           </span>
                         </button>
@@ -413,19 +409,17 @@ function ProductsPageContent() {
                     <button
                       key={rating}
                       onClick={() => setMinRating(minRating === rating ? 0 : rating)}
-                      className={`w-full flex items-center px-3 py-2 transition-colors ${
-                        minRating === rating
+                      className={`w-full flex items-center px-3 py-2 transition-colors ${minRating === rating
                           ? 'bg-[#bc1215]/10 dark:bg-[#bc1215]/20'
                           : 'hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center flex-1">
                         {[...Array(5)].map((_, i) => (
                           <svg
                             key={i}
-                            className={`w-4 h-4 ${
-                              i < rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
-                            }`}
+                            className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
+                              }`}
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >

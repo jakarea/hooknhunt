@@ -7,6 +7,7 @@ export interface User {
   email?: string;
   phone: string;
   status: string;
+  role?: string;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +24,42 @@ export interface Address {
   city: string;
   postal_code?: string;
   is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Cart Item
+export interface CartItem {
+  id: number;
+  product: Product;
+  quantity: number;
+  price: number;
+  variant?: any;
+}
+
+// ✅ Purchase Item
+export interface PurchaseItem {
+  id: number;
+  purchase_id: number;
+  product_id: number;
+  variant_id?: number | null;
+  rmb_price: number;
+  quantity: number;
+  total_cost_bdt: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Sale Item
+export interface SaleItem {
+  id: number;
+  sale_id: number;
+  product_id: number;
+  variant_id?: number | null;
+  rate: number;
+  quantity: number;
+  weight: number;
+  subtotal: number;
   created_at: string;
   updated_at: string;
 }

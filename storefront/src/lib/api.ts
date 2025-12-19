@@ -2,7 +2,7 @@
 
 import { User, Address } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.0.166:8000/api/v1';
 
 interface ApiResponse<T = unknown> {
   data?: T;
@@ -33,7 +33,7 @@ class ApiClient {
     return headers;
   }
 
-  private getToken(): string | null {
+  public getToken(): string | null {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       return localStorage.getItem('auth_token');
     }
@@ -64,7 +64,7 @@ class ApiClient {
       url,
       method: options.method || 'GET',
       includeAuth,
-      hasToken: !!headers['Authorization']
+      hasToken: !!(headers as any)['Authorization']
     });
 
     try {
@@ -109,7 +109,7 @@ class ApiClient {
       console.log('🔍 [API_DEBUG] Catch error:', error);
 
       // If it's a network error (not a response from server)
-      if (!error.response && !error.status) {
+      if (!(error as any).response && !(error as any).status) {
         throw {
           message: 'Network error. Please check your connection.',
           status: 0,
@@ -158,7 +158,7 @@ class ApiClient {
     });
 
     // Store token if login successful (check both possible response structures)
-    const token = response.data?.token || response.token;
+    const token = response.data?.token || (response as any).token;
     if (token) {
       this.setToken(token);
     }

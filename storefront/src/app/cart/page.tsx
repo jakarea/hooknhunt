@@ -36,14 +36,14 @@ export default function CartPage() {
   const calculateSelectedTotal = () => {
     return cartItems
       .filter(item => selectedItems.has(item.product.id))
-      .reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+      .reduce((sum, item) => sum + (item.product.price || 0) * item.quantity, 0);
   };
 
   const calculateSelectedOriginalTotal = () => {
     return cartItems
       .filter(item => selectedItems.has(item.product.id))
       .reduce((sum, item) => {
-        const price = item.product.originalPrice || item.product.price;
+        const price = item.product.originalPrice || item.product.price || 0;
         return sum + price * item.quantity;
       }, 0);
   };
@@ -260,8 +260,8 @@ export default function CartPage() {
                     >
                       <div className="relative w-24 h-24 sm:w-32 sm:h-32 bg-gray-100 dark:bg-gray-800 overflow-hidden">
                         <Image
-                          src={item.product.image}
-                          alt={item.product.name}
+                          src={item.product.image || '/placeholder-image.jpg'}
+                          alt={item.product.name || 'Product'}
                           fill
                           className="object-cover group-hover:scale-110 transition-transform duration-300"
                           sizes="(max-width: 640px) 96px, 128px"
@@ -279,7 +279,7 @@ export default function CartPage() {
                         </Link>
                         {/* Remove Button - Desktop */}
                         <button
-                          onClick={() => handleDeleteClick(item.product.id, item.product.name)}
+                          onClick={() => handleDeleteClick(item.product.id, item.product.name || 'Product')}
                           className="hidden sm:flex flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                           aria-label="Remove item"
                         >
@@ -302,11 +302,11 @@ export default function CartPage() {
                         {/* Price */}
                         <div>
                           <p className="text-xl sm:text-2xl font-bold text-[#bc1215]">
-                            ৳{item.product.price.toLocaleString()}
+                            ৳{(item.product.price || 0).toLocaleString()}
                           </p>
                           {item.product.originalPrice && (
                             <p className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                              ৳{item.product.originalPrice.toLocaleString()}
+                              ৳{(item.product.originalPrice || 0).toLocaleString()}
                             </p>
                           )}
                         </div>
@@ -329,7 +329,7 @@ export default function CartPage() {
 
                           <button
                             onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.product.stock}
+                            disabled={item.quantity >= (item.product.stock || 999)}
                             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded"
                             aria-label="Increase quantity"
                           >
@@ -347,14 +347,14 @@ export default function CartPage() {
                           <div className="hidden md:block ml-4 min-w-[100px] text-right">
                             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Subtotal</p>
                             <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
-                              ৳{(item.product.price * item.quantity).toLocaleString()}
+                              ৳{((item.product.price || 0) * item.quantity).toLocaleString()}
                             </p>
                           </div>
                         </div>
                       </div>
 
                       {/* Stock Warning */}
-                      {item.quantity >= item.product.stock && (
+                      {item.quantity >= (item.product.stock || 999) && (
                         <p className="text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-center gap-1">
                           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -365,7 +365,7 @@ export default function CartPage() {
 
                       {/* Mobile Remove Button */}
                       <button
-                        onClick={() => handleDeleteClick(item.product.id, item.product.name)}
+                        onClick={() => handleDeleteClick(item.product.id, item.product.name || 'Product')}
                         className="sm:hidden mt-4 text-sm text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

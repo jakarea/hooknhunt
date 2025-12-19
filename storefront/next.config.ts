@@ -2,12 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    domains: ['192.168.0.166'],
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "img.freepik.com",
-        pathname: "/**",
-      },
       {
         protocol: "https",
         hostname: "images.unsplash.com",
@@ -26,7 +22,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/v1/:path*",
-        destination: "http://localhost:8000/api/v1/:path*",
+        destination: "http://192.168.0.166:8000/api/v1/:path*",
       },
     ];
   },

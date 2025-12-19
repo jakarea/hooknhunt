@@ -2,15 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
-
-interface User {
-  id: number;
-  name: string;
-  phone: string;
-  email?: string;
-  role: string;
-  phone_verified_at?: string;
-}
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -41,11 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔍 [AUTH_DEBUG] Validating token with API...');
         try {
           const response = await api.getMe();
-          console.log('🔍 [AUTH_DEBUG] API response status:', response.status || 'OK');
+          console.log('🔍 [AUTH_DEBUG] API response status:', (response as any).status || 'OK');
           console.log('🔍 [AUTH_DEBUG] API response data:', response);
 
           // Check both possible response structures: {data: {user: ...}} or {user: ...}
-          const user = response.data?.user || response.user;
+          const user = response.data?.user || (response as any).user;
           if (user) {
             console.log('🔍 [AUTH_DEBUG] ✅ User authenticated:', user);
             setUser(user);
@@ -102,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (api.isAuthenticated()) {
         const response = await api.getMe();
-        const user = response.data?.user || response.user;
+        const user = response.data?.user || (response as any).user;
         if (user) {
           setUser(user);
           setIsAuthenticated(true);
@@ -129,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.login(phone, password);
 
       // Check both response.data.user and response.user for backward compatibility
-      const user = response.data?.user || response.user;
+      const user = response.data?.user || (response as any).user;
 
       if (user) {
         setUser(user);
@@ -193,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       const response = await api.getMe();
-      const user = response.data?.user || response.user;
+      const user = response.data?.user || (response as any).user;
       if (user) {
         setUser(user);
       }

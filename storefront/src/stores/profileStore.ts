@@ -39,7 +39,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const response = await api.getMe();
 
       // Check both possible response structures: {data: {user: ...}} or {user: ...}
-      const user = response.data?.user || response.user;
+      const user = response.data?.user || (response as any).user;
 
       if (user) {
         set({ user, loading: false });
@@ -58,7 +58,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   updateProfile: async (data) => {
     set({ updating: true, error: null, validationErrors: null });
     try {
-      const response = await api.updateProfile(data);
+      const response = await api.updateProfile(data as any);
 
       if (response.data?.user) {
         set({

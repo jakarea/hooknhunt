@@ -30,56 +30,63 @@ export default function Header() {
 
   useEffect(() => {
     let ticking = false;
+    let scrollTimeout: NodeJS.Timeout;
 
     const handleScroll = () => {
       if (!ticking) {
+        ticking = true;
         requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
-          const scrollThreshold = 5; // Minimum scroll to trigger direction change
-          const compactThreshold = 100; // Minimum scroll to make header compact
+          const scrollThreshold = 20; // Increased threshold to prevent jitter
+          const compactThreshold = 150; // Increased threshold for better UX
 
-          // Make header compact when scrolling down past threshold
-          if (currentScrollY > compactThreshold) {
-            setIsScrolled(true);
-            // Hide top bar when scrolling down, show when scrolling up
-            if (currentScrollY > lastScrollY + scrollThreshold) {
-              setIsHeaderVisible(false);
-            } else if (currentScrollY < lastScrollY - scrollThreshold) {
-              setIsHeaderVisible(true);
-            }
-          } else {
-            setIsScrolled(false);
-            setIsHeaderVisible(true);
+          // Clear any existing timeout
+          if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
           }
 
-          setLastScrollY(currentScrollY);
+          // Debounce the scroll detection
+          scrollTimeout = setTimeout(() => {
+            // Make header compact when scrolling down past threshold
+            if (currentScrollY > compactThreshold) {
+              setIsScrolled(true);
+              // Hide sections when scrolling down, show when scrolling up
+              if (currentScrollY > lastScrollY + scrollThreshold) {
+                setIsHeaderVisible(false);
+              } else if (currentScrollY < lastScrollY - scrollThreshold) {
+                setIsHeaderVisible(true);
+              }
+            } else {
+              setIsScrolled(false);
+              setIsHeaderVisible(true);
+            }
+
+            setLastScrollY(currentScrollY);
+          }, 50); // 50ms debounce
+
           ticking = false;
         });
-
-        ticking = true;
       }
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+    };
   }, [lastScrollY]);
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-300 ease-out ${
-        isScrolled ? 'shadow-lg' : 'shadow-sm'
-      }`}
+      className={`sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-300 ease-out ${isScrolled ? 'shadow-lg' : 'shadow-sm'
+        }`}
     >
       {/* Top Bar */}
       <div
-        className={`bg-[#bc1215] text-white transition-all duration-300 ease-out ${
-          isHeaderVisible ? 'transform translate-y-0 opacity-100' : 'transform -translate-y-full opacity-0'
-        }`}
-        style={{
-          transitionDuration: '300ms',
-          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-          transform: isHeaderVisible ? 'translateY(0)' : 'translateY(-100%)'
-        }}
+        className={`bg-[#bc1215] text-white transition-transform duration-300 ease-out ${isHeaderVisible ? 'transform translate-y-0' : 'transform -translate-y-full'
+          }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center h-7 text-xs">
@@ -160,13 +167,8 @@ export default function Header() {
 
       {/* Main Header */}
       <div
-        className={`bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-out ${
-          isHeaderVisible ? 'py-2' : 'py-0'
-        }`}
-        style={{
-          transitionDuration: '300ms',
-          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
+        className={`bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-out ${isHeaderVisible ? 'transform translate-y-0' : 'transform -translate-y-20'
+          }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between gap-8">
@@ -177,7 +179,7 @@ export default function Header() {
                 alt="Hook & Hunt"
                 width={180}
                 height={60}
-                className="w-auto h-10 transition-all duration-300 ease-in-out"
+                className="w-auto h-10"
                 priority
               />
             </Link>
