@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
 {
@@ -33,7 +34,7 @@ class Product extends Model
     protected function baseThumbnailUrl(): Attribute
     {
         return Attribute::make(
-            get: fn (?string $value) => $value ? url( $value) : null,
+            get: fn (?string $value) => $value ? url('storage/' . $value) : null,
         );
     }
 
@@ -61,6 +62,14 @@ class Product extends Model
     {
         $categories = $this->categories;
         return $categories->pluck('name')->implode(', ');
+    }
+
+    /**
+     * Get the variants for the product.
+     */
+    public function variants(): HasMany
+    {
+        return $this->hasMany(ProductVariant::class);
     }
 
     /**

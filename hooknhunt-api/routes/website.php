@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Storefront\CategoryController;
+use App\Http\Controllers\Api\V1\Storefront\ProductController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
 use Illuminate\Support\Facades\Route;
@@ -25,7 +26,13 @@ Route::prefix('v1/store')->group(function () {
     Route::get('/categories/featured', [CategoryController::class, 'featured']);
     Route::get('/categories/{slug}', [CategoryController::class, 'show']);
 
-    // We will add public '/products' routes here in a future step
+    // Public Product Routes
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::get('/products/featured', [ProductController::class, 'featured']);
+    Route::get('/products/{slug}', [ProductController::class, 'show']);
+    Route::get('/products/{slug}/related', [ProductController::class, 'related']);
+    Route::get('/categories/{categorySlug}/products', [ProductController::class, 'byCategory']);
+
     // We will add public '/brands' routes here in a future step
     // We will add public '/pages' routes here in a future step (About, Contact, etc.)
 

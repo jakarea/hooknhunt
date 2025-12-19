@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\MediaFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -112,10 +113,22 @@ class ProductController extends Controller
             'category_ids.*' => 'integer|exists:categories,id',
             'status' => 'required|in:draft,published',
             'base_thumbnail_url' => 'nullable|url',
+            'media_file_id' => 'nullable|integer|exists:media_files,id', // for media library selection
             'gallery_images.*' => 'nullable|file|image|max:500', // 500KB max each
         ]);
 
+        // Handle thumbnail from media library or direct URL
         $thumbnailUrl = $validated['base_thumbnail_url'] ?? null;
+
+        if ($request->has('media_file_id')) {
+            // Media library selection
+            $mediaFile = MediaFile::find($request->media_file_id);
+            if ($mediaFile) {
+                $thumbnailUrl = $mediaFile->path;
+                // Record usage in media file
+                $mediaFile->recordUsage('product', 0); // Will be updated with actual product ID after creation
+            }
+        }
 
         // Handle gallery images
         $galleryImages = [];
@@ -139,6 +152,11 @@ class ProductController extends Controller
             'base_thumbnail_url' => $thumbnailUrl,
             'gallery_images' => !empty($galleryImages) ? $galleryImages : null,
         ]);
+
+        // Update media file usage with actual product ID
+        if (isset($mediaFile) && $product) {
+            $mediaFile->recordUsage('product', $product->id);
+        }
 
         return response()->json($product, 201);
     }
@@ -434,21 +452,73 @@ class ProductController extends Controller
     public function uploadGalleryImage(Request $request)
     {
         $validated = $request->validate([
-            'image' => 'required|file|image|max:500', // 500KB max
+            'image' => 'required|file|image|max:5000', // 5MB max
         ]);
 
         try {
             if ($request->hasFile('image') && $request->file('image')->isValid()) {
-                $file = $request->file('image');
-                $path = $file->store('gallery', 'public');
-                $url = Storage::url($path);
+                $file = $validated['image'];
+                $originalFilename = $file->getClientOriginalName();
+                $filename = MediaFile::generateUniqueFilename($originalFilename);
+                $mimeType = $file->getMimeType();
+                $extension = $file->getClientOriginalExtension();
+                $sizeBytes = $file->getSize();
 
-                // Fix double storage path issue
-                $url = str_replace('/storage/storage/', '/storage/', $url);
+                // Generate hash for deduplication
+                $hash = hash_file('sha256', $file->getPathname());
+
+                // Check for duplicate files
+                $existingMedia = MediaFile::where('hash', $hash)->first();
+                if ($existingMedia) {
+                    return response()->json([
+                        'success' => true,
+                        'url' => $existingMedia->full_url,
+                        'media_file_id' => $existingMedia->id,
+                        'duplicate' => true
+                    ]);
+                }
+
+                // Determine storage path and store file
+                $storagePath = "media/images/" . now()->format('Y/m');
+                $storedPath = $file->storeAs($storagePath, $filename, 'public');
+                $url = Storage::disk('public')->url($storedPath);
+
+                // Get image dimensions
+                $width = null;
+                $height = null;
+                if (str_starts_with($mimeType, 'image/')) {
+                    try {
+                        $imageInfo = getimagesize(storage_path('app/public/' . $storedPath));
+                        if ($imageInfo) {
+                            $width = $imageInfo[0];
+                            $height = $imageInfo[1];
+                        }
+                    } catch (\Exception $e) {
+                        // Continue without dimensions
+                    }
+                }
+
+                // Create media file record
+                $mediaFile = MediaFile::create([
+                    'filename' => $filename,
+                    'original_filename' => $originalFilename,
+                    'mime_type' => $mimeType,
+                    'extension' => $extension,
+                    'size_bytes' => $sizeBytes,
+                    'width' => $width,
+                    'height' => $height,
+                    'disk' => 'public',
+                    'path' => $storedPath,
+                    'url' => $url,
+                    'hash' => $hash,
+                    'uploaded_by_user_id' => Auth::id(),
+                ]);
 
                 return response()->json([
                     'success' => true,
-                    'url' => $url
+                    'url' => $url,
+                    'media_file_id' => $mediaFile->id,
+                    'duplicate' => false
                 ]);
             }
 
@@ -457,6 +527,11 @@ class ProductController extends Controller
                 'message' => 'Invalid file'
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Gallery image upload failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Upload failed: ' . $e->getMessage()
