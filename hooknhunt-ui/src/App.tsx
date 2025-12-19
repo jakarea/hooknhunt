@@ -29,6 +29,8 @@ import ManualStockEntry from './pages/inventory/ManualStockEntry';
 import { ReceiveStockTest } from './pages/inventory/ReceiveStockTest';
 import { StockManagement } from './pages/products/StockManagement';
 import { EditProductStock } from './pages/products/EditProductStock';
+import CategoriesCreate from './pages/products/CategoriesCreate';
+import CategoriesEdit from './pages/products/CategoriesEdit';
 import Users from './pages/users/Users';
 import UsersCreate from './pages/users/UsersCreate';
 import UsersEdit from './pages/users/UsersEdit';
@@ -39,6 +41,7 @@ import { TrackingSettings } from './pages/settings/tabs/TrackingSettings';
 import { Settings } from './pages/settings/Settings';
 import { SmsSettings } from './pages/settings/tabs/SmsSettings';
 import SmsManagement from './pages/sms/SmsManagement';
+import { MediaManagement } from './pages/media/MediaManagement';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -75,9 +78,14 @@ function App() {
               <Route path="products/:id" element={<ProductDetail />} />
               <Route path="products/:id/edit" element={<ProductEdit />} />
               <Route path="products/categories" element={<Categories />} />
+              <Route path="products/categories/create" element={<CategoriesCreate />} />
+              <Route path="products/categories/:id/edit" element={<CategoriesEdit />} />
               <Route path="products/attributes" element={<Attributes />} />
               <Route path="products/stock" element={<StockManagement />} />
               <Route path="products/edit/:id" element={<EditProductStock />} />
+
+              {/* Media Routes */}
+              <Route path="media" element={<MediaManagement />} />
 
               {/* Purchase Routes */}
               <Route path="purchase/new" element={<PurchaseNew />} />

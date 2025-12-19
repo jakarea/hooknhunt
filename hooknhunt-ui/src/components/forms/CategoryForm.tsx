@@ -1,17 +1,29 @@
 // src/components/forms/CategoryForm.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, type ControllerRenderProps } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import type { Category } from '@/types/category';
 import { useCategoryStore, type CategoryFormData } from '@/stores/categoryStore';
 
+interface MediaFile {
+  id: number;
+  filename: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  url: string;
+  thumbnail_url?: string;
+}
+
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast'; // Assuming you have Shadcn toast
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { X, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { MediaLibrary } from '@/components/media/MediaLibrary';
 
 // Validation Schema
 const formSchema = z.object({
@@ -23,17 +35,20 @@ const formSchema = z.object({
 interface CategoryFormProps {
   initialData?: Category | null; // Pass category data for editing
   onClose: () => void; // Function to close the dialog
+  onCategoryCreated?: (category: any) => void; // Callback for successful creation/update
 }
 
-export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose }) => {
+export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose, onCategoryCreated }) => {
   const addCategory = useCategoryStore((state) => state.addCategory);
   const updateCategory = useCategoryStore((state) => state.updateCategory);
   const categories = useCategoryStore((state) => state.categories);
 
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.image_url || null);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [imageSource, setImageSource] = useState<'media' | null>(
+    initialData?.image_url ? 'media' : null
+  );
+  const [showMediaModal, setShowMediaModal] = useState(false);
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver<CategoryFormData, any, CategoryFormData>(formSchema), // Explicitly type the resolver
@@ -68,57 +83,54 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
 
   const isLoading = form.formState.isSubmitting;
 
-  // Image handling functions
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    setImageError(null);
-
-    if (file) {
-      // Validate file size (100KB = 102400 bytes)
-      if (file.size > 102400) {
-        setImageError('Image size must be less than 100KB');
-        return;
-      }
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setImageError('File must be an image');
-        return;
-      }
-
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const removeImage = () => {
+    setSelectedMediaFile(null);
+    setImagePreview(null);
+    setImageSource(null);
   };
 
-  const removeImage = () => {
-    setSelectedImage(null);
-    setImagePreview(null);
-    setImageError(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const handleMediaSelect = (files: any[]) => {
+    const mediaFile = files[0]; // Take first file for single selection
+    console.log('🖼️ CategoryForm: Media file selected:', mediaFile);
+    console.log('🔗 CategoryForm: Media file URL:', mediaFile.url);
+
+    setSelectedMediaFile(mediaFile);
+    setImagePreview(mediaFile.url);
+    setImageSource('media');
+
+    console.log('✅ CategoryForm: Image preview updated to:', mediaFile.url);
+    setShowMediaModal(false);
   };
 
   const onSubmit = async (values: CategoryFormData) => {
     try {
-      const formData = {
+      const formData: CategoryFormData = {
         ...values,
-        image: selectedImage || undefined,
       };
 
+      // Handle image submission - only media library selection
+      if (imageSource === 'media' && selectedMediaFile) {
+        formData.media_file_id = selectedMediaFile.id;
+      } else if (!imagePreview && initialData?.image_url) {
+        // Remove existing image
+        formData.remove_image = true;
+      }
+
+      let result;
       if (initialData) {
-        await updateCategory(initialData.id, formData);
+        result = await updateCategory(initialData.id, formData);
         toast({ title: "Success", description: "Category updated!" });
       } else {
-        await addCategory(formData);
+        result = await addCategory(formData);
         toast({ title: "Success", description: "Category created!" });
       }
-      onClose();
+
+      // Call the callback if provided
+      if (onCategoryCreated && result) {
+        onCategoryCreated(result);
+      } else {
+        onClose();
+      }
     } catch (error: unknown) {
       const errorMessage = (error instanceof Error) ? error.message : 'An unknown error occurred';
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
@@ -174,56 +186,200 @@ export const CategoryForm: React.FC<CategoryFormProps> = ({ initialData, onClose
             </FormItem>
           )}
         />
-        {/* Image Upload Field */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Category Image (Max 15KB)</label>
-          <div className="flex items-center space-x-4">
-            {imagePreview ? (
-              <div className="relative">
-                <img
-                  src={imagePreview}
-                  alt="Category preview"
-                  className="w-20 h-20 object-cover rounded-md border border-gray-200"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon"
-                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
-                  onClick={removeImage}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
+        {/* Image Selection Field */}
+        <div className="space-y-4">
+          <label className="text-sm font-medium">Category Image (from Media Library)</label>
+
+          <div className="flex items-start space-x-4">
+            <div className="relative">
+              {/* Thumbnail/placeholder container */}
+              <div className="relative group">
+                {imagePreview ? (
+                  <>
+                    {/* Image preview with click to open modal */}
+                    <div
+                      onClick={() => setShowMediaModal(true)}
+                      className="cursor-pointer"
+                    >
+                      <img
+                        src={imagePreview}
+                        alt="Category preview"
+                        className="w-24 h-24 object-cover rounded-md border border-gray-200 group-hover:border-blue-400 transition-colors"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-40 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ImageIcon className="h-6 w-6 text-white" />
+                      </div>
+                    </div>
+                    {/* Remove image button - not nested */}
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-lg z-10"
+                      onClick={removeImage}
+                      title="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </>
+                ) : (
+                  /* Empty placeholder with click to open modal */
+                  <div
+                    onClick={() => setShowMediaModal(true)}
+                    className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-colors group cursor-pointer"
+                  >
+                    <ImageIcon className="h-10 w-10 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-xs text-white bg-black bg-opacity-60 px-2 py-1 rounded">Click to select</span>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50">
-                <ImageIcon className="h-8 w-8 text-gray-400" />
+            </div>
+
+            <div className="flex-1 space-y-3">
+              <div className="text-sm">
+                {imagePreview ? (
+                  <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="text-sm text-green-700">
+                      ✓ Image selected from media library
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeImage}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="text-sm text-blue-700 font-medium mb-1">📷 Select Category Image</p>
+                    <p className="text-xs text-blue-600">Click the image placeholder to open your media library</p>
+                  </div>
+                )}
+
+                <div className="text-xs text-gray-500 space-y-1 mt-3">
+                  <p>• Click the thumbnail to select an image from your media library</p>
+                  <p>• Select an image in the modal and click "Select This Image"</p>
+                  <p>• Click the X button or "Remove" to clear the selection</p>
+                </div>
               </div>
-            )}
-            <div className="flex-1">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-                id="category-image"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                className="w-full"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {imagePreview ? 'Change Image' : 'Upload Image'}
-              </Button>
-              {imageError && (
-                <p className="text-sm text-red-600 mt-1">{imageError}</p>
-              )}
-              <p className="text-xs text-gray-500 mt-1">Maximum file size: 100KB</p>
+
             </div>
           </div>
+
+          {/* Enhanced Media Library Modal */}
+          {showMediaModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowMediaModal(false)} />
+              <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Select Category Image</h2>
+                    <p className="text-sm text-gray-600 mt-1">Choose an image from your media library for this category</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowMediaModal(false)}
+                    className="hover:bg-gray-100"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Selected Image Info */}
+                {selectedMediaFile && (
+                  <div className="px-6 py-4 bg-blue-50 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={selectedMediaFile.thumbnail_url || selectedMediaFile.url}
+                          alt={selectedMediaFile.original_filename}
+                          className="w-16 h-16 object-cover rounded-lg border-2 border-blue-200"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">{selectedMediaFile.original_filename}</p>
+                          <p className="text-sm text-gray-600">
+                            {Math.round(selectedMediaFile.size_bytes / 1024)} KB • {selectedMediaFile.mime_type}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          Selected
+                        </Badge>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            handleMediaSelect([selectedMediaFile]);
+                            setShowMediaModal(false);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Use This Image
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Media Library Content */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="h-full px-6 py-4">
+                    <div className="h-full border rounded-lg overflow-hidden">
+                      <MediaLibrary
+                        open={showMediaModal}
+                        onOpenChange={(isOpen) => {
+                          setShowMediaModal(isOpen);
+                        }}
+                        onSelect={(files) => {
+                          if (files.length > 0) {
+                            setSelectedMediaFile(files[0]);
+                            setImagePreview(files[0].url);
+                            setImageSource('media');
+                            setShowMediaModal(false);
+                          }
+                        }}
+                        maxSelections={1}
+                        acceptedTypes={['image/*']}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between p-4 border-t bg-gray-50">
+                  <div className="text-sm text-gray-600">
+                    {selectedMediaFile ?
+                      <span className="text-green-600">✓ 1 image selected</span> :
+                      <span>Click an image to select it</span>
+                    }
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" onClick={() => setShowMediaModal(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      disabled={!selectedMediaFile}
+                      onClick={() => {
+                        handleMediaSelect([selectedMediaFile]);
+                        setShowMediaModal(false);
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      Confirm Selection
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
         {/* Action Buttons */}
         <div className="flex justify-end space-x-2">
