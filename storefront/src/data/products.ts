@@ -2748,3 +2748,13 @@ export const products: Product[] = [
     updated_at: '2025-10-27T00:00:00Z'
   }
 ];
+
+export const categories = [
+  { id: 1, name: 'Electronics', slug: 'electronics' },
+  { id: 2, name: 'Fishing Rods', slug: 'fishing-rods' },
+  { id: 3, name: 'Fishing Line', slug: 'fishing-line' },
+  { id: 4, name: 'Fishing Lures', slug: 'fishing-lures' },
+  { id: 5, name: 'Fish Finders', slug: 'fish-finders' },
+  { id: 6, name: 'Fishing Accessories', slug: 'fishing-accessories' },
+  { id: 7, name: 'Fishing Apparel', slug: 'fishing-apparel' },
+];

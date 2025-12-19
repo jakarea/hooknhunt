@@ -19,6 +19,7 @@ import {
     ArrowLeftRight,
     CheckSquare,
     Printer,
+    Image as ImageIcon,
 } from 'lucide-react';
 
 import type { LucideIcon } from 'lucide-react';
@@ -113,6 +114,12 @@ export const menuConfig: MenuItem[] = [
                 ],
             },
         ],
+    },
+    {
+        title: 'Media Library',
+        icon: ImageIcon,
+        href: '/media',
+        roles: ['super_admin', 'admin', 'store_keeper', 'marketer'],
     },
     {
         title: 'Sourcing & Purchase',

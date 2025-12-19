@@ -47,6 +47,13 @@ const ProductEdit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { fetchProduct } = useProductStore();
 
+  // Debug: Log when component mounts
+  useEffect(() => {
+    console.log('🚀 ProductEdit component mounted');
+    console.log('📋 Product ID from URL:', id);
+    console.log('🔍 URL params:', Object.fromEntries(searchParams.entries()));
+  }, [id, searchParams]);
+
   // Get the tab from URL parameters, default to 'details', but prioritize 'suppliers' when coming from create
   const urlTab = searchParams.get('tab');
   const activeTab = urlTab || 'details';

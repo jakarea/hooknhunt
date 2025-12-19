@@ -12,10 +12,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { Package, Image, Upload, Loader2, Search, X } from 'lucide-react';
+import { Package, Image, Loader2, Search, X, FolderOpen } from 'lucide-react';
 import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
+import { MediaGallery } from '@/components/media/MediaGallery';
+import { MediaLibrary } from '@/components/media/MediaLibrary';
 import { useCategoryStore } from '@/stores/categoryStore';
+
+// MediaFile interface for MediaLibrary
+interface MediaFile {
+  id: number;
+  filename: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+  url: string;
+  thumbnail_url?: string;
+}
 
 // Inline type definition to avoid import issues
 interface Product {
@@ -40,6 +55,7 @@ interface ProductFormData {
   status: 'draft' | 'published';
   thumbnail?: File;
   base_thumbnail_url?: string;
+  media_file_id?: number;
 }
 
 // Validation Schema
@@ -60,13 +76,19 @@ interface ProductFormProps {
 
 export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, onProductCreated }) => {
   const isEdit = !!initialData;
-  const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.base_thumbnail_url || null);
+  const [imageSource, setImageSource] = useState<'media' | null>(
+    initialData?.base_thumbnail_url ? 'media' : null
+  );
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [showGalleryModal, setShowGalleryModal] = useState(false);
 
   // Gallery images state
-  const [galleryImages, setGalleryImages] = useState<string[]>(initialData?.gallery_images || []);
-  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<Array<{ url: string; alt_text?: string }>>(
+    initialData?.gallery_images?.map((url: string) => ({ url, alt_text: '' })) || []
+  );
 
   // Get categories from store
   const { categories, isLoading: categoriesLoading, fetchCategories } = useCategoryStore();
@@ -121,100 +143,49 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     selectedCategoryIds.includes(cat.id.toString())
   );
 
-  const validateImageFile = (file: File): boolean => {
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      setThumbnailError('Please select a valid image file (WEBP, PNG, JPG, GIF)');
-      return false;
-    }
-
-    // Validate file size (300KB = 300 * 1024 bytes)
-    const maxSizeKB = 300;
-    const maxSizeBytes = maxSizeKB * 1024;
-
-    if (file.size > maxSizeBytes) {
-      setThumbnailError(`Image size must be less than ${maxSizeKB}KB. Current size: ${(file.size / 1024).toFixed(2)}KB`);
-      return false;
-    }
-
+  const handleMediaSelect = (mediaFile: any) => {
+    setSelectedMediaFile(mediaFile);
+    setImagePreview(mediaFile.url);
+    setImageSource('media');
     setThumbnailError(null);
-    return true;
   };
 
-  const handleThumbnailChange = (file: File) => {
-    if (validateImageFile(file)) {
-      setThumbnail(file);
-    } else {
-      setThumbnail(null);
-    }
+  const clearThumbnail = () => {
+    setSelectedMediaFile(null);
+    setImagePreview(null);
+    setImageSource(null);
+    setThumbnailError(null);
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleThumbnailChange(e.target.files[0]);
-    }
+  // Handle gallery image changes from MediaGallery component
+  const handleGalleryChange = (images: Array<{ url: string; alt_text?: string }>) => {
+    setGalleryImages(images);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
+  // Handle gallery selection from MediaLibrary
+  const handleGallerySelect = (files: MediaFile[]) => {
+    const newImages = files.map(file => ({
+      url: file.url,
+      alt_text: file.original_filename,
+    }));
 
-  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
+    const updatedImages = [...galleryImages, ...newImages];
+    setGalleryImages(updatedImages);
+    setShowGalleryModal(false);
 
-  const handleDrop = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleThumbnailChange(e.dataTransfer.files[0]);
-    }
-  };
-
-  // Gallery image upload functions
-  const handleGalleryImageUpload = async (files: FileList) => {
-    setUploadingGallery(true);
-    try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData();
-        formData.append('image', file);
-
-        const response = await api.post('/admin/products/upload-gallery-image', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-
-        return response.data.url;
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setGalleryImages(prev => [...prev, ...uploadedUrls]);
-
+    // Show success message
+    if (newImages.length > 0) {
       toast({
-        title: "Gallery images uploaded",
-        description: `${uploadedUrls.length} image(s) added successfully`,
+        title: "Gallery Images Added",
+        description: `${newImages.length} image${newImages.length > 1 ? 's' : ''} added to product gallery`,
       });
-    } catch (error) {
-      console.error('Gallery upload error:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload gallery images",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingGallery(false);
     }
   };
 
+  // Remove gallery image
   const removeGalleryImage = (index: number) => {
-    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+    const updatedImages = galleryImages.filter((_, i) => i !== index);
+    setGalleryImages(updatedImages);
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -224,8 +195,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     }
 
     try {
-      console.log('🔍 Form values:', values);
-      console.log('🖼️ Thumbnail file:', thumbnail);
 
       const formData = new FormData();
 
@@ -241,25 +210,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
       }
       formData.append('status', values.status);
 
-      // Add thumbnail if selected
-      if (thumbnail) {
-        formData.append('thumbnail', thumbnail);
+      // Add thumbnail if selected from media library
+      if (selectedMediaFile) {
+        formData.append('media_file_id', selectedMediaFile.id.toString());
       }
 
       // Add gallery images as JSON array of URLs
       if (galleryImages.length > 0) {
-        formData.append('gallery_images', JSON.stringify(galleryImages));
-        console.log('📸 Adding gallery images to FormData:', galleryImages);
+        const galleryUrls = galleryImages.map(img => img.url);
+        formData.append('gallery_images', JSON.stringify(galleryUrls));
       }
 
-      console.log('🔑 Authentication handled by axios interceptor');
-
-      console.log('📡 Sending API request...');
-      console.log('📦 FormData contents:');
-      for (let [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value);
-      }
-
+      
       // Use PUT for edit, POST for create
       const response = isEdit
         ? await api.post(`/admin/products/${initialData!.id}?_method=PUT`, formData, {
@@ -273,12 +235,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
             },
           });
 
-      console.log('📡 Response status:', response.status);
-      console.log('📡 Response data:', response.data);
-
       const result = response.data;
-      console.log('✅ API Success:', result);
-      console.log('📋 Product ID:', result.id || result.data?.id);
 
       toast({
         title: "Success",
@@ -289,7 +246,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
       if (!isEdit && onProductCreated) {
         // Handle different API response structures
         const createdProduct = result.data || result;
-        console.log('🎯 Created Product:', createdProduct);
 
         if (createdProduct && createdProduct.id) {
           onProductCreated({
@@ -565,7 +521,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
               )}
 
               {/* Existing Image Display */}
-              {isEdit && initialData?.base_thumbnail_url && !thumbnail && (
+              {isEdit && initialData?.base_thumbnail_url && !selectedMediaFile && (
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
                   <ProductImage
                     src={initialData.base_thumbnail_url}
@@ -582,164 +538,275 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                 </div>
               )}
 
-              {/* Upload Area */}
-              <div className="flex items-center justify-center w-full">
-                <label
-                  className={`flex flex-col items-center justify-center w-full h-48 border-2 ${
-                    thumbnailError
-                      ? 'border-red-300 bg-red-50 hover:bg-red-100'
-                      : thumbnail
-                      ? 'border-green-300 bg-green-50'
-                      : isDragging
-                      ? 'border-blue-500 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
-                  } border-dashed rounded-lg cursor-pointer transition-colors`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                >
-                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    {thumbnail ? (
-                      <div className="space-y-3 text-center">
-                        <div className="relative inline-block">
-                          <img
-                            src={URL.createObjectURL(thumbnail)}
-                            alt="Preview"
-                            className="h-24 w-24 object-cover rounded-lg border-2 border-green-300"
-                          />
-                          <div className="absolute -top-1.5 -right-1.5 bg-green-500 rounded-full p-1">
-                            <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
+              {/* Product Thumbnail (from Media Library) */}
+              <div className="space-y-4">
+                <div className="flex items-start space-x-4">
+                  <div className="relative">
+                    {/* Thumbnail/placeholder container */}
+                    <div className="relative group">
+                      {imagePreview ? (
+                        <>
+                          {/* Image preview with click to open modal */}
+                          <div
+                            onClick={() => setShowMediaModal(true)}
+                            className="cursor-pointer"
+                          >
+                            <img
+                              src={imagePreview}
+                              alt="Product preview"
+                              className="w-24 h-24 object-cover rounded-md border border-gray-200 group-hover:border-blue-400 transition-colors"
+                            />
+                            <div className="absolute inset-0 bg-black bg-opacity-40 rounded-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Image className="h-6 w-6 text-white" />
+                            </div>
+                          </div>
+                          {/* Remove image button - not nested */}
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="icon"
+                            className="absolute -top-2 -right-2 h-6 w-6 rounded-full shadow-lg z-10"
+                            onClick={clearThumbnail}
+                            title="Remove image"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        /* Empty placeholder with click to open modal */
+                        <div
+                          onClick={() => setShowMediaModal(true)}
+                          className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center bg-gray-50 hover:border-blue-400 hover:bg-blue-50 transition-colors group cursor-pointer"
+                        >
+                          <Image className="h-10 w-10 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="text-xs text-white bg-black bg-opacity-60 px-2 py-1 rounded">Click to select</span>
                           </div>
                         </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 space-y-3">
+                    <div className="text-sm">
+                      {imagePreview ? (
+                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                          <div className="text-sm text-green-700">
+                            ✓ Product thumbnail selected from media library
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={clearThumbnail}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2 text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
                         <div>
-                          <p className="text-sm font-medium text-green-900">{thumbnail.name}</p>
-                          <p className="text-xs text-green-700 mt-0.5">
-                            {(thumbnail.size / 1024).toFixed(0)} KB
-                          </p>
+                          <p className="font-medium text-gray-900">Product Thumbnail</p>
+                          <p className="text-xs text-muted-foreground">Select a product thumbnail from your media library</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Media Library Modal */}
+                {showMediaModal && (
+                  <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowMediaModal(false)} />
+                    <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
+                      {/* Header */}
+                      <div className="flex items-center justify-between p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
+                        <div>
+                          <h2 className="text-xl font-semibold text-gray-900">Select Product Thumbnail</h2>
+                          <p className="text-sm text-gray-600 mt-1">Choose an image from your media library for this product</p>
                         </div>
                         <Button
-                          type="button"
-                          variant="outline"
+                          variant="ghost"
                           size="sm"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setThumbnail(null);
-                            setThumbnailError(null);
-                          }}
-                          className="h-7 text-xs"
+                          onClick={() => setShowMediaModal(false)}
+                          className="hover:bg-gray-100"
                         >
-                          Remove
+                          <X className="h-5 w-5" />
                         </Button>
                       </div>
-                    ) : (
-                      <>
-                        <Upload className={`h-8 w-8 mb-2 ${
-                          isDragging
-                            ? 'text-primary animate-bounce'
-                            : thumbnailError
-                            ? 'text-red-400'
-                            : 'text-muted-foreground'
-                        }`} />
-                        <p className={`mb-1 text-sm ${
-                          isDragging ? 'text-primary font-semibold' : 'text-muted-foreground'
-                        }`}>
-                          {isDragging ? 'Drop here' : 'Click to upload or drag & drop'}
-                        </p>
-                        <p className="text-xs text-muted-foreground">WEBP, PNG, JPG • Max 300KB</p>
-                      </>
-                    )}
+
+                      {/* Media Library Content */}
+                      <div className="flex-1 overflow-hidden">
+                        <div className="h-full px-6 py-4">
+                          <div className="h-full border rounded-lg overflow-hidden">
+                            <MediaLibrary
+                              open={showMediaModal}
+                              onOpenChange={(isOpen) => {
+                                setShowMediaModal(isOpen);
+                              }}
+                              onSelect={(files) => {
+                                if (files.length > 0) {
+                                  setSelectedMediaFile(files[0]);
+                                  setImagePreview(files[0].url);
+                                  setImageSource('media');
+                                  setShowMediaModal(false);
+                                }
+                              }}
+                              maxSelections={1}
+                              acceptedTypes={['image/*']}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/webp,image/png,image/jpeg,image/jpg,image/gif"
-                    onChange={handleFileInputChange}
-                  />
-                </label>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Gallery Images */}
+        {/* Product Gallery (from Media Library) */}
         <Card>
           <CardHeader className="pb-4">
-            <CardTitle className="text-base font-semibold">Gallery Images</CardTitle>
-            <CardDescription>
-              Add additional product images. Images are uploaded immediately and will be saved when you submit the form.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {/* Gallery Upload Input */}
+            <div className="flex items-center justify-between mb-4">
               <div>
-                <input
-                  type="file"
-                  id="gallery-upload"
-                  multiple
-                  accept="image/webp,image/png,image/jpeg,image/jpg,image/gif"
-                  className="hidden"
-                  onChange={(e) => e.target.files && handleGalleryImageUpload(e.target.files)}
-                  disabled={uploadingGallery}
-                />
+                <CardTitle className="text-lg font-semibold">Product Gallery</CardTitle>
+                <CardDescription className="text-sm text-gray-600 mt-1">
+                  Add images to showcase your product from different angles
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('gallery-upload')?.click()}
-                  disabled={uploadingGallery}
-                  className="w-full"
+                  onClick={() => setShowGalleryModal(true)}
+                  className="shadow-sm"
+                  disabled={galleryImages.length >= 8}
                 >
-                  {uploadingGallery ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Uploading...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Add Gallery Images
-                    </>
-                  )}
+                  <Package className="h-4 w-4 mr-2" />
+                  Select Images
                 </Button>
               </div>
+            </div>
 
-              {/* Gallery Images Grid */}
-              {galleryImages.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {galleryImages.map((imageUrl, index) => (
+            {/* Gallery Status */}
+            <div className="flex items-center justify-between border-t pt-4">
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-gray-600">
+                    {galleryImages.length} / 8 Images
+                  </span>
+                </div>
+                {galleryImages.length > 0 && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
+                    <Package className="h-4 w-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-900">
+                      Gallery has {galleryImages.length} image{galleryImages.length > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-xs text-gray-500">
+                Select up to 8 images for your product gallery
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {/* Gallery Preview */}
+            <div className="space-y-4">
+              {galleryImages.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {galleryImages.map((image, index) => (
                     <div key={index} className="relative group">
-                      <div className="aspect-square rounded-lg border overflow-hidden bg-gray-50">
-                        <img
-                          src={imageUrl}
-                          alt={`Gallery image ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
+                      <img
+                        src={image.url}
+                        alt={image.alt_text || `Gallery image ${index + 1}`}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeGalleryImage(index)}
+                            className="h-8 px-2"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => removeGalleryImage(index)}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
                     </div>
                   ))}
                 </div>
-              )}
-
-              {galleryImages.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No gallery images uploaded yet</p>
+              ) : (
+                <div className="flex justify-center py-12">
+                  <div className="text-center">
+                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Gallery Images</h3>
+                    <p className="text-gray-500 mb-4">Add images to showcase your product from different angles</p>
+                    <Button
+                      onClick={() => setShowGalleryModal(true)}
+                      variant="outline"
+                    >
+                      <Package className="h-4 w-4 mr-2" />
+                      Add Gallery Images
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Gallery Images Modal */}
+        {showGalleryModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowGalleryModal(false)} />
+            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Select Gallery Images</h2>
+                  <p className="text-sm text-gray-600 mt-1">Choose images from your media library for the product gallery</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowGalleryModal(false)}
+                  className="hover:bg-gray-100"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {/* Gallery Selection Content */}
+              <div className="flex-1 overflow-hidden">
+                <div className="h-full px-6 py-4">
+                  <div className="h-full border rounded-lg overflow-hidden">
+                    <MediaLibrary
+                      open={showGalleryModal}
+                      onOpenChange={(isOpen) => {
+                        setShowGalleryModal(isOpen);
+                      }}
+                      onSelect={handleGallerySelect}
+                      multiple={true}
+                      maxSelections={8 - galleryImages.length}
+                      acceptedTypes={['image/*']}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 pt-2">

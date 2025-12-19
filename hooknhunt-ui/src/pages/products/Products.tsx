@@ -260,7 +260,10 @@ const Products = () => {
   };
 
   const handleEditProduct = (id: number) => {
-    navigate(`/products/${id}/edit`);
+    console.log('🔄 Edit button clicked for product ID:', id);
+    const editUrl = `/products/${id}/edit`;
+    console.log('📍 Navigating to:', editUrl);
+    navigate(editUrl);
   };
 
   const clearFilters = () => {

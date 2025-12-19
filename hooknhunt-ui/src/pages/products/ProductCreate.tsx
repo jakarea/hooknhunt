@@ -14,8 +14,7 @@ const ProductCreate = () => {
   };
 
   const handleProductCreated = (createdProduct: any) => {
-    console.log('🔄 Redirecting to edit page for product:', createdProduct);
-
+    
     toast({
       title: "Product Created Successfully! 🎉",
       description: (

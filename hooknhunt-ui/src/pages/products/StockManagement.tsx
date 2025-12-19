@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Package, Search, Download, RefreshCw, TrendingUp, TrendingDown, AlertCircle, Edit, Plus, Minus } from 'lucide-react';
+import { Package, Search, Download, RefreshCw, TrendingUp, TrendingDown, AlertCircle, Edit } from 'lucide-react';
 import apiClient from '@/lib/apiClient';
 
 interface ProductVariant {
@@ -300,12 +300,9 @@ export function StockManagement() {
                   <tr className="border-b bg-gray-50">
                     <th className="px-4 py-2 text-left">Product</th>
                     <th className="px-4 py-2 text-left">SKU</th>
-                    <th className="px-4 py-2 text-center">Total Stock</th>
-                    <th className="px-4 py-2 text-center">Reserved</th>
-                    <th className="px-4 py-2 text-center">Available</th>
+                    <th className="px-4 py-2 text-center">Stock</th>
                     <th className="px-4 py-2 text-left">Cost</th>
                     <th className="px-4 py-2 text-left">Retail Price</th>
-                    <th className="px-4 py-2 text-center">Margin</th>
                     <th className="px-4 py-2 text-center">Status</th>
                     <th className="px-4 py-2 text-center">Actions</th>
                   </tr>
@@ -343,26 +340,28 @@ export function StockManagement() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{product.sku}</td>
-                        <td className="px-4 py-3 text-center font-medium">
-                          {product.inventory?.quantity || 0}
-                        </td>
-                        <td className="px-4 py-3 text-center text-orange-600">
-                          {product.inventory?.reserved_quantity || 0}
-                        </td>
                         <td className="px-4 py-3 text-center">
-                          <span className={`font-bold ${available <= 0 ? 'text-red-600' : available <= (product.inventory?.min_stock_level || 0) ? 'text-orange-600' : 'text-green-600'}`}>
+                          <span className={`font-medium ${available <= 0 ? 'text-red-600' : 'text-green-600'}`}>
                             {available}
+                          </span>
+                          <span className="text-gray-900">/</span>
+                          <span className="text-gray-900">
+                            {product.inventory?.quantity || 0}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">৳{product.landed_cost?.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-gray-600">৳{product.retail_price?.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-center">
-                          <Badge
-                            variant={margin < 0 ? "destructive" : "secondary"}
-                            className="text-xs"
-                          >
-                            {margin.toFixed(1)}%
-                          </Badge>
+                        <td className="px-4 py-3">
+                          <div>
+                            <div className="text-gray-900">৳{product.retail_price?.toFixed(2)}</div>
+                            <div className="mt-1">
+                              <Badge
+                                variant={margin < 0 ? "destructive" : "secondary"}
+                                className="text-xs"
+                              >
+                                {margin.toFixed(1)}%
+                              </Badge>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Badge variant={status.color as any} className="text-xs">
@@ -371,24 +370,6 @@ export function StockManagement() {
                         </td>
                         <td className="px-4 py-3 text-center">
                           <div className="flex items-center justify-center gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleStockAdjustment(product.id, -1, 'Manual adjustment')}
-                              className="h-7 w-7 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                              title="Decrease Stock"
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleStockAdjustment(product.id, 1, 'Manual adjustment')}
-                              className="h-7 w-7 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
-                              title="Increase Stock"
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
                             <Button
                               variant="outline"
                               size="sm"

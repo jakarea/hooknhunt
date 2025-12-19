@@ -27,6 +27,8 @@ export type CategoryFormData = {
   slug: string;
   parent_id: number | null;
   image?: File;
+  media_file_id?: number;
+  remove_image?: boolean;
 };
 
 export const useCategoryStore = create<CategoryState>((set: (fn: (state: CategoryState) => CategoryState) => void) => ({
@@ -56,6 +58,12 @@ export const useCategoryStore = create<CategoryState>((set: (fn: (state: Categor
       if (data.image) {
         formData.append('image', data.image);
       }
+      if (data.media_file_id) {
+        formData.append('media_file_id', data.media_file_id.toString());
+      }
+      if (data.remove_image) {
+        formData.append('remove_image', 'true');
+      }
 
       const response = await apiClient.post<{ data: Category }>('/admin/categories', formData, {
         headers: {
@@ -84,6 +92,12 @@ export const useCategoryStore = create<CategoryState>((set: (fn: (state: Categor
       }
       if (data.image) {
         formData.append('image', data.image);
+      }
+      if (data.media_file_id) {
+        formData.append('media_file_id', data.media_file_id.toString());
+      }
+      if (data.remove_image) {
+        formData.append('remove_image', 'true');
       }
 
       const response = await apiClient.post<{ data: Category }>(`/admin/categories/${id}?_method=PUT`, formData, {
