@@ -87,65 +87,65 @@ hooknhunt-ui/coverage/
 # ===========================
 
 # Dependencies
-website/node_modules/
+storefront/node_modules/
 
 # Environment files
-website/.env
-website/.env.local
-website/.env.development.local
-website/.env.test.local
-website/.env.production.local
-website/.next
+storefront/.env
+storefront/.env.local
+storefront/.env.development.local
+storefront/.env.test.local
+storefront/.env.production.local
+storefront/.next
 # Build output
-website/dist/
-website/dist-ssr/
-website/build/
+storefront/dist/
+storefront/dist-ssr/
+storefront/build/
 
 # Vite cache
-website/.vite/
+storefront/.vite/
 
 # TypeScript
-website/*.tsbuildinfo
+storefront/*.tsbuildinfo
 
 # Testing
-website/coverage/
+storefront/coverage/
 
 # ===========================
-# Next.js Website (website/)
+# Next.js Website (storefront/)
 # ===========================
 
 # Dependencies
-website/node_modules/
+storefront/node_modules/
 
 # Environment files
-website/.env
-website/.env*.local
-website/.env.development.local
-website/.env.test.local
-website/.env.production.local
+storefront/.env
+storefront/.env*.local
+storefront/.env.development.local
+storefront/.env.test.local
+storefront/.env.production.local
 
 # Next.js build output
-website/.next/
-website/.next/**
-website/out/
+storefront/.next/
+storefront/.next/**
+storefront/out/
 
 # Next.js production build
-website/.next/static/
-website/.next/server/
-website/.next/cache/
-website/.next/trace
-website/.next/*.json
-website/.next/*.js
+storefront/.next/static/
+storefront/.next/server/
+storefront/.next/cache/
+storefront/.next/trace
+storefront/.next/*.json
+storefront/.next/*.js
 
 # TypeScript
-website/*.tsbuildinfo
-website/next-env.d.ts
+storefront/*.tsbuildinfo
+storefront/next-env.d.ts
 
 # Testing
-website/coverage/
+storefront/coverage/
 
 # Vercel deployment
-website/.vercel
+storefront/.vercel
 
 # ===========================
 # OS & Editor Files
