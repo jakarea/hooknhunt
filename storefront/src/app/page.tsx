@@ -1,20 +1,51 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductCard from '@/components/product/ProductCard';
 import HeroSlider from '@/components/home/HeroSlider';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import { products } from '@/data/products';
-import { categories } from '@/data/categories';
+import { Category } from '@/types';
 
 export default function Home() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState<string | null>(null);
+
   const newArrivals = products.slice(0, 8); // Latest products
   const bestDeals = products.filter(p => p.originalPrice).slice(0, 4);
   const trendingProducts = products.slice(8, 16); // Trending products
   const recentlySold = products.slice(16, 24); // Recently sold
   const recommended = products.slice(0, 8); // Recommended
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setCategoriesLoading(true);
+        // Use Next.js API rewrite to avoid CORS issues
+        const response = await fetch('/api/v1/store/categories/');
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+
+        const data = await response.json();
+        // API returns {categories: [...]} so extract the array
+        setCategories(data.categories || data || []);
+        setCategoriesError(null);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        setCategoriesError('Failed to load categories');
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   return (
     <div>
@@ -66,53 +97,83 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Categories Grid - Minimalist Style */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 md:gap-8">
-            {categories.map((category, index) => (
-              <Link
-                key={category.id}
-                href={`/products?category=${category.slug}`}
-                className="group"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 group-hover:scale-105">
-                  {/* Product Image */}
-                  <div className="relative w-full aspect-square mb-4 overflow-hidden rounded-xl">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
+          {/* Categories Grid - Clean & Compact Style */}
+          {categoriesLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
+              {[...Array(8)].map((_, index) => (
+                <div key={index} className="animate-pulse">
+                  <div className="bg-gray-200 dark:bg-gray-800 p-4 hover:shadow-md transition-all duration-300">
+                    <div className="relative w-full aspect-square mb-3 overflow-hidden bg-gray-300 dark:bg-gray-700"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4 mx-auto"></div>
                   </div>
-                  
-                  {/* Category Name */}
-                  <h3 className="text-center text-gray-800 dark:text-gray-200 font-bold text-sm md:text-base">
-                    {category.name}
-                  </h3>
                 </div>
-              </Link>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : categoriesError ? (
+            <div className="text-center py-12">
+              <p className="text-red-500 dark:text-red-400 text-lg mb-4">{categoriesError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-2 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold transition-colors duration-300"
+              >
+                Retry
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3 md:gap-4">
+              {categories.map((category, index) => (
+                <Link
+                  key={category.id}
+                  href={`/products?category=${category.slug}`}
+                  className="group"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-4 hover:shadow-md transition-all duration-300 group-hover:scale-105">
+                    {/* Product Image */}
+                    <div className="relative w-full aspect-square mb-3 overflow-hidden">
+                      {category.image_url ? (
+                        <Image
+                          src={category.image_url}
+                          alt={category.name}
+                          fill
+                          className="object-cover group-hover:scale-110 transition-transform duration-500"
+                          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 12.5vw"
+                        />
+                      ) : (
+                        <h6 className='text-center text-gray-800 dark:text-gray-200 font-semibold text-xs md:text-sm leading-tight'>No Image Found!</h6>
+                      )}
+                    </div>
+
+                    {/* Category Name */}
+                    <h3 className="text-center text-gray-800 dark:text-gray-200 font-semibold text-xs md:text-sm leading-tight">
+                      {category.name}
+                    </h3>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
 
           {/* Simple CTA */}
-          <div className="text-center mt-16">
-            <Link
-              href="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors duration-300"
-            >
-              <span>View All Categories</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
+          {categories.length > 16 && (
+            <div className="text-center mt-16">
+              <Link
+                href="/products"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors duration-300"
+              >
+                <span>View All Categories</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </Link>
+            </div>
+          )}
+
         </div>
-      </section>
+      </section >
 
       {/* Recently Sold - Social Proof & Trust */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
+      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
             <div className="flex-1">
@@ -137,10 +198,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* New Arrival - Fresh Content */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
+      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
             <div className="flex-1">
@@ -165,10 +226,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Promotional Banners - Mid-Page Engagement */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12">
+      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           <Link href="/products?category=rods" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
             <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#046bd2] to-[#0353a5]">
@@ -224,10 +285,10 @@ export default function Home() {
             </div>
           </Link>
         </div>
-      </section>
+      </section >
 
       {/* Best Deals - Value Proposition */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
+      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="text-center mb-16">
             <div className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#bc1215]/10 dark:bg-[#bc1215]/20 mb-4">
@@ -245,10 +306,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Recommended for You - Personalization */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20">
+      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20" >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
@@ -271,10 +332,10 @@ export default function Home() {
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
-      </section>
+      </section >
 
       {/* Customer Reviews - Trust & Social Proof */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
+      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="text-center mb-16">
             <div className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#046bd2]/10 dark:bg-[#046bd2]/20 mb-4">
@@ -370,10 +431,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Features - Trust Indicators */}
-      <section className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] text-white py-20 relative overflow-hidden">
+      < section className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] text-white py-20 relative overflow-hidden" >
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-64 h-64 bg-white transform rotate-45"></div>
           <div className="absolute bottom-10 right-10 w-64 h-64 bg-white transform -rotate-45"></div>
@@ -445,10 +506,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Floating Action Button */}
-      <FloatingActionButton />
-    </div>
+      < FloatingActionButton />
+    </div >
   );
 }

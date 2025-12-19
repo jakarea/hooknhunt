@@ -58,15 +58,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             api.clearAuth();
             localStorage.removeItem('cached_user');
           }
-        } catch (error: any) {
-          console.log('🔍 [AUTH_DEBUG] ❌ API Error:', error.status, error.message);
+        } catch (error: unknown) {
+          const err = error as { status?: number; message?: string };
+          console.log('🔍 [AUTH_DEBUG] ❌ API Error:', err.status, err.message);
 
           // Always clear auth on 401 unauthorized errors
-          if (error.status === 401) {
+          if (err.status === 401) {
             console.log('🔍 [AUTH_DEBUG] ❌ 401 Unauthorized, clearing auth');
             api.clearAuth();
             localStorage.removeItem('cached_user');
-          } else if (error.status === 0) {
+          } else if (err.status === 0) {
             // Network error - try to use cached user data temporarily
             console.log('🔍 [AUTH_DEBUG] 🌐 Network error, trying cached user...');
             const cachedUser = localStorage.getItem('cached_user');

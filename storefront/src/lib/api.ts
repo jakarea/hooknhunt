@@ -1,8 +1,10 @@
 // API Client for Hook & Hunt Storefront
 
+import { User, Address } from '@/types';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   data?: T;
   message?: string;
   errors?: Record<string, string[]>;
@@ -50,7 +52,7 @@ class ApiClient {
     }
   }
 
-  private async request<T = any>(
+  private async request<T = unknown>(
     endpoint: string,
     options: RequestInit = {},
     includeAuth: boolean = false
@@ -103,7 +105,7 @@ class ApiClient {
       }
 
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.log('🔍 [API_DEBUG] Catch error:', error);
 
       // If it's a network error (not a response from server)
@@ -135,8 +137,8 @@ class ApiClient {
     });
   }
 
-  async verifyOtp(phone: string, otp: string): Promise<ApiResponse<{ user: any; token: string }>> {
-    const response = await this.request<{ user: any; token: string }>('/store/auth/verify-otp', {
+  async verifyOtp(phone: string, otp: string): Promise<ApiResponse<{ user: User; token: string }>> {
+    const response = await this.request<{ user: User; token: string }>('/store/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ phone_number: phone, otp_code: otp }),
     });
@@ -149,8 +151,8 @@ class ApiClient {
     return response;
   }
 
-  async login(phone: string, password: string): Promise<ApiResponse<{ user: any; token: string }>> {
-    const response = await this.request<{ user: any; token: string }>('/store/auth/login', {
+  async login(phone: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
+    const response = await this.request<{ user: User; token: string }>('/store/auth/login', {
       method: 'POST',
       body: JSON.stringify({ phone_number: phone, password }),
     });
@@ -164,7 +166,7 @@ class ApiClient {
     return response;
   }
 
-  async getMe(): Promise<ApiResponse<{ user: any }>> {
+  async getMe(): Promise<ApiResponse<{ user: User }>> {
     return this.request('/store/account/me', {}, true);
   }
 
@@ -185,11 +187,11 @@ class ApiClient {
   }
 
   // Address endpoints
-  async getAddresses(): Promise<ApiResponse<any[]>> {
+  async getAddresses(): Promise<ApiResponse<Address[]>> {
     return this.request('/store/account/addresses', {}, true);
   }
 
-  async addAddress(address: any): Promise<ApiResponse> {
+  async addAddress(address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<ApiResponse> {
     return this.request('/store/account/addresses', {
       method: 'POST',
       body: JSON.stringify(address),

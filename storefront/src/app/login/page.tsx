@@ -63,8 +63,9 @@ export default function LoginPage() {
                     }
                 }, 300);
             }, 200);
-        } catch (err: any) {
-            toast.error(err.message || t('auth.login.failed'));
+        } catch (err: unknown) {
+            const error = err as Error;
+            toast.error(error.message || t('auth.login.failed'));
             setIsLoading(false);
         }
     };

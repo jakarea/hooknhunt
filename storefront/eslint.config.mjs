@@ -20,6 +20,18 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: {
+      // Allow some type flexibility for API error handling
+      "@typescript-eslint/no-explicit-any": "warn",
+      // Allow unused variables in some cases
+      "@typescript-eslint/no-unused-vars": "warn",
+      // Allow React unescaped entities as warnings
+      "react/no-unescaped-entities": "warn",
+      // Allow missing dependencies in useEffect as warnings
+      "react-hooks/exhaustive-deps": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

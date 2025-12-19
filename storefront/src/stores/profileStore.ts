@@ -46,9 +46,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       } else {
         throw new Error('Failed to fetch profile - no user data in response');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as Error;
       set({
-        error: error.message || 'Failed to fetch profile',
+        error: err.message || 'Failed to fetch profile',
         loading: false,
       });
     }
@@ -67,11 +68,12 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
           validationErrors: null,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle validation errors
-      if (error.status === 422 && error.errors) {
+      const err = error as { status?: number; errors?: Record<string, string[]> }; // Type assertion for API error structure
+      if (err.status === 422 && err.errors) {
         set({
-          validationErrors: error.errors,
+          validationErrors: err.errors,
           updating: false,
         });
       } else {

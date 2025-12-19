@@ -1,5 +1,32 @@
 // types.ts
 
+// ✅ User
+export interface User {
+  id: number;
+  name: string;
+  email?: string;
+  phone: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Address
+export interface Address {
+  id: number;
+  user_id: number;
+  type: string;
+  recipient_name: string;
+  phone: string;
+  address_line: string;
+  area: string;
+  city: string;
+  postal_code?: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // ✅ Supplier
 export interface Supplier {
   id: number;
@@ -16,9 +43,11 @@ export interface Category {
   name: string;
   slug: string;
   image?: string;
+  image_url?: string; // API returns this field
   parent_id?: number | null;
   created_at: string;
   updated_at: string;
+  children?: Category[]; // For nested categories
 }
 
 // ✅ Product

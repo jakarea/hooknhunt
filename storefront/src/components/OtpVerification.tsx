@@ -74,8 +74,9 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
     setError('');
     try {
       await onVerify(otpCode);
-    } catch (err: any) {
-      setError(err.message || 'Invalid OTP. Please try again.');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Invalid OTP. Please try again.');
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     }
@@ -91,8 +92,9 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
 
     try {
       await onResend();
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend OTP');
+    } catch (err: unknown) {
+      const error = err as Error;
+      setError(error.message || 'Failed to resend OTP');
       setCanResend(true);
       setCountdown(0);
     }
@@ -111,7 +113,7 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
           Verify Your Phone
         </h2>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          We've sent a 6-digit code to <span className="font-semibold">{phone}</span>
+          We&apos;ve sent a 6-digit code to <span className="font-semibold">{phone}</span>
         </p>
       </div>
 
@@ -179,7 +181,7 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
             <ul className="list-disc list-inside space-y-1 text-xs">
               <li>Check your SMS messages for the OTP code</li>
               <li>The code will expire in 10 minutes</li>
-              <li>If you don't receive the code, click "Resend OTP"</li>
+              <li>If you don&apos;t receive the code, click &quot;Resend OTP&quot;</li>
             </ul>
           </div>
         </div>

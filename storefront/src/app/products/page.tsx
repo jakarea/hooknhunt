@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ProductCard from '@/components/product/ProductCard';
-import { products, categories } from '@/data/products';
+import { products } from '@/data/products';
 
 function ProductsPageContent() {
   const searchParams = useSearchParams();
@@ -17,6 +17,8 @@ function ProductsPageContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [displayCount, setDisplayCount] = useState(12); // Initial load: 12 products
   const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<Array<{id: number, name: string, slug: string}>>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,26 +27,46 @@ function ProductsPageContent() {
     }
   }, [categoryParam]);
 
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/store/categories');
+        if (response.ok) {
+          const data = await response.json();
+          // Assuming API returns categories with id, name, slug
+          setCategories(data.data || data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
+
   // Filter products by category
   const filteredProducts = products.filter(product => {
     if (selectedCategories.includes('all')) return true;
-    return selectedCategories.some(categorySlug => 
-      product.category.toLowerCase() === categories.find(c => c.slug === categorySlug)?.name.toLowerCase()
+    return selectedCategories.some(categorySlug =>
+      categories.find(c => c.slug === categorySlug)?.id === product.category_id
     );
   });
 
   // Apply additional filters
   const additionalFilteredProducts = filteredProducts.filter(product => {
     // Rating filter
-    if (minRating > 0 && product.rating < minRating) return false;
+    if (minRating > 0 && (product.rating || 0) < minRating) return false;
 
     // Price range filter
     if (priceRange.length > 0) {
       const inRange = priceRange.some(range => {
-        if (range === 'under-1000') return product.price < 1000;
-        if (range === '1000-5000') return product.price >= 1000 && product.price < 5000;
-        if (range === '5000-10000') return product.price >= 5000 && product.price < 10000;
-        if (range === '10000-plus') return product.price >= 10000;
+        if (range === 'under-1000') return (product.price || 0) < 1000;
+        if (range === '1000-5000') return (product.price || 0) >= 1000 && (product.price || 0) < 5000;
+        if (range === '5000-10000') return (product.price || 0) >= 5000 && (product.price || 0) < 10000;
+        if (range === '10000-plus') return (product.price || 0) >= 10000;
         return false;
       });
       if (!inRange) return false;
@@ -57,11 +79,11 @@ function ProductsPageContent() {
   const sortedProducts = [...additionalFilteredProducts].sort((a, b) => {
     switch (sortBy) {
       case 'price-low':
-        return a.price - b.price;
+        return (a.price || 0) - (b.price || 0);
       case 'price-high':
-        return b.price - a.price;
+        return (b.price || 0) - (a.price || 0);
       case 'rating':
-        return b.rating - a.rating;
+        return (b.rating || 0) - (a.rating || 0);
       case 'newest':
         return b.id - a.id;
       default:
@@ -272,75 +294,81 @@ function ProductsPageContent() {
                       All Products
                     </span>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      selectedCategories.includes('all') 
-                        ? 'bg-white/20 text-white' 
+                      selectedCategories.includes('all')
+                        ? 'bg-white/20 text-white'
                         : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                     }`}>
                       {products.length}
                     </span>
                   </button>
-                  {categories.map(category => {
-                    const categoryProductCount = products.filter(p => 
-                      p.category.toLowerCase() === category.name.toLowerCase()
-                    ).length;
-                    const isSelected = selectedCategories.includes(category.slug);
-                    return (
-                      <button
-                        key={category.id}
-                        onClick={() => {
-                          if (isSelected) {
-                            // Remove from selection
-                            const newCategories = selectedCategories.filter(cat => cat !== category.slug);
-                            if (newCategories.length === 0) {
-                              setSelectedCategories(['all']);
-                            } else {
-                              setSelectedCategories(newCategories);
-                            }
-                          } else {
-                            // Add to selection (remove 'all' if it exists)
-                            const newCategories = selectedCategories.filter(cat => cat !== 'all');
-                            setSelectedCategories([...newCategories, category.slug]);
-                          }
-                        }}
-                        className={`w-full text-left px-4 py-2.5 transition-colors flex items-center justify-between ${
-                          isSelected
-                            ? 'bg-[#bc1215] text-white font-semibold'
-                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        <span className="flex items-center gap-3">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => {
-                              if (isSelected) {
-                                // Remove from selection
-                                const newCategories = selectedCategories.filter(cat => cat !== category.slug);
-                                if (newCategories.length === 0) {
-                                  setSelectedCategories(['all']);
-                                } else {
-                                  setSelectedCategories(newCategories);
-                                }
+                  {categoriesLoading ? (
+                    <div className="px-4 py-2.5 text-center text-gray-500 dark:text-gray-400">
+                      Loading categories...
+                    </div>
+                  ) : (
+                    categories.map(category => {
+                      const categoryProductCount = products.filter(p =>
+                        p.category_id === category.id
+                      ).length;
+                      const isSelected = selectedCategories.includes(category.slug);
+                      return (
+                        <button
+                          key={category.id}
+                          onClick={() => {
+                            if (isSelected) {
+                              // Remove from selection
+                              const newCategories = selectedCategories.filter(cat => cat !== category.slug);
+                              if (newCategories.length === 0) {
+                                setSelectedCategories(['all']);
                               } else {
-                                // Add to selection (remove 'all' if it exists)
-                                const newCategories = selectedCategories.filter(cat => cat !== 'all');
-                                setSelectedCategories([...newCategories, category.slug]);
+                                setSelectedCategories(newCategories);
                               }
-                            }}
-                            className="w-4 h-4 text-[#bc1215] border-gray-300 focus:ring-[#bc1215] rounded"
-                          />
-                          {category.name}
-                        </span>
-                        <span className={`text-xs px-2 py-1 rounded-full ${
-                          isSelected 
-                            ? 'bg-white/20 text-white' 
-                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
-                        }`}>
-                          {categoryProductCount}
-                        </span>
-                      </button>
-                    );
-                  })}
+                            } else {
+                              // Add to selection (remove 'all' if it exists)
+                              const newCategories = selectedCategories.filter(cat => cat !== 'all');
+                              setSelectedCategories([...newCategories, category.slug]);
+                            }
+                          }}
+                          className={`w-full text-left px-4 py-2.5 transition-colors flex items-center justify-between ${
+                            isSelected
+                              ? 'bg-[#bc1215] text-white font-semibold'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {
+                                if (isSelected) {
+                                  // Remove from selection
+                                  const newCategories = selectedCategories.filter(cat => cat !== category.slug);
+                                  if (newCategories.length === 0) {
+                                    setSelectedCategories(['all']);
+                                  } else {
+                                    setSelectedCategories(newCategories);
+                                  }
+                                } else {
+                                  // Add to selection (remove 'all' if it exists)
+                                  const newCategories = selectedCategories.filter(cat => cat !== 'all');
+                                  setSelectedCategories([...newCategories, category.slug]);
+                                }
+                              }}
+                              className="w-4 h-4 text-[#bc1215] border-gray-300 focus:ring-[#bc1215] rounded"
+                            />
+                            {category.name}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded-full ${
+                            isSelected
+                              ? 'bg-white/20 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                          }`}>
+                            {categoryProductCount}
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 

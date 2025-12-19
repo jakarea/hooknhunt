@@ -10,7 +10,7 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -35,26 +35,24 @@ export default function Header() {
       if (!ticking) {
         requestAnimationFrame(() => {
           const currentScrollY = window.scrollY;
-          const scrollDifference = Math.abs(currentScrollY - lastScrollY);
+          const scrollThreshold = 5; // Minimum scroll to trigger direction change
+          const compactThreshold = 100; // Minimum scroll to make header compact
 
-          // Hero section height threshold (approximately 400px to account for different screen sizes)
-          const heroSectionHeight = 400;
-
-          // Only update if scroll difference is significant to prevent jitter
-          if (scrollDifference > 3) {
-            // Determine if scrolled past hero section
-            setIsScrolled(currentScrollY > heroSectionHeight);
-
-            // Determine scroll direction based on hero section threshold
-            if (currentScrollY > lastScrollY && currentScrollY > heroSectionHeight) {
-              setScrollDirection('down');
-            } else if (currentScrollY < lastScrollY && currentScrollY <= heroSectionHeight) {
-              setScrollDirection('up');
+          // Make header compact when scrolling down past threshold
+          if (currentScrollY > compactThreshold) {
+            setIsScrolled(true);
+            // Hide top bar when scrolling down, show when scrolling up
+            if (currentScrollY > lastScrollY + scrollThreshold) {
+              setIsHeaderVisible(false);
+            } else if (currentScrollY < lastScrollY - scrollThreshold) {
+              setIsHeaderVisible(true);
             }
-
-            setLastScrollY(currentScrollY);
+          } else {
+            setIsScrolled(false);
+            setIsHeaderVisible(true);
           }
 
+          setLastScrollY(currentScrollY);
           ticking = false;
         });
 
@@ -67,11 +65,21 @@ export default function Header() {
   }, [lastScrollY]);
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-500 ease-in-out">
+    <header
+      className={`sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-300 ease-out ${
+        isScrolled ? 'shadow-lg' : 'shadow-sm'
+      }`}
+    >
       {/* Top Bar */}
       <div
-        className={`bg-[#bc1215] text-white transition-all duration-300 ease-in-out overflow-hidden ${scrollDirection === 'down' && isScrolled ? 'max-h-0 opacity-0' : 'max-h-12 opacity-100'
-          }`}
+        className={`bg-[#bc1215] text-white transition-all duration-300 ease-out ${
+          isHeaderVisible ? 'transform translate-y-0 opacity-100' : 'transform -translate-y-full opacity-0'
+        }`}
+        style={{
+          transitionDuration: '300ms',
+          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+          transform: isHeaderVisible ? 'translateY(0)' : 'translateY(-100%)'
+        }}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center h-7 text-xs">
@@ -152,7 +160,13 @@ export default function Header() {
 
       {/* Main Header */}
       <div
-        className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out py-2"
+        className={`bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-out ${
+          isHeaderVisible ? 'py-2' : 'py-0'
+        }`}
+        style={{
+          transitionDuration: '300ms',
+          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between gap-8">
@@ -239,8 +253,7 @@ export default function Header() {
 
       {/* Navigation Menu - Desktop */}
       <div
-        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden ${scrollDirection === 'down' && isScrolled ? 'max-h-0 opacity-0' : 'max-h-14 opacity-100'
-          }`}
+        className="hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800"
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <nav className="flex items-center justify-start gap-8">

@@ -71,8 +71,9 @@ export default function RegistrationPage() {
 
             // Move to OTP verification step
             setStep('verify');
-        } catch (err: any) {
-            setError(err.message || t('auth.register.failed'));
+        } catch (err: unknown) {
+            const error = err as Error;
+            setError(error.message || t('auth.register.failed'));
         } finally {
             setIsLoading(false);
         }

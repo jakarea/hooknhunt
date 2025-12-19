@@ -15,14 +15,14 @@ export default function OrdersPage() {
       date: '2024-01-15',
       status: 'COMPLETED',
       totalItems: 5,
-      totalAmount: products.slice(0, 5).reduce((sum, item) => sum + item.price, 0),
+      totalAmount: products.slice(0, 5).reduce((sum, item) => sum + (item.price || 0), 0),
       items: products.slice(0, 5).map(product => ({
         id: product.id,
         name: product.name,
         image: product.image,
         price: product.price,
         originalPrice: product.originalPrice,
-        discount: product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
+        discount: product.originalPrice && product.price ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
         quantity: 1
       }))
     },
@@ -31,14 +31,14 @@ export default function OrdersPage() {
       date: '2024-01-10',
       status: 'SHIPPED',
       totalItems: 3,
-      totalAmount: products.slice(5, 8).reduce((sum, item) => sum + item.price, 0),
+      totalAmount: products.slice(5, 8).reduce((sum, item) => sum + (item.price || 0), 0),
       items: products.slice(5, 8).map(product => ({
         id: product.id,
         name: product.name,
         image: product.image,
         price: product.price,
         originalPrice: product.originalPrice,
-        discount: product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
+        discount: product.originalPrice && product.price ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
         quantity: 1
       }))
     },
@@ -47,14 +47,14 @@ export default function OrdersPage() {
       date: '2024-01-05',
       status: 'PENDING',
       totalItems: 2,
-      totalAmount: products.slice(8, 10).reduce((sum, item) => sum + item.price, 0),
+      totalAmount: products.slice(8, 10).reduce((sum, item) => sum + (item.price || 0), 0),
       items: products.slice(8, 10).map(product => ({
         id: product.id,
         name: product.name,
         image: product.image,
         price: product.price,
         originalPrice: product.originalPrice,
-        discount: product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
+        discount: product.originalPrice && product.price ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0,
         quantity: 1
       }))
     }
@@ -183,8 +183,8 @@ export default function OrdersPage() {
                         {/* Product Image */}
                         <div className="aspect-square bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 overflow-hidden relative">
                           <Image
-                            src={item.image}
-                            alt={item.name}
+                            src={item.image || '/placeholder-image.jpg'}
+                            alt={item.name || 'Product image'}
                             fill
                             className="object-cover"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -199,7 +199,7 @@ export default function OrdersPage() {
                           <div className="space-y-1">
                           <div className="flex items-center gap-2">
                             <span className="text-lg font-bold text-[#bc1215]">
-                              ৳{item.price.toLocaleString()}
+                              ৳{(item.price || 0).toLocaleString()}
                             </span>
                             {item.originalPrice && item.originalPrice !== item.price && (
                               <span className="text-sm text-gray-500 line-through">
