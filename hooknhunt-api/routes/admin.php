@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Admin\AttributeController;
 use App\Http\Controllers\Api\V1\Admin\AttributeOptionController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
+use App\Http\Controllers\Api\V1\Admin\MediaController;
 use App\Http\Controllers\Api\V1\Admin\ProductController;
 use App\Http\Controllers\Api\V1\Admin\ProductSupplierController;
 use App\Http\Controllers\Api\V1\Admin\PurchaseOrderController;
@@ -145,6 +146,20 @@ Route::prefix('v1/admin')->group(function () {
             Route::get('/statistics', [SmsController::class, 'statistics']); // Get statistics
             Route::get('/{id}/report', [SmsController::class, 'getReport']); // Get delivery report for specific SMS
             Route::post('/refresh-reports', [SmsController::class, 'refreshReports']); // Refresh all pending reports
+        });
+
+        // ===============================================
+        // MEDIA MANAGEMENT ROUTES
+        // (Super Admin, Admin, Store Keeper, Marketer)
+        // ===============================================
+        Route::middleware('role:super_admin,admin,store_keeper,marketer')->prefix('media')->group(function () {
+            Route::get('/', [MediaController::class, 'index']); // List media files
+            Route::post('/', [MediaController::class, 'store']); // Upload media file
+            Route::get('/folders', [MediaController::class, 'folders']); // Get folders
+            Route::post('/folders', [MediaController::class, 'storeFolder']); // Create folder
+            Route::get('/{mediaFile}', [MediaController::class, 'show']); // Get media file details
+            Route::put('/{mediaFile}', [MediaController::class, 'update']); // Update media file
+            Route::delete('/{mediaFile}', [MediaController::class, 'destroy']); // Delete media file
         });
 
         // ===============================================

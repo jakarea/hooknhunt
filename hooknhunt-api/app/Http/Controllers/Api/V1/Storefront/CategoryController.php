@@ -4,22 +4,40 @@ namespace App\Http\Controllers\Api\V1\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\ProductVariant;
+use App\Models\Inventory;
 use Illuminate\Http\JsonResponse;
 
 class CategoryController extends Controller
 {
     /**
-     * Get all categories with hierarchical structure
+     * Get all categories with hierarchical structure and product counts
      *
      * @return JsonResponse
      */
     public function index(): JsonResponse
     {
-        // Get all categories ordered by name
-        $categories = Category::orderBy('name')->get();
+        // Get all categories
+        $categories = Category::all();
 
-        // Build hierarchical structure
-        $rootCategories = $categories->where('parent_id', null);
+        // Pre-compute product counts for all categories
+        $categoryProductCounts = [];
+        foreach ($categories as $category) {
+            $categoryProductCounts[$category->id] = $this->getProductCountForCategory($category->id);
+        }
+
+        // Sort categories by product count (descending)
+        $allCategories = $categories->sortBy(function ($category) use ($categoryProductCounts) {
+            return -($categoryProductCounts[$category->id] ?? 0); // Negative for descending order
+        })->values();
+
+        // Build hierarchical structure for root categories only, sorted by product count
+        $rootCategories = $categories->where('parent_id', null)
+            ->sortBy(function ($category) use ($categoryProductCounts) {
+                return -($categoryProductCounts[$category->id] ?? 0); // Negative for descending order
+            })->values();
+
         $categoryTree = [];
 
         foreach ($rootCategories as $rootCategory) {
@@ -28,19 +46,21 @@ class CategoryController extends Controller
                 'name' => $rootCategory->name,
                 'slug' => $rootCategory->slug,
                 'image_url' => $rootCategory->image_url,
-                'children' => $this->buildChildren($rootCategory->id, $categories)
+                'product_count' => $categoryProductCounts[$rootCategory->id] ?? 0,
+                'children' => $this->buildChildren($rootCategory->id, $categories, $categoryProductCounts)
             ];
         }
 
         return response()->json([
             'categories' => $categoryTree,
-            'all_categories' => $categories->map(function ($category) {
+            'all_categories' => $allCategories->map(function ($category) use ($categoryProductCounts) {
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'parent_id' => $category->parent_id,
                     'image_url' => $category->image_url,
+                    'product_count' => $categoryProductCounts[$category->id] ?? 0,
                 ];
             })
         ]);
@@ -62,7 +82,7 @@ class CategoryController extends Controller
             ], 404);
         }
 
-        // Get children categories
+        // Get children categories with product counts
         $children = Category::where('parent_id', $category->id)
             ->orderBy('name')
             ->get()
@@ -72,6 +92,7 @@ class CategoryController extends Controller
                     'name' => $child->name,
                     'slug' => $child->slug,
                     'image_url' => $child->image_url,
+                    'product_count' => $this->getProductCountForCategory($child->id),
                 ];
             });
 
@@ -81,27 +102,32 @@ class CategoryController extends Controller
                 'name' => $category->name,
                 'slug' => $category->slug,
                 'image_url' => $category->image_url,
+                'product_count' => $this->getProductCountForCategory($category->id),
                 'children' => $children
             ]
         ]);
     }
 
     /**
-     * Get featured/top-level categories only
+     * Get featured/top-level categories only, ordered by product count
      *
      * @return JsonResponse
      */
     public function featured(): JsonResponse
     {
         $categories = Category::where('parent_id', null)
-            ->orderBy('name')
             ->get()
+            ->sortBy(function ($category) {
+                return -$this->getProductCountForCategory($category->id); // Negative for descending order
+            })
+            ->values()
             ->map(function ($category) {
                 return [
                     'id' => $category->id,
                     'name' => $category->name,
                     'slug' => $category->slug,
                     'image_url' => $category->image_url,
+                    'product_count' => $this->getProductCountForCategory($category->id),
                 ];
             });
 
@@ -113,11 +139,17 @@ class CategoryController extends Controller
      *
      * @param int $parentId
      * @param \Illuminate\Database\Eloquent\Collection $allCategories
+     * @param array $categoryProductCounts
      * @return array
      */
-    private function buildChildren(int $parentId, $allCategories): array
+    private function buildChildren(int $parentId, $allCategories, array $categoryProductCounts): array
     {
-        $children = $allCategories->where('parent_id', $parentId);
+        $children = $allCategories->where('parent_id', $parentId)
+            ->sortBy(function ($child) use ($categoryProductCounts) {
+                return -($categoryProductCounts[$child->id] ?? 0); // Negative for descending order
+            })
+            ->values();
+
         $result = [];
 
         foreach ($children as $child) {
@@ -126,10 +158,29 @@ class CategoryController extends Controller
                 'name' => $child->name,
                 'slug' => $child->slug,
                 'image_url' => $child->image_url,
-                'children' => $this->buildChildren($child->id, $allCategories)
+                'product_count' => $categoryProductCounts[$child->id] ?? 0,
+                'children' => $this->buildChildren($child->id, $allCategories, $categoryProductCounts)
             ];
         }
 
         return $result;
+    }
+
+    /**
+     * Get product count for a specific category
+     *
+     * @param int $categoryId
+     * @return int
+     */
+    private function getProductCountForCategory(int $categoryId): int
+    {
+        // Count of published products that have this category
+        // Convert to string since category_ids is stored as array of strings in JSON
+        $count = Product::where('status', 'published')
+            ->whereJsonContains('category_ids', (string)$categoryId)
+            ->distinct()
+            ->count('id');
+
+        return $count;
     }
 }
