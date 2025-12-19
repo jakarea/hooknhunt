@@ -33,3 +33,5 @@ Coupons & Vouchers http://localhost:5173/marketing/coupons
 
 Integrations http://localhost:5173/settings/integrations
 Access Control http://localhost:5173/settings/rbac
+
+"Reports & Analytics", "Accounts & Finance", "HRM", "CRM", "Marketing & Loyalty" 

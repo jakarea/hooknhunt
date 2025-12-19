@@ -132,6 +132,29 @@ export function PurchaseOrderDetails() {
     received_quantity: string;
   }>>([]);
 
+  // Function to calculate final unit cost based on all cost components
+  const calculateFinalUnitCost = useCallback(async (orderId: number) => {
+    try {
+      const response = await apiClient.put(`/admin/purchase-orders/${orderId}/recalculate-costs`);
+      console.log('Costs recalculated successfully:', response.data);
+
+      // Refetch the order to get updated costs
+      await fetchOrder(orderId);
+
+      toast({
+        title: 'Costs Updated',
+        description: 'Unit costs have been recalculated based on latest data.',
+      });
+    } catch (error: any) {
+      console.error('Failed to recalculate costs:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to recalculate costs. Please refresh the page.',
+        variant: 'destructive',
+      });
+    }
+  }, [fetchOrder]);
+
   useEffect(() => {
     if (id) {
       fetchOrder(parseInt(id));
@@ -263,6 +286,97 @@ export function PurchaseOrderDetails() {
     setShowReceiveStockDialog(true);
   };
 
+  const handleAddToStock = () => {
+    if (!currentOrder || !currentOrder.items || currentOrder.items.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'No items found to add to stock',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    console.log('🔄 Add to Stock clicked for order:', currentOrder?.id);
+    console.log('🔄 Items to process:', currentOrder.items);
+
+    // Navigate to the first item's receive stock page
+    const firstItem = currentOrder.items[0];
+    if (firstItem) {
+      // Navigate to the newer ReceiveStockNew.tsx file
+      navigate(`/inventory/receive/${firstItem.id}`, {
+        state: {
+          from: `/purchase/${currentOrder.id}`,
+          purchaseOrderId: currentOrder.id,
+          allItems: currentOrder.items,
+          currentIndex: 0
+        }
+      });
+    } else {
+      toast({
+        title: 'Error',
+        description: 'No items found to add to stock',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleAddItemToStock = (item: any) => {
+    if (!item || !item.id) {
+      toast({
+        title: 'Error',
+        description: 'Invalid item selected',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!currentOrder) {
+      toast({
+        title: 'Error',
+        description: 'Purchase order information not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    console.log('🔄 Add Item to Stock clicked for item:', item.id);
+    console.log('🔄 Product:', item.product?.base_name);
+    console.log('🔄 From order:', currentOrder.id);
+
+    // Find the index of this item in the order items list
+    const currentIndex = currentOrder.items?.findIndex((orderItem: any) => orderItem.id === item.id) || 0;
+
+    // Navigate to the specific item's receive stock page
+    navigate(`/inventory/receive/${item.id}`, {
+      state: {
+        from: `/purchase/${currentOrder.id}`,
+        purchaseOrderId: currentOrder.id,
+        allItems: currentOrder.items || [],
+        currentIndex: currentIndex,
+        focusedItem: item
+      }
+    });
+  };
+
+  // Function to determine if Actions column should be shown
+  const shouldShowActionsColumn = (item?: any) => {
+    if (isEditMode) return true;
+
+    // If item is provided, check if Received Qty != Stock Qty
+    if (item) {
+      const receivedQty = Number(item.received_quantity) || 0;
+      const stockedQty = Number(item.stocked_quantity) || 0;
+      return receivedQty !== stockedQty;
+    }
+
+    // If no item provided, check if any item has different received and stocked quantities
+    return currentOrder?.items?.some((item: any) => {
+      const receivedQty = Number(item.received_quantity) || 0;
+      const stockedQty = Number(item.stocked_quantity) || 0;
+      return receivedQty !== stockedQty;
+    });
+  };
+
   const getMainActionButton = () => {
     if (!currentOrder) return null;
 
@@ -275,7 +389,7 @@ export function PurchaseOrderDetails() {
       arrived_bd: { label: 'Mark as Transit Bogura', action: () => openTransitDialog(), disabled: false },
       in_transit_bogura: { label: 'Receive Stock', action: () => openReceiveStockDialog(), disabled: false },
       received_hub: { label: 'Mark as Completed', action: () => handleStatusUpdate('completed'), disabled: false },
-      completed: { label: 'Order Completed', action: () => { }, disabled: true },
+      completed: { label: '', action: () => { }, disabled: true },
       completed_partially: { label: 'Partially Completed', action: () => { }, disabled: true },
       lost: { label: 'Order Lost', action: () => { }, disabled: true },
     };
@@ -339,6 +453,9 @@ export function PurchaseOrderDetails() {
       await handleStatusUpdate('payment_confirmed', {
         exchange_rate: parseFloat(data.exchange_rate),
       });
+
+      // Recalculate costs when exchange rate changes
+      await calculateFinalUnitCost(currentOrder.id);
     } else {
       // For orders already past payment stage, just update the exchange rate without status change
       try {
@@ -351,9 +468,12 @@ export function PurchaseOrderDetails() {
         // Refetch the order to update the store and trigger re-render
         await fetchOrder(currentOrder.id);
 
+        // Recalculate costs when exchange rate changes
+        await calculateFinalUnitCost(currentOrder.id);
+
         toast({
           title: 'Success',
-          description: 'Exchange rate updated successfully',
+          description: 'Exchange rate updated and costs recalculated',
         });
       } catch (error: any) {
         console.error('Failed to update exchange rate:', error);
@@ -450,12 +570,19 @@ export function PurchaseOrderDetails() {
   };
 
   const handleArrivedSubmit = async (data: ArrivedFormData) => {
+    const hasShippingCost = data.shipping_cost && parseFloat(data.shipping_cost) > 0;
+
     if (currentOrder?.status === 'shipped_bd') {
       // For orders at shipped stage, confirm arrived and set status
       await handleStatusUpdate('arrived_bd', {
         shipping_method: data.shipping_method,
         shipping_cost: parseFloat(data.shipping_cost),
       });
+
+      // Recalculate costs when shipping cost changes
+      if (hasShippingCost) {
+        await calculateFinalUnitCost(currentOrder.id);
+      }
     } else {
       // For orders already past arrived stage, just update shipping info without status change
       try {
@@ -469,9 +596,14 @@ export function PurchaseOrderDetails() {
         // Refetch the order to update the store and trigger re-render
         await fetchOrder(currentOrder.id);
 
+        // Recalculate costs when shipping cost changes
+        if (hasShippingCost) {
+          await calculateFinalUnitCost(currentOrder.id);
+        }
+
         toast({
           title: 'Success',
-          description: 'Shipping information updated successfully',
+          description: 'Shipping information updated and costs recalculated',
         });
       } catch (error: any) {
         console.error('Failed to update shipping information:', error);
@@ -546,6 +678,8 @@ export function PurchaseOrderDetails() {
         return sum + ((unitWeight + extraWeight) * quantity);
       }, 0);
 
+      const hasAdditionalCost = data.additional_cost && parseFloat(data.additional_cost) > 0;
+
       if (currentOrder.status === 'in_transit_bogura') {
         // First time receiving stock - change status to received_hub
         const payload = {
@@ -562,9 +696,13 @@ export function PurchaseOrderDetails() {
         console.log('Receive stock payload:', payload);
 
         await receiveItems(currentOrder.id, payload);
+
+        // Recalculate costs when weight and additional costs are set
+        await calculateFinalUnitCost(currentOrder.id);
+
         toast({
           title: 'Success',
-          description: 'Stock received successfully. You can now mark the order as completed.',
+          description: 'Stock received successfully and costs recalculated.',
         });
       } else {
         // Already received - just update the stock data without status change
@@ -582,9 +720,14 @@ export function PurchaseOrderDetails() {
         // Refetch the order to update the store and trigger re-render
         await fetchOrder(currentOrder.id);
 
+        // Recalculate costs when weight, extra costs, or received quantities change
+        if (hasAdditionalCost || totalWeight > 0) {
+          await calculateFinalUnitCost(currentOrder.id);
+        }
+
         toast({
           title: 'Success',
-          description: 'Stock information updated successfully.',
+          description: 'Stock information updated and costs recalculated.',
         });
       }
 
@@ -909,6 +1052,9 @@ export function PurchaseOrderDetails() {
   const activeWorkflowSteps = getWorkflowSteps();
   const currentStepIndex = getCurrentStepIndex();
 
+  // Check if order is completed (completed or completed_partially)
+  const isCompleted = ['completed', 'completed_partially'].includes(currentOrder?.status || '');
+
   // Debug logging
   console.log('🔄 PurchaseOrderDetails render:', {
     currentOrderId: currentOrder?.id,
@@ -936,15 +1082,26 @@ export function PurchaseOrderDetails() {
                 </Badge>
               </CardTitle>
               <CardDescription>
-                Supplier: {currentOrder.supplier?.shop_name || 'Unknown'}
+                Supplier: {currentOrder.supplier ? (
+                  <button
+                    onClick={() => navigate(`/purchase/suppliers/${currentOrder.supplier?.id}`)}
+                    className="text-blue-600 hover:text-blue-800 hover:underline underline-offset-4 transition-colors"
+                  >
+                    {currentOrder.supplier.shop_name}
+                  </button>
+                ) : (
+                  'Unknown'
+                )}
               </CardDescription>
             </div>
-            <Button
-              onClick={mainAction.action}
-              disabled={mainAction.disabled || processing}
-            >
-              {mainAction.label}
-            </Button>
+            {!isCompleted && (
+              <Button
+                onClick={mainAction.action}
+                disabled={mainAction.disabled || processing}
+              >
+                {mainAction.label}
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -1014,7 +1171,8 @@ export function PurchaseOrderDetails() {
                   if (isActive) {
                     if (step.key === 'draft') {
                       stepData = [
-                        { label: 'Created', value: new Date(currentOrder.created_at).toLocaleString() }
+                        { label: 'Created', value: new Date(currentOrder.created_at).toLocaleString() },
+                        ...(isCurrent ? [{ label: 'Updated', value: 'Just now' }] : [])
                       ];
                     }
                     else if (step.key === 'payment_confirmed' && currentOrder.exchange_rate) {
@@ -1024,46 +1182,89 @@ export function PurchaseOrderDetails() {
                         { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
                       ];
                     }
-                    else if (step.key === 'supplier_dispatched' && currentOrder.courier_name) {
-                      stepData = [
-                        { label: 'Courier', value: currentOrder.courier_name },
-                        { label: 'Tracking #', value: currentOrder.tracking_number || 'N/A' },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                    else if (step.key === 'supplier_dispatched') {
+                      if (currentOrder.courier_name) {
+                        stepData = [
+                          { label: 'Courier', value: currentOrder.courier_name },
+                          { label: 'Tracking #', value: currentOrder.tracking_number || 'N/A' },
+                          { label: 'Updated', value: isCurrent || isCompleted ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      } else if (isActive) {
+                        stepData = [
+                          { label: 'Status', value: 'Dispatched' },
+                          { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      }
                     }
                     else if (step.key === 'warehouse_received') {
                       stepData = [
                         { label: 'Status', value: 'Received at Warehouse' },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                        { label: 'Updated', value: isActive ? (isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString()) : '' }
+                      ].filter(item => item.value !== '');
                     }
-                    else if (step.key === 'shipped_bd' && currentOrder.lot_number) {
-                      stepData = [
-                        { label: 'Lot Number', value: currentOrder.lot_number },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                    else if (step.key === 'shipped_bd') {
+                      if (currentOrder.lot_number) {
+                        stepData = [
+                          { label: 'Lot Number', value: currentOrder.lot_number },
+                          { label: 'Updated', value: isActive ? (isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString()) : '' }
+                        ].filter(item => item.value !== '');
+                      } else if (isActive) {
+                        stepData = [
+                          { label: 'Status', value: 'Shipped to Bangladesh' },
+                          { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      }
                     }
-                    else if (step.key === 'arrived_bd' && currentOrder.shipping_method) {
-                      stepData = [
-                        { label: 'Shipping Method', value: currentOrder.shipping_method === 'air' ? 'Air' : 'Sea' },
-                        { label: 'Shipping Cost', value: `৳${currentOrder.shipping_cost || 0}` },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                    else if (step.key === 'arrived_bd') {
+                      if (currentOrder.shipping_method) {
+                        stepData = [
+                          { label: 'Shipping Method', value: currentOrder.shipping_method === 'air' ? 'Air' : 'Sea' },
+                          { label: 'Shipping Cost', value: `৳${currentOrder.shipping_cost || 0}` },
+                          { label: 'Updated', value: isActive ? (isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString()) : '' }
+                        ].filter(item => item.value !== '');
+                      } else if (isActive) {
+                        stepData = [
+                          { label: 'Status', value: 'Arrived in Bangladesh' },
+                          { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      }
                     }
-                    else if (step.key === 'in_transit_bogura' && currentOrder.bd_courier_tracking) {
-                      stepData = [
-                        { label: 'BD Tracking', value: currentOrder.bd_courier_tracking },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                    else if (step.key === 'in_transit_bogura') {
+                      if (currentOrder.bd_courier_tracking) {
+                        stepData = [
+                          { label: 'BD Tracking', value: currentOrder.bd_courier_tracking },
+                          { label: 'Updated', value: isActive ? (isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString()) : '' }
+                        ].filter(item => item.value !== '');
+                      } else if (isActive) {
+                        stepData = [
+                          { label: 'Status', value: 'In Transit to Bogura' },
+                          { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      }
                     }
-                    else if (step.key === 'received_hub' && currentOrder.total_weight) {
-                      const weight = Number(currentOrder.total_weight);
-                      const weightInKg = weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`;
-                      stepData = [
-                        { label: 'Weight', value: weightInKg },
-                        { label: 'Extra Cost', value: `৳${currentOrder.extra_cost_global || 0}` },
-                        { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
-                      ];
+                    else if (step.key === 'received_hub') {
+                      // Calculate received quantities summary
+                      const totalOrderedQty = currentOrder.items?.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0) || 0;
+                      const totalReceivedQty = currentOrder.items?.reduce((sum, item) => sum + (Number(item.received_quantity) || 0), 0) || 0;
+                      const itemsWithReceivedQty = currentOrder.items?.filter(item => item.received_quantity && Number(item.received_quantity) > 0) || [];
+
+                      if (isActive) {
+                        const weight = Number(currentOrder.total_weight) || 0;
+                        const weightInKg = weight >= 1000 ? `${(weight / 1000).toFixed(2)} kg` : `${weight} g`;
+
+                        stepData = [
+                          { label: 'Status', value: 'Received at Hub' },
+                          ...(totalReceivedQty > 0 ? [
+                            { label: 'Total Received', value: `${totalReceivedQty} / ${totalOrderedQty} pcs` },
+                            { label: 'Items Updated', value: `${itemsWithReceivedQty.length} of ${currentOrder.items?.length || 0} items` }
+                          ] : []),
+                          ...(weight > 0 ? [{ label: 'Total Weight', value: weightInKg }] : []),
+                          ...(currentOrder.extra_cost_global && Number(currentOrder.extra_cost_global) > 0 ? [
+                            { label: 'Extra Cost', value: `৳${currentOrder.extra_cost_global}` }
+                          ] : []),
+                          { label: 'Updated', value: isCurrent ? 'Just now' : new Date(currentOrder.updated_at).toLocaleString() }
+                        ];
+                      }
                     }
                     else if (step.key === 'completed' && isCompleted) {
                       stepData = [
@@ -1232,6 +1433,7 @@ export function PurchaseOrderDetails() {
                     </TableHead>
                     <TableHead>Quantity</TableHead>
                     {hasReceivedQtyData && <TableHead>Received Qty</TableHead>}
+                    {hasReceivedQtyData && <TableHead>Stock Qty</TableHead>}
                     {hasWeightData && <TableHead>Weight</TableHead>}
                     {hasExtraWeightData && <TableHead>Extra Weight</TableHead>}
                     <TableHead>
@@ -1243,7 +1445,7 @@ export function PurchaseOrderDetails() {
                       </div>
                     </TableHead>
                     {hasFinalCostData && <TableHead>Unit Cost</TableHead>}
-                    {isEditMode && <TableHead className="text-center">Actions</TableHead>}
+                    {shouldShowActionsColumn() && <TableHead className="text-center">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1303,20 +1505,37 @@ export function PurchaseOrderDetails() {
                             {item.received_quantity ?? '-'}
                           </TableCell>
                         )}
+                        {hasReceivedQtyData && (
+                          <TableCell className="text-blue-600 font-semibold">
+                            {item.stocked_quantity ?? '-'}
+                          </TableCell>
+                        )}
                         {hasWeightData && <TableCell>{(Number(item.unit_weight || 0)).toFixed(2)} g</TableCell>}
                         {hasExtraWeightData && <TableCell>{(Number(item.extra_weight || 0)).toFixed(2)} g</TableCell>}
                         <TableCell>¥{(chinaPrice * quantity).toFixed(2)}</TableCell>
                         {hasFinalCostData && <TableCell>৳{(Number(item.final_unit_cost || 0)).toFixed(2)}</TableCell>}
-                        {isEditMode && (
+                        {shouldShowActionsColumn(item) && (
                           <TableCell className="text-center">
-                            <Button
-                              onClick={() => removeEditableItem(idx)}
-                              variant="outline"
-                              size="sm"
-                              className="text-red-600 hover:text-red-700 hover:border-red-300"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            {isEditMode ? (
+                              <Button
+                                onClick={() => removeEditableItem(idx)}
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:border-red-300"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={() => handleAddItemToStock(item)}
+                                variant="outline"
+                                size="sm"
+                                className="text-green-600 hover:text-green-700 hover:border-green-300"
+                                title="Add this item to stock"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            )}
                           </TableCell>
                         )}
                       </TableRow>

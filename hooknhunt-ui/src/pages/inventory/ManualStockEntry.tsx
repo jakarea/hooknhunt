@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DatePicker } from '@/components/ui/date-picker';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   Package,
   Layers,
@@ -22,32 +24,14 @@ import {
   FileText,
 } from 'lucide-react';
 import api from '@/lib/api';
+import { useAttributeStore } from '@/stores/attributeStore';
+import type { Attribute, AttributeOption } from '@/stores/attributeStore';
+import { ProductImage } from '@/components/ProductImage';
+import { Separator } from '@/components/ui/separator';
 
 // ============================================================================
 // TYPES FOR API DATA
 // ============================================================================
-
-interface AttributeOption {
-  id: number;
-  attribute_id: number;
-  value: string;
-  display_value: string;
-  color_code?: string | null;
-  image_url?: string | null;
-  sort_order: number;
-  is_default: boolean;
-}
-
-interface Attribute {
-  id: number;
-  name: string;
-  display_name: string;
-  type: string;
-  is_required: boolean;
-  is_visible: boolean;
-  sort_order: number;
-  options: AttributeOption[];
-}
 
 // ============================================================================
 // TYPES FOR PRODUCTS
@@ -57,6 +41,17 @@ interface Product {
   id: number;
   base_name: string;
   slug: string;
+  status: 'draft' | 'published';
+  description?: string;
+  base_thumbnail_url?: string;
+  gallery_images?: string[];
+  category_ids?: number[];
+  category_names?: string;
+  meta_title?: string;
+  meta_description?: string;
+  meta_keywords?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const DEFAULT_MARGINS = {
@@ -153,6 +148,11 @@ const calculateProfitAmount = (sellingPrice: string, landedCost: string): string
 
 const ManualStockEntry = () => {
   const { t } = useTranslation('manual-stock-entry');
+  const navigate = useNavigate();
+
+  // Track if we've already fetched attributes to prevent duplicate calls
+  const hasFetchedAttributes = React.useRef(false);
+
   // Add shake animation style
   React.useEffect(() => {
     const style = document.createElement('style');
@@ -171,16 +171,26 @@ const ManualStockEntry = () => {
       document.head.removeChild(style);
     };
   }, []);
-  // Channel toggles (wholesale always on)
+  // Channel toggles (all channels enabled by default to match ReceiveStock)
   const [channels, setChannels] = useState<Channel>({
     retail: true,
     wholesale: true, // Always true
-    daraz: false,
+    daraz: true, // Enable Daraz by default
   });
 
-  // Attributes from API
-  const [attributes, setAttributes] = useState<Attribute[]>([]);
-  const [loadingAttributes, setLoadingAttributes] = useState<boolean>(true);
+  // Helper functions for profit calculations
+  const calculateProfitMargin = (landedCost: number, sellingPrice: number): number => {
+    if (!landedCost || landedCost <= 0) return 0;
+    return ((sellingPrice - landedCost) / landedCost) * 100;
+  };
+
+  const calculateProfit = (landedCost: number, sellingPrice: number, quantity: number): number => {
+    if (!landedCost || landedCost <= 0 || quantity <= 0) return 0;
+    return (sellingPrice - landedCost) * quantity;
+  };
+
+  // Use attribute store
+  const { attributes, loading: loadingAttributes, fetchAttributes } = useAttributeStore();
 
   // Products from API
   const [products, setProducts] = useState<Product[]>([]);
@@ -206,7 +216,7 @@ const ManualStockEntry = () => {
   });
 
   // Selected product for preview
-  const selectedProduct = products.find(p => p.id.toString() === selectedProductId);
+  const selectedProduct = Array.isArray(products) ? products.find(p => p.id.toString() === selectedProductId) : null;
 
   // Validation errors
   const [validationErrors, setValidationErrors] = useState<{
@@ -216,6 +226,7 @@ const ManualStockEntry = () => {
     variantLandedCosts?: {[variantId: string]: string | undefined};
   }>({});
   const [isSaveButtonShaking, setIsSaveButtonShaking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -226,81 +237,31 @@ const ManualStockEntry = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch attributes
-        setLoadingAttributes(true);
-        const attributesResponse = await api.get('/admin/attributes?all=true');
-        console.log('Raw API response:', attributesResponse);
-        console.log('Attributes data:', attributesResponse.data);
-        console.log('Number of attributes:', attributesResponse.data?.length || 0);
-
-        // Force set with test data if API returns empty
-        const data = attributesResponse.data?.length > 0 ? attributesResponse.data : [
-          {
-            id: 1,
-            name: 'color',
-            display_name: 'Color',
-            type: 'color',
-            is_required: true,
-            is_visible: true,
-            sort_order: 1,
-            options: [
-              { id: 1, attribute_id: 1, value: 'red', display_value: 'Red', color_code: '#FF0000', sort_order: 1, is_default: false },
-              { id: 2, attribute_id: 1, value: 'blue', display_value: 'Blue', color_code: '#0000FF', sort_order: 2, is_default: false },
-              { id: 3, attribute_id: 1, value: 'green', display_value: 'Green', color_code: '#00FF00', sort_order: 3, is_default: false }
-            ]
-          },
-          {
-            id: 2,
-            name: 'size',
-            display_name: 'Size',
-            type: 'select',
-            is_required: true,
-            is_visible: true,
-            sort_order: 2,
-            options: [
-              { id: 4, attribute_id: 2, value: 's', display_value: 'S', color_code: null, sort_order: 1, is_default: false },
-              { id: 5, attribute_id: 2, value: 'm', display_value: 'M', color_code: null, sort_order: 2, is_default: false },
-              { id: 6, attribute_id: 2, value: 'l', display_value: 'L', color_code: null, sort_order: 3, is_default: false }
-            ]
-          }
-        ];
-
-        console.log('Final data being set:', data);
-        setAttributes(data);
-        setLoadingAttributes(false);
+        // Fetch attributes using the store only if not already loaded or fetched
+        if (attributes.length === 0 && !hasFetchedAttributes.current) {
+          hasFetchedAttributes.current = true;
+          await fetchAttributes(false);
+        }
 
         // Fetch products
         setLoadingProducts(true);
         const productsResponse = await api.get('/admin/products?all=true');
-        setProducts(productsResponse.data);
+
+        // Handle different API response structures
+        const productsData = productsResponse.data.data || productsResponse.data;
+        const productsArray = Array.isArray(productsData) ? productsData : [];
+
+        setProducts(productsArray);
         setLoadingProducts(false);
       } catch (error) {
         console.error('Failed to fetch data:', error);
-
-        // More detailed error logging
-        if (error.response) {
-          console.error('API Error Response:', error.response.status, error.response.data);
-        } else if (error.request) {
-          console.error('No response received:', error.request);
-        } else {
-          console.error('Request setup error:', error.message);
-        }
-
-        setLoadingAttributes(false);
         setLoadingProducts(false);
       }
     };
 
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Debug: Track attributes state changes
-  useEffect(() => {
-    console.log('Attributes state changed:', {
-      length: attributes.length,
-      data: attributes
-    });
-  }, [attributes]);
 
   // Fetch product SEO data when product is selected
   useEffect(() => {
@@ -408,7 +369,7 @@ const ManualStockEntry = () => {
         if (optionIds.length > 0) {
           const attributeId = parseInt(attributeIdStr);
           const attribute = attributes.find(a => a.id === attributeId);
-          if (attribute) {
+          if (attribute && attribute.options) {
             const options = attribute.options.filter(opt => optionIds.includes(opt.id));
             if (options.length > 0) {
               selectedOptions.push(options);
@@ -422,7 +383,7 @@ const ManualStockEntry = () => {
 
       let idCounter = 1;
       combinations.forEach(combination => {
-        const displayValues = combination.map(opt => opt.display_value).join(' - ');
+        const displayValues = combination.map(opt => opt.display_value || opt.value).join(' - ');
         // Include product name with variant attributes for better identification
         const variantFullName = selectedProduct?.base_name ? `${selectedProduct.base_name} - ${displayValues}` : displayValues;
 
@@ -457,6 +418,7 @@ const ManualStockEntry = () => {
       });
     }
 
+    console.log('Generated variants:', newVariants);
     setVariants(newVariants);
   };
 
@@ -543,6 +505,7 @@ const ManualStockEntry = () => {
   const handleSaveStock = async () => {
     // Clear previous errors
     setValidationErrors({});
+    setSaveError(null);
 
     const errors: typeof validationErrors = {};
 
@@ -585,6 +548,7 @@ const ManualStockEntry = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       // Prepare payload
       const payload = {
@@ -626,22 +590,13 @@ const ManualStockEntry = () => {
       const response = await api.post('/admin/inventory/manual-entry', payload);
 
       if (response.status === 201) {
+        setSubmitting(false);
         setSaveSuccess(true);
         setSaveError(null);
-        // Reset form after a delay
+        // Redirect to stock management page after successful submission
         setTimeout(() => {
-          setVariants([]);
-          setSelectedProductId('');
-          setSelectedAttributeOptions({});
-          setProductData({
-            galleryImages: [],
-            metaTitle: '',
-            metaDescription: '',
-            metaKeywords: '',
-            seoSlug: '',
-          });
-          setSaveSuccess(false);
-        }, 2000);
+          navigate('/products/stock');
+        }, 1500);
       }
     } catch (error) {
       console.error('Failed to save stock entry:', error);
@@ -705,6 +660,7 @@ const ManualStockEntry = () => {
 
       setIsSaveButtonShaking(true);
       setTimeout(() => setIsSaveButtonShaking(false), 500);
+      setSubmitting(false);
     }
   };
 
@@ -729,16 +685,18 @@ const ManualStockEntry = () => {
   // ============================================================================
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Compact Header */}
-      <div className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Package className="h-6 w-6 text-blue-600" />
+            <div className="flex items-center gap-4">
               <div>
-                <h1 className="text-xl font-bold text-gray-900">{t('header.title')}</h1>
-                <p className="text-xs text-gray-600">{t('header.subtitle')}</p>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <Package className="h-6 w-6 text-blue-600" />
+                  {t('header.title')}
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">{t('header.subtitle')}</p>
               </div>
             </div>
 
@@ -768,113 +726,211 @@ const ManualStockEntry = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-[1600px] mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Validation Summary Banner */}
         {(validationErrors.selectedProduct || validationErrors.variants || validationErrors.variantSkus || validationErrors.variantLandedCosts) && (
-          <Card className="shadow-lg border-red-500 border-2 bg-red-50 sticky top-4 z-10">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-red-700 text-base font-bold mb-2">{t('validation.errors_title')}</p>
-                  <ul className="space-y-1 text-sm text-red-600">
-                    {validationErrors.selectedProduct && (
-                      <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                        {validationErrors.selectedProduct}
-                      </li>
-                    )}
-                    {validationErrors.variants && validationErrors.variants.map((error, idx) => (
-                      <li key={idx} className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                        {error}
-                      </li>
+          <Alert className="border-red-200 bg-red-50">
+            <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <AlertTitle className="text-red-800 font-bold">{t('validation.errors_title')}</AlertTitle>
+            <AlertDescription className="text-red-700">
+              <ul className="space-y-1 text-sm mt-2">
+                {validationErrors.selectedProduct && (
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                    {validationErrors.selectedProduct}
+                  </li>
+                )}
+                {validationErrors.variants && validationErrors.variants.map((error, idx) => (
+                  <li key={idx} className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                    {error}
+                  </li>
+                ))}
+                {validationErrors.variantSkus && Object.keys(validationErrors.variantSkus).length > 0 && (
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                    {t('validation.sku_missing', { count: Object.keys(validationErrors.variantSkus).length })}
+                  </li>
+                )}
+                {validationErrors.variantLandedCosts && Object.keys(validationErrors.variantLandedCosts).length > 0 && (
+                  <li className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
+                    {t('validation.landed_cost_missing', { count: Object.keys(validationErrors.variantLandedCosts).length })}
+                  </li>
+                )}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Product Selection */}
+        <Card className="shadow-lg border-0">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+            <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
+              <Package className="h-5 w-5" />
+              Select Product
+            </CardTitle>
+            <CardDescription className="text-blue-700">
+              Choose a product to add inventory
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Product Dropdown */}
+              <div>
+                <Label htmlFor="product" className="text-sm font-medium text-gray-700 mb-2 block">Product</Label>
+                <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={loadingProducts}>
+                  <SelectTrigger id="product" className={`${validationErrors.selectedProduct ? 'border-red-500 border-2 focus:ring-red-500 bg-red-50' : ''}`}>
+                    <SelectValue placeholder={loadingProducts ? "Loading products..." : "Select a product"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products.map(product => (
+                      <SelectItem key={product.id} value={product.id.toString()}>
+                        {product.base_name}
+                      </SelectItem>
                     ))}
-                    {validationErrors.variantSkus && Object.keys(validationErrors.variantSkus).length > 0 && (
-                      <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                        {t('validation.sku_missing', { count: Object.keys(validationErrors.variantSkus).length })}
-                      </li>
+                  </SelectContent>
+                </Select>
+                {validationErrors.selectedProduct && (
+                  <div className="mt-2 flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                    <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-red-600 text-sm font-medium">{validationErrors.selectedProduct}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Product Type Radio */}
+              <div>
+                <Label className="text-sm font-medium text-gray-700 mb-2 block">Product Type</Label>
+                <RadioGroup
+                  value={productType}
+                  onValueChange={(value) => setProductType(value as 'simple' | 'variable')}
+                  className="flex gap-6"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="simple" id="simple" />
+                    <Label htmlFor="simple" className="cursor-pointer">Simple Product</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="variable" id="variable" />
+                    <Label htmlFor="variable" className="cursor-pointer">Variable Product</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Product Information - Shown when product is selected */}
+        {selectedProduct && (
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+              <CardTitle className="text-lg flex items-center gap-2 text-blue-900">
+                <Package className="h-5 w-5" />
+                Product Information
+              </CardTitle>
+              <CardDescription className="text-blue-700">
+                Basic product details
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Product Image */}
+                <div className="lg:col-span-1">
+                  <div className="text-center">
+                    <h3 className="text-sm font-medium text-gray-700 mb-6">Product Image</h3>
+                    <div className="relative inline-block group">
+                      <ProductImage
+                        src={selectedProduct.base_thumbnail_url}
+                        alt={selectedProduct.base_name}
+                        size="xl"
+                        className="rounded-2xl border-2 border-gray-200 shadow-xl hover:shadow-2xl transition-all duration-300 hover:border-blue-400 bg-white"
+                      />
+                      <div className="absolute inset-0 pointer-events-none rounded-2xl bg-gradient-to-t from-black/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                      <div className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                        <div className="bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg border border-gray-100">
+                          <span className="text-xs font-medium text-gray-700 flex items-center gap-1.5">
+                            <Package className="h-3 w-3" />
+                            View Product
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {selectedProduct.status && (
+                      <div className="mt-4">
+                        <Badge
+                          variant={selectedProduct.status === 'published' ? 'default' : 'secondary'}
+                          className="text-xs px-3 py-1"
+                        >
+                          {selectedProduct.status === 'published' ? 'Published' : 'Draft'}
+                        </Badge>
+                      </div>
                     )}
-                    {validationErrors.variantLandedCosts && Object.keys(validationErrors.variantLandedCosts).length > 0 && (
-                      <li className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
-                        {t('validation.landed_cost_missing', { count: Object.keys(validationErrors.variantLandedCosts).length })}
-                      </li>
-                    )}
-                  </ul>
+                  </div>
+                </div>
+
+                {/* Product Details */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-700 mb-2 block">Product Title</Label>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedProduct.base_name}</h3>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
+                        <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Categories</Label>
+                        <div className="mt-1">
+                          {selectedProduct.category_ids && selectedProduct.category_ids.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {selectedProduct.category_ids.map((categoryId, index) => (
+                                <Badge key={index} variant="outline" className="text-xs bg-white border-gray-300">
+                                  Category {categoryId}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-lg font-semibold text-gray-900">No categories</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 rounded-lg p-4">
+                        <Label className="text-xs font-medium text-blue-600 uppercase tracking-wide">Status</Label>
+                        <div className="mt-2">
+                          <Badge variant={selectedProduct.status === 'published' ? 'default' : 'secondary'} className="text-sm">
+                            {selectedProduct.status || 'Draft'}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 1: Product Selection - Compact */}
-        <Card className="shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              {t('product_selection.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="product" className="text-sm">{t('product_selection.product_label')}</Label>
-                  <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={loadingProducts}>
-                    <SelectTrigger id="product" className={`h-9 ${validationErrors.selectedProduct ? 'border-red-500 border-2 focus:ring-red-500 bg-red-50' : ''}`}>
-                      <SelectValue placeholder={loadingProducts ? t('product_selection.product_placeholder_loading') : t('product_selection.product_placeholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map(product => (
-                        <SelectItem key={product.id} value={product.id.toString()}>
-                          {product.base_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {validationErrors.selectedProduct && (
-                    <div className="mt-2 flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded-md">
-                      <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      <p className="text-red-600 text-sm font-medium">{validationErrors.selectedProduct}</p>
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <Label className="text-sm">{t('product_selection.type_label')}</Label>
-                  <RadioGroup
-                    value={productType}
-                    onValueChange={(value) => setProductType(value as 'simple' | 'variable')}
-                    className="flex gap-4 mt-2"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="simple" id="simple" />
-                      <Label htmlFor="simple" className="cursor-pointer text-sm">{t('product_selection.simple_type')}</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="variable" id="variable" />
-                      <Label htmlFor="variable" className="cursor-pointer text-sm">{t('product_selection.variable_type')}</Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </div>
-          </CardContent>
-        </Card>
-
-        {/* Step 2: Variant Generator - Compact */}
+        {/* Variant Generator */}
         {productType === 'variable' && selectedProduct && (
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Layers className="h-4 w-4" />
-                {t('variant_generator.title')}
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+              <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
+                <Layers className="h-5 w-5" />
+                Variant Generator
               </CardTitle>
+              <CardDescription className="text-purple-700">
+                Select attribute combinations to generate variants
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="p-6 space-y-4">
               {loadingAttributes ? (
                 <div className="text-center py-4">
                   <p className="text-sm text-gray-500">{t('variant_generator.loading_attributes')}</p>
@@ -888,32 +944,30 @@ const ManualStockEntry = () => {
                 <>
                   {attributes.map(attribute => (
                     <div key={attribute.id}>
-                      <Label className="text-sm mb-2 block">{attribute.display_name}</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {attribute.options.map(option => {
+                      <Label className="text-xs mb-1 block font-medium text-gray-900">{attribute.display_name || attribute.name}</Label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {attribute.options?.map(option => {
                           const isSelected = selectedAttributeOptions[attribute.id]?.includes(option.id) || false;
 
                           return (
-                            <button
+                            <Button
                               key={option.id}
+                              variant={isSelected ? "default" : "outline"}
+                              size="sm"
                               onClick={() => toggleAttributeOption(attribute.id, option.id)}
-                              className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-all ${
-                                isSelected
-                                  ? 'border-blue-500 bg-blue-50 font-medium'
-                                  : 'border-gray-300 hover:border-gray-400'
-                              }`}
+                              className="flex items-center gap-1 h-7 px-2 text-xs"
                             >
                               {attribute.type === 'color' && option.color_code && (
                                 <span
-                                  className="w-3 h-3 rounded-full border"
+                                  className="w-2.5 h-2.5 rounded-full border"
                                   style={{
                                     backgroundColor: option.color_code,
                                     borderColor: option.color_code === '#FFFFFF' ? '#000' : option.color_code,
                                   }}
                                 />
                               )}
-                              {option.display_value}
-                            </button>
+                              <span className="truncate">{option.display_value || option.value}</span>
+                            </Button>
                           );
                         })}
                       </div>
@@ -921,9 +975,9 @@ const ManualStockEntry = () => {
                   ))}
 
                   {/* Generate Button */}
-                  <Button onClick={generateVariants} className="w-full" size="sm" disabled={!selectedProduct}>
-                    <Layers className="h-4 w-4 mr-2" />
-                    {t('variant_generator.generate_button')}
+                  <Button onClick={generateVariants} className="w-full mt-2" size="sm">
+                    <Layers className="h-3.5 w-3.5 mr-1.5" />
+                    Generate Variants
                   </Button>
                 </>
               )}
@@ -941,32 +995,33 @@ const ManualStockEntry = () => {
 
         {/* Error message for missing variants when validation fails */}
         {selectedProduct && variants.length === 0 && validationErrors.variants && (
-          <Card className="shadow-sm border-red-500 border-2 bg-red-50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <svg className="w-5 h-5 text-red-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <div>
-                  <p className="text-red-600 text-sm font-semibold">{t('validation.validation_error')}</p>
-                  <p className="text-red-600 text-sm">{validationErrors.variants[0]}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Alert className="border-red-200 bg-red-50">
+            <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <AlertTitle className="text-red-800 font-bold">{t('validation.validation_error')}</AlertTitle>
+            <AlertDescription className="text-red-700 text-sm">
+              {validationErrors.variants[0]}
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* Step 3: Variants Table - Compact */}
+        {/* Variants Table */}
         {variants.length > 0 && (
-          <Card className="shadow-sm">
-            <CardHeader className="pb-3">
+          <Card className="shadow-lg border-0">
+            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  {t('variants_table.title', { productName: selectedProduct?.base_name })}
-                </CardTitle>
-                <Badge variant="secondary" className="text-xs">
-                  {t(variants.length > 1 ? 'variants_table.count_plural' : 'variants_table.count_single', { count: variants.length })}
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2 text-green-900">
+                    <DollarSign className="h-5 w-5" />
+                    Stock & Pricing for {selectedProduct?.base_name}
+                  </CardTitle>
+                  <CardDescription className="text-green-700 mt-1">
+                    Configure inventory and pricing for each variant
+                  </CardDescription>
+                </div>
+                <Badge variant="secondary" className="text-sm px-3 py-1">
+                  {variants.length} {variants.length > 1 ? 'Variants' : 'Variant'}
                 </Badge>
               </div>
             </CardHeader>
@@ -976,29 +1031,29 @@ const ManualStockEntry = () => {
                   <thead className="bg-gray-100 border-b">
                     <tr>
                       <th className="px-3 py-2 text-center font-medium text-gray-700 w-12"></th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-16">{t('variants_table.header.thumb')}</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-28">{t('variants_table.header.variant')}</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">{t('variants_table.header.sku')}</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">{t('variants_table.header.stock')}</th>
-                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">{t('variants_table.header.cost')}</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-16">Thumb</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-28">Variant</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">SKU</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">Stock</th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 w-24">Cost</th>
                         {channels.wholesale && (
                           <>
                             <th className="px-3 py-2 text-left font-medium text-blue-700 border-l border-blue-200" colSpan={5}>
-                              {t('variants_table.header.wholesale')}
+                              Wholesale
                             </th>
                           </>
                         )}
                         {channels.retail && (
                           <>
                             <th className="px-3 py-2 text-left font-medium text-red-700 border-l border-red-200" colSpan={5}>
-                              {t('variants_table.header.retail')}
+                              Retail
                             </th>
                           </>
                         )}
                         {channels.daraz && (
                           <>
                             <th className="px-3 py-2 text-left font-medium text-orange-700 border-l border-orange-200" colSpan={5}>
-                              {t('variants_table.header.daraz')}
+                              Daraz
                             </th>
                           </>
                         )}
@@ -1009,31 +1064,32 @@ const ManualStockEntry = () => {
                         <th className="px-3 py-1.5"></th>
                         <th className="px-3 py-1.5"></th>
                         <th className="px-3 py-1.5"></th>
+                        <th className="px-3 py-1.5"></th>
                         {channels.wholesale && (
                           <>
-                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-blue-200">{t('variants_table.header.name')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.price')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.offer')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.start')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.end')}</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-blue-200">Name</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Price</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Offer</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Start</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">End</th>
                           </>
                         )}
                         {channels.retail && (
                           <>
-                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-red-200">{t('variants_table.header.name')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.price')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.offer')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.start')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.end')}</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-red-200">Name</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Price</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Offer</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Start</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">End</th>
                           </>
                         )}
                         {channels.daraz && (
                           <>
-                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-orange-200">{t('variants_table.header.name')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.price')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.offer')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.start')}</th>
-                            <th className="px-3 py-1.5 text-left text-gray-600">{t('variants_table.header.end')}</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600 border-l border-orange-200">Name</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Price</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Offer</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">Start</th>
+                            <th className="px-3 py-1.5 text-left text-gray-600">End</th>
                           </>
                         )}
                       </tr>
@@ -1094,7 +1150,12 @@ const ManualStockEntry = () => {
                           <td className="px-3 py-2">
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-medium truncate" title={variant.internalName}>
-                                {productType === 'simple' ? variant.internalName : variant.internalName.split(' - ').slice(1).join(' - ')}
+                                {productType === 'simple'
+                                  ? variant.internalName
+                                  : (variant.internalName.includes(' - ')
+                                      ? variant.internalName.split(' - ').slice(1).join(' - ')
+                                      : variant.internalName)
+                                }
                               </span>
                             </div>
                           </td>
@@ -1655,9 +1716,14 @@ const ManualStockEntry = () => {
               onClick={handleSaveStock}
               className={`bg-green-600 hover:bg-green-700 ${isSaveButtonShaking ? 'shake' : ''} ${saveSuccess ? 'bg-green-700' : ''}`}
               size="sm"
-              disabled={saveSuccess}
+              disabled={submitting || saveSuccess}
             >
-              {saveSuccess ? (
+              {submitting ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Saving...
+                </>
+              ) : saveSuccess ? (
                 <>
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   {t('actions.save_success')}
@@ -1674,27 +1740,23 @@ const ManualStockEntry = () => {
 
         {/* Error message for save errors */}
         {saveError && (
-          <Card className="shadow-md border-red-500 border-2 bg-red-50 mt-3 animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <svg className="w-6 h-6 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-red-700 text-base font-bold mb-1">{t('validation.save_failed')}</p>
-                  <p className="text-red-600 text-sm">{saveError}</p>
-                  <p className="text-red-500 text-xs mt-2">{t('validation.check_form')}</p>
-                </div>
-                <button
-                  onClick={() => setSaveError(null)}
-                  className="text-red-400 hover:text-red-600 transition-colors"
-                  aria-label="Close error message"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </CardContent>
-          </Card>
+          <Alert className="border-red-200 bg-red-50 relative">
+            <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            </svg>
+            <AlertTitle className="text-red-800 font-bold">{t('validation.save_failed')}</AlertTitle>
+            <AlertDescription className="text-red-700">
+              <p className="text-sm">{saveError}</p>
+              <p className="text-xs mt-2">{t('validation.check_form')}</p>
+            </AlertDescription>
+            <button
+              onClick={() => setSaveError(null)}
+              className="absolute top-4 right-4 text-red-400 hover:text-red-600 transition-colors"
+              aria-label="Close error message"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </Alert>
         )}
       </div>
     </div>

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\ProductVariant;
-// use App\Models\Inventory; // TODO: Uncomment when inventory table is created
+use App\Models\Inventory;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,16 +18,26 @@ class PurchaseOrderController extends Controller
     /**
      * Display a listing of purchase orders.
      */
-    public function index()
+    public function index(Request $request)
     {
         // Add debugging
         \Log::info('PurchaseOrderController::index called');
         \Log::info('Current user:', ['user' => auth()->user()]);
         \Log::info('User role:', ['role' => auth()->user()?->role]);
 
-        $orders = PurchaseOrder::with(['supplier', 'items.productVariant'])
-            ->latest()
-            ->paginate(15);
+        $query = PurchaseOrder::with(['supplier', 'items.product', 'items.productVariant']);
+
+        // Filter by status if provided
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+
+        // Filter for completed or partially completed orders
+        if ($request->status === 'completed') {
+            $query->whereIn('status', ['completed', 'completed_partially']);
+        }
+
+        $orders = $query->latest()->paginate(15);
 
         return response()->json($orders);
     }
@@ -745,6 +755,105 @@ class PurchaseOrderController extends Controller
                 $this->updateTotalAmount($purchaseOrder);
             }
 
+            // Update purchase order items if provided
+            if ($request->has('items')) {
+                $items = $request->input('items');
+                \Log::info('Processing items update in updateOrderFields', ['items_count' => count($items)]);
+
+                // Log what items actually belong to this purchase order
+                // Try both numeric and string format for po_number
+                $existingItems = PurchaseOrderItem::where('po_number', $purchaseOrder->id)
+                                              ->orWhere('po_number', $purchaseOrder->po_number)
+                                              ->get();
+                \Log::info('Existing items for this purchase order', [
+                    'purchase_order_id' => $purchaseOrder->id,
+                    'po_number' => $purchaseOrder->po_number,
+                    'existing_item_ids' => $existingItems->pluck('id')->toArray(),
+                    'existing_items_count' => $existingItems->count(),
+                    'manual_query_numeric' => "SELECT id, po_number, product_id, received_quantity FROM purchase_order_items WHERE po_number = {$purchaseOrder->id}",
+                    'manual_query_string' => "SELECT id, po_number, product_id, received_quantity FROM purchase_order_items WHERE po_number = '{$purchaseOrder->po_number}'"
+                ]);
+
+                foreach ($items as $itemData) {
+                    \Log::info('Processing item data', ['item_data' => $itemData]);
+
+                    if (isset($itemData['id'])) {
+                        $purchaseOrderItem = PurchaseOrderItem::find($itemData['id']);
+
+                        if ($purchaseOrderItem && ($purchaseOrderItem->po_number === $purchaseOrder->id || $purchaseOrderItem->po_number === $purchaseOrder->po_number)) {
+                            \Log::info('Found purchase order item to update', [
+                                'item_id' => $purchaseOrderItem->id,
+                                'current_received_quantity' => $purchaseOrderItem->received_quantity,
+                                'new_received_quantity' => $itemData['received_quantity'] ?? 'not_set'
+                            ]);
+
+                            // Update allowed fields for purchase order items
+                            if (isset($itemData['unit_weight'])) {
+                                $purchaseOrderItem->unit_weight = $itemData['unit_weight'];
+                            }
+
+                            if (isset($itemData['extra_weight'])) {
+                                $purchaseOrderItem->extra_weight = $itemData['extra_weight'];
+                            }
+
+                            $updateQueries = [];
+                            if (isset($itemData['unit_weight'])) {
+                                $purchaseOrderItem->unit_weight = $itemData['unit_weight'];
+                                $updateQueries[] = "unit_weight = {$itemData['unit_weight']}";
+                            }
+
+                            if (isset($itemData['extra_weight'])) {
+                                $purchaseOrderItem->extra_weight = $itemData['extra_weight'];
+                                $updateQueries[] = "extra_weight = {$itemData['extra_weight']}";
+                            }
+
+                            if (isset($itemData['received_quantity'])) {
+                                $purchaseOrderItem->received_quantity = $itemData['received_quantity'];
+                                $updateQueries[] = "received_quantity = {$itemData['received_quantity']}";
+                                \Log::info('Updated received_quantity', [
+                                    'item_id' => $purchaseOrderItem->id,
+                                    'old_value' => $purchaseOrderItem->getOriginal('received_quantity'),
+                                    'new_value' => $itemData['received_quantity']
+                                ]);
+                            }
+
+                            if (isset($itemData['final_unit_cost'])) {
+                                $purchaseOrderItem->final_unit_cost = $itemData['final_unit_cost'];
+                                $updateQueries[] = "final_unit_cost = {$itemData['final_unit_cost']}";
+                            }
+
+                            // Log the manual update query that would be executed
+                            if (!empty($updateQueries)) {
+                                $manualUpdateQuery = "UPDATE purchase_order_items SET " . implode(', ', $updateQueries) . " WHERE id = {$itemData['id']} AND po_number = '{$purchaseOrder->po_number}'";
+                                \Log::info('Manual update query for item', [
+                                    'item_id' => $itemData['id'],
+                                    'manual_query' => $manualUpdateQuery
+                                ]);
+                            }
+
+                            $purchaseOrderItem->save();
+
+                            \Log::info('Purchase order item updated successfully', [
+                                'item_id' => $purchaseOrderItem->id,
+                                'unit_weight' => $purchaseOrderItem->unit_weight,
+                                'extra_weight' => $purchaseOrderItem->extra_weight,
+                                'received_quantity' => $purchaseOrderItem->received_quantity
+                            ]);
+                        } else {
+                            \Log::warning('Purchase order item not found or wrong order', [
+                                'item_id' => $itemData['id'],
+                                'purchase_order_id' => $purchaseOrder->id,
+                                'po_number' => $purchaseOrder->po_number,
+                                'item_found' => $purchaseOrderItem ? 'yes' : 'no',
+                                'item_po_number' => $purchaseOrderItem ? $purchaseOrderItem->po_number : 'N/A'
+                            ]);
+                        }
+                    }
+                }
+            } else {
+                \Log::info('No items found in request for updateOrderFields');
+            }
+
             $purchaseOrder->save();
 
             DB::commit();
@@ -761,6 +870,195 @@ class PurchaseOrderController extends Controller
             \Log::error('Failed to update purchase order fields:', ['error' => $e->getMessage()]);
             return response()->json([
                 'message' => 'Failed to update purchase order',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get a specific purchase order item with its product details.
+     */
+    public function getItem($id)
+    {
+        $purchaseOrderItem = PurchaseOrderItem::findOrFail($id);
+        $purchaseOrderItem->load(['product', 'purchaseOrder.supplier']);
+
+        return response()->json($purchaseOrderItem);
+    }
+
+    /**
+     * Receive stock for a purchase order item (simplified version for UI).
+     */
+    public function receiveStock(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'po_item_id' => 'required|exists:purchase_order_items,id',
+            'variants' => 'required|array|min:1',
+            'variants.*.sku' => 'required|string|max:255|unique:product_variants,sku',
+            'variants.*.variant_name' => 'required|string|max:255',
+            'variants.*.quantity' => 'required|integer|min:1',
+            'variants.*.landed_cost' => 'required|numeric|min:0',
+            'variants.*.retail_price' => 'nullable|numeric|min:0',
+            'variants.*.wholesale_price' => 'nullable|numeric|min:0',
+            'variants.*.daraz_price' => 'nullable|numeric|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        // Additional validation: Check for duplicate SKUs within the request itself
+        $skus = collect($request->variants)->pluck('sku');
+        $duplicateSkus = $skus->duplicates();
+
+        if ($duplicateSkus->isNotEmpty()) {
+            return response()->json([
+                'message' => 'Duplicate SKUs found in this request',
+                'errors' => [
+                    'variants' => ['The following SKUs are duplicated: ' . $duplicateSkus->implode(', ') . '. Each SKU must be unique within the request.']
+                ]
+            ], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $poItem = PurchaseOrderItem::findOrFail($request->po_item_id);
+
+            // Create product variants and inventory records
+            $totalQuantity = 0;
+            foreach ($request->variants as $variantData) {
+                // Create product variant
+                $productVariant = ProductVariant::create([
+                    'product_id' => $poItem->product_id,
+                    'sku' => $variantData['sku'],
+                    'retail_name' => $variantData['retail_name'] ?? $variantData['variant_name'],
+                    'wholesale_name' => $variantData['wholesale_name'] ?? $variantData['variant_name'],
+                    'daraz_name' => $variantData['daraz_name'] ?? $variantData['variant_name'],
+                    'landed_cost' => $variantData['landed_cost'],
+                    'retail_price' => $variantData['retail_price'] ?? 0,
+                    'wholesale_price' => $variantData['wholesale_price'] ?? 0,
+                    'daraz_price' => $variantData['daraz_price'] ?? 0,
+                    'status' => 'active',
+                ]);
+
+                // Create inventory record
+                Inventory::create([
+                    'product_variant_id' => $productVariant->id,
+                    'quantity' => $variantData['quantity'],
+                    'reserved_quantity' => 0,
+                    'min_stock_level' => 10, // Default threshold
+                ]);
+
+                $totalQuantity += $variantData['quantity'];
+            }
+
+            // Update PO item
+            // NOTE: received_quantity should only be updated via receiveItems (warehouse receiving)
+            // stocked_quantity should be updated via receiveStock (inventory creation)
+            $poItem->stocked_quantity = ($poItem->stocked_quantity ?? 0) + $totalQuantity;
+            $poItem->final_unit_cost = collect($request->variants)->avg('landed_cost');
+            $poItem->save();
+
+            // Update product status if needed
+            $product = $poItem->product;
+            if ($product && $product->status === 'draft') {
+                $product->status = 'published';
+                $product->save();
+            }
+
+            // Check if purchase order should be marked as completed
+            $purchaseOrder = $poItem->purchaseOrder;
+            $allItems = $purchaseOrder->items;
+            $allReceived = $allItems->every(function ($item) {
+                return $item->received_quantity >= $item->quantity;
+            });
+
+            if ($allReceived) {
+                $purchaseOrder->status = 'completed';
+                $purchaseOrder->save();
+            } elseif ($totalQuantity > 0) {
+                $purchaseOrder->status = 'completed_partially';
+                $purchaseOrder->save();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Stock received successfully',
+                'po_item' => $poItem->load(['product', 'purchaseOrder.supplier'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to receive stock:', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'Failed to receive stock',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Recalculate costs for a purchase order.
+     */
+    public function recalculateCosts(Request $request, PurchaseOrder $purchaseOrder)
+    {
+        try {
+            DB::beginTransaction();
+
+            // Update total amount with current exchange rate
+            $this->updateTotalAmount($purchaseOrder);
+
+            // If order is received or completed, calculate final unit costs
+            if (in_array($purchaseOrder->status, ['received_hub', 'completed', 'completed_partially'])) {
+                $this->calculateAndFinalize($purchaseOrder);
+            }
+
+            $purchaseOrder->save();
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Costs recalculated successfully',
+                'purchase_order' => $purchaseOrder->load(['items.product', 'supplier'])
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Failed to recalculate costs:', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'Failed to recalculate costs',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get purchase order items that are ready to be added to inventory
+     * Logic: received_quantity > stocked_quantity
+     */
+    public function getItemsReadyToStock(Request $request)
+    {
+        try {
+            $items = PurchaseOrderItem::with(['purchase_order.supplier', 'product', 'productVariant'])
+                ->whereRaw('received_quantity > stocked_quantity')
+                ->get();
+
+            return response()->json([
+                'data' => $items,
+                'message' => 'Items ready to stock retrieved successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to get items ready to stock:', ['error' => $e->getMessage()]);
+
+            return response()->json([
+                'message' => 'Failed to retrieve items ready to stock',
                 'error' => $e->getMessage()
             ], 500);
         }

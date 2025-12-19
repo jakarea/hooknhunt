@@ -16,6 +16,8 @@ class PurchaseOrderItem extends Model
         'unit_weight',
         'extra_weight',
         'received_quantity',
+        'stocked_quantity',
+        'final_unit_cost',
     ];
 
     protected $casts = [

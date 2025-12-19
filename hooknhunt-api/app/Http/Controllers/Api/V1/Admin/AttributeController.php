@@ -13,9 +13,16 @@ class AttributeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Attribute::with('options')->paginate();
+        $query = Attribute::with('options')->orderBy('sort_order');
+
+        // If 'all' parameter is present, return all records instead of paginated
+        if ($request->has('all')) {
+            return response()->json($query->get());
+        }
+
+        return $query->paginate();
     }
 
     /**

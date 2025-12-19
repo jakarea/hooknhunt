@@ -47,9 +47,23 @@ const ProductEdit = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { fetchProduct } = useProductStore();
 
-  // Get the tab from URL parameters, default to 'details'
-  const activeTab = searchParams.get('tab') || 'details';
-  console.log('📋 Active tab from URL:', activeTab);
+  // Get the tab from URL parameters, default to 'details', but prioritize 'suppliers' when coming from create
+  const urlTab = searchParams.get('tab');
+  const activeTab = urlTab || 'details';
+
+  // Check if we came from create page and handle tab activation
+  useEffect(() => {
+    // If URL has tab=suppliers, we're coming from create workflow
+    if (urlTab === 'suppliers') {
+      console.log('📋 Coming from create workflow, activating suppliers tab');
+      // Optional: Set a session flag for additional tracking if needed
+      sessionStorage.setItem('cameFromCreateProduct', 'true');
+      // Clear it immediately since we already have the URL parameter
+      setTimeout(() => {
+        sessionStorage.removeItem('cameFromCreateProduct');
+      }, 100);
+    }
+  }, [urlTab]);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -91,11 +105,11 @@ const ProductEdit = () => {
   }, [id, navigate, fetchProduct]);
 
   const handleBack = () => {
-    navigate('/inventory/products');
+    navigate('/products');
   };
 
   const handleSuccess = () => {
-    navigate('/inventory/products');
+    navigate('/products');
   };
 
   const handleSuppliersUpdated = () => {

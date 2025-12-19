@@ -185,8 +185,8 @@ export function CreatePurchaseOrder() {
         description: 'Purchase order draft created successfully',
       });
 
-      // Redirect to purchase list after successful creation
-      navigate('/purchase/list');
+      // Redirect to purchase after successful creation
+      navigate('/purchase');
 
     } catch (error: any) {
       console.error('Failed to create purchase order:', error);

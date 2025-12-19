@@ -88,6 +88,14 @@ const Products = () => {
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (error: any) {
       console.error('❌ Error fetching categories:', error);
+      // Don't show toast for categories error to avoid annoying users
+      if (error.response?.status !== 403) {
+        toast({
+          title: "Warning",
+          description: "Could not load categories. Some features may be limited.",
+          variant: "default"
+        });
+      }
     }
   };
 
@@ -102,6 +110,14 @@ const Products = () => {
       setSuppliers(Array.isArray(suppliersData) ? suppliersData : []);
     } catch (error: any) {
       console.error('❌ Error fetching suppliers:', error);
+      // Don't show toast for suppliers error to avoid annoying users
+      if (error.response?.status !== 403) {
+        toast({
+          title: "Warning",
+          description: "Could not load suppliers. Some features may be limited.",
+          variant: "default"
+        });
+      }
     }
   };
 
@@ -236,15 +252,15 @@ const Products = () => {
   };
 
   const handleCreateProduct = () => {
-    navigate('/inventory/products/create');
+    navigate('/products/create');
   };
 
   const handleViewProduct = (id: number) => {
-    navigate(`/inventory/products/${id}`);
+    navigate(`/products/${id}`);
   };
 
   const handleEditProduct = (id: number) => {
-    navigate(`/inventory/products/${id}/edit`);
+    navigate(`/products/${id}/edit`);
   };
 
   const clearFilters = () => {

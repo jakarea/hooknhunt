@@ -5,7 +5,7 @@ interface ProductImageProps {
   src?: string | null;
   alt: string;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export const ProductImage: React.FC<ProductImageProps> = ({
@@ -17,18 +17,25 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   const sizeClasses = {
     sm: 'h-12 w-12',
     md: 'h-16 w-16',
-    lg: 'h-24 w-24'
+    lg: 'h-24 w-24',
+    xl: 'h-32 w-32'
   };
 
   const fallbackSizes = {
     sm: 'text-xs',
     md: 'text-sm',
-    lg: 'text-lg'
+    lg: 'text-lg',
+    xl: 'text-xl'
   };
 
   // Convert relative storage path to full URL
   const getImageUrl = (imageSrc: string | null | undefined): string | undefined => {
     if (!imageSrc) {
+      return undefined;
+    }
+
+    // Check if it's a temporary file path (invalid)
+    if (imageSrc.includes('/TemporaryItems/') || imageSrc.includes('/var/folders/')) {
       return undefined;
     }
 
@@ -54,7 +61,7 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   const imageUrl = getImageUrl(src);
 
   const handleImageError = () => {
-    console.error('ProductImage: Failed to load image:', imageUrl);
+    // Silently handle image loading errors
   };
 
   return (
