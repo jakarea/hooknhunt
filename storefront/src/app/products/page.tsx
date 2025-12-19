@@ -87,7 +87,7 @@ function ProductsPageContent() {
       case 'newest':
         return b.id - a.id;
       default:
-        return (b as any).featured ? 1 : -1;
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
     }
   });
 

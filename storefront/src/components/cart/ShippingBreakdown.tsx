@@ -1,8 +1,7 @@
 import React from 'react';
 import {
   ShippingBreakdown as ShippingBreakdownType,
-  formatCurrency,
-  CustomerType
+  formatCurrency
 } from '../../utils/shippingUtils';
 
 interface ShippingBreakdownProps {

@@ -13,6 +13,19 @@ interface User {
   updated_at: string;
 }
 
+interface ApiResponse<T> {
+  data?: {
+    user?: T;
+  };
+  user?: T;
+}
+
+interface ApiError {
+  status?: number;
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
 interface ProfileState {
   user: User | null;
   loading: boolean;
@@ -26,7 +39,7 @@ interface ProfileState {
   clearErrors: () => void;
 }
 
-export const useProfileStore = create<ProfileState>((set, get) => ({
+export const useProfileStore = create<ProfileState>((set) => ({
   user: null,
   loading: false,
   updating: false,
@@ -36,10 +49,10 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   fetchProfile: async () => {
     set({ loading: true, error: null });
     try {
-      const response = await api.getMe();
+      const response = await api.getMe() as ApiResponse<User> | { user: User };
 
       // Check both possible response structures: {data: {user: ...}} or {user: ...}
-      const user = response.data?.user || (response as any).user;
+      const user = (response as ApiResponse<User>).data?.user || (response as { user: User }).user;
 
       if (user) {
         set({ user, loading: false });
@@ -58,7 +71,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   updateProfile: async (data) => {
     set({ updating: true, error: null, validationErrors: null });
     try {
-      const response = await api.updateProfile(data as any);
+      const response = await api.updateProfile(data as { name?: string; email?: string; whatsapp_number?: string }) as ApiResponse<User>;
 
       if (response.data?.user) {
         set({
@@ -69,16 +82,16 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
         });
       }
     } catch (error: unknown) {
-      // Handle validation errors
-      const err = error as { status?: number; errors?: Record<string, string[]> }; // Type assertion for API error structure
+      const err = error as ApiError;
       if (err.status === 422 && err.errors) {
         set({
           validationErrors: err.errors,
           updating: false,
         });
       } else {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
         set({
-          error: error.message || 'Failed to update profile',
+          error: errorMessage,
           updating: false,
         });
       }

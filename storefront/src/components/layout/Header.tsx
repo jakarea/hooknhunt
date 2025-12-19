@@ -10,10 +10,8 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isNavSticky, setIsNavSticky] = useState(false);
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const { getCartCount, toggleCart } = useCart();
@@ -24,70 +22,23 @@ export default function Header() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsNavSticky(window.scrollY > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
   };
 
-  useEffect(() => {
-    let ticking = false;
-    let scrollTimeout: NodeJS.Timeout;
-
-    const handleScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          const scrollThreshold = 20; // Increased threshold to prevent jitter
-          const compactThreshold = 150; // Increased threshold for better UX
-
-          // Clear any existing timeout
-          if (scrollTimeout) {
-            clearTimeout(scrollTimeout);
-          }
-
-          // Debounce the scroll detection
-          scrollTimeout = setTimeout(() => {
-            // Make header compact when scrolling down past threshold
-            if (currentScrollY > compactThreshold) {
-              setIsScrolled(true);
-              // Hide sections when scrolling down, show when scrolling up
-              if (currentScrollY > lastScrollY + scrollThreshold) {
-                setIsHeaderVisible(false);
-              } else if (currentScrollY < lastScrollY - scrollThreshold) {
-                setIsHeaderVisible(true);
-              }
-            } else {
-              setIsScrolled(false);
-              setIsHeaderVisible(true);
-            }
-
-            setLastScrollY(currentScrollY);
-          }, 50); // 50ms debounce
-
-          ticking = false;
-        });
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-      }
-    };
-  }, [lastScrollY]);
-
   return (
-    <header
-      className={`sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-300 ease-out ${isScrolled ? 'shadow-lg' : 'shadow-sm'
-        }`}
-    >
+    <header className="bg-white dark:bg-[#1a1a1a] shadow-sm z-50">
       {/* Top Bar */}
-      <div
-        className={`bg-[#bc1215] text-white transition-transform duration-300 ease-out ${isHeaderVisible ? 'transform translate-y-0' : 'transform -translate-y-full'
-          }`}
-      >
+      <div className="bg-[#bc1215] text-white">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center h-7 text-xs">
             <div className="flex items-center">
@@ -166,10 +117,7 @@ export default function Header() {
       </div>
 
       {/* Main Header */}
-      <div
-        className={`bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-transform duration-300 ease-out ${isHeaderVisible ? 'transform translate-y-0' : 'transform -translate-y-20'
-          }`}
-      >
+      <div className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between gap-8">
             {/* Logo */}
@@ -255,7 +203,9 @@ export default function Header() {
 
       {/* Navigation Menu - Desktop */}
       <div
-        className="hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800"
+        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ${
+          isNavSticky ? 'sticky top-0 z-40 shadow-md' : ''
+        }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <nav className="flex items-center justify-start gap-8">

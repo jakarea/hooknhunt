@@ -38,9 +38,10 @@ export default function UserNavigation() {
       setTimeout(() => {
         router.push('/');
       }, 500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ [LOGOUT] Logout failed:', error);
-      toast.error(error.message || 'Logout failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Logout failed. Please try again.';
+      toast.error(errorMessage);
       setIsLoggingOut(false);
     }
   };

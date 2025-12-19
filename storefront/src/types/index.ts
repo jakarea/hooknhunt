@@ -34,7 +34,13 @@ export interface CartItem {
   product: Product;
   quantity: number;
   price: number;
-  variant?: any;
+  variant?: {
+    id: number;
+    name: string;
+    sku: string;
+    price: number;
+    [key: string]: unknown;
+  };
 }
 
 // ✅ Purchase Item
@@ -135,6 +141,7 @@ export interface Product {
   inventory_policy: 'continue' | 'deny';
   has_variants: boolean;
   status: 'active' | 'inactive' | 'draft';
+  featured?: boolean;   // Featured product flag
 
   // 📦 Additional Identifiers
   barcode: string;
@@ -158,6 +165,9 @@ export interface Product {
   rating?: number;      // Product rating (1-5)
   reviews?: number;     // Number of reviews
   category?: string;    // Category name (for display)
+  variant_count?: number; // Number of variants
+  price_range_display?: string; // Price range display text
+  has_offer?: boolean;  // Whether product has offers
 }
 
 

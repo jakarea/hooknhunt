@@ -86,9 +86,10 @@ export default function TestAPI() {
         setStatus('❌ Registration failed');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Authentication test failed:', error);
-      setStatus(`❌ Error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setStatus(`❌ Error: ${errorMessage}`);
     }
   };
 
@@ -125,9 +126,10 @@ export default function TestAPI() {
       } else {
         setStatus(`❌ ${data.message}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ Token test failed:', error);
-      setStatus(`❌ Error: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setStatus(`❌ Error: ${errorMessage}`);
     }
   };
 

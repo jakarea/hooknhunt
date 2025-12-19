@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import ProductCard from '@/components/product/ProductCard';
 import HeroSlider from '@/components/home/HeroSlider';
+import TrendingProduct from '@/components/home/TrendingProduct';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import { products } from '@/data/products';
 import { Category } from '@/types';
@@ -16,7 +17,6 @@ export default function Home() {
 
   const newArrivals = products.slice(0, 8); // Latest products
   const bestDeals = products.filter(p => p.originalPrice).slice(0, 4);
-  const trendingProducts = products.slice(8, 16); // Trending products
   const recentlySold = products.slice(16, 24); // Recently sold
   const recommended = products.slice(0, 8); // Recommended
 
@@ -48,41 +48,12 @@ export default function Home() {
   }, []);
 
   return (
-    <div>
+    <div className="bg-white">
       {/* Hero Slider - Full Screen */}
       <HeroSlider />
 
-      {/* Trending Products - Social Proof */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-1 h-8 bg-gradient-to-b from-[#bc1215] to-[#046bd2]"></div>
-              <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Trending Products</h2>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
-          </div>
-          <Link href="/products?sort=trending" className="group">
-            <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-              View All Trending
-              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-          {trendingProducts.map((product, index) => (
-            <div
-              key={product.id}
-              className="animate-fadeInUp"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Dynamic Trending Products */}
+      <TrendingProduct />
 
       {/* Categories - Minimalist Style */}
       <section className="py-20 bg-white dark:bg-[#0a0a0a]">
@@ -229,7 +200,7 @@ export default function Home() {
       </section >
 
       {/* Promotional Banners - Mid-Page Engagement */}
-      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12" >
+      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12 bg-white dark:bg-[#0a0a0a]" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           <Link href="/products?category=rods" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
             <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#046bd2] to-[#0353a5]">
@@ -309,7 +280,7 @@ export default function Home() {
       </section >
 
       {/* Recommended for You - Personalization */}
-      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20" >
+      < section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20 bg-white dark:bg-[#0a0a0a]" >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">

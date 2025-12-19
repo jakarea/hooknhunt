@@ -58,13 +58,13 @@ class ApiClient {
     includeAuth: boolean = false
   ): Promise<ApiResponse<T>> {
     const url = `${this.baseURL}${endpoint}`;
-    const headers = this.getHeaders(includeAuth);
+    const headers = this.getHeaders(includeAuth) as Record<string, string>;
 
     console.log('🔍 [API_DEBUG] Request:', {
       url,
       method: options.method || 'GET',
       includeAuth,
-      hasToken: !!(headers as any)['Authorization']
+      hasToken: !!headers['Authorization']
     });
 
     try {
@@ -109,7 +109,8 @@ class ApiClient {
       console.log('🔍 [API_DEBUG] Catch error:', error);
 
       // If it's a network error (not a response from server)
-      if (!(error as any).response && !(error as any).status) {
+      const networkError = error as { response?: unknown; status?: number };
+      if (!networkError.response && !networkError.status) {
         throw {
           message: 'Network error. Please check your connection.',
           status: 0,
@@ -158,7 +159,7 @@ class ApiClient {
     });
 
     // Store token if login successful (check both possible response structures)
-    const token = response.data?.token || (response as any).token;
+    const token = response.data?.token || (response as { token?: string })?.token;
     if (token) {
       this.setToken(token);
     }

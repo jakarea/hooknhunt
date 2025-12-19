@@ -96,7 +96,7 @@ export default function FlashSale() {
     {
       id: 3,
       name: 'Lure Set 12pcs',
-      image: 'https://images.unsplash.com/photo-1545450660-8c1e68e62a73?w=300&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=300&fit=crop',
       originalPrice: 2500,
       discountPrice: 1750,
       discount: 30,
@@ -104,7 +104,7 @@ export default function FlashSale() {
     {
       id: 4,
       name: 'Fishing Line 500m',
-      image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=300&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=300&fit=crop',
       originalPrice: 3200,
       discountPrice: 2240,
       discount: 30,
@@ -112,7 +112,7 @@ export default function FlashSale() {
     {
       id: 5,
       name: 'Tackle Box Pro',
-      image: 'https://images.unsplash.com/photo-1545450660-8c1e68e62a73?w=300&h=300&fit=crop',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=300&h=300&fit=crop',
       originalPrice: 3800,
       discountPrice: 2660,
       discount: 30,
