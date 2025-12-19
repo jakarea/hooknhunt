@@ -6,10 +6,10 @@ import { CartProduct, CartItem } from '@/types';
 interface CartContextType {
   cartItems: CartItem[];
   addToCart: (product: CartProduct, quantity?: number) => void;
-  removeFromCart: (productId: number) => void;
-  updateQuantity: (productId: number, quantity: number) => void;
+  removeFromCart: (cartItemId: number) => void;
+  updateQuantity: (cartItemId: number, quantity: number) => void;
   clearCart: () => void;
-  isInCart: (productId: number) => boolean;
+  isInCart: (productId: number, variantId?: number) => boolean;
   getCartTotal: () => number;
   getCartCount: () => number;
   isCartOpen: boolean;
@@ -43,18 +43,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = (product: CartProduct, quantity: number = 1) => {
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(item => item.product.id === product.id);
+      // Check if exact same product variant already exists
+      const existingItem = prevItems.find(item =>
+        item.product.id === product.id &&
+        item.product.variant_id === product.variant_id
+      );
 
       if (existingItem) {
-        // Update quantity if item exists
+        // Update quantity if exact same item exists
         return prevItems.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock || 999), price: item.price }
+          (item.product.id === product.id && item.product.variant_id === product.variant_id)
+            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock || 999) }
             : item
         );
       } else {
-        // Add new item
-        return [...prevItems, { id: Date.now(), product, quantity, price: product.price || 0 }];
+        // Add new item with unique ID
+        const newCartItem: CartItem = {
+          id: Date.now(), // Unique cart item ID
+          product,
+          quantity,
+          price: product.price || 0,
+          variant: product.variant_id ? {
+            id: product.variant_id,
+            name: product.variant_name || '',
+            sku: '',
+            price: product.price || 0
+          } : undefined
+        };
+        return [...prevItems, newCartItem];
       }
     });
 
@@ -62,19 +78,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setIsCartOpen(true);
   };
 
-  const removeFromCart = (productId: number) => {
-    setCartItems(prevItems => prevItems.filter(item => item.product.id !== productId));
+  const removeFromCart = (cartItemId: number) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== cartItemId));
   };
 
-  const updateQuantity = (productId: number, quantity: number) => {
+  const updateQuantity = (cartItemId: number, quantity: number) => {
     if (quantity <= 0) {
-      removeFromCart(productId);
+      removeFromCart(cartItemId);
       return;
     }
 
     setCartItems(prevItems =>
       prevItems.map(item =>
-        item.product.id === productId
+        item.id === cartItemId
           ? { ...item, quantity: Math.min(quantity, item.product.stock || 999) }
           : item
       )
@@ -85,8 +101,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCartItems([]);
   };
 
-  const isInCart = (productId: number) => {
-    return cartItems.some(item => item.product.id === productId);
+  const isInCart = (productId: number, variantId?: number) => {
+    return cartItems.some(item =>
+      item.product.id === productId &&
+      (variantId === undefined || item.product.variant_id === variantId)
+    );
   };
 
   const getCartTotal = () => {
