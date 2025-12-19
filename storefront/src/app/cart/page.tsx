@@ -230,11 +230,11 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item, index) => {
-              const isSelected = selectedItems.has(item.product.id);
+              const isSelected = selectedItems.has(item.id);
 
               return (
                 <div
-                  key={item.product.id}
+                  key={item.id}
                   className={`bg-white dark:bg-[#0a0a0a] border-2 ${
                     isSelected
                       ? 'border-[#bc1215] shadow-md'
@@ -248,7 +248,7 @@ export default function CartPage() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleItemSelection(item.product.id)}
+                        onChange={() => toggleItemSelection(item.id)}
                         className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215] focus:ring-offset-0 cursor-pointer"
                       />
                     </div>
@@ -276,10 +276,15 @@ export default function CartPage() {
                           <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-[#bc1215] transition-colors line-clamp-2">
                             {item.product.name}
                           </h3>
+                          {item.product.variant_name && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              Variant: {item.product.variant_name}
+                            </p>
+                          )}
                         </Link>
                         {/* Remove Button - Desktop */}
                         <button
-                          onClick={() => handleDeleteClick(item.product.id, item.product.name || 'Product')}
+                          onClick={() => handleDeleteClick(item.id, item.product.name || 'Product')}
                           className="hidden sm:flex flex-shrink-0 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
                           aria-label="Remove item"
                         >
@@ -314,7 +319,7 @@ export default function CartPage() {
                         {/* Quantity Controls */}
                         <div className="flex items-center gap-3">
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
                             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors rounded"
                             aria-label="Decrease quantity"
                           >
@@ -328,7 +333,7 @@ export default function CartPage() {
                           </span>
 
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
                             disabled={item.quantity >= (item.product.stock || 999)}
                             className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed rounded"
                             aria-label="Increase quantity"
@@ -365,7 +370,7 @@ export default function CartPage() {
 
                       {/* Mobile Remove Button */}
                       <button
-                        onClick={() => handleDeleteClick(item.product.id, item.product.name || 'Product')}
+                        onClick={() => handleDeleteClick(item.id, item.product.name || 'Product')}
                         className="sm:hidden mt-4 text-sm text-red-600 hover:text-red-700 flex items-center gap-1 font-medium"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

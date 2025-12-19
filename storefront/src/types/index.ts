@@ -28,10 +28,22 @@ export interface Address {
   updated_at: string;
 }
 
+// ✅ Simplified Product for Cart (only essential fields)
+export interface CartProduct {
+  id: number;
+  name: string;
+  price: number;
+  image: string;
+  slug: string;
+  stock: number;
+  variant_id?: number;
+  variant_name?: string;
+}
+
 // ✅ Cart Item
 export interface CartItem {
   id: number;
-  product: Product;
+  product: CartProduct;
   quantity: number;
   price: number;
   variant?: {

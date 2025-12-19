@@ -31,11 +31,12 @@ function ProductsPageContent() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch('http://192.168.0.166:8000/api/v1/store/categories');
+        // Use Next.js API rewrite
+        const response = await fetch('/api/v1/store/categories/');
         if (response.ok) {
           const data = await response.json();
-          // Assuming API returns categories with id, name, slug
-          setCategories(data.data || data);
+          // API returns {categories: [...]}
+          setCategories(data.categories || []);
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
@@ -279,8 +280,8 @@ function ProductsPageContent() {
                   <button
                     onClick={() => setSelectedCategories(['all'])}
                     className={`w-full text-left px-4 py-2.5 transition-colors font-medium flex items-center justify-between ${selectedCategories.includes('all')
-                        ? 'bg-[#bc1215] text-white'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      ? 'bg-[#bc1215] text-white'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                   >
                     <span className="flex items-center gap-3">
@@ -293,8 +294,8 @@ function ProductsPageContent() {
                       All Products
                     </span>
                     <span className={`text-xs px-2 py-1 rounded-full ${selectedCategories.includes('all')
-                        ? 'bg-white/20 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      ? 'bg-white/20 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                       }`}>
                       {products.length}
                     </span>
@@ -328,8 +329,8 @@ function ProductsPageContent() {
                             }
                           }}
                           className={`w-full text-left px-4 py-2.5 transition-colors flex items-center justify-between ${isSelected
-                              ? 'bg-[#bc1215] text-white font-semibold'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                            ? 'bg-[#bc1215] text-white font-semibold'
+                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                             }`}
                         >
                           <span className="flex items-center gap-3">
@@ -356,8 +357,8 @@ function ProductsPageContent() {
                             {category.name}
                           </span>
                           <span className={`text-xs px-2 py-1 rounded-full ${isSelected
-                              ? 'bg-white/20 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                            ? 'bg-white/20 text-white'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
                             }`}>
                             {categoryProductCount}
                           </span>
@@ -410,8 +411,8 @@ function ProductsPageContent() {
                       key={rating}
                       onClick={() => setMinRating(minRating === rating ? 0 : rating)}
                       className={`w-full flex items-center px-3 py-2 transition-colors ${minRating === rating
-                          ? 'bg-[#bc1215]/10 dark:bg-[#bc1215]/20'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                        ? 'bg-[#bc1215]/10 dark:bg-[#bc1215]/20'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
                     >
                       <div className="flex items-center flex-1">
@@ -478,7 +479,7 @@ function ProductsPageContent() {
             {/* Products Grid */}
             {sortedProducts.length > 0 ? (
               <>
-                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-3">
                   {sortedProducts.slice(0, displayCount).map(product => (
                     <ProductCard key={product.id} product={product} />
                   ))}

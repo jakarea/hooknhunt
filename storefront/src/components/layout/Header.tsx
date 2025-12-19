@@ -8,10 +8,18 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id: number | null;
+}
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isNavSticky, setIsNavSticky] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const { getCartCount, toggleCart } = useCart();
@@ -30,6 +38,25 @@ export default function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Fetch parent categories for navigation
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('/api/v1/store/categories/');
+        const data = await response.json();
+        // Filter only parent categories (those without parent_id)
+        const parentCategories = data.categories?.filter((cat: Category) => !cat.parent_id) || [];
+        setCategories(parentCategories);
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      }
+    };
+
+    if (mounted) {
+      fetchCategories();
+    }
+  }, [mounted]);
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -203,41 +230,27 @@ export default function Header() {
 
       {/* Navigation Menu - Desktop */}
       <div
-        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ${
-          isNavSticky ? 'sticky top-0 z-40 shadow-md' : ''
-        }`}
+        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ${isNavSticky ? 'sticky top-0 z-40 shadow-md' : ''
+          }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <nav className="flex items-center justify-start gap-8">
+          <nav className="flex items-center justify-start gap-5">
             <Link href="/" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
               {t('nav.home')}
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
             </Link>
 
-            <Link href="/products?category=rods" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
-              {t('nav.rods')}
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-            </Link>
-
-            <Link href="/products?category=reels" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
-              {t('nav.reels')}
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-            </Link>
-
-            <Link href="/products?category=lures" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
-              {t('nav.lures')}
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-            </Link>
-
-            <Link href="/products?category=lines" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
-              {t('nav.lines')}
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-            </Link>
-
-            <Link href="/products?category=accessories" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
-              {t('nav.accessories')}
-              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
-            </Link>
+            {/* Dynamic Categories */}
+            {categories.slice(0, 4).map((category) => (
+              <Link
+                key={category.id}
+                href={`/products?category=${category.slug}`}
+                className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group"
+              >
+                {category.name}
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+              </Link>
+            ))}
 
             <Link href="/contact" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
               {t('nav.contact')}
@@ -270,21 +283,19 @@ export default function Header() {
               <Link href="/" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
                 {t('nav.home')}
               </Link>
-              <Link href="/products?category=rods" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {t('nav.rods')}
-              </Link>
-              <Link href="/products?category=reels" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {t('nav.reels')}
-              </Link>
-              <Link href="/products?category=lures" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {t('nav.lures')}
-              </Link>
-              <Link href="/products?category=lines" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {t('nav.lines')}
-              </Link>
-              <Link href="/products?category=accessories" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
-                {t('nav.accessories')}
-              </Link>
+
+              {/* Dynamic Categories for Mobile */}
+              {categories.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/products?category=${category.slug}`}
+                  className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {category.name}
+                </Link>
+              ))}
+
               <Link href="/contact" className="px-4 py-3 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] hover:text-[#bc1215] transition-colors" onClick={() => setIsMenuOpen(false)}>
                 {t('nav.contact')}
               </Link>
