@@ -2,15 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
-
-interface User {
-  id: number;
-  name: string;
-  phone: string;
-  email?: string;
-  role: string;
-  phone_verified_at?: string;
-}
+import { User } from '@/types';
 
 interface AuthContextType {
   user: User | null;
@@ -41,11 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log('🔍 [AUTH_DEBUG] Validating token with API...');
         try {
           const response = await api.getMe();
-          console.log('🔍 [AUTH_DEBUG] API response status:', response.status || 'OK');
+          console.log('🔍 [AUTH_DEBUG] API response status:', 'OK');
           console.log('🔍 [AUTH_DEBUG] API response data:', response);
 
           // Check both possible response structures: {data: {user: ...}} or {user: ...}
-          const user = response.data?.user || response.user;
+          const user = (response as { data?: { user?: User } })?.data?.user || (response as { user?: User })?.user;
           if (user) {
             console.log('🔍 [AUTH_DEBUG] ✅ User authenticated:', user);
             setUser(user);
@@ -58,15 +50,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             api.clearAuth();
             localStorage.removeItem('cached_user');
           }
-        } catch (error: any) {
-          console.log('🔍 [AUTH_DEBUG] ❌ API Error:', error.status, error.message);
+        } catch (error: unknown) {
+          const err = error as { status?: number; message?: string };
+          console.log('🔍 [AUTH_DEBUG] ❌ API Error:', err.status, err.message);
 
           // Always clear auth on 401 unauthorized errors
-          if (error.status === 401) {
+          if (err.status === 401) {
             console.log('🔍 [AUTH_DEBUG] ❌ 401 Unauthorized, clearing auth');
             api.clearAuth();
             localStorage.removeItem('cached_user');
-          } else if (error.status === 0) {
+          } else if (err.status === 0) {
             // Network error - try to use cached user data temporarily
             console.log('🔍 [AUTH_DEBUG] 🌐 Network error, trying cached user...');
             const cachedUser = localStorage.getItem('cached_user');
@@ -77,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 console.log('🔍 [AUTH_DEBUG] ✅ Using cached user:', userData);
                 setUser(userData);
                 setIsAuthenticated(true);
-              } catch (e) {
+              } catch {
                 console.log('🔍 [AUTH_DEBUG] ❌ Failed to parse cached user');
                 localStorage.removeItem('cached_user');
               }
@@ -97,26 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initializeAuth();
   }, []);
 
-  const checkAuth = async () => {
-    try {
-      if (api.isAuthenticated()) {
-        const response = await api.getMe();
-        const user = response.data?.user || response.user;
-        if (user) {
-          setUser(user);
-          setIsAuthenticated(true);
-        } else {
-          api.clearAuth();
-        }
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      api.clearAuth();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  
   const login = async (phone: string, password: string) => {
     try {
       // Clear any existing auth data before login
@@ -128,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.login(phone, password);
 
       // Check both response.data.user and response.user for backward compatibility
-      const user = response.data?.user || response.user;
+      const user = response.data?.user || (response as { user?: User })?.user;
 
       if (user) {
         setUser(user);
@@ -192,7 +166,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = async () => {
     try {
       const response = await api.getMe();
-      const user = response.data?.user || response.user;
+      const user = response.data?.user || (response as { user?: User })?.user;
       if (user) {
         setUser(user);
       }

@@ -22,6 +22,8 @@ export default function ProductCard({ product }: ProductCardProps) {
   const image = product.image ?? product.featured_image;
   const name = product.name ?? product.title;
   const stock = product.stock ?? product.inventory_quantity;
+  const variant_count = product.variant_count || 0;
+  const price_range_display = product.price_range_display || '';
 
   const discount = originalPrice && price
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
@@ -49,10 +51,10 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 hover:shadow-xl transition-all duration-300 overflow-hidden">
-      <Link href={`/products/${product.slug}`} className="block">
+    <div className="group bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
+      <Link href={`/products/${product.slug}`} className="flex flex-col h-full">
         {/* Product Image */}
-        <div className="relative overflow-hidden aspect-square bg-gray-100 dark:bg-gray-800">
+        <div className="relative overflow-hidden aspect-square bg-gray-100 p-2 flex-shrink-0">
           <Image
             src={image}
             alt={name}
@@ -83,34 +85,47 @@ export default function ProductCard({ product }: ProductCardProps) {
         </div>
 
         {/* Product Info */}
-        <div className="p-3">
+        <div className="p-2.5 flex-1 flex flex-col">
           {/* Product Name */}
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 text-sm group-hover:text-[#bc1215] transition-colors min-h-[2.5rem]">
+          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm group-hover:text-[#bc1215] transition-colors min-h-[2.5rem]">
             {name}
           </h3>
 
-          {/* Price */}
-          <div className="mb-3">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-lg font-bold text-[#bc1215]">
-                ৳{price.toLocaleString()}
-              </span>
-              {originalPrice && (
-                <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
-                  ৳{originalPrice.toLocaleString()}
+          {/* Price or Price Range */}
+          <div className="mb-3 lg:mb-5 flex-1">
+            {(variant_count === 0 || variant_count === 1) ? (
+              // Single variant or no variants - show exact price
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm lg:text-base font-bold text-[#bc1215]">
+                  {price > 0 ? `৳${price.toLocaleString()}` : 'Price unavailable'}
                 </span>
-              )}
-            </div>
+                {/* {originalPrice && originalPrice > price && price > 0 && (
+                  <span className="text-xs text-gray-500 line-through mt-1">
+                    ৳{originalPrice.toLocaleString()}
+                  </span>
+                )} */}
+              </div>
+            ) : (
+              // Multiple variants - show price range
+              <div className="flex flex-col gap-1">
+                <span className="text-sm lg:text-base font-bold text-[#bc1215]">
+                  {price_range_display || (price > 0 ? `৳${price.toLocaleString()}` : 'Price varies')}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {variant_count} variants available
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </Link>
 
-      {/* Add to Cart / View Cart Button */}
-      <div className="px-3 pb-3">
+      {/* Button Logic */}
+      <div className="px-3 pb-3 flex-shrink-0 mt-auto">
         {productInCart ? (
           <button
             onClick={handleViewCart}
-            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
+            className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -122,18 +137,26 @@ export default function ProductCard({ product }: ProductCardProps) {
             </svg>
             View Cart
           </button>
+        ) : (variant_count > 1) ? (
+          // Multiple variants - show "View Details" button
+          <Link href={`/products/${product.slug}`} className="w-full py-2.5 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02]">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            View Details
+          </Link>
         ) : (
+          // Single variant or no variants - show "Add to Cart" button
           <button
             onClick={handleAddToCart}
-            disabled={stock === 0}
-            className={`w-full py-2.5 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold text-sm transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] ${
-              isAdding ? 'scale-95 bg-[#8a0f12]' : ''
-            }`}
+            disabled={stock === 0 || price <= 0}
+            className={`w-full py-2.5 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold text-xs transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] ${isAdding ? 'scale-95 bg-[#8a0f12]' : ''
+              }`}
           >
             <svg
-              className={`w-4 h-4 transition-transform duration-300 ${
-                isAdding ? 'scale-125 rotate-12' : ''
-              }`}
+              className={`w-4 h-4 transition-transform duration-300 ${isAdding ? 'scale-125 rotate-12' : ''
+                }`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -145,7 +168,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                 d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
               />
             </svg>
-            {stock === 0 ? 'Out of Stock' : 'Add to Cart'}
+            {stock === 0 ? 'Out of Stock' : price <= 0 ? 'Unavailable' : 'Add to Cart'}
           </button>
         )}
       </div>

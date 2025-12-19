@@ -1,174 +1,43 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ProductCard from '@/components/product/ProductCard';
 import HeroSlider from '@/components/home/HeroSlider';
+import TrendingProduct from '@/components/home/TrendingProduct';
+import Categories from '@/components/home/Categories';
+import RecentlySold from '@/components/home/RecentlySold';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import { products } from '@/data/products';
-import { categories } from '@/data/categories';
+import NewArrivals from '@/components/home/NewArrivals';
+import BestDeals from '@/components/home/BestDeals';
+import RecomendedYou from '@/components/home/RecomendedYou';
+
 
 export default function Home() {
-  const newArrivals = products.slice(0, 8); // Latest products
-  const bestDeals = products.filter(p => p.originalPrice).slice(0, 4);
-  const trendingProducts = products.slice(8, 16); // Trending products
-  const recentlySold = products.slice(16, 24); // Recently sold
+
   const recommended = products.slice(0, 8); // Recommended
 
   return (
-    <div>
+    <div className="bg-white">
       {/* Hero Slider - Full Screen */}
       <HeroSlider />
 
-      {/* Trending Products - Social Proof */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-1 h-8 bg-gradient-to-b from-[#bc1215] to-[#046bd2]"></div>
-              <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Trending Products</h2>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Discover what&apos;s hot and popular right now</p>
-          </div>
-          <Link href="/products?sort=trending" className="group">
-            <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#bc1215] to-[#046bd2] text-white font-semibold hover:from-[#8a0f12] hover:to-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 cursor-pointer">
-              View All Trending
-              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-              </svg>
-            </span>
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-          {trendingProducts.map((product, index) => (
-            <div
-              key={product.id}
-              className="animate-fadeInUp"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <ProductCard product={product} />
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* Dynamic Trending Products */}
+      <TrendingProduct />
 
       {/* Categories - Minimalist Style */}
-      <section className="py-20 bg-white dark:bg-[#0a0a0a]">
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          {/* Simple Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-              Shop by Category
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg max-w-2xl mx-auto">
-              Find exactly what you&apos;re looking for
-            </p>
-          </div>
-
-          {/* Categories Grid - Minimalist Style */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 md:gap-8">
-            {categories.map((category, index) => (
-              <Link
-                key={category.id}
-                href={`/products?category=${category.slug}`}
-                className="group"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl p-6 hover:shadow-lg transition-all duration-300 group-hover:scale-105">
-                  {/* Product Image */}
-                  <div className="relative w-full aspect-square mb-4 overflow-hidden rounded-xl">
-                    <Image
-                      src={category.image}
-                      alt={category.name}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                  </div>
-                  
-                  {/* Category Name */}
-                  <h3 className="text-center text-gray-800 dark:text-gray-200 font-bold text-sm md:text-base">
-                    {category.name}
-                  </h3>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          {/* Simple CTA */}
-          <div className="text-center mt-16">
-            <Link
-              href="/products"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors duration-300"
-            >
-              <span>View All Categories</span>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-      </section>
+      <Categories />
 
       {/* Recently Sold - Social Proof & Trust */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1 h-8 bg-green-500"></div>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">Recently Sold</h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">See what others are buying</p>
-            </div>
-            <Link href="/products?sort=recent-sold" className="group">
-              <span className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-semibold hover:bg-green-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                View All Recently Sold
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-            {recentlySold.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <RecentlySold />
 
       {/* New Arrival - Fresh Content */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-1 h-8 bg-[#046bd2]"></div>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white tracking-tight">New Arrivals</h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl ml-4">Fresh products just added</p>
-            </div>
-            <Link href="/products?sort=newest" className="group">
-              <span className="inline-flex items-center gap-2 px-6 py-3 bg-[#046bd2] text-white font-semibold hover:bg-[#0353a5] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105">
-                View All New Arrivals
-                <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
-            </Link>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-            {newArrivals.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <NewArrivals />
 
       {/* Promotional Banners - Mid-Page Engagement */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12">
+      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12 bg-white dark:bg-[#0a0a0a]" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
           <Link href="/products?category=rods" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
             <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#046bd2] to-[#0353a5]">
@@ -224,31 +93,13 @@ export default function Home() {
             </div>
           </Link>
         </div>
-      </section>
+      </section >
 
       {/* Best Deals - Value Proposition */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
-        <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#bc1215]/10 dark:bg-[#bc1215]/20 mb-4">
-              <svg className="w-5 h-5 text-[#bc1215]" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-              </svg>
-              <span className="text-sm font-bold text-[#bc1215] uppercase tracking-wider">Special Offers</span>
-            </div>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4 tracking-tight">Best Deals</h2>
-            <p className="text-gray-600 dark:text-gray-400 text-lg md:text-xl max-w-2xl mx-auto">Limited time offers you can&apos;t miss</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-7">
-            {bestDeals.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <BestDeals />
 
       {/* Recommended for You - Personalization */}
-      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20">
+      <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-20 bg-white dark:bg-[#0a0a0a]" >
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
@@ -266,15 +117,11 @@ export default function Home() {
             </span>
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5 lg:gap-7">
-          {recommended.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+      </section >
+      <RecomendedYou />
 
       {/* Customer Reviews - Trust & Social Proof */}
-      <section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200">
+      < section className="bg-gray-50 dark:bg-[#0f0f0f] py-20 transition-colors duration-200" >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="text-center mb-16">
             <div className="inline-flex items-center justify-center gap-2 px-5 py-2 bg-[#046bd2]/10 dark:bg-[#046bd2]/20 mb-4">
@@ -370,10 +217,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Features - Trust Indicators */}
-      <section className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] text-white py-20 relative overflow-hidden">
+      < section className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] text-white py-20 relative overflow-hidden" >
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-64 h-64 bg-white transform rotate-45"></div>
           <div className="absolute bottom-10 right-10 w-64 h-64 bg-white transform -rotate-45"></div>
@@ -445,10 +292,10 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </section>
+      </section >
 
       {/* Floating Action Button */}
-      <FloatingActionButton />
-    </div>
+      < FloatingActionButton />
+    </div >
   );
 }

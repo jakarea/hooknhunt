@@ -166,8 +166,8 @@ export default function CartSidebar() {
                     className="flex-shrink-0 relative w-20 h-20"
                   >
                     <Image
-                      src={item.product.image}
-                      alt={item.product.name}
+                      src={item.product.image || '/placeholder-image.jpg'}
+                      alt={item.product.name || 'Product'}
                       fill
                       className="object-cover hover:opacity-80 transition-opacity"
                       sizes="80px"
@@ -187,7 +187,7 @@ export default function CartSidebar() {
                     </Link>
 
                     <p className="text-[#bc1215] font-bold text-base mb-2">
-                      ৳{item.product.price.toLocaleString()}
+                      ৳{(item.product.price || 0).toLocaleString()}
                     </p>
 
                     {/* Quantity Controls */}
@@ -208,7 +208,7 @@ export default function CartSidebar() {
 
                       <button
                         onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                        disabled={item.quantity >= item.product.stock}
+                        disabled={item.quantity >= (item.product.stock || 999)}
                         className="w-7 h-7 flex items-center justify-center bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-800 dark:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Increase quantity"
                       >
@@ -240,7 +240,7 @@ export default function CartSidebar() {
                     </div>
 
                     {/* Stock Warning */}
-                    {item.quantity >= item.product.stock && (
+                    {item.quantity >= (item.product.stock || 999) && (
                       <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
                         {t('cart.sidebar.maxStock')}
                       </p>

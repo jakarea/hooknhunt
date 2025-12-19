@@ -1,5 +1,75 @@
 // types.ts
 
+// ✅ User
+export interface User {
+  id: number;
+  name: string;
+  email?: string;
+  phone: string;
+  status: string;
+  role?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Address
+export interface Address {
+  id: number;
+  user_id: number;
+  type: string;
+  recipient_name: string;
+  phone: string;
+  address_line: string;
+  area: string;
+  city: string;
+  postal_code?: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Cart Item
+export interface CartItem {
+  id: number;
+  product: Product;
+  quantity: number;
+  price: number;
+  variant?: {
+    id: number;
+    name: string;
+    sku: string;
+    price: number;
+    [key: string]: unknown;
+  };
+}
+
+// ✅ Purchase Item
+export interface PurchaseItem {
+  id: number;
+  purchase_id: number;
+  product_id: number;
+  variant_id?: number | null;
+  rmb_price: number;
+  quantity: number;
+  total_cost_bdt: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ✅ Sale Item
+export interface SaleItem {
+  id: number;
+  sale_id: number;
+  product_id: number;
+  variant_id?: number | null;
+  rate: number;
+  quantity: number;
+  weight: number;
+  subtotal: number;
+  created_at: string;
+  updated_at: string;
+}
+
 // ✅ Supplier
 export interface Supplier {
   id: number;
@@ -16,9 +86,11 @@ export interface Category {
   name: string;
   slug: string;
   image?: string;
+  image_url?: string; // API returns this field
   parent_id?: number | null;
   created_at: string;
   updated_at: string;
+  children?: Category[]; // For nested categories
 }
 
 // ✅ Product
@@ -69,6 +141,7 @@ export interface Product {
   inventory_policy: 'continue' | 'deny';
   has_variants: boolean;
   status: 'active' | 'inactive' | 'draft';
+  featured?: boolean;   // Featured product flag
 
   // 📦 Additional Identifiers
   barcode: string;
@@ -92,6 +165,9 @@ export interface Product {
   rating?: number;      // Product rating (1-5)
   reviews?: number;     // Number of reviews
   category?: string;    // Category name (for display)
+  variant_count?: number; // Number of variants
+  price_range_display?: string; // Price range display text
+  has_offer?: boolean;  // Whether product has offers
 }
 
 

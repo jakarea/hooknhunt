@@ -10,10 +10,8 @@ import { useAuth } from '@/context/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isNavSticky, setIsNavSticky] = useState(false);
   const { t, i18n } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const { getCartCount, toggleCart } = useCart();
@@ -24,55 +22,23 @@ export default function Header() {
     setMounted(true);
   }, []);
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
-  };
-
   useEffect(() => {
-    let ticking = false;
-
     const handleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          const scrollDifference = Math.abs(currentScrollY - lastScrollY);
-
-          // Hero section height threshold (approximately 400px to account for different screen sizes)
-          const heroSectionHeight = 400;
-
-          // Only update if scroll difference is significant to prevent jitter
-          if (scrollDifference > 3) {
-            // Determine if scrolled past hero section
-            setIsScrolled(currentScrollY > heroSectionHeight);
-
-            // Determine scroll direction based on hero section threshold
-            if (currentScrollY > lastScrollY && currentScrollY > heroSectionHeight) {
-              setScrollDirection('down');
-            } else if (currentScrollY < lastScrollY && currentScrollY <= heroSectionHeight) {
-              setScrollDirection('up');
-            }
-
-            setLastScrollY(currentScrollY);
-          }
-
-          ticking = false;
-        });
-
-        ticking = true;
-      }
+      setIsNavSticky(window.scrollY > 300);
     };
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY]);
+  }, []);
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-white dark:bg-[#1a1a1a] shadow-sm transition-all duration-500 ease-in-out">
+    <header className="bg-white dark:bg-[#1a1a1a] shadow-sm z-50">
       {/* Top Bar */}
-      <div
-        className={`bg-[#bc1215] text-white transition-all duration-300 ease-in-out overflow-hidden ${scrollDirection === 'down' && isScrolled ? 'max-h-0 opacity-0' : 'max-h-12 opacity-100'
-          }`}
-      >
+      <div className="bg-[#bc1215] text-white">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex justify-between items-center h-7 text-xs">
             <div className="flex items-center">
@@ -151,9 +117,7 @@ export default function Header() {
       </div>
 
       {/* Main Header */}
-      <div
-        className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out py-2"
-      >
+      <div className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <div className="flex items-center justify-between gap-8">
             {/* Logo */}
@@ -163,7 +127,7 @@ export default function Header() {
                 alt="Hook & Hunt"
                 width={180}
                 height={60}
-                className="w-auto h-10 transition-all duration-300 ease-in-out"
+                className="w-auto h-10"
                 priority
               />
             </Link>
@@ -239,8 +203,9 @@ export default function Header() {
 
       {/* Navigation Menu - Desktop */}
       <div
-        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out overflow-hidden ${scrollDirection === 'down' && isScrolled ? 'max-h-0 opacity-0' : 'max-h-14 opacity-100'
-          }`}
+        className={`hidden lg:block bg-[#f5f5f5] dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800 transition-all duration-300 ${
+          isNavSticky ? 'sticky top-0 z-40 shadow-md' : ''
+        }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
           <nav className="flex items-center justify-start gap-8">

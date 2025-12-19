@@ -49,12 +49,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         // Update quantity if item exists
         return prevItems.map(item =>
           item.product.id === product.id
-            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock) }
+            ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock || 999), price: item.price }
             : item
         );
       } else {
         // Add new item
-        return [...prevItems, { product, quantity }];
+        return [...prevItems, { id: Date.now(), product, quantity, price: product.price || 0 }];
       }
     });
 
@@ -75,7 +75,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCartItems(prevItems =>
       prevItems.map(item =>
         item.product.id === productId
-          ? { ...item, quantity: Math.min(quantity, item.product.stock) }
+          ? { ...item, quantity: Math.min(quantity, item.product.stock || 999) }
           : item
       )
     );
@@ -90,7 +90,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const getCartTotal = () => {
-    return cartItems.reduce((total, item) => total + item.product.price * item.quantity, 0);
+    return cartItems.reduce((total, item) => total + (item.product.price || 0) * item.quantity, 0);
   };
 
   const getCartCount = () => {

@@ -32,11 +32,11 @@ export default function WishlistPage() {
   const sortedItems = [...wishlistItems].sort((a, b) => {
     switch (sortBy) {
       case 'price-low':
-        return a.price - b.price;
+        return (a.price || 0) - (b.price || 0);
       case 'price-high':
-        return b.price - a.price;
+        return (b.price || 0) - (a.price || 0);
       case 'name':
-        return a.name.localeCompare(b.name);
+        return (a.name || '').localeCompare(b.name || '');
       case 'date-added':
       default:
         return 0; // Keep original order for date-added
@@ -44,7 +44,7 @@ export default function WishlistPage() {
   });
 
   const getTotalValue = () => {
-    return wishlistItems.reduce((total, item) => total + item.price, 0);
+    return wishlistItems.reduce((total, item) => total + (item.price || 0), 0);
   };
 
   return (
@@ -172,8 +172,8 @@ export default function WishlistPage() {
                         {/* Product Image */}
                         <div className="aspect-square bg-gray-100 dark:bg-gray-700 overflow-hidden relative">
                           <Image
-                            src={product.image}
-                            alt={product.name}
+                            src={product.image || '/placeholder-image.jpg'}
+                            alt={product.name || 'Product image'}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -187,7 +187,7 @@ export default function WishlistPage() {
                           </h3>
                           <div className="flex items-center gap-2 mb-3">
                             <span className="text-lg font-bold text-[#bc1215]">
-                              ৳{product.price.toLocaleString()}
+                              ৳{(product.price || 0).toLocaleString()}
                             </span>
                             {product.originalPrice && (
                               <span className="text-sm text-gray-500 line-through">
@@ -199,11 +199,11 @@ export default function WishlistPage() {
                           {/* Stock Status */}
                           <div className="mb-4">
                             <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              product.stock > 0 
+                              (product.stock || 0) > 0 
                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                                 : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                             }`}>
-                              {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                              {(product.stock || 0) > 0 ? 'In Stock' : 'Out of Stock'}
                             </span>
                           </div>
 
@@ -233,8 +233,8 @@ export default function WishlistPage() {
                         {/* Product Image */}
                         <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 relative">
                           <Image
-                            src={product.image}
-                            alt={product.name}
+                            src={product.image || '/placeholder-image.jpg'}
+                            alt={product.name || 'Product image'}
                             fill
                             className="object-cover"
                             sizes="80px"
@@ -248,7 +248,7 @@ export default function WishlistPage() {
                           </h3>
                           <div className="flex items-center gap-2 mb-2">
                             <span className="text-lg font-bold text-[#bc1215]">
-                              ৳{product.price.toLocaleString()}
+                              ৳{(product.price || 0).toLocaleString()}
                             </span>
                             {product.originalPrice && (
                               <span className="text-sm text-gray-500 line-through">
@@ -257,11 +257,11 @@ export default function WishlistPage() {
                             )}
                           </div>
                           <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                            product.stock > 0 
+                            (product.stock || 0) > 0 
                               ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
                               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }`}>
-                            {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                            {(product.stock || 0) > 0 ? 'In Stock' : 'Out of Stock'}
                           </span>
                         </div>
 

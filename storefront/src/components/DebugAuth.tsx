@@ -3,9 +3,19 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
+interface DebugInfo {
+  token?: string;
+  cachedUser?: string;
+  tokenLength?: number;
+  userFromAuth?: unknown;
+  isAuthenticated?: boolean;
+  isLoading?: boolean;
+  allLocalStorage?: Record<string, string>;
+}
+
 export default function DebugAuth() {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [debugInfo, setDebugInfo] = useState<any>({});
+  const [debugInfo, setDebugInfo] = useState<DebugInfo>({});
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');

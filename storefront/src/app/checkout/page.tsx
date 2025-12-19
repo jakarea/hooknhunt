@@ -77,7 +77,7 @@ export default function CheckoutPage() {
 
   // Calculate original total (without discount)
   const originalSubtotal = cartItems.reduce((sum, item) => {
-    const price = item.product.originalPrice || item.product.price;
+    const price = item.product.originalPrice || item.product.price || 0;
     return sum + price * item.quantity;
   }, 0);
   const totalSavings = (originalSubtotal - subtotal) + couponDiscount + (freeShipping ? deliveryCharge : 0);

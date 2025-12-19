@@ -29,7 +29,7 @@ export default function HeroSlider() {
       title: t('hero.slide1.title'),
       subtitle: t('hero.slide1.subtitle'),
       description: t('hero.slide1.description'),
-      image: 'https://images.unsplash.com/photo-1545450660-8c1e68e62a73?w=1400&h=600&fit=crop',
+      image: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1400&h=600&fit=crop',
       cta: t('hero.slide1.cta'),
       ctaLink: '/products?category=rods',
       badge: 'New Collection',
@@ -121,13 +121,12 @@ export default function HeroSlider() {
           {slides.map((slide, index) => (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                index === currentSlide
+              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${index === currentSlide
                   ? 'opacity-100 translate-x-0 scale-100'
                   : index < currentSlide
-                  ? 'opacity-0 -translate-x-full scale-95'
-                  : 'opacity-0 translate-x-full scale-95'
-              }`}
+                    ? 'opacity-0 -translate-x-full scale-95'
+                    : 'opacity-0 translate-x-full scale-95'
+                }`}
             >
               {/* Background Image with Enhanced Overlay */}
               <div className="absolute inset-0">
@@ -257,11 +256,10 @@ export default function HeroSlider() {
               key={index}
               onClick={() => goToSlide(index)}
               disabled={isTransitioning}
-              className={`transition-all duration-500 rounded-full flex items-center gap-2 cursor-pointer ${
-                index === currentSlide
+              className={`transition-all duration-500 rounded-full flex items-center gap-2 cursor-pointer ${index === currentSlide
                   ? 'w-12 h-3 bg-[#bc1215] shadow-lg'
                   : 'w-3 h-3 glass-button hover:scale-125'
-              }`}
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             >
               {index === currentSlide && (
@@ -275,7 +273,7 @@ export default function HeroSlider() {
 
         {/* Progress Bar */}
         <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-          <div 
+          <div
             className="h-full bg-gradient-to-r from-[#bc1215] to-[#046bd2] transition-all duration-100 ease-linear"
             style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
           ></div>

@@ -8,7 +8,7 @@ import UserNavigation from '@/components/user/UserNavigation';
 import toast, { Toaster } from 'react-hot-toast';
 
 export default function ProfilePage() {
-  const { user: authUser, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { user, loading, updating, error, validationErrors, fetchProfile, updateProfile, clearErrors } = useProfileStore();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -23,7 +23,7 @@ export default function ProfilePage() {
     if (isAuthenticated) {
       fetchProfile();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, fetchProfile]);
 
   // Update form data when user data is loaded
   useEffect(() => {
