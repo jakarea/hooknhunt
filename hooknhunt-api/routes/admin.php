@@ -69,6 +69,12 @@ Route::prefix('v1/admin')->group(function () {
             // Product variants routes
             Route::get('/product-variants', [ProductController::class, 'variants']);
             Route::put('/product-variants/{id}', [ProductController::class, 'updateVariant']);
+
+            // Product media update route
+            Route::post('/products/{product}/update-media', [ProductController::class, 'updateMedia']);
+
+            // Single image upload route
+            Route::post('/products/upload-gallery-image', [ProductController::class, 'uploadGalleryImage']);
         });
 
         // ===============================================

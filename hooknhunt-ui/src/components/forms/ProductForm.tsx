@@ -64,6 +64,10 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Gallery images state
+  const [galleryImages, setGalleryImages] = useState<string[]>(initialData?.gallery_images || []);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+
   // Get categories from store
   const { categories, isLoading: categoriesLoading, fetchCategories } = useCategoryStore();
 
@@ -173,6 +177,46 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     }
   };
 
+  // Gallery image upload functions
+  const handleGalleryImageUpload = async (files: FileList) => {
+    setUploadingGallery(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await api.post('/admin/products/upload-gallery-image', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        return response.data.url;
+      });
+
+      const uploadedUrls = await Promise.all(uploadPromises);
+      setGalleryImages(prev => [...prev, ...uploadedUrls]);
+
+      toast({
+        title: "Gallery images uploaded",
+        description: `${uploadedUrls.length} image(s) added successfully`,
+      });
+    } catch (error) {
+      console.error('Gallery upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload gallery images",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingGallery(false);
+    }
+  };
+
+  const removeGalleryImage = (index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Clear any previous thumbnail errors when form is submitted
     if (thumbnailError) {
@@ -200,6 +244,12 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
       // Add thumbnail if selected
       if (thumbnail) {
         formData.append('thumbnail', thumbnail);
+      }
+
+      // Add gallery images as JSON array of URLs
+      if (galleryImages.length > 0) {
+        formData.append('gallery_images', JSON.stringify(galleryImages));
+        console.log('📸 Adding gallery images to FormData:', galleryImages);
       }
 
       console.log('🔑 Authentication handled by axios interceptor');
@@ -609,6 +659,84 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                   />
                 </label>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Gallery Images */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-semibold">Gallery Images</CardTitle>
+            <CardDescription>
+              Add additional product images. Images are uploaded immediately and will be saved when you submit the form.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Gallery Upload Input */}
+              <div>
+                <input
+                  type="file"
+                  id="gallery-upload"
+                  multiple
+                  accept="image/webp,image/png,image/jpeg,image/jpg,image/gif"
+                  className="hidden"
+                  onChange={(e) => e.target.files && handleGalleryImageUpload(e.target.files)}
+                  disabled={uploadingGallery}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => document.getElementById('gallery-upload')?.click()}
+                  disabled={uploadingGallery}
+                  className="w-full"
+                >
+                  {uploadingGallery ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Add Gallery Images
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Gallery Images Grid */}
+              {galleryImages.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {galleryImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group">
+                      <div className="aspect-square rounded-lg border overflow-hidden bg-gray-50">
+                        <img
+                          src={imageUrl}
+                          alt={`Gallery image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeGalleryImage(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {galleryImages.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Image className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No gallery images uploaded yet</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
