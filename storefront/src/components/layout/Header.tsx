@@ -67,12 +67,12 @@ export default function Header() {
       {/* Top Bar */}
       <div className="bg-[#bc1215] text-white">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex justify-between items-center h-7 text-xs">
+          <div className="flex justify-between items-center py-3 text-xs">
             <div className="flex items-center">
               <span className="hidden sm:inline">{t('header.welcome')}</span>
               <span className="sm:hidden">{t('header.welcomeShort')}</span>
             </div>
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-8">
               <a href="tel:01841544590" className="flex items-center hover:opacity-80 transition-opacity">
                 <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
@@ -146,15 +146,15 @@ export default function Header() {
       {/* Main Header */}
       <div className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <div className="flex items-center justify-between gap-8">
+          <div className="flex items-center justify-between gap-8 py-4">
             {/* Logo */}
-            <Link href="/" className="flex-shrink-0">
+            <Link href="/" className="flex-shrink-0 py-2">
               <Image
                 src="/hook-and-hunt-logo.svg"
                 alt="Hook & Hunt"
                 width={180}
                 height={60}
-                className="w-auto h-10"
+                className="w-auto h-12"
                 priority
               />
             </Link>
@@ -234,8 +234,8 @@ export default function Header() {
           }`}
       >
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
-          <nav className="flex items-center justify-start gap-5">
-            <Link href="/" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
+          <nav className="flex items-center justify-start gap-8">
+            <Link href="/" className="py-4 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
               {t('nav.home')}
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
             </Link>
@@ -245,14 +245,14 @@ export default function Header() {
               <Link
                 key={category.id}
                 href={`/products?category=${category.slug}`}
-                className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group"
+                className="py-4 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group"
               >
                 {category.name}
                 <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
               </Link>
             ))}
 
-            <Link href="/contact" className="py-2.5 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
+            <Link href="/contact" className="py-4 text-[15px] font-medium text-gray-800 dark:text-gray-200 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors relative group">
               {t('nav.contact')}
               <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#bc1215] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
             </Link>

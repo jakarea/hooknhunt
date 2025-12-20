@@ -4,6 +4,8 @@ use App\Http\Controllers\Api\V1\Storefront\CategoryController;
 use App\Http\Controllers\Api\V1\Storefront\ProductController;
 use App\Http\Controllers\Api\V1\Storefront\AuthController;
 use App\Http\Controllers\Api\V1\Storefront\AccountController;
+use App\Http\Controllers\Api\V1\Storefront\OrderController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // WEBSITE API (For Next.js Website)
@@ -20,6 +22,7 @@ Route::prefix('v1/store')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::get('/auth/test-sms-balance', [AuthController::class, 'testSmsBalance']); // Development only
 
     // Public Category Routes
     Route::get('/categories', [CategoryController::class, 'index']);
@@ -32,6 +35,9 @@ Route::prefix('v1/store')->group(function () {
     Route::get('/products/{slug}', [ProductController::class, 'show']);
     Route::get('/products/{slug}/related', [ProductController::class, 'related']);
     Route::get('/categories/{categorySlug}/products', [ProductController::class, 'byCategory']);
+
+    // Public Order Route (Place Order - works for both guests and authenticated users)
+    Route::post('/orders', [OrderController::class, 'placeOrder']);
 
     // We will add public '/brands' routes here in a future step
     // We will add public '/pages' routes here in a future step (About, Contact, etc.)
@@ -53,7 +59,10 @@ Route::prefix('v1/store')->group(function () {
         Route::put('/addresses/{address}', [AccountController::class, 'updateAddress']);
         Route::delete('/addresses/{address}', [AccountController::class, 'deleteAddress']);
 
-        // We will add '/orders' here in a future step
+        // Customer Orders
+        Route::get('/orders', [OrderController::class, 'myOrders']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
+
         // We will add '/wishlist' here in a future step
         // We will add '/reviews' here in a future step
     });

@@ -119,6 +119,30 @@ const ProductEdit = () => {
     navigate('/products');
   };
 
+  const handleProductUpdated = () => {
+    // Refresh product data when main product form is updated
+    if (product?.id) {
+      console.log('🔄 handleProductUpdated called for product:', product.id);
+      fetchProduct(product.id).then(() => {
+        // Re-fetch from API to get updated product data (including gallery_images)
+        api.get(`/admin/products/${product.id}?include=suppliers`)
+          .then(response => {
+            console.log('📡 Product Updated API Response:', response);
+
+            // Handle both nested and direct response structures
+            const productData = response.data.data || response.data;
+            console.log('🏷️ Updated product data:', productData);
+            console.log('🖼️ Gallery images in updated product:', productData.gallery_images);
+
+            setProduct(productData);
+          })
+          .catch(error => {
+            console.error('❌ Error fetching updated product:', error);
+          });
+      });
+    }
+  };
+
   const handleSuppliersUpdated = () => {
     // Refresh product data when suppliers are updated
     if (product?.id) {
@@ -236,7 +260,11 @@ const ProductEdit = () => {
                 {/* Tab Content */}
                 <div className="p-6">
                   <TabsContent value="details" className="mt-0">
-                    <ProductForm initialData={product} onClose={handleSuccess} />
+                    <ProductForm
+                      initialData={product}
+                      onClose={handleSuccess}
+                      onProductUpdated={handleProductUpdated}
+                    />
                   </TabsContent>
 
                   <TabsContent value="suppliers" className="mt-0">

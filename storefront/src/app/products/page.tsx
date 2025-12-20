@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ProductCard from '@/components/product/ProductCard';
-import { products } from '@/data/products';
+import { Product } from '@/types';
+// import { products } from '@/data/products';
 
 function ProductsPageContent() {
   const searchParams = useSearchParams();
@@ -17,8 +18,10 @@ function ProductsPageContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [displayCount, setDisplayCount] = useState(12); // Initial load: 12 products
   const [isLoading, setIsLoading] = useState(false);
-  const [categories, setCategories] = useState<Array<{ id: number, name: string, slug: string }>>([]);
+  const [categories, setCategories] = useState<Array<{ id: number, name: string, slug: string, product_count?: number }>>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
   const observerTarget = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,7 +39,7 @@ function ProductsPageContent() {
         if (response.ok) {
           const data = await response.json();
           // API returns {categories: [...]}
-          setCategories(data.categories || []);
+          setCategories(data.all_categories || data.categories || []);
         }
       } catch (error) {
         console.error('Failed to fetch categories:', error);
@@ -46,6 +49,88 @@ function ProductsPageContent() {
     };
 
     fetchCategories();
+  }, []);
+
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setProductsLoading(true);
+        const response = await fetch('/api/v1/store/products');
+        if (response.ok) {
+          const data = await response.json();
+          const apiProducts = data.products || [];
+
+          // Map API response to Product type
+          const mappedProducts = apiProducts.map((product: any) => {
+            const minPrice = parseFloat(product.price_range?.min) || 0;
+            const maxPrice = parseFloat(product.price_range?.max) || 0;
+            const displayPrice = minPrice > 0 ? minPrice : maxPrice;
+
+            return {
+              id: product.id,
+              product_code: product.product_code || '',
+              title: product.name || '',
+              slug: product.slug || '',
+              sku: product.sku || '',
+              description: product.description || '',
+              short_description: product.short_description || '',
+              supplier_id: product.supplier_id || 0,
+              product_link: product.product_link || '',
+              category_id: product.category_id || 0,
+              brand: product.brand || '',
+              tags: product.tags || [],
+              featured_image: product.thumbnail_url || '',
+              gallery: product.gallery_images || [],
+              weight: product.weight || 0,
+              unit: product.unit || 'kg',
+              cost_rmb: product.cost_rmb || 0,
+              exchange_rate: product.exchange_rate || 1,
+              cost_bdt: product.cost_bdt || 0,
+              actual_price: displayPrice,
+              default_price: displayPrice,
+              compare_at_price: 0,
+              price_wholesale: displayPrice,
+              price_retail: displayPrice,
+              price_daraz: displayPrice,
+              name_wholesale: product.name || '',
+              name_retail: product.name || '',
+              name_daraz: product.name || '',
+              inventory_quantity: product.stock_info?.total_available || 0,
+              inventory_policy: 'continue' as const,
+              has_variants: product.variant_count > 0,
+              status: product.status || 'active',
+              featured: product.has_offer || false,
+              barcode: product.barcode || '',
+              hs_code: product.hs_code || '',
+              seo_title: product.seo_title || '',
+              seo_description: product.seo_description || '',
+              search_keywords: product.search_keywords || [],
+              created_at: product.created_at || '',
+              updated_at: product.updated_at || '',
+              name: product.name || '',
+              price: displayPrice,
+              originalPrice: 0,
+              image: product.thumbnail_url || '',
+              stock: product.stock_info?.total_available || 0,
+              rating: product.rating || 0,
+              reviews: product.reviews || 0,
+              category: product.categories?.[0]?.name || '',
+              variant_count: product.variant_count || 0,
+              price_range_display: product.price_range?.display || '',
+              has_offer: product.has_offer || false,
+            };
+          });
+          setProducts(mappedProducts);
+        }
+      } catch (error) {
+        console.error('Failed to fetch products:', error);
+      } finally {
+        setProductsLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, []);
 
   // Filter products by category
@@ -306,9 +391,12 @@ function ProductsPageContent() {
                     </div>
                   ) : (
                     categories.map(category => {
-                      const categoryProductCount = products.filter(p =>
+                      const categoryProductCount = category.product_count ?? products.filter(p =>
                         p.category_id === category.id
                       ).length;
+
+                      if (categoryProductCount === 0) return null;
+
                       const isSelected = selectedCategories.includes(category.slug);
                       return (
                         <button

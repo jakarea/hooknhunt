@@ -289,12 +289,17 @@ class ProductController extends Controller
             ]);
 
             // Handle gallery_images as JSON string (from frontend FormData)
-            if ($request->has('gallery_images') && isset($validated['gallery_images'])) {
+            // Always check for gallery_images since we now always send it from frontend
+            if (isset($validated['gallery_images'])) {
                 $decodedImages = json_decode($validated['gallery_images'], true);
                 if (is_array($decodedImages)) {
                     $galleryImages = $decodedImages;
                     \Log::info('Gallery images from JSON string:', $galleryImages);
+                } else {
+                    \Log::info('Invalid gallery_images JSON:', $validated['gallery_images']);
                 }
+            } else {
+                \Log::info('gallery_images not in validated data');
             }
 
             // Handle existing_gallery_images for backward compatibility
@@ -307,11 +312,9 @@ class ProductController extends Controller
                 }
             }
 
-            // Always update gallery_images if provided (even if empty - allows clearing gallery)
-            if ($request->has('gallery_images') || $request->has('existing_gallery_images')) {
-                $updateData['gallery_images'] = $galleryImages;
-                \Log::info('Update data includes gallery_images:', $updateData['gallery_images']);
-            }
+            // Always update gallery_images since frontend now always sends it
+            $updateData['gallery_images'] = $galleryImages;
+            \Log::info('Update data includes gallery_images:', $updateData['gallery_images']);
 
             // Update product
             $product->update($updateData);

@@ -72,9 +72,10 @@ interface ProductFormProps {
   initialData?: Product;
   onClose: () => void;
   onProductCreated?: (product: any) => void;
+  onProductUpdated?: () => void;
 }
 
-export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, onProductCreated }) => {
+export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, onProductCreated, onProductUpdated }) => {
   const isEdit = !!initialData;
   const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
@@ -87,8 +88,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
 
   // Gallery images state
   const [galleryImages, setGalleryImages] = useState<Array<{ url: string; alt_text?: string }>>(
-    initialData?.gallery_images?.map((url: string) => ({ url, alt_text: '' })) || []
+    initialData?.gallery_images?.map((url: string) => ({
+      url: url.startsWith('http') ? url : `${window.location.origin}/${url}`,
+      alt_text: ''
+    })) || []
   );
+
+  // Debug: Log initial gallery images
+  useEffect(() => {
+    console.log('🖼️ Initial gallery images from props:', initialData?.gallery_images);
+    console.log('🖼️ GalleryImages state after init:', galleryImages);
+  }, []);
 
   // Get categories from store
   const { categories, isLoading: categoriesLoading, fetchCategories } = useCategoryStore();
@@ -164,12 +174,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
 
   // Handle gallery selection from MediaLibrary
   const handleGallerySelect = (files: MediaFile[]) => {
+    console.log('📁 MediaLibrary selected files:', files);
     const newImages = files.map(file => ({
       url: file.url,
       alt_text: file.original_filename,
     }));
 
     const updatedImages = [...galleryImages, ...newImages];
+    console.log('🖼️ Updated gallery images:', updatedImages);
     setGalleryImages(updatedImages);
     setShowGalleryModal(false);
 
@@ -215,13 +227,28 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
         formData.append('media_file_id', selectedMediaFile.id.toString());
       }
 
-      // Add gallery images as JSON array of URLs
-      if (galleryImages.length > 0) {
-        const galleryUrls = galleryImages.map(img => img.url);
-        formData.append('gallery_images', JSON.stringify(galleryUrls));
+      // Add gallery images as JSON array of relative paths (always include to allow clearing gallery)
+      const galleryUrls = galleryImages.map(img => {
+        // Remove base URL to store only relative path
+        const url = img.url;
+        if (url.startsWith('http://localhost:8000/')) {
+          return url.replace('http://localhost:8000/', '');
+        }
+        if (url.startsWith(window.location.origin + '/')) {
+          return url.replace(window.location.origin + '/', '');
+        }
+        return url;
+      });
+      console.log('🖼️ Submitting gallery images (relative paths):', galleryUrls);
+      console.log('🖼️ Current galleryImages state:', galleryImages);
+      formData.append('gallery_images', JSON.stringify(galleryUrls));
+
+      // Debug: Log FormData contents
+      console.log('📤 FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
       }
 
-      
       // Use PUT for edit, POST for create
       const response = isEdit
         ? await api.post(`/admin/products/${initialData!.id}?_method=PUT`, formData, {
@@ -253,13 +280,17 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
             suppliers: [], // Start with empty suppliers array
           });
         } else {
-          console.error('❌ No product ID found in response');
-          toast({
-            title: "Error",
-            description: "Product was created but unable to redirect. Please go to products list.",
-            variant: "destructive"
+          onProductCreated({
+            ...result,
+            suppliers: [], // Start with empty suppliers array
           });
         }
+      }
+
+      // Call onProductUpdated callback for existing products
+      if (isEdit && onProductUpdated) {
+        console.log('🔄 Calling onProductUpdated callback');
+        onProductUpdated();
       }
 
       // For edit mode, just close the form
@@ -679,6 +710,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
               </div>
               <div className="flex items-center gap-2">
                 <Button
+                  type="button"
                   onClick={() => setShowGalleryModal(true)}
                   className="shadow-sm"
                   disabled={galleryImages.length >= 8}
@@ -753,6 +785,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No Gallery Images</h3>
                     <p className="text-gray-500 mb-4">Add images to showcase your product from different angles</p>
                     <Button
+                      type="button"
                       onClick={() => setShowGalleryModal(true)}
                       variant="outline"
                     >

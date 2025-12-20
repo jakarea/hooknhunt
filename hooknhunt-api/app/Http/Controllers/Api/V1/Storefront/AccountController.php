@@ -16,7 +16,10 @@ class AccountController extends Controller
      */
     public function me(Request $request)
     {
-        return $request->user()->load('addresses');
+        $user = $request->user()->load('addresses');
+        return response()->json([
+            'user' => $user
+        ]);
     }
 
     /**
@@ -47,13 +50,16 @@ class AccountController extends Controller
                 'max:255',
                 Rule::unique('users')->ignore($user->id),
             ],
+            'address' => 'nullable|string',
+            'city' => 'nullable|string|max:100',
+            'district' => 'nullable|string|max:100',
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user->update($request->only('name', 'whatsapp_number', 'email'));
+        $user->update($request->only('name', 'whatsapp_number', 'email', 'address', 'city', 'district'));
 
         return response()->json(['message' => 'Profile updated successfully.', 'user' => $user]);
     }

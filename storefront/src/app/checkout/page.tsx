@@ -4,7 +4,10 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import AnimatedCounter from '@/components/common/AnimatedCounter';
+import { Address } from '@/types';
+import { OrderResponse } from '@/types/api';
 
 type PaymentMethod = 'cod' | 'mobile' | 'card';
 type MobileWallet = 'bkash' | 'nagad' | 'rocket' | null;
@@ -20,11 +23,15 @@ const availableCoupons = {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cartItems, getCartTotal } = useCart();
+  const { cartItems, getCartTotal, clearCart } = useCart();
+  const { user, isAuthenticated } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
   const [selectedWallet, setSelectedWallet] = useState<MobileWallet>(null);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [addresses, setAddresses] = useState<Address[]>([]);
+  const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
+  const [useDifferentAddress, setUseDifferentAddress] = useState(false);
 
   // Coupon state
   const [couponCode, setCouponCode] = useState('');
@@ -52,6 +59,67 @@ export default function CheckoutPage() {
     }
   }, [cartItems, router]);
 
+  // Pre-fill user data and fetch addresses when user is logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      // Pre-fill form with user data
+      setFormData(prev => ({
+        ...prev,
+        name: user.name || prev.name,
+        phone: user.phone_number || prev.phone,
+        email: user.email || prev.email,
+        // Use user's default address fields if available
+        address: user.address || prev.address,
+        city: user.city || prev.city,
+        district: user.district || prev.district,
+      }));
+
+      // Fetch user addresses
+      fetchUserAddresses();
+    }
+  }, [isAuthenticated, user]);
+
+  // Fetch user addresses from API
+  const fetchUserAddresses = async () => {
+    try {
+      const api = (await import('@/lib/api')).default;
+      const response = await api.getAddresses();
+      if (response.data && Array.isArray(response.data)) {
+        setAddresses(response.data);
+        // Set default address if available
+        const defaultAddress = response.data.find((addr: Address) => addr.is_default);
+        if (defaultAddress) {
+          setSelectedAddress(defaultAddress.id);
+          setUseDifferentAddress(false);
+          // Pre-fill form with default address
+          setFormData(prev => ({
+            ...prev,
+            address: defaultAddress.address || prev.address,
+            city: defaultAddress.city || prev.city,
+            district: defaultAddress.district || prev.district,
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch addresses:', error);
+    }
+  };
+
+  // Handle address selection
+  const handleAddressSelect = (addressId: number) => {
+    setSelectedAddress(addressId);
+    const selected = addresses.find(addr => addr.id === addressId);
+    if (selected) {
+      setFormData(prev => ({
+        ...prev,
+        address: selected.address || prev.address,
+        city: selected.city || prev.city,
+        district: selected.district || prev.district,
+      }));
+      setUseDifferentAddress(false);
+    }
+  };
+
   // Calculations
   const subtotal = getCartTotal();
   const deliveryCharge = 60;
@@ -77,7 +145,7 @@ export default function CheckoutPage() {
 
   // Calculate original total (without discount)
   const originalSubtotal = cartItems.reduce((sum, item) => {
-    const price = item.product.originalPrice || item.product.price || 0;
+    const price = item.price || 0;
     return sum + price * item.quantity;
   }, 0);
   const totalSavings = (originalSubtotal - subtotal) + couponDiscount + (freeShipping ? deliveryCharge : 0);
@@ -135,7 +203,7 @@ export default function CheckoutPage() {
     });
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!agreeToTerms) {
       alert('Please agree to the terms and conditions');
       return;
@@ -152,23 +220,79 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Generate order ID
-    const orderId = 'ORD-' + Date.now();
+    try {
+      const api = (await import('@/lib/api')).default;
 
-    // Here you would process the order via API
-    console.log('Processing order...', {
-      orderId,
-      formData,
-      paymentMethod,
-      selectedWallet,
-      appliedCoupon,
-      total: payableTotal,
-      items: cartItems,
-    });
+      // Prepare order items
+      const orderItems = cartItems.map(item => ({
+        product_id: item.product.id,
+        variant_id: item.variant?.id || null,
+        product_name: item.product.name,
+        product_sku: item.product.sku || item.variant?.sku || null,
+        product_image: item.product.image || '/placeholder-product.png',
+        unit_price: item.price || 0,
+        quantity: item.quantity,
+        total_price: (item.price || 0) * item.quantity,
+        product_attributes: null,
+      }));
 
-    // Redirect to success page with order details
-    // Cart will be cleared on the success page
-    router.push(`/order-success?orderId=${orderId}&total=${payableTotal}&name=${encodeURIComponent(formData.name)}`);
+      // Prepare payment details
+      const paymentDetails = paymentMethod === 'mobile' && selectedWallet
+        ? `Payment via ${selectedWallet}`
+        : paymentMethod === 'card'
+        ? 'Payment via credit/debit card'
+        : 'Cash on delivery';
+
+      // Order data
+      const orderData = {
+        customer_name: formData.name,
+        customer_phone: formData.phone,
+        customer_email: formData.email || null,
+        shipping_address: formData.address,
+        shipping_city: formData.city,
+        shipping_district: formData.district,
+        payment_method: paymentMethod,
+        payment_details: paymentDetails,
+        notes: formData.notes || null,
+        items: orderItems,
+        subtotal: subtotal,
+        delivery_charge: deliveryCharge,
+        service_charge: serviceCharge,
+        coupon_discount: couponDiscount,
+        total_amount: subtotal,
+        payable_amount: payableTotal,
+      };
+
+      // Place the order via API
+      const response = await api.post('/store/orders', orderData);
+
+      if (response && 'order' in response) {
+        const order = response.order as OrderResponse['order'];
+        console.log('Order placed successfully:', order);
+
+        // Clear the cart after successful order
+        clearCart();
+
+        // Redirect to success page with real order details
+        router.push(`/order-success?orderId=${order.order_number}&total=${order.payable_amount}&name=${encodeURIComponent(order.customer_name)}`);
+      } else {
+        throw new Error('Invalid response from server');
+      }
+
+    } catch (error: any) {
+      console.error('Order placement failed:', error);
+
+      // Handle validation errors
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        const errors = error.response.data.errors;
+        const errorMessages = Object.values(errors).flat();
+        alert(`Validation Error: ${errorMessages.join(', ')}`);
+      } else if (error.response?.data?.message) {
+        alert(`Error: ${error.response.data.message}`);
+      } else {
+        alert('Order placement failed. Please try again or contact support.');
+      }
+    }
   };
 
   if (cartItems.length === 0) {
@@ -208,9 +332,12 @@ export default function CheckoutPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Customer Information */}
             <div className="bg-white dark:bg-[#0a0a0a] border-2 border-gray-200 dark:border-gray-800 p-6 rounded-lg">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                Customer Information
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Customer Information
+                </h2>
+                
+              </div>
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
@@ -222,9 +349,17 @@ export default function CheckoutPage() {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                    readOnly={isAuthenticated}
+                    className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                      isAuthenticated
+                        ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                    }`}
                     placeholder="Enter your full name"
                   />
+                  {isAuthenticated && (
+                    <p className="mt-1 text-xs text-gray-500">Prefilled from your account</p>
+                  )}
                 </div>
 
                 <div>
@@ -236,9 +371,17 @@ export default function CheckoutPage() {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                    readOnly={isAuthenticated}
+                    className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                      isAuthenticated
+                        ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                    }`}
                     placeholder="01XXXXXXXXX"
                   />
+                  {isAuthenticated && (
+                    <p className="mt-1 text-xs text-gray-500">Prefilled from your account</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
@@ -250,52 +393,139 @@ export default function CheckoutPage() {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                    readOnly={isAuthenticated && !!user?.email}
+                    className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
+                      (isAuthenticated && !!user?.email)
+                        ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                    }`}
                     placeholder="your@email.com"
                   />
+                  {isAuthenticated && user?.email && (
+                    <p className="mt-1 text-xs text-gray-500">Prefilled from your account</p>
+                  )}
                 </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Address <span className="text-red-600">*</span>
-                  </label>
-                  <textarea
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
-                    placeholder="House/Flat No., Road, Area"
-                  />
-                </div>
+              {/* Address Selection for Logged-in Users */}
+              {isAuthenticated && addresses.length > 0 && (
+                <div className="md:col-span-2 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    Delivery Address
+                  </h3>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    City <span className="text-red-600">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
-                    placeholder="e.g., Dhaka"
-                  />
-                </div>
+                  {/* Saved Addresses */}
+                  <div className="space-y-3 mb-4">
+                    {addresses.map((address) => (
+                      <label
+                        key={address.id}
+                        className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                          selectedAddress === address.id
+                            ? 'border-[#bc1215] bg-red-50 dark:bg-red-900/10'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="address"
+                          checked={selectedAddress === address.id}
+                          onChange={() => handleAddressSelect(address.id)}
+                          className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 focus:ring-2 focus:ring-[#bc1215] mt-0.5"
+                        />
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-medium text-gray-900 dark:text-white">
+                              {address.type || 'Home'} Address
+                            </p>
+                            {address.is_default && (
+                              <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded-full font-medium">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-line">
+                            {address.address}, {address.city}, {address.district}
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    District <span className="text-red-600">*</span>
+                  {/* Use Different Address Toggle */}
+                  <label className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={useDifferentAddress}
+                      onChange={(e) => setUseDifferentAddress(e.target.checked)}
+                      className="w-4 h-4 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215]"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
+                      Use a different address for this order
+                    </span>
                   </label>
-                  <input
-                    type="text"
-                    name="district"
-                    value={formData.district}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
-                    placeholder="e.g., Dhaka"
-                  />
                 </div>
+              )}
+
+              {/* Address Fields - Show when guest or user wants different address */}
+              {(!isAuthenticated || addresses.length === 0 || useDifferentAddress) && (
+                <>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Address <span className="text-red-600">*</span>
+                    </label>
+                    <textarea
+                      name="address"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      rows={3}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      placeholder="House/Flat No., Road, Area"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* City and District Fields - Show when guest or user wants different address */}
+              {(!isAuthenticated || addresses.length === 0 || useDifferentAddress) && (
+                <>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      City <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      placeholder="e.g., Dhaka"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      District <span className="text-red-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="district"
+                      value={formData.district}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      placeholder="e.g., Dhaka"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Selected Address Display */}
+              {isAuthenticated && addresses.length > 0 && selectedAddress && !useDifferentAddress && (
+                <div className="md:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Selected Delivery Address:</h4>
+                  <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-line">
+                    {formData.address}, {formData.city}, {formData.district}
+                  </p>
+                </div>
+              )}
               </div>
             </div>
 
@@ -507,7 +737,7 @@ export default function CheckoutPage() {
                           type="text"
                           value={couponCode}
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          onKeyPress={(e) => e.key === 'Enter' && applyCoupon()}
+                          onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
                           placeholder="Enter code"
                           className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
                         />

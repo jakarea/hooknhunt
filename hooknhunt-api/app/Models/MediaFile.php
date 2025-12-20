@@ -120,10 +120,24 @@ class MediaFile extends Model
     {
         return Attribute::make(
             get: function ($value) {
-                if (!$this->url) {
-                    return Storage::disk($this->disk)->url($this->path);
+                // Always generate full URL from path to avoid storing localhost URLs
+                return Storage::disk($this->disk)->url($this->path);
+            },
+        );
+    }
+
+    /**
+     * Get the URL for API responses (converts stored path to full URL).
+     */
+    protected function url(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                // Convert stored relative path to full URL for API responses
+                if ($value && !str_starts_with($value, 'http')) {
+                    return Storage::disk($this->disk)->url($value);
                 }
-                return $this->url;
+                return $value;
             },
         );
     }
@@ -133,7 +147,11 @@ class MediaFile extends Model
      */
     public function getVariantUrl(string $variant): ?string
     {
-        return $this->variants[$variant] ?? null;
+        $variantPath = $this->variants[$variant] ?? null;
+        if ($variantPath && !str_starts_with($variantPath, 'http')) {
+            return Storage::disk($this->disk)->url($variantPath);
+        }
+        return $variantPath;
     }
 
     /**

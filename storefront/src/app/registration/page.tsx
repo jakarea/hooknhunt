@@ -5,10 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import OtpVerification from '@/components/OtpVerification';
-import { useTranslation } from '../../../node_modules/react-i18next';
 
 export default function RegistrationPage() {
-    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         phone: '',
         password: '',
@@ -19,15 +17,32 @@ export default function RegistrationPage() {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
     const [agreedToTerms, setAgreedToTerms] = useState(false);
     const [step, setStep] = useState<'register' | 'verify'>('register');
     const router = useRouter();
     const { register, sendOtp, verifyOtp } = useAuth();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const fieldName = e.target.name;
+
+        // Clear field-specific error when user starts typing
+        if (fieldErrors[fieldName]) {
+            setFieldErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[fieldName];
+                return newErrors;
+            });
+        }
+
+        // Clear general error when user starts typing
+        if (error) {
+            setError('');
+        }
+
         setFormData({
             ...formData,
-            [e.target.name]: e.target.value,
+            [fieldName]: e.target.value,
         });
     };
 
@@ -39,41 +54,81 @@ export default function RegistrationPage() {
         // Validate phone number (Bangladesh format)
         const phoneRegex = /^01[3-9]\d{8}$/;
         if (!phoneRegex.test(formData.phone)) {
-            setError(t('auth.validation.phoneRequired'));
+            setError('Please enter a valid Bangladesh phone number (01xxxxxxxxx)');
             setIsLoading(false);
             return;
         }
 
         // Validate password
         if (formData.password.length < 6) {
-            setError(t('auth.validation.passwordMin'));
+            setError('Password must be at least 6 characters long');
             setIsLoading(false);
             return;
         }
 
         // Validate password match
         if (formData.password !== formData.confirmPassword) {
-            setError(t('auth.validation.passwordMatch'));
+            setError('Passwords do not match');
             setIsLoading(false);
             return;
         }
 
         // Validate terms agreement
         if (!agreedToTerms) {
-            setError(t('auth.validation.termsRequired'));
+            setError('You must agree to the Terms of Service and Privacy Policy');
             setIsLoading(false);
             return;
         }
 
         try {
+            // Clear previous errors
+            setError('');
+            setFieldErrors({});
+
             // Register user
             await register(formData.phone, formData.password, formData.name);
 
             // Move to OTP verification step
             setStep('verify');
         } catch (err: unknown) {
-            const error = err as Error;
-            setError(error.message || t('auth.register.failed'));
+            console.error('Registration error:', err);
+
+            // Clear loading state
+            setIsLoading(false);
+
+            // Handle different types of errors
+            if (err && typeof err === 'object' && 'status' in err) {
+                const errorObj = err as { status: number; message?: string; errors?: Record<string, string[]> };
+
+                // Handle validation errors (422)
+                if (errorObj.status === 422 && errorObj.errors) {
+                    // Set field-specific errors
+                    const fieldErrors: Record<string, string> = {};
+                    Object.entries(errorObj.errors).forEach(([field, messages]) => {
+                        // Map Laravel field names to form field names
+                        const fieldName = field.replace('phone_number', 'phone');
+                        fieldErrors[fieldName] = Array.isArray(messages) ? messages[0] : messages;
+                    });
+
+                    setFieldErrors(fieldErrors);
+
+                    // Also set general error message
+                    const allErrors = Object.values(errorObj.errors).flat();
+                    setError(allErrors[0] || 'Please fix the errors below.');
+                }
+                // Handle phone number already exists error
+                else if (errorObj.status === 422) {
+                    setFieldErrors({ phone: 'Phone number already registered. Please use a different number.' });
+                    setError('This phone number is already registered.');
+                }
+                // Handle other server errors
+                else {
+                    setError(errorObj.message || 'Registration failed. Please try again.');
+                }
+            } else {
+                setError('Registration failed. Please check your connection and try again.');
+            }
+            return; // Don't proceed to finally block
         } finally {
             setIsLoading(false);
         }
@@ -91,9 +146,9 @@ export default function RegistrationPage() {
 
     if (step === 'verify') {
         return (
-            <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+            <div className="min-h-screen bg-[#fcf8f6] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-md w-full">
-                    <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg p-8">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                         <OtpVerification
                             phone={formData.phone}
                             onVerify={handleVerifyOtp}
@@ -105,17 +160,17 @@ export default function RegistrationPage() {
                         <div className="mt-6 text-center">
                             <button
                                 onClick={() => setStep('register')}
-                                className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors"
+                                className="text-sm text-gray-600 hover:text-red-700 transition-colors"
                             >
-                                ← {t('auth.register.changePhone')}
+                                ← Change Phone Number
                             </button>
                         </div>
                     </div>
 
                     {/* Back to Home */}
                     <div className="mt-6 text-center">
-                        <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors">
-                            ← {t('auth.reset.backToHome')}
+                        <Link href="/" className="text-sm text-gray-600 hover:text-red-700 transition-colors">
+                            ← Back to Home
                         </Link>
                     </div>
                 </div>
@@ -124,32 +179,41 @@ export default function RegistrationPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[#fcf8f6] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 {/* Header */}
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
-                        {t('auth.register.title')}
+                    <div className="mx-auto h-16 w-16 flex items-center justify-center mb-4">
+                        <img src="/hook-and-hunt-logo.svg" alt="Hook & Hunt" className="h-12 w-auto" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900">
+                        Create Account
                     </h2>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        {t('auth.register.subtitle')}
+                    <p className="mt-2 text-sm text-gray-600">
+                        Join us and start shopping for the best products
                     </p>
                 </div>
 
                 {/* Registration Form */}
-                <div className="bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg p-8">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
                     <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Error Message */}
                         {error && (
-                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
-                                {error}
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-start space-x-2">
+                                <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                </svg>
+                                <div>
+                                    <p className="font-medium">Registration Error</p>
+                                    <p className="text-red-600 mt-1">{error}</p>
+                                </div>
                             </div>
                         )}
 
                         {/* Name Field */}
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('auth.register.fullName')} ({t('checkout.optional')})
+                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                                Full Name (Optional)
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -163,16 +227,16 @@ export default function RegistrationPage() {
                                     type="text"
                                     value={formData.name}
                                     onChange={handleChange}
-                                    className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
-                                    placeholder={t('checkout.enterYourFullName')}
+                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-700 focus:border-transparent bg-white text-gray-900 transition-colors"
+                                    placeholder="Enter your full name"
                                 />
                             </div>
                         </div>
 
                         {/* Phone Number Field */}
                         <div>
-                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('auth.register.phone')}
+                            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                                Phone Number *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -187,17 +251,25 @@ export default function RegistrationPage() {
                                     required
                                     value={formData.phone}
                                     onChange={handleChange}
-                                    className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
-                                    placeholder={t('checkout.phoneNumberPlaceholder')}
+                                    className={`block w-full pl-10 pr-3 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 transition-colors ${
+                                        fieldErrors.phone
+                                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-gray-300 focus:ring-red-700'
+                                    }`}
+                                    placeholder="01xxxxxxxxx"
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('auth.register.phoneHint')}</p>
+                            {fieldErrors.phone ? (
+                                <p className="mt-1 text-xs text-red-600">{fieldErrors.phone}</p>
+                            ) : (
+                                <p className="mt-1 text-xs text-gray-500">Format: 01xxxxxxxxx (Bangladesh number)</p>
+                            )}
                         </div>
 
                         {/* Password Field */}
                         <div>
-                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('auth.register.password')}
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                                Password *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -212,13 +284,17 @@ export default function RegistrationPage() {
                                     required
                                     value={formData.password}
                                     onChange={handleChange}
-                                    className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
-                                    placeholder={t('auth.register.passwordPlaceholder')}
+                                    className={`block w-full pl-10 pr-10 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 transition-colors ${
+                                        fieldErrors.password
+                                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-gray-300 focus:ring-red-700'
+                                    }`}
+                                    placeholder="Enter your password"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     {showPassword ? (
                                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,13 +308,17 @@ export default function RegistrationPage() {
                                     )}
                                 </button>
                             </div>
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('auth.validation.passwordMin')}</p>
+                            {fieldErrors.password ? (
+                                <p className="mt-1 text-xs text-red-600">{fieldErrors.password}</p>
+                            ) : (
+                                <p className="mt-1 text-xs text-gray-500">Minimum 6 characters</p>
+                            )}
                         </div>
 
                         {/* Confirm Password Field */}
                         <div>
-                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                {t('auth.register.confirmPassword')}
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                                Confirm Password *
                             </label>
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -253,13 +333,17 @@ export default function RegistrationPage() {
                                     required
                                     value={formData.confirmPassword}
                                     onChange={handleChange}
-                                    className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
-                                    placeholder={t('auth.register.confirmPasswordPlaceholder')}
+                                    className={`block w-full pl-10 pr-10 py-3 border rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent bg-white text-gray-900 transition-colors ${
+                                        fieldErrors.confirmPassword || fieldErrors.password_confirmation
+                                            ? 'border-red-300 focus:ring-red-500 focus:border-red-500'
+                                            : 'border-gray-300 focus:ring-red-700'
+                                    }`}
+                                    placeholder="Confirm your password"
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
                                 >
                                     {showConfirmPassword ? (
                                         <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -273,6 +357,11 @@ export default function RegistrationPage() {
                                     )}
                                 </button>
                             </div>
+                            {fieldErrors.confirmPassword || fieldErrors.password_confirmation ? (
+                                <p className="mt-1 text-xs text-red-600">
+                                    {fieldErrors.confirmPassword || fieldErrors.password_confirmation}
+                                </p>
+                            ) : null}
                         </div>
 
                         {/* Terms and Conditions */}
@@ -288,14 +377,14 @@ export default function RegistrationPage() {
                                 />
                             </div>
                             <div className="ml-3 text-sm">
-                                <label htmlFor="terms" className="text-gray-700 dark:text-gray-300">
-                                    {t('auth.register.agreeToTerms')}{' '}
-                                    <a href="#" className="font-medium text-[#bc1215] hover:text-[#9a0f12]">
-                                        {t('auth.register.terms')}
+                                <label htmlFor="terms" className="text-gray-700">
+                                    I agree to the{' '}
+                                    <a href="#" className="font-medium text-red-700 hover:text-red-800">
+                                        Terms of Service
                                     </a>{' '}
-                                    {t('auth.register.and')}{' '}
-                                    <a href="#" className="font-medium text-[#bc1215] hover:text-[#9a0f12]">
-                                        {t('auth.register.privacy')}
+                                    and{' '}
+                                    <a href="#" className="font-medium text-red-700 hover:text-red-800">
+                                        Privacy Policy
                                     </a>
                                 </label>
                             </div>
@@ -305,7 +394,7 @@ export default function RegistrationPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bc1215] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-700 hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                         >
                             {isLoading ? (
                                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -313,7 +402,7 @@ export default function RegistrationPage() {
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
                             ) : (
-                                t('auth.register.button')
+                                'Create Account'
                             )}
                         </button>
                     </form>
@@ -322,11 +411,11 @@ export default function RegistrationPage() {
                     <div className="mt-6">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+                                <div className="w-full border-t border-gray-300"></div>
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white dark:bg-[#1a1a1a] text-gray-500 dark:text-gray-400">
-                                    {t('auth.register.haveAccount')}
+                                <span className="px-2 bg-white text-gray-500">
+                                    Already have an account?
                                 </span>
                             </div>
                         </div>
@@ -336,17 +425,17 @@ export default function RegistrationPage() {
                     <div className="mt-6">
                         <Link
                             href="/login"
-                            className="w-full flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#333333] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bc1215] transition-all duration-300"
+                            className="w-full flex justify-center py-3 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-700 transition-all duration-300"
                         >
-                            {t('auth.register.login')}
+                            Sign In
                         </Link>
                     </div>
                 </div>
 
                 {/* Back to Home */}
                 <div className="text-center">
-                    <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors">
-                        ← {t('auth.reset.backToHome')}
+                    <Link href="/" className="text-sm text-gray-600 hover:text-red-700 transition-colors">
+                        ← Back to Home
                     </Link>
                 </div>
             </div>

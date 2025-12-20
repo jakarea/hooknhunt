@@ -24,6 +24,16 @@ return Application::configure(basePath: dirname(__DIR__))
             }
             return route('login');
         });
+
+        // Sanctum middleware for API authentication
+        $middleware->api(prepend: [
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        ]);
+
+        // Exclude API routes from CSRF protection
+        $middleware->validateCsrfTokens(except: [
+            'api/*'
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
