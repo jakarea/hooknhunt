@@ -83,7 +83,6 @@ class ApiClient {
       });
 
       const data = await response.json();
-      console.log('🔍 [API_DEBUG] Response data:', data);
 
       if (!response.ok) {
         const error = {
@@ -127,7 +126,12 @@ class ApiClient {
   async register(phone: string, password: string, name?: string): Promise<ApiResponse> {
     return this.request('/store/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ phone_number: phone, password, name }),
+      body: JSON.stringify({
+        phone_number: phone,
+        password,
+        password_confirmation: password,
+        name
+      }),
     });
   }
 
@@ -144,9 +148,10 @@ class ApiClient {
       body: JSON.stringify({ phone_number: phone, otp_code: otp }),
     });
 
-    // Store token if verification successful
-    if (response.data?.token) {
-      this.setToken(response.data.token);
+    // Store token if verification successful (check both possible response structures)
+    const token = response.data?.token || (response as { token?: string })?.token;
+    if (token) {
+      this.setToken(token);
     }
 
     return response;
@@ -180,7 +185,7 @@ class ApiClient {
     return response;
   }
 
-  async updateProfile(data: { name?: string; email?: string; whatsapp_number?: string }): Promise<ApiResponse> {
+  async updateProfile(data: { name?: string; email?: string; whatsapp_number?: string; address?: string; city?: string; district?: string }): Promise<ApiResponse> {
     return this.request('/store/account/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
@@ -203,6 +208,14 @@ class ApiClient {
     return this.request(`/store/account/addresses/${addressId}`, {
       method: 'DELETE',
     }, true);
+  }
+
+  // Generic POST method for other API calls
+  async post<T = unknown>(endpoint: string, data: any, includeAuth: boolean = false): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }, includeAuth);
   }
 
   // Helper to check if user is authenticated

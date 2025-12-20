@@ -101,6 +101,20 @@ class AlphaSmsService
     }
 
     /**
+     * Send OTP verification SMS
+     */
+    public function sendOTP(string $phone, string $otp): array
+    {
+        $message = "Your Hook & Hunt verification code is: {$otp}. Valid for 5 minutes. Please do not share this code.";
+
+        // Format phone number properly
+        $formattedPhone = $this->validatePhoneNumber($phone);
+
+        // Send SMS without custom sender ID to avoid validation issues
+        return $this->sendSms($message, $formattedPhone);
+    }
+
+    /**
      * Validate phone number format
      */
     public function validatePhoneNumber(string $phone): string

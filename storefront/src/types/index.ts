@@ -5,23 +5,28 @@ export interface User {
   id: number;
   name: string;
   email?: string;
-  phone: string;
-  status: string;
+  phone_number: string; // Updated to match API response
   role?: string;
+  whatsapp_number?: string;
+  address?: string;
+  city?: string;
+  district?: string;
+  email_verified_at?: string;
+  phone_verified_at?: string;
   created_at: string;
   updated_at: string;
 }
 
-// ✅ Address
+// ✅ Address (from addresses table)
 export interface Address {
   id: number;
   user_id: number;
   type: string;
   recipient_name: string;
   phone: string;
-  address_line: string;
-  area: string;
+  address: string; // Updated to match API response
   city: string;
+  district: string;
   postal_code?: string;
   is_default: boolean;
   created_at: string;
@@ -33,6 +38,7 @@ export interface CartProduct {
   id: number;
   name: string;
   price: number;
+  originalPrice?: number; // Added for savings calculation
   image: string;
   slug: string;
   stock: number;

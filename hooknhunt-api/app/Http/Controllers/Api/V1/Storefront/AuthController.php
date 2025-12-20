@@ -4,21 +4,30 @@ namespace App\Http\Controllers\Api\V1\Storefront;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AlphaSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    protected $smsService;
+
+    public function __construct(AlphaSmsService $smsService)
+    {
+        $this->smsService = $smsService;
+    }
+
     /**
-     * Register a new user (Simple: Phone + Password only).
+     * Register a new user (Full Name, Phone + Password).
      * OTP will be sent automatically for verification.
      */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
+            'name' => 'nullable|string|max:255',
             'phone_number' => 'required|string|regex:/^01[3-9]\d{8}$/|unique:users',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         if ($validator->fails()) {
@@ -26,9 +35,10 @@ class AuthController extends Controller
         }
 
         // Generate OTP
-        $otpCode = rand(100000, 999999);
+        $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
 
         $user = User::create([
+            'name' => $request->name,
             'phone_number' => $request->phone_number,
             'password' => Hash::make($request->password),
             'role' => 'retail_customer',
@@ -36,13 +46,29 @@ class AuthController extends Controller
             'otp_expires_at' => now()->addMinutes(5),
         ]);
 
-        // TODO: Send OTP via SMS (integrate SMS gateway here)
-        // For now, return OTP in response (ONLY FOR DEVELOPMENT)
-        return response()->json([
+        // Send OTP via SMS
+        $smsResult = $this->smsService->sendOTP($user->phone_number, $otpCode);
+
+        // Log SMS result for debugging
+        \Log::info('Registration OTP SMS', [
+            'phone' => $user->phone_number,
+            'otp' => $otpCode,
+            'sms_result' => $smsResult
+        ]);
+
+        // In production, don't return OTP code
+        $response = [
             'message' => 'Registration successful. Please verify your phone with OTP.',
             'phone_number' => $user->phone_number,
-            'otp_code' => $otpCode, // Remove this in production
-        ], 201);
+        ];
+
+        // Include OTP only in development for testing
+        if (app()->environment('local', 'testing')) {
+            $response['otp_code'] = $otpCode;
+            $response['sms_debug'] = $smsResult;
+        }
+
+        return response()->json($response, 201);
     }
 
     /**
@@ -99,17 +125,32 @@ class AuthController extends Controller
         }
 
         // Generate new OTP
-        $otpCode = rand(100000, 999999);
+        $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
         $user->otp_code = $otpCode;
         $user->otp_expires_at = now()->addMinutes(5);
         $user->save();
 
-        // TODO: Send OTP via SMS (integrate SMS gateway here)
-        // For now, return OTP in response (ONLY FOR DEVELOPMENT)
-        return response()->json([
-            'message' => 'OTP sent successfully.',
-            'otp_code' => $otpCode, // Remove this in production
+        // Send OTP via SMS
+        $smsResult = $this->smsService->sendOTP($user->phone_number, $otpCode);
+
+        // Log SMS result for debugging
+        \Log::info('Resend OTP SMS', [
+            'phone' => $user->phone_number,
+            'otp' => $otpCode,
+            'sms_result' => $smsResult
         ]);
+
+        $response = [
+            'message' => 'OTP sent successfully.',
+        ];
+
+        // Include OTP only in development for testing
+        if (app()->environment('local', 'testing')) {
+            $response['otp_code'] = $otpCode;
+            $response['sms_debug'] = $smsResult;
+        }
+
+        return response()->json($response);
     }
 
     /**
@@ -149,6 +190,19 @@ class AuthController extends Controller
             'message' => 'Phone verified successfully.',
             'token' => $token,
             'user' => $user
+        ]);
+    }
+
+    /**
+     * Test SMS balance (for development/debugging)
+     */
+    public function testSmsBalance()
+    {
+        $balance = $this->smsService->getBalance();
+
+        return response()->json([
+            'balance_info' => $balance,
+            'api_key_configured' => !empty(env('ALPHA_SMS_API_KEY')),
         ]);
     }
 }

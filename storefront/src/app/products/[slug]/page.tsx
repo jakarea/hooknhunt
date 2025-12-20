@@ -172,8 +172,11 @@ export default function ProductDetailPage() {
   const currentStock = selectedVariant ? selectedVariant.stock_info.available : product.stock_info.total_available;
   const isInStock = selectedVariant ? selectedVariant.stock_info.in_stock : product.stock_info.in_stock;
 
-  // Prepare product images
-  const productImages = [product.thumbnail_url, ...(product.gallery_images || [])];
+  // Prepare product images - filter out empty strings and null values
+  const productImages = [
+    product.thumbnail_url,
+    ...(product.gallery_images || [])
+  ].filter(img => img && img.trim() !== '');
 
   // Mock related products for now
   const relatedProducts: any[] = [];
@@ -231,96 +234,30 @@ export default function ProductDetailPage() {
 
 
             {/* Thumbnail Navigation */}
-            {/* {productImages.length > 1 && ( */}
-            <div className="relative">
-              <div className="grid grid-cols-7 gap-x-2 overflow-x-auto py-1.5 px-1">
-                {productImages.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative ${selectedImage === index
-                      ? 'ring-2 ring-[#bc1215] opacity-100'
-                      : 'opacity-60 hover:opacity-100'
-                      }`}
-                  >
-                    <Image
-                      src={img}
-                      alt={`${product.name} ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="72px"
-                    />
-                  </button>
-                ))}
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
-                <button
-                  className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative  hover:ring-2 hover:ring-[#bc1215] opacity-60 hover:opacity-100`}
-                >
-                  <Image
-                    src={'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=400&h=300&fit=crop'}
-                    alt={`ddd`}
-                    fill
-                    className="object-cover"
-                    sizes="72px"
-                  />
-                </button>
+            {productImages.length > 1 && (
+              <div className="relative">
+                <div className="grid grid-cols-7 gap-x-2 overflow-x-auto py-1.5 px-1">
+                  {productImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative ${selectedImage === index
+                        ? 'ring-2 ring-[#bc1215] opacity-100'
+                        : 'opacity-60 hover:opacity-100'
+                        }`}
+                    >
+                      <Image
+                        src={img}
+                        alt={`${product.name} ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="72px"
+                      />
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            {/* )} */}
+            )}
           </div>
 
           {/* Product Information */}
@@ -395,13 +332,21 @@ export default function ProductDetailPage() {
 
                       {/* Variant Image */}
                       <div className="w-8 h-8 rounded-sm overflow-hidden bg-gray-100 dark:bg-gray-800">
-                        <Image
-                          src={variant.image.url}
-                          alt={variant.image.alt_text || variant.name}
-                          width={70}
-                          height={70}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
-                        />
+                        {variant.image?.url ? (
+                          <Image
+                            src={variant.image.url}
+                            alt={variant.image.alt_text || variant.name}
+                            width={70}
+                            height={70}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 dark:text-gray-600">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                        )}
                       </div>
                     </button>
                   ))}

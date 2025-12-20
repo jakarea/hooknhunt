@@ -14,10 +14,16 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
+    // Only redirect if we're certain the user is not authenticated
+    // and we've completed the authentication check
     if (!isLoading && !isAuthenticated && !isRedirecting) {
-      // Redirect to login page if not authenticated
-      setIsRedirecting(true);
-      router.replace('/login');
+      // Add a small delay to prevent flickering during page reload
+      const timer = setTimeout(() => {
+        setIsRedirecting(true);
+        router.replace('/login');
+      }, 100);
+
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated, isLoading, router, isRedirecting]);
 

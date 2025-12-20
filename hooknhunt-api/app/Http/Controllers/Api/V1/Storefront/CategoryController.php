@@ -174,12 +174,10 @@ class CategoryController extends Controller
      */
     private function getProductCountForCategory(int $categoryId): int
     {
-        // Count of published products that have this category
-        // Convert to string since category_ids is stored as array of strings in JSON
+        // Count of published products in this category
         $count = Product::where('status', 'published')
-            ->whereJsonContains('category_ids', (string)$categoryId)
-            ->distinct()
-            ->count('id');
+            ->where('category_id', $categoryId)
+            ->count();
 
         return $count;
     }

@@ -125,7 +125,7 @@ class MediaController extends Controller
                 'description' => $validated['description'] ?? null,
                 'disk' => 'public',
                 'path' => $storedPath,
-                'url' => Storage::disk('public')->url($storedPath),
+                'url' => $storedPath, // Store only relative path, not full URL
                 'variants' => $variants,
                 'hash' => $hash,
                 'folder_id' => $validated['folder_id'] ?? null,
@@ -281,7 +281,7 @@ class MediaController extends Controller
                 ->toJpeg(80);
             $thumbnailPath = $storagePath . '/thumb_' . pathinfo($storedPath, PATHINFO_FILENAME) . '.jpg';
             Storage::disk('public')->put($thumbnailPath, $thumbnail);
-            $variants['thumbnail'] = Storage::disk('public')->url($thumbnailPath);
+            $variants['thumbnail'] = $thumbnailPath;
 
             // Medium (max width 800px)
             $medium = $manager->read($fullPath)
@@ -289,7 +289,7 @@ class MediaController extends Controller
                 ->toJpeg(85);
             $mediumPath = $storagePath . '/medium_' . pathinfo($storedPath, PATHINFO_FILENAME) . '.jpg';
             Storage::disk('public')->put($mediumPath, $medium);
-            $variants['medium'] = Storage::disk('public')->url($mediumPath);
+            $variants['medium'] = $mediumPath;
 
         } catch (\Exception $e) {
             // Log error but continue without variants
