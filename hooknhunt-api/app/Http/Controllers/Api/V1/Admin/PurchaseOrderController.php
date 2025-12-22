@@ -87,6 +87,8 @@ class PurchaseOrderController extends Controller
                 ]);
             }
 
+            // Calculate unit_price, total_price, and final_unit_cost with current exchange rate
+            $this->updateFinalUnitCosts($order);
             // Calculate and update total_amount (China price total in RMB)
             $this->updateTotalAmount($order);
 
@@ -563,14 +565,19 @@ class PurchaseOrderController extends Controller
             
             // Skip if nothing received
             if ($effectiveQty <= 0) {
+                $item->unit_price = 0;
+                $item->total_price = 0;
                 $item->final_unit_cost = 0;
                 $item->save();
                 continue;
             }
 
+            // Calculate unit_price: china_price * exchange_rate (base price in BDT)
+            $unitPrice = (float) $item->china_price * (float) $order->exchange_rate;
+
             // 1. Total item cost in BDT (china_price * exchange_rate * quantity)
             // We pay for what we ordered (usually), so the product cost is fixed based on order quantity.
-            $totalItemCost = (float) $item->china_price * (float) $order->exchange_rate * $quantity;
+            $totalItemCost = $unitPrice * $quantity;
 
             // 2. Overhead for this line (shipping + extra cost allocated to received units)
             $lineOverhead = $overheadPerUnit * $effectiveQty;
@@ -581,7 +588,9 @@ class PurchaseOrderController extends Controller
             // 4. Final unit cost = total line cost / effective quantity (received quantity)
             $finalLandedCost = $totalLineCost / $effectiveQty;
 
-            // Update final_unit_cost in purchase_order_items
+            // Update all price fields in purchase_order_items
+            $item->unit_price = $unitPrice;
+            $item->total_price = $totalItemCost;
             $item->final_unit_cost = $finalLandedCost;
             $item->save();
 
@@ -715,6 +724,8 @@ class PurchaseOrderController extends Controller
             // Update allowed fields
             if ($request->has('exchange_rate')) {
                 $purchaseOrder->exchange_rate = $request->exchange_rate;
+                // Recalculate final unit costs with updated exchange rate
+                $this->updateFinalUnitCosts($purchaseOrder);
                 // Recalculate total amount with updated exchange rate
                 $this->updateTotalAmount($purchaseOrder);
             }
@@ -1011,13 +1022,10 @@ class PurchaseOrderController extends Controller
         try {
             DB::beginTransaction();
 
+            // Update final unit costs with current exchange rate
+            $this->updateFinalUnitCosts($purchaseOrder);
             // Update total amount with current exchange rate
             $this->updateTotalAmount($purchaseOrder);
-
-            // If order is received or completed, calculate final unit costs
-            if (in_array($purchaseOrder->status, ['received_hub', 'completed', 'completed_partially'])) {
-                $this->calculateAndFinalize($purchaseOrder);
-            }
 
             $purchaseOrder->save();
             DB::commit();
@@ -1035,6 +1043,39 @@ class PurchaseOrderController extends Controller
                 'message' => 'Failed to recalculate costs',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * Update final unit costs for all items when exchange rate is modified
+     * This calculates final_unit_cost as china_price * exchange_rate for draft/pending orders
+     * For received/completed orders, it uses the full landed cost calculation
+     */
+    private function updateFinalUnitCosts(PurchaseOrder $order)
+    {
+        // Load order with items to ensure we have the latest data
+        $order->load('items');
+
+        // For orders that are not yet received, only calculate unit_price and total_price
+        // final_unit_cost remains 0 until received at hub/bogura
+        if (!in_array($order->status, ['received_hub', 'completed', 'completed_partially'])) {
+            foreach ($order->items as $item) {
+                // Calculate unit_price: china_price * exchange_rate
+                $unitPrice = (float) $item->china_price * (float) $order->exchange_rate;
+
+                // Calculate total_price: unit_price * quantity
+                $totalPrice = $unitPrice * (int) $item->quantity;
+
+                // Update only unit_price and total_price for draft/pending orders
+                // final_unit_cost stays 0 until order is received at hub
+                $item->unit_price = $unitPrice;
+                $item->total_price = $totalPrice;
+                // final_unit_cost remains 0 - will be calculated when received at bogura
+                $item->save();
+            }
+        } else {
+            // For received orders, use the full landed cost calculation
+            $this->calculateAndFinalize($order);
         }
     }
 

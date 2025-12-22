@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\AttributeController;
 use App\Http\Controllers\Api\V1\Admin\AttributeOptionController;
+use App\Http\Controllers\Api\V1\Admin\BrandController;
 use App\Http\Controllers\Api\V1\Admin\CategoryController;
 use App\Http\Controllers\Api\V1\Admin\InventoryController;
 use App\Http\Controllers\Api\V1\Admin\MediaController;
@@ -54,6 +55,7 @@ Route::prefix('v1/admin')->group(function () {
         // ===============================================
         Route::middleware('role:super_admin,admin,marketer')->group(function () {
             Route::apiResource('categories', CategoryController::class);
+            Route::apiResource('brands', BrandController::class);
         });
 
         // ===============================================

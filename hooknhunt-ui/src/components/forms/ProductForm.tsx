@@ -8,14 +8,11 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/components/ui/use-toast';
-import { Package, Image, Loader2, Search, X, FolderOpen } from 'lucide-react';
+import { Image, Loader2, Search, X } from 'lucide-react';
 import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
-import { MediaGallery } from '@/components/media/MediaGallery';
 import { MediaLibrary } from '@/components/media/MediaLibrary';
 import { useCategoryStore } from '@/stores/categoryStore';
 
@@ -30,6 +27,7 @@ interface MediaFile {
   height?: number;
   url: string;
   thumbnail_url?: string;
+  path?: string;
 }
 
 // Inline type definition to avoid import issues
@@ -48,15 +46,6 @@ interface Product {
   updated_at: string;
 }
 
-interface ProductFormData {
-  base_name: string;
-  description?: string;
-  category_ids?: string[];
-  status: 'draft' | 'published';
-  thumbnail?: File;
-  base_thumbnail_url?: string;
-  media_file_id?: number;
-}
 
 // Validation Schema
 const formSchema = z.object({
@@ -75,31 +64,28 @@ interface ProductFormProps {
   onProductUpdated?: () => void;
 }
 
+// Helper function to ensure full URLs
+const getFullImageUrl = (url: string | null): string | null => {
+  if (!url) return null;
+
+  // If it's already a full URL, return as-is
+  if (url.startsWith('http')) return url;
+
+  // If it already has storage prefix, don't add another
+  if (url.startsWith('storage/')) return `http://localhost:8000/${url}`;
+
+  // Otherwise add storage prefix
+  return `http://localhost:8000/storage/${url}`;
+};
+
+
 export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, onProductCreated, onProductUpdated }) => {
   const isEdit = !!initialData;
   const [selectedMediaFile, setSelectedMediaFile] = useState<MediaFile | null>(null);
   const [thumbnailError, setThumbnailError] = useState<string | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(initialData?.base_thumbnail_url || null);
-  const [imageSource, setImageSource] = useState<'media' | null>(
-    initialData?.base_thumbnail_url ? 'media' : null
-  );
+  const [imagePreview, setImagePreview] = useState<string | null>(getFullImageUrl(initialData?.base_thumbnail_url || null));
   const [showMediaModal, setShowMediaModal] = useState(false);
-  const [showGalleryModal, setShowGalleryModal] = useState(false);
-
-  // Gallery images state
-  const [galleryImages, setGalleryImages] = useState<Array<{ url: string; alt_text?: string }>>(
-    initialData?.gallery_images?.map((url: string) => ({
-      url: url.startsWith('http') ? url : `${window.location.origin}/${url}`,
-      alt_text: ''
-    })) || []
-  );
-
-  // Debug: Log initial gallery images
-  useEffect(() => {
-    console.log('🖼️ Initial gallery images from props:', initialData?.gallery_images);
-    console.log('🖼️ GalleryImages state after init:', galleryImages);
-  }, []);
-
+  
   // Get categories from store
   const { categories, isLoading: categoriesLoading, fetchCategories } = useCategoryStore();
 
@@ -153,53 +139,15 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     selectedCategoryIds.includes(cat.id.toString())
   );
 
-  const handleMediaSelect = (mediaFile: any) => {
-    setSelectedMediaFile(mediaFile);
-    setImagePreview(mediaFile.url);
-    setImageSource('media');
-    setThumbnailError(null);
-  };
-
+  
   const clearThumbnail = () => {
     setSelectedMediaFile(null);
     setImagePreview(null);
-    setImageSource(null);
     setThumbnailError(null);
   };
 
-  // Handle gallery image changes from MediaGallery component
-  const handleGalleryChange = (images: Array<{ url: string; alt_text?: string }>) => {
-    setGalleryImages(images);
-  };
-
-  // Handle gallery selection from MediaLibrary
-  const handleGallerySelect = (files: MediaFile[]) => {
-    console.log('📁 MediaLibrary selected files:', files);
-    const newImages = files.map(file => ({
-      url: file.url,
-      alt_text: file.original_filename,
-    }));
-
-    const updatedImages = [...galleryImages, ...newImages];
-    console.log('🖼️ Updated gallery images:', updatedImages);
-    setGalleryImages(updatedImages);
-    setShowGalleryModal(false);
-
-    // Show success message
-    if (newImages.length > 0) {
-      toast({
-        title: "Gallery Images Added",
-        description: `${newImages.length} image${newImages.length > 1 ? 's' : ''} added to product gallery`,
-      });
-    }
-  };
-
-  // Remove gallery image
-  const removeGalleryImage = (index: number) => {
-    const updatedImages = galleryImages.filter((_, i) => i !== index);
-    setGalleryImages(updatedImages);
-  };
-
+  
+  
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     // Clear any previous thumbnail errors when form is submitted
     if (thumbnailError) {
@@ -224,25 +172,18 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
 
       // Add thumbnail if selected from media library
       if (selectedMediaFile) {
+        console.log('🖼️ Selected media file:', selectedMediaFile);
         formData.append('media_file_id', selectedMediaFile.id.toString());
+        // Also add base_thumbnail_url as relative path
+        if (selectedMediaFile.path) {
+          console.log('🖼️ Adding base_thumbnail_url:', selectedMediaFile.path);
+          formData.append('base_thumbnail_url', selectedMediaFile.path);
+        }
+      } else {
+        console.log('🖼️ No media file selected');
       }
 
-      // Add gallery images as JSON array of relative paths (always include to allow clearing gallery)
-      const galleryUrls = galleryImages.map(img => {
-        // Remove base URL to store only relative path
-        const url = img.url;
-        if (url.startsWith('http://localhost:8000/')) {
-          return url.replace('http://localhost:8000/', '');
-        }
-        if (url.startsWith(window.location.origin + '/')) {
-          return url.replace(window.location.origin + '/', '');
-        }
-        return url;
-      });
-      console.log('🖼️ Submitting gallery images (relative paths):', galleryUrls);
-      console.log('🖼️ Current galleryImages state:', galleryImages);
-      formData.append('gallery_images', JSON.stringify(galleryUrls));
-
+      
       // Debug: Log FormData contents
       console.log('📤 FormData contents:');
       for (let [key, value] of formData.entries()) {
@@ -680,7 +621,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
                                 if (files.length > 0) {
                                   setSelectedMediaFile(files[0]);
                                   setImagePreview(files[0].url);
-                                  setImageSource('media');
                                   setShowMediaModal(false);
                                 }
                               }}
@@ -698,148 +638,6 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
           </CardContent>
         </Card>
 
-        {/* Product Gallery (from Media Library) */}
-        <Card>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <CardTitle className="text-lg font-semibold">Product Gallery</CardTitle>
-                <CardDescription className="text-sm text-gray-600 mt-1">
-                  Add images to showcase your product from different angles
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  onClick={() => setShowGalleryModal(true)}
-                  className="shadow-sm"
-                  disabled={galleryImages.length >= 8}
-                >
-                  <Package className="h-4 w-4 mr-2" />
-                  Select Images
-                </Button>
-              </div>
-            </div>
-
-            {/* Gallery Status */}
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-gray-600">
-                    {galleryImages.length} / 8 Images
-                  </span>
-                </div>
-                {galleryImages.length > 0 && (
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg">
-                    <Package className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-900">
-                      Gallery has {galleryImages.length} image{galleryImages.length > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="text-xs text-gray-500">
-                Select up to 8 images for your product gallery
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {/* Gallery Preview */}
-            <div className="space-y-4">
-              {galleryImages.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {galleryImages.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image.url}
-                        alt={image.alt_text || `Gallery image ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeGalleryImage(index)}
-                            className="h-8 px-2"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex justify-center py-12">
-                  <div className="text-center">
-                    <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No Gallery Images</h3>
-                    <p className="text-gray-500 mb-4">Add images to showcase your product from different angles</p>
-                    <Button
-                      type="button"
-                      onClick={() => setShowGalleryModal(true)}
-                      variant="outline"
-                    >
-                      <Package className="h-4 w-4 mr-2" />
-                      Add Gallery Images
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Gallery Images Modal */}
-        {showGalleryModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowGalleryModal(false)} />
-            <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[85vh] flex flex-col overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b bg-linear-to-r from-blue-50 to-indigo-50">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Select Gallery Images</h2>
-                  <p className="text-sm text-gray-600 mt-1">Choose images from your media library for the product gallery</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowGalleryModal(false)}
-                  className="hover:bg-gray-100"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-
-              {/* Gallery Selection Content */}
-              <div className="flex-1 overflow-hidden">
-                <div className="h-full px-6 py-4">
-                  <div className="h-full border rounded-lg overflow-hidden">
-                    <MediaLibrary
-                      open={showGalleryModal}
-                      onOpenChange={(isOpen) => {
-                        setShowGalleryModal(isOpen);
-                      }}
-                      onSelect={handleGallerySelect}
-                      multiple={true}
-                      maxSelections={8 - galleryImages.length}
-                      acceptedTypes={['image/*']}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-3 pt-2">

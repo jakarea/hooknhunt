@@ -68,6 +68,7 @@ interface Product {
   base_thumbnail_url?: string;
   gallery_images?: string[];
   category_names?: string;
+  category_ids?: number[];
   meta_title?: string;
   meta_description?: string;
   meta_keywords?: string;
@@ -80,7 +81,9 @@ interface PoItem {
   product_id: number;
   quantity: number;
   received_quantity?: number;
+  stocked_quantity?: number;
   china_price?: number;
+  final_unit_cost?: number;
   po_number?: number;
   product?: Product;
 }
@@ -1119,106 +1122,7 @@ export function ReceiveStockNew() {
           </Card>
         )}
 
-        {/* Platform Selection */}
-        {!isFullyStocked && (
-          <Card className="shadow-lg border-0">
-            <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
-              <CardTitle className="text-lg flex items-center gap-2 text-green-900">
-                <DollarSign className="h-5 w-5" />
-                Platform Selection
-              </CardTitle>
-              <CardDescription className="text-green-700">
-                Choose which sales platforms to enable for this product
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Wholesale - Always enabled */}
-                <div className="relative">
-                  <div className="flex items-center space-x-4 p-5 bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl">
-                    <div className="flex-shrink-0">
-                      <Switch
-                        id="platform-wholesale"
-                        checked={true}
-                        disabled
-                        className="scale-110"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor="platform-wholesale" className="text-base font-semibold text-blue-900 cursor-pointer block">
-                        Wholesale
-                      </Label>
-                      <p className="text-sm text-blue-700 mt-1">B2B bulk sales platform</p>
-                      <div className="flex items-center gap-1 mt-2">
-                        <Badge variant="secondary" className="text-xs bg-blue-200 text-blue-800">
-                          Always Active
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Retail */}
-                <div className="relative">
-                  <div className={`flex items-center space-x-4 p-5 border-2 rounded-xl transition-all cursor-pointer hover:shadow-md ${
-                    channels.retail
-                      ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-300'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`} onClick={() => toggleChannel('retail')}>
-                    <div className="flex-shrink-0">
-                      <Switch
-                        id="platform-retail"
-                        checked={channels.retail}
-                        onCheckedChange={() => toggleChannel('retail')}
-                        className="scale-110"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor="platform-retail" className="text-base font-semibold text-gray-900 cursor-pointer block">
-                        Retail
-                      </Label>
-                      <p className="text-sm text-gray-600 mt-1">B2C direct sales platform</p>
-                      {channels.retail && (
-                        <Badge variant="default" className="text-xs mt-2 bg-red-600">
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Daraz */}
-                <div className="relative">
-                  <div className={`flex items-center space-x-4 p-5 border-2 rounded-xl transition-all cursor-pointer hover:shadow-md ${
-                    channels.daraz
-                      ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-300'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`} onClick={() => toggleChannel('daraz')}>
-                    <div className="flex-shrink-0">
-                      <Switch
-                        id="platform-daraz"
-                        checked={channels.daraz}
-                        onCheckedChange={() => toggleChannel('daraz')}
-                        className="scale-110"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <Label htmlFor="platform-daraz" className="text-base font-semibold text-gray-900 cursor-pointer block">
-                        Daraz
-                      </Label>
-                      <p className="text-sm text-gray-600 mt-1">Online marketplace integration</p>
-                      {channels.daraz && (
-                        <Badge variant="default" className="text-xs mt-2 bg-orange-600">
-                          Active
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+       
 
         {/* Variant Generator - for variable products */}
         {productType === 'variable' && !isFullyStocked && (
@@ -1308,6 +1212,7 @@ export function ReceiveStockNew() {
           </Card>
         )}
 
+        
         {/* Variants Table */}
         {variants.length > 0 && (
           <Card className="shadow-sm">
@@ -1321,6 +1226,53 @@ export function ReceiveStockNew() {
                   {variants.length > 1 ? `${variants.length} variants` : `${variants.length} variant`}
                 </Badge>
               </div>
+
+              {/* Compact Platform Selection */}
+              {!isFullyStocked && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                  <span className="text-xs font-medium text-gray-600">Platforms:</span>
+                  <div className="flex items-center gap-4">
+                    {/* Wholesale - Always enabled */}
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        id="platform-wholesale"
+                        checked={true}
+                        disabled
+                        className="scale-75"
+                      />
+                      <Label htmlFor="platform-wholesale" className="text-xs font-medium text-blue-700">
+                        Wholesale
+                      </Label>
+                    </div>
+
+                    {/* Retail */}
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        id="platform-retail"
+                        checked={channels.retail}
+                        onCheckedChange={() => toggleChannel('retail')}
+                        className="scale-75"
+                      />
+                      <Label htmlFor="platform-retail" className="text-xs font-medium text-gray-700">
+                        Retail
+                      </Label>
+                    </div>
+
+                    {/* Daraz */}
+                    <div className="flex items-center gap-1.5">
+                      <Switch
+                        id="platform-daraz"
+                        checked={channels.daraz}
+                        onCheckedChange={() => toggleChannel('daraz')}
+                        className="scale-75"
+                      />
+                      <Label htmlFor="platform-daraz" className="text-xs font-medium text-gray-700">
+                        Daraz
+                      </Label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -2095,7 +2047,7 @@ export function ReceiveStockNew() {
 
         {/* Final Action Buttons */}
         {variants.length > 0 && !isFullyStocked && (
-          <div className="flex justify-end gap-3 sticky bottom-0 bg-white border-t shadow-lg p-3 rounded-t-lg">
+          <div className="flex justify-end gap-3 bg-white border-t shadow-lg p-3 rounded-t-lg">
             <Link to={`/purchase/${poItem.po_number}`}>
               <Button variant="outline" size="sm">
                 Cancel

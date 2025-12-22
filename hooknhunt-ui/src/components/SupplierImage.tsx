@@ -6,13 +6,15 @@ interface SupplierImageProps {
   alt: string;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  onClick?: () => void;
 }
 
 export const SupplierImage: React.FC<SupplierImageProps> = ({
   src,
   alt,
   className = '',
-  size = 'md'
+  size = 'md',
+  onClick
 }) => {
   const sizeClasses = {
     sm: 'h-12 w-12',
@@ -58,7 +60,7 @@ export const SupplierImage: React.FC<SupplierImageProps> = ({
   };
 
   return (
-    <Avatar className={`${sizeClasses[size]} ${className} rounded-lg border-2 border-gray-200`}>
+    <Avatar className={`${sizeClasses[size]} ${className} rounded-lg border-2 border-gray-200`} onClick={onClick}>
       <AvatarImage
         src={imageUrl}
         alt={alt}

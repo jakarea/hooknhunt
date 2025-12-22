@@ -241,11 +241,11 @@ export function MediaManagement() {
                 onClick={() => setShowUpload(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Test Upload
+                Upload
               </Button>
 
               <Dialog open={showUpload} onOpenChange={setShowUpload}>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <Button className="bg-red-500 text-white hover:bg-red-600">
                     <Plus className="h-4 w-4 mr-2" />
                     Upload Files

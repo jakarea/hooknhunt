@@ -12,18 +12,18 @@ const apiClient = axios.create({
 // Request interceptor - Add auth token to all requests
 apiClient.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
-    console.log('[ApiClient] Request config:', {
-      url: config.url,
-      method: config.method,
-      baseURL: config.baseURL,
-      hasToken: !!token,
-      fullURL: `${config.baseURL}${config.url}`
-    });
+    // Try both localStorage and auth store for token
+    let token = useAuthStore.getState().token;
+
+    // Fallback to localStorage if auth store doesn't have token
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
+
+    console.log('[ApiClient] Using token:', !!token);
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      console.warn('[ApiClient] No authentication token found!');
     }
     return config;
   },

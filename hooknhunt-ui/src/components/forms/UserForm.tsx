@@ -27,16 +27,14 @@ const formSchema = z.object({
   role: z.enum(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'], {
     message: 'Please select a valid role.',
   }),
-}).refine((data, ctx) => {
+}).refine((data: any) => {
   if (data.password && data.password !== data.password_confirmation) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Passwords don't match",
-      path: ['password_confirmation'],
-    });
     return false;
   }
   return true;
+}, {
+  message: "Passwords don't match",
+  path: ["password_confirmation"],
 });
 
 interface UserFormProps {
@@ -62,7 +60,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
       whatsapp_number: initialData?.whatsapp_number || '',
       password: '',
       password_confirmation: '',
-      role: initialData?.role || undefined,
+      role: (initialData?.role && ['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'].includes(initialData.role)) ? initialData.role as any : undefined,
     },
   });
 
@@ -89,7 +87,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
       const formData: CreateUserData | UpdateUserData = {
         name: values.name,
         email: values.email,
-        phone_number: values.phone_number,
+        phone_number: values.phone_number || '',
         whatsapp_number: values.whatsapp_number || undefined,
         role: values.role as any,
       };

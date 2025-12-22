@@ -329,7 +329,7 @@ export function CreatePurchaseOrder() {
                             <TableHead>Image & Name</TableHead>
                             <TableHead>RMB Price</TableHead>
                             <TableHead>Quantity</TableHead>
-                            <TableHead>Approx BDT</TableHead>
+                            <TableHead>Total (RMB)</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -391,7 +391,7 @@ export function CreatePurchaseOrder() {
                               <TableCell>
                                 <Input
                                   type="number"
-                                  step="0.01"
+                                  step="0.25"
                                   min="0"
                                   value={item.china_price}
                                   onChange={(e) =>
@@ -414,10 +414,10 @@ export function CreatePurchaseOrder() {
                               </TableCell>
                               <TableCell className="font-medium">
                                 <div>
-                                  ৳{item.approx_bdt.toFixed(2)}
+                                  ¥{(item.china_price * item.quantity).toFixed(2)}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
-                                  (¥{(item.china_price * item.quantity).toFixed(2)} RMB)
+                                  ৳{item.approx_bdt.toFixed(2)} BDT
                                 </div>
                               </TableCell>
                             </TableRow>
@@ -435,10 +435,10 @@ export function CreatePurchaseOrder() {
                         </div>
                         <div className="text-lg font-semibold text-right">
                           <div>
-                            Total Est. BDT: ৳{calculateTotal().toFixed(2)}
+                            Total: ¥{calculateTotalRMB().toFixed(2)}
                           </div>
                           <div className="text-sm font-normal text-muted-foreground">
-                            (¥{calculateTotalRMB().toFixed(2)} RMB)
+                            ৳{calculateTotal().toFixed(2)} BDT (Est.)
                           </div>
                         </div>
                       </div>

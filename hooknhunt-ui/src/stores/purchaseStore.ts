@@ -48,6 +48,7 @@ interface PurchaseOrderItem {
   extra_weight?: number | string;
   shipping_cost?: number;
   received_quantity: number;
+  stocked_quantity: number;
   lost_item_price?: number;
   final_unit_cost?: number;
   created_at: string;
@@ -78,6 +79,8 @@ interface PurchaseState {
   updateStatus: (id: number, status: string, data?: any) => Promise<void>;
   updateOrderStatus: (id: number, status: string, payload?: any) => Promise<void>;
   receiveItems: (id: number, data: any) => Promise<void>;
+  receiveStock: (id: number, data: any) => Promise<void>;
+  fetchProductVariants: (productId: number) => Promise<any[]>;
   clearError: () => void;
   clearCurrentOrder: () => void;
 }
@@ -159,7 +162,7 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
   updateOrder: async (id: number, items: any[]) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await apiClient.put(`/admin/purchase-orders/${id}`, items);
+      const response = await apiClient.put(`/admin/purchase-orders/${id}`, { items });
 
       // Update current order with the latest data from response
       if (response.data.purchase_order) {
@@ -296,6 +299,26 @@ export const usePurchaseStore = create<PurchaseState>((set, get) => ({
         (error as ApiErrorResponse)?.response?.data?.message ||
         'Failed to receive items';
       set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+
+  receiveStock: async (id: number, data: any) => {
+    try {
+      await apiClient.post(`/purchase-orders/${id}/receive-stock`, data);
+      // Update local state if needed
+    } catch (error) {
+      console.error('Failed to receive stock:', error);
+      throw error;
+    }
+  },
+
+  fetchProductVariants: async (productId: number) => {
+    try {
+      const response = await apiClient.get(`/products/${productId}/variants`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch product variants:', error);
       throw error;
     }
   },

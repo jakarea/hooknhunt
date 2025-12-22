@@ -21,12 +21,9 @@ import { CreatePurchaseOrder } from './pages/purchase/CreatePurchaseOrder';
 import { PurchaseOrderDetails } from './pages/purchase/PurchaseOrderDetails';
 import { PurchaseOrderEdit } from './pages/purchase/PurchaseOrderEdit';
 import { PurchaseOrderDemo } from './pages/purchase/PurchaseOrderDemo';
-import { PurchaseReceive } from './pages/purchase/PurchaseReceive';
 import { PurchaseReceiveList } from './pages/purchase/PurchaseReceiveList';
-import { ReceiveStockCompact } from './pages/inventory/ReceiveStockCompact';
 import { ReceiveStockNew } from './pages/inventory/ReceiveStockNew';
 import ManualStockEntry from './pages/inventory/ManualStockEntry';
-import { ReceiveStockTest } from './pages/inventory/ReceiveStockTest';
 import { StockManagement } from './pages/products/StockManagement';
 import { EditProductStock } from './pages/products/EditProductStock';
 import CategoriesCreate from './pages/products/CategoriesCreate';
@@ -42,6 +39,7 @@ import { Settings } from './pages/settings/Settings';
 import { SmsSettings } from './pages/settings/tabs/SmsSettings';
 import SmsManagement from './pages/sms/SmsManagement';
 import { MediaManagement } from './pages/media/MediaManagement';
+import { Brands } from './pages/brands/Brands';
 import { Toaster } from './components/ui/toaster';
 
 function App() {
@@ -83,6 +81,9 @@ function App() {
               <Route path="products/attributes" element={<Attributes />} />
               <Route path="products/stock" element={<StockManagement />} />
               <Route path="products/edit/:id" element={<EditProductStock />} />
+
+              {/* Brand Management Routes */}
+              <Route path="brands" element={<Brands />} />
 
               {/* Media Routes */}
               <Route path="media" element={<MediaManagement />} />
@@ -130,6 +131,11 @@ function App() {
               <Route path="marketing/sms/logs" element={<div>SMS Logs</div>} />
               <Route path="marketing/loyalty/rules" element={<div>Reward Rules</div>} />
               <Route path="marketing/loyalty/history" element={<div>Points History</div>} />
+
+              {/* User Management Routes */}
+              <Route path="users" element={<Users />} />
+              <Route path="users/create" element={<UsersCreate />} />
+              <Route path="users/:id/edit" element={<UsersEdit />} />
 
               {/* CRM Routes */}
               <Route path="crm/retail-customers" element={<Users />} />

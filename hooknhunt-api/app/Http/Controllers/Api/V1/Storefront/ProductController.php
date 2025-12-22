@@ -92,7 +92,7 @@ class ProductController extends Controller
         // Transform products data
         $transformedProducts = $products->getCollection()->map(function ($product) {
             return $this->transformProduct($product);
-        });
+        })->filter()->values(); // Filter out empty arrays and re-index
 
         return response()->json([
             'products' => $transformedProducts,
@@ -126,8 +126,17 @@ class ProductController extends Controller
             ], 404);
         }
 
+        $transformedProduct = $this->transformProduct($product, true);
+
+        // Check if product has variants
+        if (empty($transformedProduct)) {
+            return response()->json([
+                'message' => 'Product not available'
+            ], 404);
+        }
+
         return response()->json([
-            'product' => $this->transformProduct($product, true)
+            'product' => $transformedProduct
         ]);
     }
 
@@ -287,7 +296,12 @@ class ProductController extends Controller
      */
     private function transformProduct(Product $product, bool $includeDetails = false): array
     {
-        $variants = $product->variants;
+        $variants = $product->variants ?? collect([]);
+
+        // Only include products that have variants
+        if ($variants->isEmpty()) {
+            return [];
+        }
 
         $minPrice = $variants->min('retail_price');
         $maxPrice = $variants->max('retail_price');

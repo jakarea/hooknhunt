@@ -20,6 +20,7 @@ import {
     CheckSquare,
     Printer,
     Image as ImageIcon,
+    Building2,
 } from 'lucide-react';
 
 import type { LucideIcon } from 'lucide-react';
@@ -71,48 +72,55 @@ export const menuConfig: MenuItem[] = [
                 roles: ['super_admin', 'admin'],
             },
             {
-                title: 'Stock Management',
-                icon: Box,
-                roles: ['super_admin', 'admin', 'store_keeper'],
-                children: [
-                    {
-                        title: 'Manual Stock Entry',
-                        icon: PlusCircle,
-                        href: '/inventory/manual-entry',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                    {
-                        title: 'Current Stock',
-                        icon: Box,
-                        href: '/products/stock',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                    {
-                        title: 'Stock Adjustment',
-                        icon: RefreshCw,
-                        href: '/products/adjustment',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                    {
-                        title: 'Stock Transfer',
-                        icon: ArrowLeftRight,
-                        href: '/products/transfer',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                    {
-                        title: 'Stock Count / Audit',
-                        icon: CheckSquare,
-                        href: '/products/audit',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                    {
-                        title: 'Print Labels',
-                        icon: Printer,
-                        href: '/products/labels',
-                        roles: ['super_admin', 'admin', 'store_keeper'],
-                    },
-                ],
+                title: 'Brands',
+                icon: Building2,
+                href: '/brands',
+                roles: ['super_admin', 'admin', 'marketer'],
             },
+            // TEMPORARILY HIDDEN - Stock Management
+            // {
+            //     title: 'Stock Management',
+            //     icon: Box,
+            //     roles: ['super_admin', 'admin', 'store_keeper'],
+            //     children: [
+            //         {
+            //             title: 'Manual Stock Entry',
+            //             icon: PlusCircle,
+            //             href: '/inventory/manual-entry',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //         {
+            //             title: 'Current Stock',
+            //             icon: Box,
+            //             href: '/products/stock',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //         {
+            //             title: 'Stock Adjustment',
+            //             icon: RefreshCw,
+            //             href: '/products/adjustment',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //         {
+            //             title: 'Stock Transfer',
+            //             icon: ArrowLeftRight,
+            //             href: '/products/transfer',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //         {
+            //             title: 'Stock Count / Audit',
+            //             icon: CheckSquare,
+            //             href: '/products/audit',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //         {
+            //             title: 'Print Labels',
+            //             icon: Printer,
+            //             href: '/products/labels',
+            //             roles: ['super_admin', 'admin', 'store_keeper'],
+            //         },
+            //     ],
+            // },
         ],
     },
     {
@@ -169,6 +177,26 @@ export const menuConfig: MenuItem[] = [
                         roles: ['super_admin', 'admin', 'store_keeper'],
                     },
                 ],
+            },
+        ],
+    },
+    {
+        title: 'User Management',
+        icon: Users,
+        href: '/users',
+        roles: ['super_admin', 'admin'],
+        children: [
+            {
+                title: 'All Users',
+                icon: List,
+                href: '/users',
+                roles: ['super_admin', 'admin'],
+            },
+            {
+                title: 'Create User',
+                icon: PlusCircle,
+                href: '/users/create',
+                roles: ['super_admin', 'admin'],
             },
         ],
     },

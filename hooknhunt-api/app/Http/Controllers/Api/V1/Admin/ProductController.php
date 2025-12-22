@@ -76,10 +76,44 @@ class ProductController extends Controller
 
         $products = $query->latest()->paginate(10);
 
-        // If categories are requested, append them to each product
-        if ($includeCategories) {
-            $products->getCollection()->transform(function ($product) {
-                $productArray = $product->toArray();
+        // Transform products collection to include full URLs and requested relationships
+        $products->getCollection()->transform(function ($product) use ($includeCategories) {
+            $productArray = $product->toArray();
+
+            // Transform image URLs to full URLs
+            if (!empty($productArray['base_thumbnail_url'])) {
+                $thumbnailUrl = $productArray['base_thumbnail_url'];
+                // Only add storage URL if it's not already a full URL and doesn't start with 'storage/'
+                if (!str_starts_with($thumbnailUrl, 'http') && !str_starts_with($thumbnailUrl, 'storage/')) {
+                    $productArray['base_thumbnail_url'] = url('storage/' . ltrim($thumbnailUrl, '/'));
+                } elseif (str_starts_with($thumbnailUrl, 'storage/')) {
+                    // Convert storage/ to full URL without double prefix
+                    $productArray['base_thumbnail_url'] = url($thumbnailUrl);
+                }
+            }
+
+            // Transform gallery images to full URLs
+            if (!empty($productArray['gallery_images'])) {
+                if (is_string($productArray['gallery_images'])) {
+                    $galleryImages = json_decode($productArray['gallery_images'], true) ?? [];
+                } else {
+                    $galleryImages = $productArray['gallery_images'];
+                }
+
+                $productArray['gallery_images'] = array_map(function($image) {
+                    // Only add storage URL if it's not already a full URL and doesn't start with 'storage/'
+                    if (!str_starts_with($image, 'http') && !str_starts_with($image, 'storage/')) {
+                        return url('storage/' . ltrim($image, '/'));
+                    } elseif (str_starts_with($image, 'storage/')) {
+                        // Convert storage/ to full URL without double prefix
+                        return url($image);
+                    }
+                    return $image;
+                }, $galleryImages);
+            }
+
+            // If categories are requested, append them
+            if ($includeCategories) {
                 try {
                     $categories = $product->categories;
                     if ($categories && $categories->count() > 0) {
@@ -92,9 +126,11 @@ class ProductController extends Controller
                     \Log::error('Error loading categories for product ' . $product->id . ': ' . $e->getMessage());
                     $productArray['categories'] = [];
                 }
-                return $productArray;
-            });
-        }
+            }
+
+        
+            return $productArray;
+        });
 
         return response()->json($products);
     }
@@ -112,7 +148,7 @@ class ProductController extends Controller
             'category_ids' => 'nullable|array',
             'category_ids.*' => 'integer|exists:categories,id',
             'status' => 'required|in:draft,published',
-            'base_thumbnail_url' => 'nullable|url',
+            'base_thumbnail_url' => 'nullable|string',
             'media_file_id' => 'nullable|integer|exists:media_files,id', // for media library selection
             'gallery_images.*' => 'nullable|file|image|max:500', // 500KB max each
         ]);
@@ -182,12 +218,52 @@ class ProductController extends Controller
                     $includeCategories = true;
                 } elseif ($relationship === 'suppliers') {
                     $product->load('suppliers');
+                } elseif (str_starts_with($relationship, 'variants')) {
+                    if ($relationship === 'variants') {
+                        $product->load('variants');
+                    } elseif ($relationship === 'variants.inventory') {
+                        $product->load('variants.inventory');
+                    } elseif ($relationship === 'variants.attributeOptions') {
+                        $product->load('variants.attributeOptions');
+                    }
                 }
             }
         }
 
         // Convert product to array and append requested data
         $productArray = $product->toArray();
+
+        // Transform image URLs to full URLs
+        if (!empty($productArray['base_thumbnail_url'])) {
+            $thumbnailUrl = $productArray['base_thumbnail_url'];
+            // Only add storage URL if it's not already a full URL and doesn't start with 'storage/'
+            if (!str_starts_with($thumbnailUrl, 'http') && !str_starts_with($thumbnailUrl, 'storage/')) {
+                $productArray['base_thumbnail_url'] = url('storage/' . ltrim($thumbnailUrl, '/'));
+            } elseif (str_starts_with($thumbnailUrl, 'storage/')) {
+                // Convert storage/ to full URL without double prefix
+                $productArray['base_thumbnail_url'] = url($thumbnailUrl);
+            }
+        }
+
+        // Transform gallery images to full URLs
+        if (!empty($productArray['gallery_images'])) {
+            if (is_string($productArray['gallery_images'])) {
+                $galleryImages = json_decode($productArray['gallery_images'], true) ?? [];
+            } else {
+                $galleryImages = $productArray['gallery_images'];
+            }
+
+            $productArray['gallery_images'] = array_map(function($image) {
+                // Only add storage URL if it's not already a full URL and doesn't start with 'storage/'
+                if (!str_starts_with($image, 'http') && !str_starts_with($image, 'storage/')) {
+                    return url('storage/' . ltrim($image, '/'));
+                } elseif (str_starts_with($image, 'storage/')) {
+                    // Convert storage/ to full URL without double prefix
+                    return url($image);
+                }
+                return $image;
+            }, $galleryImages);
+        }
 
         // Transform suppliers data if loaded
         if ($product->relationLoaded('suppliers')) {
@@ -222,6 +298,36 @@ class ProductController extends Controller
             $productArray['categories'] = $product->categories->toArray();
         }
 
+        // Append variants with calculated fields if loaded
+        if ($product->relationLoaded('variants')) {
+            $variantsArray = [];
+            foreach ($product->variants as $variant) {
+                $variantArray = $variant->toArray();
+
+                // Add calculated stock fields if inventory is loaded
+                if ($variant->relationLoaded('inventory') && $variant->inventory->count() > 0) {
+                    $firstInventory = $variant->inventory->first();
+                    $variantArray['current_stock'] = $firstInventory->quantity ?? 0;
+                    $variantArray['available_stock'] = $firstInventory->available_quantity ?? 0;
+                    $variantArray['is_low_stock'] = $firstInventory->is_low_stock ?? false;
+                } else {
+                    $variantArray['current_stock'] = 0;
+                    $variantArray['available_stock'] = 0;
+                    $variantArray['is_low_stock'] = false;
+                }
+
+                // Calculate margins
+                $landedCost = $variantArray['landed_cost'] ?? 0;
+                $variantArray['retail_margin'] = ($variantArray['retail_price'] ?? 0) - $landedCost;
+                $variantArray['wholesale_margin'] = ($variantArray['wholesale_price'] ?? 0) - $landedCost;
+                $variantArray['retail_margin_percentage'] = $landedCost > 0 ? (($variantArray['retail_margin'] / $landedCost) * 100) : 0;
+                $variantArray['wholesale_margin_percentage'] = $landedCost > 0 ? (($variantArray['wholesale_margin'] / $landedCost) * 100) : 0;
+
+                $variantsArray[] = $variantArray;
+            }
+            $productArray['variants'] = $variantsArray;
+        }
+
         return response()->json($productArray);
     }
 
@@ -239,7 +345,7 @@ class ProductController extends Controller
                 'category_ids' => 'nullable|array',
                 'category_ids.*' => 'integer|exists:categories,id',
                 'status' => 'nullable|in:draft,published',
-                'base_thumbnail_url' => 'nullable|url',
+                'base_thumbnail_url' => 'nullable|string',
                 'video_url' => 'nullable|url',
                 'gallery_images' => 'nullable|string', // JSON string of URLs (from frontend FormData)
                 'existing_gallery_images' => 'nullable|string', // JSON string (for compatibility)

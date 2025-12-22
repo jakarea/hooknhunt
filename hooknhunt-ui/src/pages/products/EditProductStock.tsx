@@ -430,7 +430,7 @@ export function EditProductStock() {
       )}
 
       {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
+      <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-4">
             <div className="flex items-center gap-4">
@@ -839,7 +839,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="retail_offer_discount_type" className="text-xs">Discount Type</Label>
                         <select
-                          id="retail_offer_discount_type"
                           value={editForm.retail_offer_discount_type}
                           onChange={(e) => setEditForm(prev => ({ ...prev, retail_offer_discount_type: e.target.value as 'flat' | 'percentage' | '' }))}
                           className="mt-1 w-full h-8 px-2 border rounded text-xs"
@@ -852,7 +851,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="retail_offer_discount_value" className="text-xs">Discount Value</Label>
                         <Input
-                          id="retail_offer_discount_value"
                           type="number"
                           min="0"
                           step="0.01"
@@ -879,7 +877,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="retail_offer_start" className="text-xs">Start Date</Label>
                         <DatePicker
-                          id="retail_offer_start"
                           value={editForm.retail_offer_start_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, retail_offer_start_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select start date"
@@ -888,7 +885,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="retail_offer_end" className="text-xs">End Date</Label>
                         <DatePicker
-                          id="retail_offer_end"
                           value={editForm.retail_offer_end_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, retail_offer_end_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select end date"
@@ -909,7 +905,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="wholesale_offer_discount_type" className="text-xs">Discount Type</Label>
                         <select
-                          id="wholesale_offer_discount_type"
                           value={editForm.wholesale_offer_discount_type}
                           onChange={(e) => setEditForm(prev => ({ ...prev, wholesale_offer_discount_type: e.target.value as 'flat' | 'percentage' | '' }))}
                           className="mt-1 w-full h-8 px-2 border rounded text-xs"
@@ -922,7 +917,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="wholesale_offer_discount_value" className="text-xs">Discount Value</Label>
                         <Input
-                          id="wholesale_offer_discount_value"
                           type="number"
                           min="0"
                           step="0.01"
@@ -949,7 +943,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="wholesale_offer_start" className="text-xs">Start Date</Label>
                         <DatePicker
-                          id="wholesale_offer_start"
                           value={editForm.wholesale_offer_start_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, wholesale_offer_start_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select start date"
@@ -958,7 +951,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="wholesale_offer_end" className="text-xs">End Date</Label>
                         <DatePicker
-                          id="wholesale_offer_end"
                           value={editForm.wholesale_offer_end_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, wholesale_offer_end_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select end date"
@@ -979,7 +971,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="daraz_offer_discount_type" className="text-xs">Discount Type</Label>
                         <select
-                          id="daraz_offer_discount_type"
                           value={editForm.daraz_offer_discount_type}
                           onChange={(e) => setEditForm(prev => ({ ...prev, daraz_offer_discount_type: e.target.value as 'flat' | 'percentage' | '' }))}
                           className="mt-1 w-full h-8 px-2 border rounded text-xs"
@@ -992,7 +983,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="daraz_offer_discount_value" className="text-xs">Discount Value</Label>
                         <Input
-                          id="daraz_offer_discount_value"
                           type="number"
                           min="0"
                           step="0.01"
@@ -1019,7 +1009,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="daraz_offer_start" className="text-xs">Start Date</Label>
                         <DatePicker
-                          id="daraz_offer_start"
                           value={editForm.daraz_offer_start_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, daraz_offer_start_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select start date"
@@ -1028,7 +1017,6 @@ export function EditProductStock() {
                       <div>
                         <Label htmlFor="daraz_offer_end" className="text-xs">End Date</Label>
                         <DatePicker
-                          id="daraz_offer_end"
                           value={editForm.daraz_offer_end_date}
                           onChange={(date) => setEditForm(prev => ({ ...prev, daraz_offer_end_date: date ? date.toISOString().split('T')[0] : '' }))}
                           placeholder="Select end date"
@@ -1187,7 +1175,7 @@ export function EditProductStock() {
         </div>
 
         {/* Save Actions */}
-        <div className="flex justify-end gap-3 mt-8 sticky bottom-4 bg-white p-4 rounded-lg shadow-lg border">
+        <div className="flex justify-end gap-3 mt-8 bg-white p-4 rounded-lg shadow-lg border">
           <Button
             variant="secondary"
             onClick={() => handleSaveChanges(true)}

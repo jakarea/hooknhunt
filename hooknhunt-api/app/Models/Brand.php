@@ -11,6 +11,7 @@ class Brand extends Model
         'name',
         'slug',
         'logo',
+        'logo_media_id',
     ];
 
     /**

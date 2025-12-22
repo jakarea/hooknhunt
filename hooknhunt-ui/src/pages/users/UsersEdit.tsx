@@ -27,7 +27,7 @@ const UsersEdit = () => {
           description: "Failed to load user",
           variant: "destructive",
         });
-        navigate('/dashboard/users');
+        navigate('/users');
       }
     };
 
@@ -37,11 +37,11 @@ const UsersEdit = () => {
   }, [id, fetchUser, navigate]);
 
   const handleBack = () => {
-    navigate('/dashboard/users');
+    navigate('/users');
   };
 
   const handleSuccess = () => {
-    navigate('/dashboard/users');
+    navigate('/users');
   };
 
   if (isLoading || !user) {

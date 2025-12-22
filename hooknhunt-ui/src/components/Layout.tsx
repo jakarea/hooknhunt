@@ -266,25 +266,31 @@ const Layout = () => {
             {filteredMenuItems.map((item) => {
               const isActive = activeMenuKey === item.title;
               return (
-                <button
-                  key={item.title}
-                  onClick={() => handleMenuClick(item.title)}
-                  onMouseEnter={() => {
-                    setActiveMenuKey(item.title);
-                    setPanelOpen(true);
-                  }}
-                  className={`group relative h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive
-                    ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
-                    : 'text-slate-400 hover:bg-white/10 hover:text-white'
-                    }`}
-                >
-                  <item.icon className={`transition-all duration-300 ${isActive ? 'h-5 w-5' : 'h-5 w-5 group-hover:scale-110'}`} />
+                <div key={item.title} className="relative group">
+                  <button
+                    onClick={() => {
+                      handleMenuClick(item.title);
+                      setPanelOpen(true);
+                      setActiveMenuKey(item.title);
+                    }}
+                    className={`h-10 w-10 rounded-xl flex items-center justify-center transition-all duration-300 ${isActive
+                      ? 'bg-red-600 text-white shadow-md shadow-red-600/30'
+                      : 'text-slate-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                  >
+                    <item.icon className={`transition-all duration-300 ${isActive ? 'h-5 w-5' : 'h-5 w-5 group-hover:scale-110'}`} />
 
-                  {/* Active Indicator Dot (Subtle) */}
-                  {isActive && (
-                    <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-1 h-6 bg-white/20 rounded-l-full blur-[1px]" />
-                  )}
-                </button>
+                    {/* Active Indicator Dot (Subtle) */}
+                    {isActive && (
+                      <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-1 h-6 bg-white/20 rounded-l-full blur-[1px]" />
+                    )}
+                  </button>
+
+                  {/* Custom Tooltip */}
+                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
+                    {item.title}
+                  </div>
+                </div>
               );
             })}
           </nav>
@@ -306,48 +312,45 @@ const Layout = () => {
           className={`${panelOpen ? 'w-[200px] translate-x-0' : 'w-0 -translate-x-10 opacity-0 overflow-hidden'
             } bg-white border-r border-gray-100 flex flex-col transition-all duration-500 ease-out relative z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.05)]`}
         >
-          {/* Panel Header */}
-          <div className="h-24 flex items-end pb-6 px-4 border-b border-gray-50 shrink-0 bg-gradient-to-b from-white to-gray-50/30">
-            <div className="flex flex-col gap-1">
-              <span className="text-xs font-bold text-red-600 tracking-widest uppercase opacity-80">Menu</span>
-              <h2 className="text-2xl font-bold text-gray-900 tracking-tight capitalize">
-                {activeMenuItem?.title || 'Dashboard'}
-              </h2>
-            </div>
-          </div>
+          {/* Only show panel content when panel is open AND clicked (not just hovered) */}
+          {panelOpen && activeMenuItem ? (
+            <>
+              {/* Panel Header */}
+              <div className="h-24 flex items-end pb-6 px-4 border-b border-gray-50 shrink-0 bg-gradient-to-b from-white to-gray-50/30">
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold text-red-600 tracking-widest uppercase opacity-80">Menu</span>
+                  <h2 className="text-2xl font-bold text-gray-900 tracking-tight capitalize">
+                    {activeMenuItem.title || 'Dashboard'}
+                  </h2>
+                </div>
+              </div>
 
-          {/* Subitems List */}
-          <div className="flex-1 overflow-y-auto py-8 px-2">
-            {activeMenuItem ? (
-              <div className="space-y-1">
-                {activeMenuItem.children ? (
-                  // Render Children recursively
-                  activeMenuItem.children.map(child => renderSidebarItem(child))
-                ) : (
-                  // Render Parent as Link if no children
-                  renderSidebarItem(activeMenuItem)
-                )}
+              {/* Subitems List */}
+              <div className="flex-1 overflow-y-auto py-8 px-2">
+                <div className="space-y-1">
+                  {activeMenuItem.children ? (
+                    // Render Children recursively
+                    activeMenuItem.children.map(child => renderSidebarItem(child))
+                  ) : (
+                    // Render Parent as Link if no children
+                    renderSidebarItem(activeMenuItem)
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-300">
-                <Menu className="h-12 w-12 mb-3 opacity-20" />
-                <p className="text-sm font-medium">Select a category</p>
+              {/* User Profile Snippet in Panel */}
+              <div className="p-4 border-t border-gray-50 bg-gray-50/30 backdrop-blur-sm">
+                <div className="flex items-center gap-4 group cursor-pointer">
+                  <div className="h-11 w-11 rounded-full bg-gradient-to-br from-red-100 to-red-50 flex items-center justify-center text-red-600 font-bold text-lg shadow-sm ring-2 ring-white group-hover:scale-105 transition-transform duration-300">
+                    {user?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate group-hover:text-red-700 transition-colors">{user?.name}</p>
+                    <p className="text-xs text-gray-500 capitalize">{user?.role.replace('_', ' ')}</p>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* User Profile Snippet in Panel */}
-          <div className="p-4 border-t border-gray-50 bg-gray-50/30 backdrop-blur-sm">
-            <div className="flex items-center gap-4 group cursor-pointer">
-              <div className="h-11 w-11 rounded-full bg-gradient-to-br from-red-100 to-red-50 flex items-center justify-center text-red-600 font-bold text-lg shadow-sm ring-2 ring-white group-hover:scale-105 transition-transform duration-300">
-                {user?.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-gray-900 truncate group-hover:text-red-700 transition-colors">{user?.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role.replace('_', ' ')}</p>
-              </div>
-            </div>
-          </div>
+            </>
+          ) : null}
         </aside>
       </div>
 

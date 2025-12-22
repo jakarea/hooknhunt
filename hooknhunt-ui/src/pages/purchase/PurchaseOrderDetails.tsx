@@ -106,8 +106,18 @@ export function PurchaseOrderDetails() {
     item.extra_weight && Number(item.extra_weight) > 0
   ) || false;
 
-  const hasReceivedQtyData = currentOrder?.items?.some(item =>
+  // Only show stock columns for fully completed orders (completed, completed_partially)
+  const isOrderCompleted = ['completed', 'completed_partially'].includes(currentOrder?.status || '');
+  // Show received quantities for orders that have been received (received_hub, completed, completed_partially)
+  const isOrderReceived = ['received_hub', 'completed', 'completed_partially'].includes(currentOrder?.status || '');
+
+  const hasReceivedQtyData = isOrderReceived && currentOrder?.items?.some(item =>
     item.received_quantity && Number(item.received_quantity) > 0
+  ) || false;
+
+  // Stock Qty column only shows for fully completed orders
+  const hasStockQtyData = isOrderCompleted && currentOrder?.items?.some(item =>
+    item.stocked_quantity && Number(item.stocked_quantity) > 0
   ) || false;
 
   const hasFinalCostData = currentOrder?.items?.some(item =>
@@ -361,6 +371,9 @@ export function PurchaseOrderDetails() {
   // Function to determine if Actions column should be shown
   const shouldShowActionsColumn = (item?: any) => {
     if (isEditMode) return true;
+
+    // Only show Actions column for fully completed orders (completed, completed_partially)
+    if (!isOrderCompleted) return false;
 
     // If item is provided, check if Received Qty != Stock Qty
     if (item) {
@@ -863,13 +876,11 @@ export function PurchaseOrderDetails() {
         return;
       }
 
-      const payload = {
-        items: validItems.map(item => ({
+      const payload = validItems.map(item => ({
           id: item.id,
           china_price: Number(item.china_price),
           quantity: Number(item.quantity),
-        })),
-      };
+        }));
 
       console.log('[PurchaseOrderDetails] Saving order with payload:', payload);
       console.log('[PurchaseOrderDetails] Valid items count:', validItems.length);
@@ -1061,6 +1072,11 @@ export function PurchaseOrderDetails() {
     currentOrderStatus: currentOrder?.status,
     currentStepIndex,
     activeSteps: activeWorkflowSteps.map(s => s.key),
+    isOrderCompleted,
+    isOrderReceived,
+    hasReceivedQtyData,
+    hasStockQtyData,
+    shouldShowActions: shouldShowActionsColumn(),
     timestamp: new Date().toISOString()
   });
 
@@ -1433,7 +1449,7 @@ export function PurchaseOrderDetails() {
                     </TableHead>
                     <TableHead>Quantity</TableHead>
                     {hasReceivedQtyData && <TableHead>Received Qty</TableHead>}
-                    {hasReceivedQtyData && <TableHead>Stock Qty</TableHead>}
+                    {hasStockQtyData && <TableHead>Stock Qty</TableHead>}
                     {hasWeightData && <TableHead>Weight</TableHead>}
                     {hasExtraWeightData && <TableHead>Extra Weight</TableHead>}
                     <TableHead>
@@ -1505,7 +1521,7 @@ export function PurchaseOrderDetails() {
                             {item.received_quantity ?? '-'}
                           </TableCell>
                         )}
-                        {hasReceivedQtyData && (
+                        {hasStockQtyData && (
                           <TableCell className="text-blue-600 font-semibold">
                             {item.stocked_quantity ?? '-'}
                           </TableCell>

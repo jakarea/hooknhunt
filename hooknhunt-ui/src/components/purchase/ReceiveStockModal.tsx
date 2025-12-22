@@ -33,6 +33,7 @@ interface PoItem {
   product_id: number;
   quantity: number;
   stocked_quantity?: number;
+  final_unit_cost?: number;
   product?: {
     id: number;
     base_name: string;
@@ -41,6 +42,7 @@ interface PoItem {
 
 interface VariantRow {
   product_variant_id: string;
+  variant_id?: string;
   quantity: string;
   unit_cost: string;
 }

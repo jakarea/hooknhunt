@@ -21,7 +21,6 @@ import {
   Upload
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import api from '@/lib/api';
 
 interface MediaFile {
   id: number;
@@ -93,7 +92,7 @@ export function MediaLibrary({
       if (selectedFolder !== 'all') params.append('folder_id', selectedFolder);
       if (selectedType !== 'all') params.append('mime_type', selectedType);
 
-      const response = await api.get(`/admin/media?${params}`);
+      const response = await apiClient.get(`/admin/media?${params}`);
       setFiles(response.data.data || response.data);
       setPagination({
         page: response.data.current_page || 1,
@@ -115,7 +114,7 @@ export function MediaLibrary({
   // Fetch folders
   const fetchFolders = async () => {
     try {
-      const response = await api.get('/admin/media/folders');
+      const response = await apiClient.get('/admin/media/folders');
       setFolders(response.data.flat || []);
     } catch (error) {
       console.error('Failed to fetch folders:', error);
@@ -200,7 +199,7 @@ export function MediaLibrary({
           formData.append('folder_id', selectedFolder);
         }
 
-        const response = await apiClient.post('/admin/media/upload', formData, {
+        const response = await apiClient.post('/admin/media', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },

@@ -29,6 +29,8 @@ interface UserState {
   updateUser: (id: number, data: UpdateUserData) => Promise<User>;
   deleteUser: (id: number) => Promise<void>;
   fetchUser: (id: number) => Promise<User>;
+  verifyPhone: (id: number) => Promise<User>;
+  unverifyPhone: (id: number) => Promise<User>;
   clearUsers: () => void;
 }
 

@@ -4,11 +4,12 @@ import { RoleGuard } from '@/components/guards/RoleGuard';
 import { ProductForm } from '@/components/forms/ProductForm';
 import { ProductSuppliersTab } from '@/components/forms/product/ProductSuppliersTab';
 import { ProductSeoTab } from '@/components/forms/product/ProductSeoTab';
+import { ProductGalleryTab } from '@/components/forms/product/ProductGalleryTab';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SimpleTabs as Tabs, SimpleTabsContent as TabsContent, SimpleTabsList as TabsList, SimpleTabsTrigger as TabsTrigger } from '@/components/ui/simple-tabs';
-import { ArrowLeft, Package, FileText, Building, Search } from 'lucide-react';
+import { ArrowLeft, Package, FileText, Building, Search, Image } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useProductStore } from '@/stores/productStore';
 import api from '@/lib/api';
@@ -248,6 +249,13 @@ const ProductEdit = () => {
                       Suppliers ({product.suppliers?.length || 0})
                     </TabsTrigger>
                     <TabsTrigger
+                      value="gallery"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                    >
+                      <Image className="h-4 w-4 mr-2" />
+                      Gallery
+                    </TabsTrigger>
+                    <TabsTrigger
                       value="seo"
                       className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
@@ -268,7 +276,11 @@ const ProductEdit = () => {
                   </TabsContent>
 
                   <TabsContent value="suppliers" className="mt-0">
-                    <ProductSuppliersTab product={product} onSuppliersUpdated={handleSuppliersUpdated} />
+                    <ProductSuppliersTab product={product as any} onSuppliersUpdated={handleSuppliersUpdated} />
+                  </TabsContent>
+
+                  <TabsContent value="gallery" className="mt-0">
+                    <ProductGalleryTab product={product} onGalleryUpdated={handleProductUpdated} />
                   </TabsContent>
 
                   <TabsContent value="seo" className="mt-0">

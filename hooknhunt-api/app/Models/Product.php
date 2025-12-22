@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -21,11 +22,18 @@ class Product extends Model
         'category_ids', // Store multiple categories as JSON array
         'base_thumbnail_url',
         'gallery_images',
+        'brand_id',
+        'short_description',
+        'specifications',
+        'video_url',
+        'is_featured',
     ];
 
     protected $casts = [
         'gallery_images' => 'array',
         'category_ids' => 'array',
+        'specifications' => 'array',
+        'is_featured' => 'boolean',
     ];
 
     /**
@@ -47,8 +55,18 @@ class Product extends Model
             return collect([]);
         }
 
+        // Handle both string and array cases (for legacy data)
+        $categoryIds = $this->category_ids;
+        if (is_string($categoryIds)) {
+            $categoryIds = json_decode($categoryIds, true) ?? [];
+        }
+
+        if (empty($categoryIds)) {
+            return collect([]);
+        }
+
         try {
-            return Category::whereIn('id', $this->category_ids)->get();
+            return Category::whereIn('id', $categoryIds)->get();
         } catch (\Exception $e) {
             \Log::error('Error loading categories for product ' . $this->id . ': ' . $e->getMessage());
             return collect([]);
@@ -70,6 +88,14 @@ class Product extends Model
     public function variants(): HasMany
     {
         return $this->hasMany(ProductVariant::class);
+    }
+
+    /**
+     * Get the brand for the product.
+     */
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
     }
 
     /**
