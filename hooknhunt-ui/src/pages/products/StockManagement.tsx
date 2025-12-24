@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Package, Search, Download, RefreshCw, TrendingUp, TrendingDown, AlertCircle, Edit } from 'lucide-react';
 import apiClient from '@/lib/apiClient';
+import { API_URL } from '@/lib/config';
 
 interface ProductVariant {
   id: number;
@@ -116,7 +117,7 @@ export function StockManagement() {
 
   // Handle edit button click - navigate to edit page
   const handleEditClick = (product: ProductVariant) => {
-    navigate(`/products/edit/${product.id}`);
+    navigate(`/products/stock/${product.id}/edit`);
   };
 
   // Handle stock adjustment (add/remove)
@@ -156,16 +157,16 @@ export function StockManagement() {
 
     // If it's a storage path (starts with /storage/), convert to full URL
     if (imageSrc.startsWith('/storage/')) {
-      return `http://localhost:8000${imageSrc}`;
+      return `${API_URL}${imageSrc}`;
     }
 
     // If it's a relative path without leading slash, add it
     if (!imageSrc.startsWith('/')) {
-      return `http://localhost:8000/storage/${imageSrc}`;
+      return `${API_URL}/storage/${imageSrc}`;
     }
 
     // Otherwise, treat as a full relative path
-    return `http://localhost:8000${imageSrc}`;
+    return `${API_URL}${imageSrc}`;
   };
 
   if (loading) {

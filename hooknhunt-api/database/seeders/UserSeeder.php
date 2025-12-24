@@ -45,7 +45,7 @@ class UserSeeder extends Seeder
                 'name' => 'Senior Staff',
                 'email' => 'senior@hooknhunt.com',
                 'password' => Hash::make('1234567890'),
-                'role' => 'senior_staff',
+                'role' => 'manager',
                 'phone_number' => '01711111113',
                 'whatsapp_number' => '01711111113',
                 'email_verified_at' => now(),

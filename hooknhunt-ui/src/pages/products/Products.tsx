@@ -534,13 +534,13 @@ const Products = () => {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']} hide>
                           <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Product
                           </DropdownMenuItem>
                         </RoleGuard>
-                        <RoleGuard allowedRoles={['super_admin', 'admin']}>
+                        <RoleGuard allowedRoles={['super_admin', 'admin']} hide>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDeleteProduct(product)}

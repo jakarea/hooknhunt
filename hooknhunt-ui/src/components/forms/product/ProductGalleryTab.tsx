@@ -9,6 +9,7 @@ import { toast } from '@/components/ui/use-toast';
 import { Package, Image, Upload, X, FolderOpen, Loader2 } from 'lucide-react';
 import api from '@/lib/api';
 import { MediaLibrary } from '@/components/media/MediaLibrary';
+import { API_URL } from '@/lib/config';
 
 // MediaFile interface for MediaLibrary
 interface MediaFile {
@@ -55,7 +56,7 @@ export const ProductGalleryTab: React.FC<ProductGalleryTabProps> = ({ product, o
       }
 
       const processedImages = parsedImages.map((url: string) => ({
-        url: url.startsWith('http') ? url : `http://localhost:8000/storage/${url}`,
+        url: url.startsWith('http') ? url : `${API_URL}/storage/${url}`,
       }));
 
       setExistingImages(processedImages);
@@ -104,8 +105,8 @@ export const ProductGalleryTab: React.FC<ProductGalleryTabProps> = ({ product, o
 
       // Convert to relative paths for storage
       const relativePaths = allImages.map(url => {
-        if (url.startsWith('http://localhost:8000/storage/')) {
-          return url.replace('http://localhost:8000/storage/', '');
+        if (url.startsWith(`${API_URL}/storage/`)) {
+          return url.replace(`${API_URL}/storage/`, '');
         }
         return url;
       });

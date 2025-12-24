@@ -3,7 +3,7 @@ http://localhost:5173/purchase/suppliers/transactions
 
 http://localhost:5173/dashboard/alerts
 
-# Stock Management (Hidden from sidebar)
+# Stock Management (Hidden from sidebar) 
 Manual Stock Entry http://localhost:5173/inventory/manual-entry
 Current Stock http://localhost:5173/products/stock
 Stock Adjustment http://localhost:5173/products/adjustment

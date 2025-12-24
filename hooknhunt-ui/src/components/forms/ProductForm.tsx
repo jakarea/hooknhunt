@@ -15,6 +15,7 @@ import api from '@/lib/api';
 import { ProductImage } from '@/components/ProductImage';
 import { MediaLibrary } from '@/components/media/MediaLibrary';
 import { useCategoryStore } from '@/stores/categoryStore';
+import { API_URL } from '@/lib/config';
 
 // MediaFile interface for MediaLibrary
 interface MediaFile {
@@ -40,6 +41,7 @@ interface Product {
   meta_description?: string;
   description?: string; // Legacy field for backward compatibility
   category_id?: number; // Legacy field for backward compatibility
+  category_ids?: string[] | number[]; // Multiple categories support
   base_thumbnail_url?: string | null;
   gallery_images?: string[] | null;
   created_at: string;
@@ -72,10 +74,10 @@ const getFullImageUrl = (url: string | null): string | null => {
   if (url.startsWith('http')) return url;
 
   // If it already has storage prefix, don't add another
-  if (url.startsWith('storage/')) return `http://localhost:8000/${url}`;
+  if (url.startsWith('storage/')) return `${API_URL}/${url}`;
 
   // Otherwise add storage prefix
-  return `http://localhost:8000/storage/${url}`;
+  return `${API_URL}/storage/${url}`;
 };
 
 
@@ -99,7 +101,11 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
     defaultValues: {
       base_name: initialData?.base_name || '',
       description: initialData?.description || initialData?.meta_description || '',
-      category_ids: [], // Initialize as empty array for multi-select
+      category_ids: initialData?.category_ids
+        ? (Array.isArray(initialData.category_ids)
+            ? initialData.category_ids.map((id: any) => id.toString())
+            : [])
+        : [],
       status: initialData?.status || 'draft',
     },
   });
@@ -115,6 +121,22 @@ export const ProductForm: React.FC<ProductFormProps> = ({ initialData, onClose, 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
+
+  // Update form values when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        base_name: initialData.base_name || '',
+        description: initialData.description || initialData.meta_description || '',
+        category_ids: initialData.category_ids
+          ? (Array.isArray(initialData.category_ids)
+              ? initialData.category_ids.map((id: any) => id.toString())
+              : [])
+          : [],
+        status: initialData.status || 'draft',
+      });
+    }
+  }, [initialData, form]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

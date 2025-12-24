@@ -7,21 +7,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Hook & Hunt is a headless e-commerce ERP system for a multi-channel sales operation. The system is built as a monorepo with three main components:
 - **Laravel API** (`hooknhunt-api`): Backend API with authentication, inventory, and multi-channel product management
 - **React Admin Panel** (`hooknhunt-ui`): Admin interface for staff operations
-- **Next.js Website** (`hooknhunt`): Public-facing e-commerce site (to be implemented)
+- **Next.js Website** (`storefront`): Public-facing e-commerce site
 
-## Current Implementation Status (November 2025)
+## Current Implementation Status (December 2025)
 
 ### ✅ COMPLETED COMPONENTS
-- **Laravel API**: 85% complete with authentication, RBAC, basic CRUD
-- **React Admin UI**: 75% complete with dashboard, user management, basic product management
-- **Database Schema**: 22 migrations implemented for all required tables
+- **Laravel API**: 90% complete with authentication, RBAC, full CRUD, purchase orders, inventory, SMS, media management
+- **React Admin UI**: 80% complete with dashboard, user management, product management, purchase orders, inventory
+- **Next.js Storefront**: Partially implemented (project structure exists, authentication routes in API)
+- **Database Schema**: 24+ migrations implemented
+
+### 🔨 IN PROGRESS
+- Product Variants (schema exists, partial controller implementation)
+- Purchase Orders (backend mostly complete, frontend in progress)
+- Inventory Management (backend complete, frontend partially complete)
 
 ### ❌ NOT YET IMPLEMENTED
-- **Next.js Website**: 0% complete (project not created)
-- **Product Variants**: Schema exists, no controller/model implementation
-- **Purchase Orders**: Schema exists, no API implementation
-- **Inventory Management**: Schema exists, no API implementation
-- **Sales Orders**: Schema exists, no API implementation
+- **Sales Orders**: Schema exists, minimal API implementation
+- **Next.js Website Frontend**: Basic structure exists, most pages not built
 
 **See `ai-todo-list.md` for detailed remaining tasks and priorities.**
 
@@ -63,22 +66,29 @@ php artisan queue:work
 php artisan queue:failed-table  # Create failed jobs table
 ```
 
-### Frontend (React Admin UI - `hooknhunt-ui/`)
+### Admin UI (React - `hooknhunt-ui/`)
 
 ```bash
 cd hooknhunt-ui
 npm run dev      # Start development server (http://localhost:5173)
-npm run build    # Build for production
+npm run build    # Build for production (includes type checking)
+npm run build-no-check  # Build without type checking (use when types are blocking)
 npm run lint     # Run ESLint
 npm run preview  # Preview production build
 
 # Package management
 npm install          # Install dependencies
-npm update           # Update dependencies
 npm install package-name  # Add new package
+```
 
-# TypeScript
-npx tsc --noEmit     # Type checking without compilation
+### Storefront (Next.js - `storefront/`)
+
+```bash
+cd storefront
+npm run dev      # Start development server with Turbopack
+npm run build    # Build for production
+npm run start    # Start production server
+npm run lint     # Run ESLint
 ```
 
 ### Environment Setup
@@ -94,15 +104,24 @@ DB_PASSWORD=
 
 # API URLs (for CORS)
 FRONTEND_URL=http://localhost:5173
-STOREFRONT_URL=https://your-domain.vercel.app
+STOREFRONT_URL=http://localhost:3000
 
 # File uploads
 FILESYSTEM_DISK=public
+
+# SMS API (if using SMS features)
+SMS_API_KEY=your_api_key
+SMS_API_URL=https://sms.api_endpoint
 ```
 
-**Frontend (.env file):**
+**Admin UI (.env file):**
 ```env
 VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+**Storefront (.env.local file):**
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
 ## Architecture Overview
@@ -113,8 +132,9 @@ The core of this ERP is a "flat variant" product architecture where:
 
 1. **Products** (`products` table) are parent containers storing:
    - Basic info (base_name, slug, status)
-   - Marketing data (meta_title, meta_description, gallery_images)
+   - Marketing data (meta_title, meta_description, gallery_images, canonical_url)
    - Status workflow: `draft` → `published`
+   - Category and brand relationships
 
 2. **Product Variants** (`product_variants` table) are the sellable SKUs containing:
    - Channel-specific pricing and names (retail, wholesale, Daraz)
@@ -151,41 +171,42 @@ Each channel has dedicated fields in `product_variants`:
 
 | Role | Key Permissions | Restrictions |
 |------|----------------|--------------|
-| `super_admin` | Full system access, financial reports | None |
+| `super_admin` | Full system access, financial reports, settings | None |
 | `admin` | All operational modules, user management | Cannot see final P&L, cannot manage super_admins |
 | `seller` | POS, sales orders, customer info | Cannot see landed costs or access purchase orders |
-| `store_keeper` | Purchase orders, inventory management | Cannot see any selling prices |
-| `marketer` | Product marketing fields | Cannot change prices or landed costs |
-| `retail_customer` | Website access only | No admin panel access |
-| `wholesale_customer` | Website with wholesale pricing | No admin panel access |
+| `store_keeper` | Purchase orders, inventory management, suppliers | Cannot see any selling prices |
+| `marketer` | Product marketing fields, categories, brands | Cannot change prices or landed costs |
+| `supervisor` | Limited access, specific operations as defined | Cannot access sensitive financial data |
 
-Role middleware is applied via `role:role1,role2` middleware in routes.
+Role middleware is applied via `role:role1,role2` middleware in routes. See `hooknhunt-api/app/Http/Middleware/CheckRoleMiddleware.php`.
 
 ### Product Workflow
 
 1. **Admin/Store Keeper** creates a product with variants, sets landed cost and prices → Status: `draft`
-2. **Marketer** receives notification, adds marketing content (meta_title, gallery) → Status: `published`
+2. **Marketer** receives notification, adds marketing content (meta_title, gallery, canonical_url) → Status: `published`
 3. Product becomes visible on website
 
 ### Inventory & Purchase Orders
 
 - Stock tracked at `product_variant` level via `inventory` table
 - `landed_cost` calculated from purchase order costs:
-  - Formula includes: china_price + shipping_cost + extra_cost - lost_value
+  - Formula: `china_price + shipping_cost + extra_cost - lost_value` / quantity
   - Updated when PO status reaches `received_hub` or `completed`
 - PO statuses: `draft` → `payment_confirmed` → `supplier_dispatched` → `shipped_bd` → `arrived_bd` → `in_transit_bogura` → `received_hub` → `completed` (or `lost`)
+
+**See `RECEIVE_STOCK_IMPROVEMENTS.md` for detailed receive stock workflow.**
 
 ### API Structure
 
 All APIs are versioned under `/api/v1/`:
 
-**Storefront** (`/api/v1/store`):
+**Storefront** (`/api/v1/store` - see `routes/website.php`):
 - Public: `/auth/register`, `/auth/login`, `/auth/send-otp`, `/auth/verify-otp`
 - Protected: `/account/me`, `/account/profile`, `/account/addresses`
 
-**Admin** (`/api/v1/admin`):
+**Admin** (`/api/v1/admin` - see `routes/admin.php`):
 - Public: `/auth/login`
-- Protected: `/me`, `/users`, `/categories`, `/suppliers`, `/attributes`, `/attribute-options`
+- Protected: `/me`, `/users`, `/categories`, `/suppliers`, `/attributes`, `/attribute-options`, `/products`, `/purchase-orders`, `/inventory`, `/sms`, `/media`, `/settings`
 - All admin routes require `auth:sanctum` middleware
 - Resource routes further restricted by role middleware
 
@@ -193,25 +214,30 @@ All APIs are versioned under `/api/v1/`:
 
 **Stack:**
 - React 19 + TypeScript
-- Vite (using rolldown-vite)
-- Shadcn UI components
+- Vite (using rolldown-vite for faster builds)
+- Shadcn UI components (Radix UI primitives)
 - TailwindCSS v4 for styling
 - Zustand for state management
-- React Router for routing
+- React Router v7 for routing
+- React Hook Form + Zod for forms
+- Axios for API calls
 
 **Directory Structure:**
 - `src/components/ui/`: Shadcn UI components
-- `src/pages/`: Page components (Dashboard, Login, Categories)
-- `src/stores/`: Zustand state management
-- `src/lib/`: Utility functions
+- `src/components/forms/`: Form components (ProductForm, UserForm, etc.)
+- `src/components/guards/`: Route guards (RoleGuard, AuthGuard)
+- `src/pages/`: Page components (Dashboard, Login, Categories, Products, etc.)
+- `src/stores/`: Zustand state management stores
+- `src/lib/`: Utility functions, API client
+- `src/config/`: Configuration files (menuConfig, etc.)
 
 **Current Implementation:**
 - ✅ Basic UI components (Shadcn) are implemented
 - ✅ Authentication and routing are working
+- ✅ Role-based UI rendering via RoleGuard component
 - ❌ Light/Dark mode not yet implemented
-- ❌ i18n support not yet implemented
+- ❌ i18n support structure exists (i18next installed) but not fully configured
 - ❌ Skeleton loaders not yet consistently implemented
-- ✅ Role-based UI rendering is partially implemented
 
 ## Development Patterns & Guidelines
 
@@ -267,24 +293,7 @@ public function suppliers(): BelongsToMany
 }
 ```
 
-#### 3. API Response Format
-```php
-// Success responses
-return response()->json($data, 200);  // OK
-return response()->json($data, 201);  // Created
-
-// Error responses
-return response()->json([
-    'message' => 'Validation failed',
-    'errors' => $validator->errors()
-], 422);
-
-return response()->json([
-    'message' => 'Unauthorized'
-], 401);
-```
-
-#### 4. Form Request Validation
+#### 3. Form Request Validation
 ```bash
 php artisan make:request StoreProductRequest
 ```
@@ -344,55 +353,7 @@ export const useExampleStore = create<ExampleState>((set, get) => ({
 }));
 ```
 
-#### 2. Component Pattern with Shadcn
-```typescript
-// src/pages/Examples.tsx
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useExampleStore } from '@/stores/exampleStore';
-
-export function Examples() {
-  const { items, loading, fetchItems } = useExampleStore();
-
-  useEffect(() => {
-    fetchItems();
-  }, [fetchItems]);
-
-  if (loading) return <ExamplesSkeleton />;
-
-  return (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <Card key={item.id}>
-          <CardHeader>
-            <CardTitle>{item.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Item content */}
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// Skeleton loader component
-function ExamplesSkeleton() {
-  return (
-    <div className="space-y-4">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-6">
-            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-```
-
-#### 3. Form Handling with React Hook Form
+#### 2. Form Handling with React Hook Form
 ```typescript
 // src/components/forms/ExampleForm.tsx
 import { useForm } from 'react-hook-form';
@@ -445,6 +406,22 @@ export function ExampleForm({ initialData, onSubmit }: ExampleFormProps) {
 }
 ```
 
+#### 3. Role-Based UI Rendering
+```typescript
+// Use the RoleGuard component to conditionally render based on user roles
+import { RoleGuard } from '@/components/guards/RoleGuard';
+
+<RoleGuard allowedRoles={['super_admin', 'admin']}>
+  <Button>Delete User</Button>
+</RoleGuard>
+
+// Or use the useAuthStore hook
+const { user } = useAuthStore();
+if (user?.role === 'super_admin') {
+  // Show admin-only content
+}
+```
+
 ### File Upload Patterns
 
 #### Backend File Upload
@@ -475,81 +452,10 @@ public function store(Request $request)
 }
 ```
 
-#### Frontend File Upload
+### API Client Setup
+
 ```typescript
-// src/components/inputs/FileUpload.tsx
-interface FileUploadProps {
-  value?: File | null;
-  onChange: (file: File | null) => void;
-  accept?: string;
-  maxSize?: number; // in KB
-  className?: string;
-}
-
-export function FileUpload({
-  value,
-  onChange,
-  accept = 'image/*',
-  maxSize = 300,
-  className
-}: FileUploadProps) {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-
-    if (!file) {
-      onChange(null);
-      setPreview(null);
-      return;
-    }
-
-    // Validate file size
-    if (file.size > maxSize * 1024) {
-      setError(`File size must be less than ${maxSize}KB`);
-      return;
-    }
-
-    setError(null);
-    onChange(file);
-
-    // Create preview for images
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = () => setPreview(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  return (
-    <div className={className}>
-      <Input
-        type="file"
-        accept={accept}
-        onChange={handleFileChange}
-        className={error ? 'border-red-500' : ''}
-      />
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
-      {preview && (
-        <div className="mt-2">
-          <img
-            src={preview}
-            alt="Preview"
-            className="h-20 w-20 object-cover rounded"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-### Authentication Patterns
-
-#### API Client Setup
-```typescript
-// src/lib/api.ts
+// src/lib/api.ts (in hooknhunt-ui)
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -584,16 +490,31 @@ api.interceptors.response.use(
 );
 ```
 
+## Additional Features
+
+### SMS Management
+- SMS API integration for OTP verification and notifications
+- SMS balance checking and delivery reports
+- See `SMS_FEATURE_README.md` for details
+
+### Media Management
+- Centralized media library for file management
+- Folder organization for media files
+- Reusable across products, categories, brands
+
+### Global Settings
+- Exchange rate management (used for purchase order calculations)
+- System-wide configuration managed by super_admin
+
 ## Database Notes
 
-- Full schema is documented in AI_Context.md (lines 48-224)
-- 22 migration files currently implemented
-- **Currently Implemented Models**: User, Address, Category, Supplier, Attribute, AttributeOption, Product (basic)
-- **Missing Model Implementation**: ProductVariant, PurchaseOrder, SalesOrder, Inventory, Loyalty-related models
-- Uses standard Laravel conventions (timestamps, soft deletes where needed)
+- Full schema is documented in `AI_Context.md`
+- 24+ migration files currently implemented
+- **Currently Implemented Models**: User, Address, Category, Brand, Supplier, Attribute, AttributeOption, Product, ProductVariant (partial), PurchaseOrder (partial), Inventory, Media, Setting, SmsLog
+- **Missing/Partial Implementation**: SalesOrder, Loyalty-related models
 
 ### Key Database Patterns
-- **Soft Deletes**: Use `SoftDeletes` trait for major entities
+- **Soft Deletes**: Use `SoftDeletes` trait for major entities (User, Product, etc.)
 - **UUID**: Consider UUID for public-facing identifiers
 - **Indexes**: Add indexes for frequently queried columns
 - **Foreign Keys**: Proper cascade/delete constraints
@@ -602,14 +523,14 @@ api.interceptors.response.use(
 
 ### Authentication & Authorization
 - **Laravel Sanctum** for API authentication
-- **Role-based middleware**: `role:super_admin,admin`
-- **OTP verification** required for cash-on-delivery orders
+- **Role-based middleware**: `role:super_admin,admin` in routes
+- **OTP verification** required for customer registration
 - **Password hashing** using Laravel's built-in methods
 
 ### Data Security
 - **CORS** must restrict API access to:
-  - Vercel domain (Next.js website)
-  - cPanel domain (Admin UI)
+  - Admin UI domain (http://localhost:5173 for development)
+  - Storefront domain (http://localhost:3000 for development)
 - **Field-level security**: Hide sensitive fields based on user role:
   - `landed_cost`: Only super_admin, admin, store_keeper
   - `wholesale_price`: Only super_admin, admin, seller, wholesale_customer
@@ -618,10 +539,10 @@ api.interceptors.response.use(
 - **XSS protection**: Laravel's CSRF protection and input escaping
 
 ### File Upload Security
-- **File type validation**: Only allowed file types
+- **File type validation**: Only allowed file types (image/*)
 - **File size limits**: 300KB for thumbnails, 500KB for gallery images
-- **Storage**: Use `storage` directory, not public uploads
-- **File names**: Generate unique names to prevent overwrites
+- **Storage**: Use `storage/app/public` directory, symlinked via `php artisan storage:link`
+- **File names**: Generate unique names via Storage::store()
 
 ## Testing Strategy
 
@@ -642,19 +563,12 @@ composer run test -- --coverage
 - **Feature Tests**: API endpoints, authentication, authorization
 - **Integration Tests**: Complex workflows
 
-**Critical Tests to Implement:**
-- Authentication and authorization
-- Role-based access control
-- Product workflow (draft → published)
-- Inventory calculations
-- Purchase order status changes
-
 ### Frontend Testing
 ```bash
-# Install testing dependencies
+# Install testing dependencies (not yet implemented)
 npm install -D @testing-library/react @testing-library/jest-dom
 
-# Run tests
+# Run tests (not yet configured)
 npm test
 ```
 
@@ -664,13 +578,14 @@ npm test
 1. **Environment variables**: Set up production `.env`
 2. **Database**: Run migrations: `php artisan migrate --force`
 3. **File permissions**: `storage` and `bootstrap/cache`
-4. **Caching**: `php artisan config:cache`, `php artisan route:cache`
-5. **Queue**: Set up queue worker: `php artisan queue:work --daemon`
+4. **Storage link**: `php artisan storage:link` (for file uploads)
+5. **Caching**: `php artisan config:cache`, `php artisan route:cache`
+6. **Queue**: Set up queue worker: `php artisan queue:work --daemon`
 
 ### Frontend Deployment
-1. **Build**: `npm run build`
+1. **Build**: `npm run build` (Admin UI) or `npm run build` (Storefront)
 2. **Environment**: Set production API URL
-3. **Static files**: Deploy `dist/` directory to web server
+3. **Static files**: Deploy `dist/` directory (Admin UI) or `.next/` (Storefront)
 4. **Caching**: Configure browser caching for static assets
 
 ## Performance Considerations
@@ -679,14 +594,25 @@ npm test
 - **Database indexing**: Add indexes for frequently queried columns
 - **Eager loading**: Use `with()` to prevent N+1 queries
 - **Caching**: Implement Redis caching for frequently accessed data
-- **Pagination**: Always paginate large result sets
+- **Pagination**: Always paginate large result sets (default 15 per page)
 - **Query optimization**: Use Laravel DebugBar for query analysis
 
 ### Frontend Optimization
 - **Code splitting**: Lazy load components and pages
 - **Image optimization**: Compress and serve appropriate sizes
-- **Bundle analysis**: Use `npm run build --analyze`
+- **Bundle analysis**: Use `npm run build` to analyze bundle size
 - **Caching**: Implement proper HTTP caching headers
+
+## Important Documentation Files
+
+- `ai-todo-list.md`: Current sprint priorities and remaining tasks
+- `AI_Context.md`: Full database schema reference
+- `VARIANT_MANAGEMENT_GUIDE.md`: Product variants implementation guide
+- `VARIABLE_PRODUCT_STEP2_PRICING.md`: Multi-channel pricing details
+- `RECEIVE_STOCK_IMPROVEMENTS.md`: Stock receiving workflow
+- `SMS_FEATURE_README.md`: SMS integration details
+- `STOREFRONT_API_DOCUMENTATION.md`: Public API endpoints
+- `WEBSITE_AUTH_README.md`: Customer authentication flow
 
 ## Branding Guidelines
 

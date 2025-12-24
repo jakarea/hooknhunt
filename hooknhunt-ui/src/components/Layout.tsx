@@ -492,9 +492,7 @@ const Layout = () => {
                 </PopoverContent>
               </Popover>
 
-              <div className="text-sm text-gray-600">
-                Welcome back, <span className="font-semibold text-gray-900">{user?.name}</span>
-              </div>
+             
             </div>
           </div>
         </header>

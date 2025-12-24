@@ -199,7 +199,7 @@ const ProductDetail = () => {
               <p className="text-sm text-muted-foreground">ID: #{product.id}</p>
             </div>
           </div>
-          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
             <Button onClick={handleEdit} size="sm">
               <Edit className="h-4 w-4 mr-2" />
               Edit Product
@@ -246,10 +246,12 @@ const ProductDetail = () => {
                             <p className="text-2xl font-bold text-green-600">{allImages.length}</p>
                             <p className="text-xs text-gray-500">Images</p>
                           </div>
-                          <div className="text-center">
-                            <p className="text-2xl font-bold text-orange-600">{product.suppliers?.length || 0}</p>
-                            <p className="text-xs text-gray-500">Suppliers</p>
-                          </div>
+                          <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']} hide>
+                            <div className="text-center">
+                              <p className="text-2xl font-bold text-orange-600">{product.suppliers?.length || 0}</p>
+                              <p className="text-xs text-gray-500">Suppliers</p>
+                            </div>
+                          </RoleGuard>
                           <div className="text-center">
                             <p className="text-2xl font-bold text-purple-600">
                               {product.variants?.reduce((sum, v) => sum + (v.available_stock || 0), 0) || 0}
@@ -960,66 +962,68 @@ const ProductDetail = () => {
                 </CardContent>
               </Card>
 
-              {/* Suppliers */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Truck className="h-4 w-4" />
-                    Suppliers ({product.suppliers?.length || 0})
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {product.suppliers && product.suppliers.length > 0 ? (
-                    <div className="p-6 pt-0 flex gap-3">
-                      {product.suppliers.map((supplierItem) => (
-                      <div
-                        key={supplierItem.supplier_id || supplierItem.supplier?.id}
-                        className="p-3 border rounded-lg"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          {/* LEFT */}
-                          <div className="min-w-0">
-                            <Button
-                              variant="link"
-                              className="p-0 h-auto font-semibold text-left truncate"
-                              onClick={() => navigate(`/suppliers/${supplierItem.supplier?.id}`)}
-                            >
-                              {supplierItem.supplier?.name}
-                            </Button>
+              {/* Suppliers - Hidden from marketers */}
+              <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']} hide>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Suppliers ({product.suppliers?.length || 0})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {product.suppliers && product.suppliers.length > 0 ? (
+                      <div className="p-6 pt-0 flex gap-3">
+                        {product.suppliers.map((supplierItem) => (
+                        <div
+                          key={supplierItem.supplier_id || supplierItem.supplier?.id}
+                          className="p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center justify-between gap-4">
+                            {/* LEFT */}
+                            <div className="min-w-0">
+                              <Button
+                                variant="link"
+                                className="p-0 h-auto font-semibold text-left truncate"
+                                onClick={() => navigate(`/suppliers/${supplierItem.supplier?.id}`)}
+                              >
+                                {supplierItem.supplier?.name}
+                              </Button>
 
-                            {supplierItem.supplier?.shop_name && (
-                              <p className="text-sm text-muted-foreground truncate">
-                                {supplierItem.supplier.shop_name}
-                              </p>
-                            )}
-                          </div>
+                              {supplierItem.supplier?.shop_name && (
+                                <p className="text-sm text-muted-foreground truncate">
+                                  {supplierItem.supplier.shop_name}
+                                </p>
+                              )}
+                            </div>
 
-                          {/* RIGHT */}
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            {supplierItem.supplier?.email && (
-                              <Badge variant="outline" className="text-xs whitespace-nowrap">
-                                {supplierItem.supplier.email}
-                              </Badge>
-                            )}
+                            {/* RIGHT */}
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              {supplierItem.supplier?.email && (
+                                <Badge variant="outline" className="text-xs whitespace-nowrap">
+                                  {supplierItem.supplier.email}
+                                </Badge>
+                              )}
 
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/suppliers/${supplierItem.supplier?.id}`)}
-                            >
-                              View Profile
-                            </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => navigate(`/suppliers/${supplierItem.supplier?.id}`)}
+                              >
+                                View Profile
+                              </Button>
+                            </div>
                           </div>
                         </div>
+                        ))}
                       </div>
-                      ))}
-                    </div>
 
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No suppliers assigned</p>
-                  )}
-                </CardContent>
-              </Card>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No suppliers assigned</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </RoleGuard>
             </TabsContent>
           </Tabs>
         </div>

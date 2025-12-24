@@ -1,54 +1,129 @@
+import { useState, useEffect, useMemo } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Users, Package, ShoppingCart, TrendingUp, Plus, ArrowRight, Activity, BarChart3, Users2, Settings } from 'lucide-react';
+import { Users, Package, ShoppingCart, TrendingUp, Plus, ArrowRight, Activity, BarChart3, Users2, Settings, Loader2 } from 'lucide-react';
+import apiClient from '@/lib/apiClient';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+
+interface DashboardStats {
+  total_users: number;
+  total_products: number;
+  total_orders: number;
+  total_revenue: number;
+  recent_activity: Array<{
+    id: number;
+    type: string;
+    message: string;
+    time: string;
+    relative_time: string;
+    color: string;
+  }>;
+}
 
 const Dashboard = () => {
   const { user } = useAuthStore();
+  const { t } = useTranslation('dashboard');
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get('/admin/dashboard');
+      setStats(response.data);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat('en-US').format(num);
+  };
+
+  const formatCurrency = (num: number) => {
+    return new Intl.NumberFormat('en-BD', {
+      style: 'currency',
+      currency: 'BDT',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num).replace('BDT', '৳');
+  };
+
+  // Translated stats config using useMemo for performance
+  const statsConfig = useMemo(() => [
     {
-      title: 'Total Users',
-      value: '1,234',
-      description: '+12% from last month',
+      title: t('total_users'),
+      value: stats ? formatNumber(stats.total_users) : '---',
+      description: t('from_last_month', { percent: 12 }),
       icon: <Users className="h-6 w-6 text-blue-600" />,
       bgColor: 'bg-blue-50',
       roles: ['super_admin', 'admin'],
     },
     {
-      title: 'Total Products',
-      value: '456',
-      description: '+8% from last month',
+      title: t('total_products'),
+      value: stats ? formatNumber(stats.total_products) : '---',
+      description: t('from_last_month', { percent: 8 }),
       icon: <Package className="h-6 w-6 text-green-600" />,
       bgColor: 'bg-green-50',
       roles: ['super_admin', 'admin', 'store_keeper', 'seller'],
     },
     {
-      title: 'Total Orders',
-      value: '789',
-      description: '+23% from last month',
+      title: t('total_orders'),
+      value: stats ? formatNumber(stats.total_orders) : '---',
+      description: t('from_last_month', { percent: 23 }),
       icon: <ShoppingCart className="h-6 w-6 text-purple-600" />,
       bgColor: 'bg-purple-50',
       roles: ['super_admin', 'admin', 'seller'],
     },
     {
-      title: 'Revenue',
-      value: '৳45,231',
-      description: '+15% from last month',
+      title: t('revenue'),
+      value: stats ? formatCurrency(stats.total_revenue) : '---',
+      description: t('from_last_month', { percent: 15 }),
       icon: <TrendingUp className="h-6 w-6 text-orange-600" />,
       bgColor: 'bg-orange-50',
       roles: ['super_admin', 'admin'],
     },
-  ];
+  ], [t, stats]);
+
+  const getActivityColor = (color: string) => {
+    const colorMap: { [key: string]: string } = {
+      green: 'bg-green-500',
+      blue: 'bg-blue-500',
+      purple: 'bg-purple-500',
+      orange: 'bg-orange-500',
+    };
+    return colorMap[color] || 'bg-gray-500';
+  };
 
   const hasAccess = (roles: string[]) => {
     if (!user) return false;
     return roles.includes(user.role);
   };
 
-  const filteredStats = stats.filter((stat) => hasAccess(stat.roles));
+  const filteredStats = statsConfig.filter((stat) => hasAccess(stat.roles));
+
+  // Get translated role name
+  const getRoleName = (role: string) => {
+    return t(`roles.${role}`, role);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -57,11 +132,11 @@ const Dashboard = () => {
         <div className="container mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-              <p className="text-gray-600 mt-1">Welcome back! Here's what's happening in your store today.</p>
+              <h1 className="text-3xl font-bold text-gray-900">{t('title')}</h1>
+              <p className="text-gray-600 mt-1">{t('welcome_message')}</p>
             </div>
             <Badge variant="secondary" className="text-sm">
-              {user?.role?.replace('_', ' ')?.charAt(0).toUpperCase() + user?.role?.replace('_', ' ')?.slice(1)}
+              {getRoleName(user?.role || '')}
             </Badge>
           </div>
         </div>
@@ -74,10 +149,10 @@ const Dashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-3xl font-bold mb-2">
-                  Welcome back, {user?.name}! 👋
+                  {t('welcome_back', { name: user?.name })}
                 </h2>
                 <p className="text-red-100">
-                  You're logged in as <span className="font-semibold capitalize">{user?.role?.replace('_', ' ')}</span>
+                  {t('logged_in_as')} <span className="font-semibold capitalize">{getRoleName(user?.role || '')}</span>
                 </p>
               </div>
               <div className="bg-white/20 p-4 rounded-full">
@@ -118,9 +193,9 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
-                  Quick Actions
+                  {t('quick_actions')}
                 </CardTitle>
-                <CardDescription>Frequently used features and shortcuts</CardDescription>
+                <CardDescription>{t('quick_actions_desc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Separator className="mb-4" />
@@ -131,18 +206,18 @@ const Dashboard = () => {
                       className="h-auto p-4 justify-start hover:bg-blue-50 hover:border-blue-300"
                       asChild
                     >
-                      <a href="/dashboard/users">
+                      <Link to="/users">
                         <div className="flex items-center gap-3">
                           <div className="bg-blue-100 p-2 rounded-lg">
                             <Users className="h-5 w-5 text-blue-600" />
                           </div>
                           <div className="text-left">
-                            <div className="font-medium text-gray-900">Manage Users</div>
-                            <div className="text-sm text-gray-600">Add, edit, or remove users</div>
+                            <div className="font-medium text-gray-900">{t('manage_users')}</div>
+                            <div className="text-sm text-gray-600">{t('manage_users_desc')}</div>
                           </div>
                           <ArrowRight className="h-4 w-4 ml-auto text-gray-400" />
                         </div>
-                      </a>
+                      </Link>
                     </Button>
                   )}
                   {hasAccess(['super_admin', 'admin', 'store_keeper', 'seller']) && (
@@ -151,18 +226,18 @@ const Dashboard = () => {
                       className="h-auto p-4 justify-start hover:bg-green-50 hover:border-green-300"
                       asChild
                     >
-                      <a href="/dashboard/products">
+                      <Link to="/products">
                         <div className="flex items-center gap-3">
                           <div className="bg-green-100 p-2 rounded-lg">
                             <Package className="h-5 w-5 text-green-600" />
                           </div>
                           <div className="text-left">
-                            <div className="font-medium text-gray-900">Add Product</div>
-                            <div className="text-sm text-gray-600">Add new products to inventory</div>
+                            <div className="font-medium text-gray-900">{t('view_products')}</div>
+                            <div className="text-sm text-gray-600">{t('view_products_desc')}</div>
                           </div>
                           <ArrowRight className="h-4 w-4 ml-auto text-gray-400" />
                         </div>
-                      </a>
+                      </Link>
                     </Button>
                   )}
                   {hasAccess(['super_admin', 'admin', 'seller']) && (
@@ -171,18 +246,18 @@ const Dashboard = () => {
                       className="h-auto p-4 justify-start hover:bg-purple-50 hover:border-purple-300"
                       asChild
                     >
-                      <a href="/dashboard/orders">
+                      <Link to="/purchase/list">
                         <div className="flex items-center gap-3">
                           <div className="bg-purple-100 p-2 rounded-lg">
                             <ShoppingCart className="h-5 w-5 text-purple-600" />
                           </div>
                           <div className="text-left">
-                            <div className="font-medium text-gray-900">View Orders</div>
-                            <div className="text-sm text-gray-600">Check and manage customer orders</div>
+                            <div className="font-medium text-gray-900">{t('purchase_orders')}</div>
+                            <div className="text-sm text-gray-600">{t('purchase_orders_desc')}</div>
                           </div>
                           <ArrowRight className="h-4 w-4 ml-auto text-gray-400" />
                         </div>
-                      </a>
+                      </Link>
                     </Button>
                   )}
                   {hasAccess(['super_admin', 'admin', 'store_keeper']) && (
@@ -191,18 +266,18 @@ const Dashboard = () => {
                       className="h-auto p-4 justify-start hover:bg-orange-50 hover:border-orange-300"
                       asChild
                     >
-                      <a href="/dashboard/suppliers">
+                      <Link to="/purchase/suppliers">
                         <div className="flex items-center gap-3">
                           <div className="bg-orange-100 p-2 rounded-lg">
                             <Users2 className="h-5 w-5 text-orange-600" />
                           </div>
                           <div className="text-left">
-                            <div className="font-medium text-gray-900">Suppliers</div>
-                            <div className="text-sm text-gray-600">Manage supplier contacts</div>
+                            <div className="font-medium text-gray-900">{t('suppliers')}</div>
+                            <div className="text-sm text-gray-600">{t('suppliers_desc')}</div>
                           </div>
                           <ArrowRight className="h-4 w-4 ml-auto text-gray-400" />
                         </div>
-                      </a>
+                      </Link>
                     </Button>
                   )}
                 </div>
@@ -216,41 +291,26 @@ const Dashboard = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <BarChart3 className="h-5 w-5" />
-                  Recent Activity
+                  {t('recent_activity')}
                 </CardTitle>
-                <CardDescription>Latest updates in your system</CardDescription>
+                <CardDescription>{t('recent_activity_desc')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Separator className="mb-4" />
                 <div className="space-y-4">
-                  <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <div className="h-2 w-2 rounded-full bg-green-500 mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">New order received</p>
-                      <p className="text-xs text-gray-500">5 minutes ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <div className="h-2 w-2 rounded-full bg-blue-500 mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">Product added to catalog</p>
-                      <p className="text-xs text-gray-500">2 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <div className="h-2 w-2 rounded-full bg-purple-500 mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">User registered</p>
-                      <p className="text-xs text-gray-500">4 hours ago</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
-                    <div className="h-2 w-2 rounded-full bg-orange-500 mt-2 flex-shrink-0"></div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">Supplier updated</p>
-                      <p className="text-xs text-gray-500">6 hours ago</p>
-                    </div>
-                  </div>
+                  {stats && stats.recent_activity && stats.recent_activity.length > 0 ? (
+                    stats.recent_activity.map((activity) => (
+                      <div key={activity.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50">
+                        <div className={`h-2 w-2 rounded-full ${getActivityColor(activity.color)} mt-2 flex-shrink-0`}></div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">{activity.message}</p>
+                          <p className="text-xs text-gray-500">{activity.relative_time}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500 text-center py-4">{t('no_recent_activity')}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

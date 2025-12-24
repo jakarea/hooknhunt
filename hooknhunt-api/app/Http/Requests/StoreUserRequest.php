@@ -29,12 +29,12 @@ class StoreUserRequest extends FormRequest
             'phone_number' => 'required|string|max:20|unique:users',
             'whatsapp_number' => 'nullable|string|max:20',
             'password' => 'required|string|min:8|confirmed',
-            'role' => ['required', Rule::in(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'])],
+            'role' => ['required', Rule::in(['super_admin', 'admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'])],
         ];
 
         // Only super_admin can create super_admin users
         if (auth()->user()->role !== 'super_admin') {
-            $rules['role'] = ['required', Rule::in(['admin', 'seller', 'store_keeper', 'marketer'])];
+            $rules['role'] = ['required', Rule::in(['admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'])];
         }
 
         return $rules;

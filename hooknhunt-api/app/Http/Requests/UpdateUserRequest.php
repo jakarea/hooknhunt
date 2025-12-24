@@ -31,12 +31,12 @@ class UpdateUserRequest extends FormRequest
             'phone_number' => ['sometimes', 'required', 'string', 'max:20', Rule::unique('users')->ignore($userId)],
             'whatsapp_number' => 'nullable|string|max:20',
             'password' => 'sometimes|nullable|string|min:8|confirmed',
-            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'])],
+            'role' => ['sometimes', 'required', Rule::in(['super_admin', 'admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'])],
         ];
 
         // Only super_admin can assign super_admin role
         if (auth()->user()->role !== 'super_admin') {
-            $rules['role'] = ['sometimes', 'required', Rule::in(['admin', 'seller', 'store_keeper', 'marketer'])];
+            $rules['role'] = ['sometimes', 'required', Rule::in(['admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'])];
         }
 
         return $rules;

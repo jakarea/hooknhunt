@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { QrCode } from 'lucide-react';
+import { API_URL } from '@/lib/config';
 
 interface SupplierImageProps {
   src?: string | null;
@@ -41,16 +42,16 @@ export const SupplierImage: React.FC<SupplierImageProps> = ({
 
     // If it's a storage path (starts with /storage/), convert to full URL
     if (imageSrc.startsWith('/storage/')) {
-      return `http://localhost:8000${imageSrc}`;
+      return `${API_URL}${imageSrc}`;
     }
 
     // If it's a relative path without leading slash, add it
     if (!imageSrc.startsWith('/')) {
-      return `http://localhost:8000/storage/${imageSrc}`;
+      return `${API_URL}/storage/${imageSrc}`;
     }
 
     // Otherwise, treat as a full relative path
-    return `http://localhost:8000${imageSrc}`;
+    return `${API_URL}${imageSrc}`;
   };
 
   const imageUrl = getImageUrl(src);

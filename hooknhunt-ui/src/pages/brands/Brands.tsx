@@ -9,6 +9,7 @@ import { Package, Plus, Edit, Trash2, AlertCircle, X } from 'lucide-react';
 import { MediaLibrary } from '@/components/media/MediaLibrary';
 import apiClient from '@/lib/apiClient';
 import { toast } from '@/components/ui/use-toast';
+import { API_URL } from '@/lib/config';
 
 interface Brand {
   id: number;
@@ -64,12 +65,12 @@ export function Brands() {
       return logo;
     }
     if (logo.startsWith('/storage/')) {
-      return `http://localhost:8000${logo}`;
+      return `${API_URL}${logo}`;
     }
     if (!logo.startsWith('/')) {
-      return `http://localhost:8000/storage/${logo}`;
+      return `${API_URL}/storage/${logo}`;
     }
-    return `http://localhost:8000${logo}`;
+    return `${API_URL}${logo}`;
   };
 
   // Generate slug from name

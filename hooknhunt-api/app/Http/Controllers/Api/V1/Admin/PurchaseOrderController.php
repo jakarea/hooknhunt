@@ -29,12 +29,12 @@ class PurchaseOrderController extends Controller
 
         // Filter by status if provided
         if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-
-        // Filter for completed or partially completed orders
-        if ($request->status === 'completed') {
-            $query->whereIn('status', ['completed', 'completed_partially']);
+            // Special handling for 'completed' status - include both completed and completed_partially
+            if ($request->status === 'completed') {
+                $query->whereIn('status', ['completed', 'completed_partially']);
+            } else {
+                $query->where('status', $request->status);
+            }
         }
 
         $orders = $query->latest()->paginate(15);
@@ -908,7 +908,7 @@ class PurchaseOrderController extends Controller
             'variants.*.sku' => 'required|string|max:255|unique:product_variants,sku',
             'variants.*.variant_name' => 'required|string|max:255',
             'variants.*.quantity' => 'required|integer|min:1',
-            'variants.*.landed_cost' => 'required|numeric|min:0',
+            'variants.*.landed_cost' => 'nullable|numeric|min:0', // Can be null if PO is locked
             'variants.*.retail_price' => 'nullable|numeric|min:0',
             'variants.*.wholesale_price' => 'nullable|numeric|min:0',
             'variants.*.daraz_price' => 'nullable|numeric|min:0',
@@ -942,6 +942,9 @@ class PurchaseOrderController extends Controller
             // Create product variants and inventory records
             $totalQuantity = 0;
             foreach ($request->variants as $variantData) {
+                // Use provided landed_cost or fall back to PO item's final_unit_cost
+                $landedCost = $variantData['landed_cost'] ?? $poItem->final_unit_cost ?? 0;
+
                 // Create product variant
                 $productVariant = ProductVariant::create([
                     'product_id' => $poItem->product_id,
@@ -949,7 +952,7 @@ class PurchaseOrderController extends Controller
                     'retail_name' => $variantData['retail_name'] ?? $variantData['variant_name'],
                     'wholesale_name' => $variantData['wholesale_name'] ?? $variantData['variant_name'],
                     'daraz_name' => $variantData['daraz_name'] ?? $variantData['variant_name'],
-                    'landed_cost' => $variantData['landed_cost'],
+                    'landed_cost' => $landedCost,
                     'retail_price' => $variantData['retail_price'] ?? 0,
                     'wholesale_price' => $variantData['wholesale_price'] ?? 0,
                     'daraz_price' => $variantData['daraz_price'] ?? 0,
@@ -971,7 +974,18 @@ class PurchaseOrderController extends Controller
             // NOTE: received_quantity should only be updated via receiveItems (warehouse receiving)
             // stocked_quantity should be updated via receiveStock (inventory creation)
             $poItem->stocked_quantity = ($poItem->stocked_quantity ?? 0) + $totalQuantity;
-            $poItem->final_unit_cost = collect($request->variants)->avg('landed_cost');
+
+            // Only update final_unit_cost if PO is NOT completed or completed_partially
+            $purchaseOrder = $poItem->purchaseOrder;
+            if (!in_array($purchaseOrder->status, ['completed', 'completed_partially'])) {
+                // Calculate average from variants that have landed_cost
+                $landedCosts = collect($request->variants)
+                    ->pluck('landed_cost')
+                    ->filter(fn ($value) => $value !== null && $value !== '');
+                if ($landedCosts->isNotEmpty()) {
+                    $poItem->final_unit_cost = $landedCosts->avg();
+                }
+            }
             $poItem->save();
 
             // Update product status if needed
@@ -982,7 +996,7 @@ class PurchaseOrderController extends Controller
             }
 
             // Check if purchase order should be marked as completed
-            $purchaseOrder = $poItem->purchaseOrder;
+            // (already fetched above for status check)
             $allItems = $purchaseOrder->items;
             $allReceived = $allItems->every(function ($item) {
                 return $item->received_quantity >= $item->quantity;

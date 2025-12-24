@@ -17,6 +17,18 @@ class SettingSeeder extends Seeder
                 'key' => 'exchange_rate_rmb_bdt',
                 'value' => '17.50',
             ],
+            [
+                'key' => 'default_margin_wholesale',
+                'value' => '20',
+            ],
+            [
+                'key' => 'default_margin_retail',
+                'value' => '50',
+            ],
+            [
+                'key' => 'default_margin_daraz',
+                'value' => '60',
+            ],
         ];
 
         foreach ($defaultSettings as $setting) {

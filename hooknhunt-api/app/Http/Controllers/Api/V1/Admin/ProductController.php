@@ -140,6 +140,13 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
+        // Marketers cannot create products
+        if (auth()->user()->role === 'marketer') {
+            return response()->json([
+                'message' => 'Forbidden. Marketers cannot create products.',
+            ], 403);
+        }
+
         $validated = $request->validate([
             'base_name' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -342,6 +349,8 @@ class ProductController extends Controller
                 'description' => 'nullable|string',
                 'meta_title' => 'nullable|string|max:255',
                 'meta_description' => 'nullable|string',
+                'meta_keywords' => 'nullable|string',
+                'canonical_url' => 'nullable|url',
                 'category_ids' => 'nullable|array',
                 'category_ids.*' => 'integer|exists:categories,id',
                 'status' => 'nullable|in:draft,published',
@@ -349,6 +358,7 @@ class ProductController extends Controller
                 'video_url' => 'nullable|url',
                 'gallery_images' => 'nullable|string', // JSON string of URLs (from frontend FormData)
                 'existing_gallery_images' => 'nullable|string', // JSON string (for compatibility)
+                'specifications' => 'nullable|string', // JSON string of specifications
             ]);
 
             // Update fields only if provided
@@ -371,6 +381,14 @@ class ProductController extends Controller
                 $updateData['meta_description'] = $validated['meta_description'];
             }
 
+            if (isset($validated['meta_keywords'])) {
+                $updateData['meta_keywords'] = $validated['meta_keywords'];
+            }
+
+            if (isset($validated['canonical_url'])) {
+                $updateData['canonical_url'] = $validated['canonical_url'];
+            }
+
             if (isset($validated['description'])) {
                 $updateData['description'] = $validated['description'];
             }
@@ -381,6 +399,15 @@ class ProductController extends Controller
 
             if (isset($validated['video_url'])) {
                 $updateData['video_url'] = $validated['video_url'];
+            }
+
+            // Handle specifications
+            if ($request->has('specifications')) {
+                $specs = json_decode($request->input('specifications'), true);
+                if (is_array($specs)) {
+                    $updateData['specifications'] = $specs;
+                    \Log::info('Specifications to update:', $specs);
+                }
             }
 
             // Handle gallery images
@@ -524,8 +551,8 @@ class ProductController extends Controller
         $variant = \App\Models\ProductVariant::findOrFail($id);
 
         $validated = $request->validate([
-            'sku' => 'required|string|max:255|unique:product_variants,sku,' . $id,
-            'landed_cost' => 'required|numeric|min:0',
+            'sku' => 'nullable|string|max:255|unique:product_variants,sku,' . $id, // Made optional - managed through product edit only
+            'landed_cost' => 'nullable|numeric|min:0', // Managed through purchase orders only
             'retail_price' => 'nullable|numeric|min:0',
             'wholesale_price' => 'nullable|numeric|min:0',
             'daraz_price' => 'nullable|numeric|min:0',
@@ -546,6 +573,9 @@ class ProductController extends Controller
             'daraz_offer_start_date' => 'nullable|date',
             'daraz_offer_end_date' => 'nullable|date|after_or_equal:daraz_offer_start_date',
         ]);
+
+        // Remove SKU from validated data - should not be updated from stock edit page
+        unset($validated['sku']);
 
         $variant->update($validated);
 
@@ -720,6 +750,13 @@ class ProductController extends Controller
      */
     public function destroy(Product $product)
     {
+        // Marketers cannot delete products
+        if (auth()->user()->role === 'marketer') {
+            return response()->json([
+                'message' => 'Forbidden. Marketers cannot delete products.',
+            ], 403);
+        }
+
         $product->delete();
         return response()->json(null, 204);
     }

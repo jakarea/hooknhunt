@@ -119,7 +119,7 @@ const Categories = () => {
               </div>
             </div>
 
-            <RoleGuard allowedRoles={['super_admin', 'admin']}>
+            <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
               <Button onClick={handleOpenCreatePage} className="shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Category
@@ -291,7 +291,7 @@ const Categories = () => {
                     Clear Search
                   </Button>
                 ) : (
-                  <RoleGuard allowedRoles={['super_admin', 'admin']}>
+                  <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
                     <Button onClick={handleOpenCreatePage}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create Category

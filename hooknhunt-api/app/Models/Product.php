@@ -18,6 +18,8 @@ class Product extends Model
         'status',
         'meta_title',
         'meta_description',
+        'meta_keywords',
+        'canonical_url',
         'description',
         'category_ids', // Store multiple categories as JSON array
         'base_thumbnail_url',

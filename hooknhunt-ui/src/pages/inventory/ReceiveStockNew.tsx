@@ -88,6 +88,12 @@ interface PoItem {
   product?: Product;
 }
 
+interface PurchaseOrder {
+  id: number;
+  po_number: string;
+  status: string;
+}
+
 const DEFAULT_MARGINS = {
   retail: 50,
   wholesale: 20,
@@ -229,6 +235,58 @@ export function ReceiveStockNew() {
     return (sellingPrice - landedCost) * quantity;
   };
 
+  // Generate unique SKU based on formula:
+  // [1st_letter][china_price]-[2nd_letter][final_unit_cost]-[3rd_letter][wholesale_price]-[profit_amount]-[margin][all_variation_letters]
+  const generateUniqueSKU = (chinaPrice: number, finalUnitCost: number, wholesaleMargin: number, variantName?: string): string => {
+    // CRITICAL: Convert all inputs to numbers first to handle string values from API
+    const numChinaPrice = Number(chinaPrice) || 0;
+    const numFinalUnitCost = Number(finalUnitCost) || numChinaPrice;
+    const numWholesaleMargin = Number(wholesaleMargin) || 0;
+
+    // Calculate wholesale price with margin (now using proper numbers)
+    const wholesalePrice = numFinalUnitCost + (numFinalUnitCost * numWholesaleMargin / 100);
+
+    // Calculate wholesale profit amount
+    const wholesaleProfitAmount = wholesalePrice - numFinalUnitCost;
+
+    // Convert all to integers (full digits only, no decimals)
+    const chinaPriceInt = Math.round(numChinaPrice);
+    const finalUnitCostInt = Math.round(numFinalUnitCost);
+    const wholesalePriceInt = Math.round(wholesalePrice);
+    const wholesaleProfitAmountInt = Math.round(wholesaleProfitAmount);
+
+    // Extract first capital letters from each variation word as an array
+    const variationLetters: string[] = [];
+    if (variantName) {
+      // Split by " - " to get all parts
+      const parts = variantName.split(' - ');
+
+      // If there's more than 1 part, the first is product name, rest are variation attributes
+      // If only 1 part, use it as variation
+      const variationParts = parts.length > 1 ? parts.slice(1) : parts;
+
+      // Extract first capital letter from each variation part
+      variationParts.forEach(part => {
+        const match = part.trim().match(/[A-Z]/);
+        if (match) {
+          variationLetters.push(match[0]);
+        }
+      });
+    }
+
+    // Default to ['D'] if no variation letters found
+    const letters = variationLetters.length > 0 ? variationLetters : ['D'];
+
+    // Get individual letters for prefixing (use 'D' as fallback for missing positions)
+    const letter1 = letters[0] || 'D';
+    const letter2 = letters[1] || letter1;
+    const letter3 = letters[2] || letter2;
+
+    // Build SKU with variation letters prefixing each number
+    const marginInt = Math.round(numWholesaleMargin);
+    return `${letter1}${chinaPriceInt}-${letter2}${finalUnitCostInt}-${letter3}${wholesalePriceInt}-${wholesaleProfitAmountInt}-${marginInt}`;
+  };
+
   // Get minimum date (today) for date inputs
   const getMinDate = (): string => {
     const today = new Date();
@@ -244,6 +302,7 @@ export function ReceiveStockNew() {
 
   // PO Item and Product data
   const [poItem, setPoItem] = useState<PoItem | null>(null);
+  const [purchaseOrder, setPurchaseOrder] = useState<PurchaseOrder | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Global profit margins from settings
@@ -297,6 +356,9 @@ export function ReceiveStockNew() {
     return sum + qty;
   }, 0);
 
+  // Check if landed cost is locked (PO is completed or completed_partially)
+  const isLandedCostLocked = purchaseOrder?.status === 'completed' || purchaseOrder?.status === 'completed_partially';
+
   // ============================================================================
   // FETCH DATA ON MOUNT
   // ============================================================================
@@ -315,6 +377,17 @@ export function ReceiveStockNew() {
 
         // Set initial loading to false since we got the PO item
         setLoading(false);
+
+        // Fetch purchase order to get status
+        if (poResponse.data.po_number) {
+          try {
+            const poDetailsResponse = await apiClient.get(`/admin/purchase-orders/${poResponse.data.po_number}`);
+            console.log('✅ PO details loaded:', poDetailsResponse.data);
+            setPurchaseOrder(poDetailsResponse.data);
+          } catch (poError) {
+            console.warn('Could not load PO details:', poError);
+          }
+        }
 
         // Load product data if available
         if (poResponse.data.product_id) {
@@ -339,9 +412,9 @@ export function ReceiveStockNew() {
           // Extract profit margins from settings, using defaults if not found
           const settings = settingsResponse.data;
           setProfitMargins({
-            retail: parseFloat(settings.profit_margin_retail) || 50,
-            wholesale: parseFloat(settings.profit_margin_wholesale) || 20,
-            daraz: parseFloat(settings.profit_margin_daraz) || 60,
+            retail: parseFloat(settings.default_margin_retail) || 50,
+            wholesale: parseFloat(settings.default_margin_wholesale) || 20,
+            daraz: parseFloat(settings.default_margin_daraz) || 60,
           });
         } catch (settingsError) {
           console.warn('Could not load global settings, using default profit margins');
@@ -441,13 +514,16 @@ export function ReceiveStockNew() {
     if (productType === 'simple') {
       // Create single variant
       const defaultName = poItem.product.base_name || 'Default';
+      const chinaPrice = poItem.china_price || 0;
+      const finalUnitCost = poItem.final_unit_cost || chinaPrice;
+
       newVariants.push({
         id: '1',
         internalName: defaultName,
-        sku: '', // SKU is required - must be entered by user
+        sku: generateUniqueSKU(chinaPrice, finalUnitCost, profitMargins.wholesale, defaultName),
         thumbnail: poItem.product?.base_thumbnail_url || '',
         stockQty: '',
-        landedCost: poItem.final_unit_cost?.toString() || poItem.china_price?.toString() || '',
+        landedCost: finalUnitCost.toString(),
         // Initialize all platform names with the same value
         retailName: defaultName,
         wholesaleName: defaultName,
@@ -455,15 +531,15 @@ export function ReceiveStockNew() {
         retailThumb: '',
         wholesaleThumb: '',
         darazThumb: '',
-        retailPrice: calculatePrice(poItem.final_unit_cost?.toString() || poItem.china_price?.toString() || '0', profitMargins.retail),
+        retailPrice: calculatePrice(finalUnitCost.toString() || '0', profitMargins.retail),
         retailOfferPrice: '',
         retailOfferStart: '',
         retailOfferEnd: '',
-        wholesalePrice: calculatePrice(poItem.final_unit_cost?.toString() || poItem.china_price?.toString() || '0', profitMargins.wholesale),
+        wholesalePrice: calculatePrice(finalUnitCost.toString() || '0', profitMargins.wholesale),
         wholesaleOfferPrice: '',
         wholesaleOfferStart: '',
         wholesaleOfferEnd: '',
-        darazPrice: calculatePrice(poItem.final_unit_cost?.toString() || poItem.china_price?.toString() || '0', profitMargins.daraz),
+        darazPrice: calculatePrice(finalUnitCost.toString() || '0', profitMargins.daraz),
         darazOfferPrice: '',
         darazOfferStart: '',
         darazOfferEnd: '',
@@ -500,12 +576,14 @@ export function ReceiveStockNew() {
         // Include product name with variant attributes for better identification
         const variantFullName = poItem.product?.base_name ? `${poItem.product.base_name} - ${displayValues}` : displayValues;
 
-        const landedCost = poItem.final_unit_cost?.toString() || poItem.china_price?.toString() || '';
+        const chinaPrice = poItem.china_price || 0;
+        const finalUnitCost = poItem.final_unit_cost || chinaPrice;
+        const landedCost = finalUnitCost.toString();
 
         newVariants.push({
           id: idCounter.toString(),
           internalName: variantFullName,
-          sku: '', // SKU is required - must be entered by user
+          sku: generateUniqueSKU(chinaPrice, finalUnitCost, profitMargins.wholesale, variantFullName),
           thumbnail: poItem.product?.base_thumbnail_url || '',
           stockQty: '',
           landedCost: landedCost,
@@ -553,8 +631,13 @@ export function ReceiveStockNew() {
     return result;
   };
 
-  
+
   const updateVariant = (id: string, field: keyof VariantRow, value: string) => {
+    // Prevent updating landed cost if PO is completed or completed_partially
+    if (field === 'landedCost' && isLandedCostLocked) {
+      return;
+    }
+
     setVariants(prev =>
       prev.map(variant => {
         if (variant.id === id) {
@@ -619,7 +702,6 @@ export function ReceiveStockNew() {
 
   const canSave = () => {
     const allValid = variants.every(variant =>
-      variant.sku.trim() &&
       variant.stockQty.trim() &&
       parseInt(variant.stockQty) > 0 &&
       variant.landedCost.trim() &&
@@ -641,24 +723,19 @@ export function ReceiveStockNew() {
       errors.variants = [t('validation.generate_variants')];
     }
 
-    // Validate SKU and Landed Cost for each variant
-    const skuErrors: {[variantId: string]: string} = {};
+    // Validate Landed Cost for each variant (SKU is auto-generated, no need to validate)
     const landedCostErrors: {[variantId: string]: string} = {};
     variants.forEach(variant => {
-      // SKU validation
-      if (!variant.sku || variant.sku.trim() === '') {
-        skuErrors[variant.id] = t('api_errors.sku_required');
-      }
-      // Landed Cost validation
-      if (!variant.landedCost || variant.landedCost.trim() === '' || parseFloat(variant.landedCost) < 0) {
-        landedCostErrors[variant.id] = t('api_errors.landed_cost_required');
+      // Landed Cost validation - skip if PO is locked (completed/partially completed)
+      if (!isLandedCostLocked) {
+        if (!variant.landedCost || variant.landedCost.trim() === '' || parseFloat(variant.landedCost) < 0) {
+          landedCostErrors[variant.id] = t('api_errors.landed_cost_required');
+        }
       }
     });
 
-    if (Object.keys(skuErrors).length > 0) {
-      errors.variantSkus = skuErrors;
-    }
-    if (Object.keys(landedCostErrors).length > 0) {
+    // Only add landed cost errors if not locked
+    if (!isLandedCostLocked && Object.keys(landedCostErrors).length > 0) {
       errors.variantLandedCosts = landedCostErrors;
     }
 
@@ -752,7 +829,10 @@ export function ReceiveStockNew() {
               if (key.includes('.sku')) {
                 skuErrors[variant.id] = laravelErrors[key][0];
               } else if (key.includes('.landed_cost')) {
-                landedCostErrors[variant.id] = laravelErrors[key][0];
+                // Only add landed cost errors if PO is not locked
+                if (!isLandedCostLocked) {
+                  landedCostErrors[variant.id] = laravelErrors[key][0];
+                }
               } else if (key.includes('.variant_name')) {
                 variantNameErrors[variant.id] = laravelErrors[key][0];
               } else if (key.includes('.quantity')) {
@@ -766,7 +846,8 @@ export function ReceiveStockNew() {
         if (Object.keys(skuErrors).length > 0) {
           fieldErrors.variantSkus = skuErrors;
         }
-        if (Object.keys(landedCostErrors).length > 0) {
+        // Only add landed cost errors if PO is not locked
+        if (!isLandedCostLocked && Object.keys(landedCostErrors).length > 0) {
           fieldErrors.variantLandedCosts = landedCostErrors;
         }
         if (Object.keys(variantNameErrors).length > 0) {
@@ -944,7 +1025,7 @@ export function ReceiveStockNew() {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Validation Summary Banner */}
-        {(validationErrors.variants || validationErrors.variantSkus || validationErrors.variantLandedCosts) && (
+        {(validationErrors.variants || validationErrors.variantSkus || (!isLandedCostLocked && validationErrors.variantLandedCosts)) && (
           <Alert className="border-red-200 bg-red-50">
             <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -964,13 +1045,27 @@ export function ReceiveStockNew() {
                         {t('validation.sku_missing', { count: Object.keys(validationErrors.variantSkus).length })}
                       </li>
                     )}
-                    {validationErrors.variantLandedCosts && Object.keys(validationErrors.variantLandedCosts).length > 0 && (
+                    {!isLandedCostLocked && validationErrors.variantLandedCosts && Object.keys(validationErrors.variantLandedCosts).length > 0 && (
                       <li className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                         {t('validation.landed_cost_missing', { count: Object.keys(validationErrors.variantLandedCosts).length })}
                       </li>
                     )}
                   </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Landed Cost Locked Warning Banner */}
+        {isLandedCostLocked && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <svg className="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <AlertTitle className="text-amber-800 font-bold">Landed Cost is Locked</AlertTitle>
+            <AlertDescription className="text-amber-700 text-sm">
+              This purchase order is <strong>{purchaseOrder?.status === 'completed' ? 'Completed' : 'Partially Completed'}</strong>.
+              The landed cost cannot be modified at this stage. All costs have been finalized.
             </AlertDescription>
           </Alert>
         )}
@@ -1050,10 +1145,10 @@ export function ReceiveStockNew() {
                       </div>
                     </div>
                     <div className="bg-green-50 rounded-lg p-4">
-                      <Label className="text-xs font-medium text-green-600 uppercase tracking-wide">Unit Cost</Label>
+                      <Label className="text-xs font-medium text-green-600 uppercase tracking-wide">Landed Cost</Label>
                       <p className="text-lg font-bold text-green-700 mt-1">
-                        ${typeof poItem.china_price === 'number' ? poItem.china_price.toFixed(2) :
-                            (parseFloat(poItem.china_price || '0')).toFixed(2)}
+                        ৳{typeof poItem.final_unit_cost === 'number' ? poItem.final_unit_cost.toFixed(2) :
+                            (parseFloat(poItem.final_unit_cost || '0')).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -1420,32 +1515,13 @@ export function ReceiveStockNew() {
                             <div>
                               <Input
                                 type="text"
-                                placeholder="Required"
                                 value={variant.sku}
-                                onChange={(e) => {
-                                  updateVariant(variant.id, 'sku', e.target.value);
-                                  // Clear error when user starts typing
-                                  if (validationErrors.variantSkus?.[variant.id]) {
-                                    setValidationErrors(prev => ({
-                                      ...prev,
-                                      variantSkus: {
-                                        ...prev.variantSkus,
-                                        [variant.id]: undefined
-                                      }
-                                    }));
-                                  }
-                                }}
-                                className={`h-8 text-xs w-24 ${validationErrors.variantSkus?.[variant.id] ? 'border-red-500 border-2 ring-2 ring-red-200 bg-red-50' : ''}`}
-                                required
+                                disabled
+                                readOnly
+                                className="h-8 text-xs w-48 bg-gray-100 cursor-not-allowed text-gray-600"
+                                title="SKU is auto-generated and cannot be modified"
                               />
-                              {validationErrors.variantSkus?.[variant.id] && (
-                                <div className="mt-1.5 p-1.5 bg-red-100 border border-red-300 rounded flex items-start gap-1 min-w-max">
-                                  <svg className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                                  </svg>
-                                  <p className="text-red-700 text-xs font-semibold leading-tight whitespace-nowrap">{validationErrors.variantSkus[variant.id]}</p>
-                                </div>
-                              )}
+                              <p className="text-[9px] text-gray-500 mt-1">Auto-generated</p>
                             </div>
                           </td>
 
@@ -1503,12 +1579,19 @@ export function ReceiveStockNew() {
                                     }));
                                   }
                                 }}
-                                className={`h-8 text-xs w-24 ${validationErrors.variantLandedCosts?.[variant.id] ? 'border-red-500 border-2 ring-2 ring-red-200 bg-red-50' : ''}`}
-                                required
+                                className={`h-8 text-xs w-24 ${
+                                  isLandedCostLocked
+                                    ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
+                                    : validationErrors.variantLandedCosts?.[variant.id]
+                                    ? 'border-red-500 border-2 ring-2 ring-red-200 bg-red-50'
+                                    : ''
+                                }`}
+                                disabled={isLandedCostLocked}
+                                required={!isLandedCostLocked}
                                 min="0"
                                 step="0.01"
                               />
-                              {validationErrors.variantLandedCosts?.[variant.id] && (
+                              {!isLandedCostLocked && validationErrors.variantLandedCosts?.[variant.id] && (
                                 <div className="mt-1.5 p-1.5 bg-red-100 border border-red-300 rounded flex items-start gap-1 min-w-max">
                                   <svg className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />

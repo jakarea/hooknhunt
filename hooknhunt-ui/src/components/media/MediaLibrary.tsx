@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import apiClient from '@/lib/apiClient';
+import { transformMediaUrl } from '@/lib/config';
 import {
   Search,
   Image as ImageIcon,
@@ -234,7 +235,7 @@ export function MediaLibrary({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-7xl h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
+      <DialogContent className="max-w-[95vw] h-[88vh] flex flex-col p-0 gap-0 overflow-hidden">
         {/* Header */}
         <div className="shrink-0 border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">
           <DialogHeader>
@@ -385,7 +386,7 @@ export function MediaLibrary({
               ) : (
                 <div className={
                   viewMode === 'grid'
-                    ? 'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3'
+                    ? 'grid grid-cols-9 gap-3'
                     : 'space-y-2'
                 }>
                   {filteredFiles.map((file) => (
@@ -412,7 +413,7 @@ export function MediaLibrary({
                       {/* File preview */}
                       {file.mime_type.startsWith('image/') ? (
                         <img
-                          src={file.thumbnail_url || file.url}
+                          src={transformMediaUrl(file.thumbnail_url || file.url)}
                           alt={file.original_filename}
                           className={
                             viewMode === 'grid'
@@ -491,7 +492,7 @@ export function MediaLibrary({
                         <div key={file.id} className="relative group">
                           {file.mime_type.startsWith('image/') ? (
                             <img
-                              src={file.thumbnail_url || file.url}
+                              src={transformMediaUrl(file.thumbnail_url || file.url)}
                               alt={file.original_filename}
                               className="h-8 w-8 rounded object-cover border border-background shadow-sm"
                             />

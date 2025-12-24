@@ -110,14 +110,16 @@ export function PurchaseOrderDetails() {
   const isOrderCompleted = ['completed', 'completed_partially'].includes(currentOrder?.status || '');
   // Show received quantities for orders that have been received (received_hub, completed, completed_partially)
   const isOrderReceived = ['received_hub', 'completed', 'completed_partially'].includes(currentOrder?.status || '');
+  // Show stocked quantity for orders that are received or completed
+  const isStockDataAvailable = ['received_hub', 'completed', 'completed_partially'].includes(currentOrder?.status || '');
 
   const hasReceivedQtyData = isOrderReceived && currentOrder?.items?.some(item =>
     item.received_quantity && Number(item.received_quantity) > 0
   ) || false;
 
-  // Stock Qty column only shows for fully completed orders
-  const hasStockQtyData = isOrderCompleted && currentOrder?.items?.some(item =>
-    item.stocked_quantity && Number(item.stocked_quantity) > 0
+  // Stock Qty column shows for orders that are received or completed
+  const hasStockQtyData = isStockDataAvailable && currentOrder?.items?.some(item =>
+    item.stocked_quantity !== null && item.stocked_quantity !== undefined
   ) || false;
 
   const hasFinalCostData = currentOrder?.items?.some(item =>
@@ -1121,16 +1123,24 @@ export function PurchaseOrderDetails() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t">
             <div className="text-center">
               <div className="text-sm text-gray-500">Total Items</div>
               <div className="text-2xl font-bold">{currentOrder.items?.length || 0}</div>
             </div>
+           
             <div className="text-center">
               <div className="text-sm text-gray-500">Total Amount (RMB)</div>
+               
               <div className="text-2xl font-bold">
                 ¥{(currentOrder.items?.reduce((sum, item) => sum + (Number(item.china_price) * Number(item.quantity)), 0) || 0).toFixed(2)}
               </div>
+            </div>
+             <div className="text-center">
+              <div className="text-sm text-gray-500">Exchange Rate</div>
+              <div className="text-2xl font-bold">
+                          {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
+                        </div>
             </div>
             <div className="text-center">
               <div className="text-sm text-gray-500">Total Amount (BDT)</div>
@@ -1158,6 +1168,7 @@ export function PurchaseOrderDetails() {
                 })()}
               </div>
             </div>
+            
           </div>
         </CardContent>
       </Card>
@@ -1442,9 +1453,7 @@ export function PurchaseOrderDetails() {
                     <TableHead>
                       <div className="flex items-center gap-2">
                         <span>RMB Price</span>
-                        <span className="text-xs text-muted-foreground">
-                          {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
-                        </span>
+                       
                       </div>
                     </TableHead>
                     <TableHead>Quantity</TableHead>
@@ -1455,9 +1464,7 @@ export function PurchaseOrderDetails() {
                     <TableHead>
                       <div className="flex items-center gap-2">
                         <span>Subtotal (RMB)</span>
-                        <span className="text-xs text-muted-foreground">
-                          {currentOrder.exchange_rate ? `1 RMB = ৳${Number(currentOrder.exchange_rate).toFixed(2)}` : '--'}
-                        </span>
+                       
                       </div>
                     </TableHead>
                     {hasFinalCostData && <TableHead>Unit Cost</TableHead>}

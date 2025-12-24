@@ -75,7 +75,7 @@ interface ApiResponse {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, closeCart } = useCart();
   const slug = params.slug as string;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -536,7 +536,8 @@ export default function ProductDetailPage() {
                         stock: currentStock
                       };
                       addToCart(productToAdd, quantity);
-                      router.push('/checkout');
+                      closeCart(); // Close cart drawer immediately
+                      router.push('/checkout'); // Then navigate to checkout
                     }}
                     className="w-full py-4 border-2 border-[#bc1215] bg-[#bc1215] hover:bg-[#8a0f12] text-white font-bold text-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-x-2 shadow-lg"
                     disabled={!isInStock}
