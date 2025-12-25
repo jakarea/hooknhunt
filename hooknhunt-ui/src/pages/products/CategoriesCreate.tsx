@@ -20,7 +20,6 @@ const CategoriesCreate = () => {
           <p>"{createdCategory.name}" created successfully!</p>
         </div>
       ),
-      duration: 3000,
     });
 
     // Navigate back to categories list

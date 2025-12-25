@@ -14,6 +14,10 @@
 
     RewriteEngine On
 
+    # Redirect api.localhost to localhost
+    RewriteCond %{HTTP_HOST} ^api\.localhost [NC]
+    RewriteRule ^(.*)$ http://localhost%{REQUEST_URI} [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

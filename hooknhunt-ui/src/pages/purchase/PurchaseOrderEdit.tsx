@@ -190,18 +190,15 @@ function PurchaseOrderEditContent() {
     try {
       setProcessing(true);
 
-      const payload = {
-        supplier_id: parseInt(data.supplier_id),
-        items: orderItems.map((item) => ({
+      const items = orderItems.map((item) => ({
           id: item.id.startsWith('new-') ? null : parseInt(item.id),
           product_id: item.product_id,
           china_price: item.china_price,
           quantity: item.quantity,
-        })),
-      };
+        }));
 
-      // Update the order items
-      await updateOrder(parseInt(id!), payload);
+      // Update the order items - send array directly as expected by the store
+      await updateOrder(parseInt(id!), items);
 
       toast({
         title: 'Success',
@@ -317,7 +314,7 @@ function PurchaseOrderEditContent() {
                             <TableHead>Product</TableHead>
                             <TableHead>RMB Price</TableHead>
                             <TableHead>Quantity</TableHead>
-                            <TableHead>Approx BDT</TableHead>
+                            <TableHead>Price (RMB)</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -414,15 +411,17 @@ function PurchaseOrderEditContent() {
                                 <TableCell className="font-medium">
                                   {isInOrder ? (
                                     <div>
-                                      ৳{existingItem.approx_bdt.toFixed(2)}
+                                      <div>
+                                        ¥{(existingItem.china_price * existingItem.quantity).toFixed(2)}
+                                      </div>
                                       <div className="text-xs text-muted-foreground">
-                                        (¥{(existingItem.china_price * existingItem.quantity).toFixed(2)} RMB)
+                                        ৳{existingItem.approx_bdt.toFixed(2)}
                                       </div>
                                     </div>
                                   ) : (
                                     <div className="text-gray-400">
-                                      <div>৳0.00</div>
-                                      <div className="text-xs">(¥0.00 RMB)</div>
+                                      <div>¥0.00</div>
+                                      <div className="text-xs">৳0.00</div>
                                     </div>
                                   )}
                                 </TableCell>
@@ -444,10 +443,10 @@ function PurchaseOrderEditContent() {
                 </div>
                 <div className="text-lg font-semibold text-right">
                   <div>
-                    Total Est. BDT: ৳{calculateTotal().toFixed(2)}
+                    ¥{calculateTotalRMB().toFixed(2)}
                   </div>
-                  <div className="text-sm font-normal text-muted-foreground">
-                    (¥{calculateTotalRMB().toFixed(2)} RMB)
+                  <div className="text-sm text-muted-foreground">
+                    ৳{calculateTotal().toFixed(2)}
                   </div>
                 </div>
               </div>

@@ -167,7 +167,7 @@ export function MediaSelector({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button variant={buttonVariant} size={buttonSize} className={className}>
           {buttonText}
         </Button>
@@ -191,7 +191,7 @@ export function MediaSelector({
             </div>
 
             <Dialog open={showUpload} onOpenChange={setShowUpload}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload New

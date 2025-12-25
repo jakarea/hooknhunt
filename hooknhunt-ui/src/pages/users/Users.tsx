@@ -49,11 +49,11 @@ const Users = () => {
   };
 
   const handleEditUser = (user: User) => {
-    navigate(`/dashboard/users/${user.id}/edit`);
+    navigate(`/users/${user.id}/edit`);
   };
 
   const handleCreateUser = () => {
-    navigate('/dashboard/users/create');
+    navigate('/users/create');
   };
 
   const handleVerifyUser = async (user: User) => {
@@ -211,7 +211,7 @@ const Users = () => {
                               <DropdownMenuItem
                                 onClick={() => openDeleteConfirm(user)}
                                 className="text-red-600 focus:text-red-600"
-                                disabled={user.role === 'super_admin' || user.id === parseInt(useAuthStore.getState().user?.id || '0')}
+                                disabled={user.role === 'super_admin' || user.id === Number(useAuthStore.getState().user?.id || '0')}
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
                                 Delete

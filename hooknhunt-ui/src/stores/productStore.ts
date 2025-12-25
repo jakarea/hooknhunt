@@ -3,18 +3,89 @@ import { create } from 'zustand';
 import apiClient from '@/lib/apiClient';
 import type { Supplier } from '@/types/supplier';
 
-// Define Product interface inline to avoid import issues
+// Define Category interface
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent_id?: number;
+  parent?: Category;
+}
+
+// Define Inventory interface
+interface Inventory {
+  id: number;
+  quantity: number;
+  available_quantity: number;
+  reserved_quantity: number;
+  is_low_stock: boolean;
+  reorder_level: number;
+}
+
+// Define VariantAttributeOption interface
+interface VariantAttributeOption {
+  id: number;
+  name: string;
+  attribute: {
+    id: number;
+    name: string;
+  };
+}
+
+// Define ProductVariant interface
+interface ProductVariant {
+  id: number;
+  sku: string;
+  retail_name?: string;
+  wholesale_name?: string;
+  daraz_name?: string;
+  retail_price?: number;
+  wholesale_price?: number;
+  daraz_price?: number;
+  landed_cost?: number;
+  status: string;
+  weight?: number;
+  dimensions?: any;
+  moq_wholesale?: number;
+  inventory?: Inventory;
+  attribute_options?: VariantAttributeOption[];
+  // API-added fields
+  current_stock?: number;
+  available_stock?: number;
+  is_low_stock?: boolean;
+  retail_margin?: number;
+  wholesale_margin?: number;
+  retail_margin_percentage?: number;
+  wholesale_margin_percentage?: number;
+}
+
+// Define Product interface with all relational data
 interface Product {
   id: number;
   base_name: string;
   slug: string;
+  sku?: string;
   status: 'draft' | 'published';
+  description?: string;
+  short_description?: string;
+  base_thumbnail_url?: string | null;
+  thumbnail?: string | null;
+  video_url?: string | null;
+  gallery_images?: string[] | null;
+  is_featured: boolean;
+  weight?: number;
+  dimensions?: string;
+  tags?: string[] | string | null;
+  specifications?: Record<string, any> | null;
   meta_title?: string;
   meta_description?: string;
-  base_thumbnail_url?: string | null;
-  gallery_images?: string[] | null;
-  category_id?: number;
+  meta_keywords?: string;
+  category_id?: number | null;
+  category_ids?: number[];
+  brand_id?: number | null;
+  categories?: Category[];
   suppliers?: ProductSupplier[];
+  variants?: ProductVariant[];
   created_at: string;
   updated_at: string;
 }
@@ -47,9 +118,11 @@ export const useProductStore = create<ProductState>((set, get) => ({
     set((state) => ({ ...state, isLoading: true, error: null }));
 
     try {
-      const response = await apiClient.get<Product>(`/admin/products/${productId}?include=suppliers`);
+      const response = await apiClient.get<Product>(`/admin/products/${productId}?include=categories,suppliers,variants.inventory,variants.attributeOptions`);
+      console.log('🔍 Raw API response:', response.data);
       // Handle both nested and direct response structures
-      const productData = response.data.data || response.data;
+      const productData = (response.data as any).data || response.data;
+      console.log('🔍 Processed product data:', productData);
       set((state) => ({
         ...state,
         product: productData,

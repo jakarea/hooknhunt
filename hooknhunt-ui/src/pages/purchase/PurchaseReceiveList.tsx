@@ -27,6 +27,7 @@ interface PurchaseOrderItem {
   product_id: number;
   quantity: number;
   received_quantity?: number;
+  stocked_quantity?: number;
   china_price?: number;
   product?: {
     id: number;
@@ -54,7 +55,7 @@ export function PurchaseReceiveList() {
       // Filter orders that have items with remaining quantities (not fully stocked)
       const ordersWithRemainingItems = allOrders.filter((order: PurchaseOrder) => {
         return (order.items || []).some((item: PurchaseOrderItem) => {
-          const remaining = (item.quantity || 0) - (item.received_quantity || 0);
+          const remaining = (item.quantity || 0) - (item.stocked_quantity || 0);
           return remaining > 0; // Only show orders with items that need to be stocked
         });
       });
@@ -99,7 +100,7 @@ export function PurchaseReceiveList() {
   };
 
   const calculateRemaining = (item: PurchaseOrderItem) => {
-    return (item.quantity || 0) - (item.received_quantity || 0);
+    return (item.quantity || 0) - (item.stocked_quantity || 0);
   };
 
   if (loading) {
@@ -208,7 +209,7 @@ export function PurchaseReceiveList() {
                         <p className="text-sm text-gray-600">Total Items</p>
                         <p className="text-xl font-bold text-gray-900">
                           {(order.items || []).filter(item => {
-                            const remaining = (item.quantity || 0) - (item.received_quantity || 0);
+                            const remaining = (item.quantity || 0) - (item.stocked_quantity || 0);
                             return remaining > 0;
                           }).length}
                         </p>
@@ -217,7 +218,7 @@ export function PurchaseReceiveList() {
                         <p className="text-sm text-gray-600">Total Quantity</p>
                         <p className="text-xl font-bold text-gray-900">
                           {(order.items || []).reduce((sum, item) => {
-                            const remaining = (item.quantity || 0) - (item.received_quantity || 0);
+                            const remaining = (item.quantity || 0) - (item.stocked_quantity || 0);
                             return sum + Math.max(0, remaining);
                           }, 0)}
                         </p>
@@ -235,7 +236,7 @@ export function PurchaseReceiveList() {
                       <h4 className="font-medium text-gray-900 flex items-center gap-2">
                         <Box className="h-4 w-4" />
                         Items Pending Stock ({(order.items || []).filter(item => {
-                          const remaining = (item.quantity || 0) - (item.received_quantity || 0);
+                          const remaining = (item.quantity || 0) - (item.stocked_quantity || 0);
                           return remaining > 0;
                         }).length})
                       </h4>
@@ -277,9 +278,9 @@ export function PurchaseReceiveList() {
                                 </div>
                                 <div className="flex items-center gap-6">
                                   <div className="text-right">
-                                    <p className="text-sm text-gray-600">Quantity</p>
+                                    <p className="text-sm text-gray-600">Stocked</p>
                                     <p className="font-medium">
-                                      {item.received_quantity || 0} / {item.quantity || 0}
+                                      {item.stocked_quantity || 0} / {item.quantity || 0}
                                     </p>
                                   </div>
                                   <div className="text-right">

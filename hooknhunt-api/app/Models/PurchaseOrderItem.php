@@ -13,6 +13,8 @@ class PurchaseOrderItem extends Model
         'product_variant_id',
         'china_price',
         'quantity',
+        'unit_price',
+        'total_price',
         'unit_weight',
         'extra_weight',
         'received_quantity',
@@ -22,9 +24,13 @@ class PurchaseOrderItem extends Model
 
     protected $casts = [
         'china_price' => 'decimal:2',
+        'unit_price' => 'decimal:2',
+        'total_price' => 'decimal:2',
         'unit_weight' => 'decimal:2',
         'extra_weight' => 'decimal:2',
         'received_quantity' => 'integer',
+        'stocked_quantity' => 'integer',
+        'final_unit_cost' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

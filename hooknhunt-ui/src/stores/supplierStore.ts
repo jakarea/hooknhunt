@@ -38,7 +38,7 @@ export const useSupplierStore = create<SupplierState>((set) => ({
       // API endpoint is GET /api/v1/admin/suppliers
       // Laravel paginate response structure: { data: Supplier[], current_page, last_page, etc. }
       const response = await apiClient.get<{ data: Supplier[] }>('/admin/suppliers');
-      set((state) => ({ ...state, suppliers: response.data.data || response.data, isLoading: false }));
+      set((state) => ({ ...state, suppliers: (response.data as any).data || response.data, isLoading: false }));
     } catch (err: unknown) {
       console.error("Failed to fetch suppliers:", err);
       const errorMessage = (err instanceof Error) ? err.message : 'Failed to fetch suppliers';

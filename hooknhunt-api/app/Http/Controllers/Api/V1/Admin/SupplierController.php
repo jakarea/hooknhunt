@@ -24,20 +24,36 @@ class SupplierController extends Controller
      */
     public function store(StoreSupplierRequest $request)
     {
-        $data = $request->except(['wechat_qr_file', 'alipay_qr_file']);
+        $data = $request->except(['wechat_qr_file', 'alipay_qr_file', 'wechat_qr_media_id', 'alipay_qr_media_id']);
 
-        // Handle WeChat QR code file upload
+        // Handle WeChat QR code - file upload or media selection
         if ($request->hasFile('wechat_qr_file')) {
             $wechatFile = $request->file('wechat_qr_file');
             $wechatPath = $wechatFile->store('suppliers/qrcodes', 'public');
             $data['wechat_qr_url'] = $wechatPath;
+        } elseif ($request->filled('wechat_qr_media_id')) {
+            // Handle media file selection
+            $mediaId = $request->input('wechat_qr_media_id');
+            $mediaFile = \App\Models\MediaFile::find($mediaId);
+            if ($mediaFile) {
+                $data['wechat_qr_url'] = $mediaFile->url;
+                $data['wechat_qr_media_id'] = $mediaId;
+            }
         }
 
-        // Handle Alipay QR code file upload
+        // Handle Alipay QR code - file upload or media selection
         if ($request->hasFile('alipay_qr_file')) {
             $alipayFile = $request->file('alipay_qr_file');
             $alipayPath = $alipayFile->store('suppliers/qrcodes', 'public');
             $data['alipay_qr_url'] = $alipayPath;
+        } elseif ($request->filled('alipay_qr_media_id')) {
+            // Handle media file selection
+            $mediaId = $request->input('alipay_qr_media_id');
+            $mediaFile = \App\Models\MediaFile::find($mediaId);
+            if ($mediaFile) {
+                $data['alipay_qr_url'] = $mediaFile->url;
+                $data['alipay_qr_media_id'] = $mediaId;
+            }
         }
 
         $supplier = Supplier::create($data);
@@ -58,9 +74,9 @@ class SupplierController extends Controller
      */
     public function update(UpdateSupplierRequest $request, Supplier $supplier)
     {
-        $data = $request->except(['wechat_qr_file', 'alipay_qr_file']);
+        $data = $request->except(['wechat_qr_file', 'alipay_qr_file', 'wechat_qr_media_id', 'alipay_qr_media_id']);
 
-        // Handle WeChat QR code file upload
+        // Handle WeChat QR code - file upload or media selection
         if ($request->hasFile('wechat_qr_file')) {
             // Delete old file if exists
             if ($supplier->wechat_qr_url) {
@@ -70,9 +86,18 @@ class SupplierController extends Controller
             $wechatFile = $request->file('wechat_qr_file');
             $wechatPath = $wechatFile->store('suppliers/qrcodes', 'public');
             $data['wechat_qr_url'] = $wechatPath;
+            $data['wechat_qr_media_id'] = null;
+        } elseif ($request->filled('wechat_qr_media_id')) {
+            // Handle media file selection
+            $mediaId = $request->input('wechat_qr_media_id');
+            $mediaFile = \App\Models\MediaFile::find($mediaId);
+            if ($mediaFile) {
+                $data['wechat_qr_url'] = $mediaFile->url;
+                $data['wechat_qr_media_id'] = $mediaId;
+            }
         }
 
-        // Handle Alipay QR code file upload
+        // Handle Alipay QR code - file upload or media selection
         if ($request->hasFile('alipay_qr_file')) {
             // Delete old file if exists
             if ($supplier->alipay_qr_url) {
@@ -82,6 +107,15 @@ class SupplierController extends Controller
             $alipayFile = $request->file('alipay_qr_file');
             $alipayPath = $alipayFile->store('suppliers/qrcodes', 'public');
             $data['alipay_qr_url'] = $alipayPath;
+            $data['alipay_qr_media_id'] = null;
+        } elseif ($request->filled('alipay_qr_media_id')) {
+            // Handle media file selection
+            $mediaId = $request->input('alipay_qr_media_id');
+            $mediaFile = \App\Models\MediaFile::find($mediaId);
+            if ($mediaFile) {
+                $data['alipay_qr_url'] = $mediaFile->url;
+                $data['alipay_qr_media_id'] = $mediaId;
+            }
         }
 
         $supplier->update($data);

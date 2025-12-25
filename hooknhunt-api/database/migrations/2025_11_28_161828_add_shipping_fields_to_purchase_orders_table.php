@@ -12,9 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('purchase_orders', function (Blueprint $table) {
-            // Add shipping method and cost fields for 'arrived_bd' status
-            $table->enum('shipping_method', ['air', 'sea'])->nullable()->after('lot_number');
-            $table->decimal('shipping_cost', 10, 2)->nullable()->after('shipping_method');
+            // Add shipping method and cost fields only if they don't exist
+            if (!Schema::hasColumn('purchase_orders', 'shipping_method')) {
+                $table->enum('shipping_method', ['air', 'sea'])->nullable()->after('lot_number');
+            }
+            if (!Schema::hasColumn('purchase_orders', 'shipping_cost')) {
+                $table->decimal('shipping_cost', 10, 2)->nullable()->after('shipping_method');
+            }
 
             // Add total_weight and extra_cost_global if they don't exist
             if (!Schema::hasColumn('purchase_orders', 'total_weight')) {

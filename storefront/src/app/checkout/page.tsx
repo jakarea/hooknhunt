@@ -53,6 +53,20 @@ export default function CheckoutPage() {
     district: '',
   });
 
+  // OTP verification state
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [pendingOrder, setPendingOrder] = useState<{
+    id: number;
+    order_number: string;
+    phone_number: string;
+    total_amount: number;
+    customer_name: string;
+  } | null>(null);
+  const [otpError, setOtpError] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+
   useEffect(() => {
     if (cartItems.length === 0) {
       router.push('/cart');
@@ -270,11 +284,22 @@ export default function CheckoutPage() {
         const order = response.order as OrderResponse['order'];
         console.log('Order placed successfully:', order);
 
-        // Clear the cart after successful order
-        clearCart();
-
-        // Redirect to success page with real order details
-        router.push(`/order-success?orderId=${order.order_number}&total=${order.payable_amount}&name=${encodeURIComponent(order.customer_name)}`);
+        // Check if OTP verification is required
+        if (response.verification_required) {
+          // Show OTP verification modal
+          setPendingOrder({
+            id: order.id,
+            order_number: order.order_number,
+            phone_number: response.order.phone_number || formData.phone,
+            total_amount: order.total_amount,
+            customer_name: order.customer_name,
+          });
+          setShowOtpModal(true);
+        } else {
+          // No verification required, proceed normally
+          clearCart();
+          router.push(`/order-success?orderId=${order.order_number}&total=${order.payable_amount}&name=${encodeURIComponent(order.customer_name)}`);
+        }
       } else {
         throw new Error('Invalid response from server');
       }
@@ -287,11 +312,80 @@ export default function CheckoutPage() {
         const errors = error.response.data.errors;
         const errorMessages = Object.values(errors).flat();
         alert(`Validation Error: ${errorMessages.join(', ')}`);
+      } else if (error.response?.status === 409) {
+        // Conflict errors (duplicate phone/email)
+        alert(error.response?.data?.message || 'This phone number or email is already registered.');
       } else if (error.response?.data?.message) {
         alert(`Error: ${error.response.data.message}`);
       } else {
         alert('Order placement failed. Please try again or contact support.');
       }
+    }
+  };
+
+  // Handle OTP verification
+  const handleOtpVerification = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      setOtpError('Please enter a valid 6-digit OTP code');
+      return;
+    }
+
+    setOtpError('');
+    setOtpLoading(true);
+
+    try {
+      const api = (await import('@/lib/api')).default;
+
+      const response = await api.post('/store/orders/verify', {
+        phone_number: pendingOrder?.phone_number,
+        otp_code: otpCode,
+        order_id: pendingOrder?.id,
+      });
+
+      // OTP verified successfully
+      setShowOtpModal(false);
+      clearCart();
+
+      // Redirect to success page
+      router.push(`/order-success?orderId=${pendingOrder?.order_number}&total=${pendingOrder?.total_amount}&name=${encodeURIComponent(pendingOrder?.customer_name || '')}`);
+
+    } catch (error: any) {
+      console.error('OTP verification failed:', error);
+
+      if (error.response?.data?.message) {
+        setOtpError(error.response.data.message);
+      } else {
+        setOtpError('OTP verification failed. Please try again.');
+      }
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  // Handle resend OTP
+  const handleResendOtp = async () => {
+    setOtpError('');
+    setResendLoading(true);
+
+    try {
+      const api = (await import('@/lib/api')).default;
+
+      await api.post('/store/auth/send-otp', {
+        phone_number: pendingOrder?.phone_number,
+      });
+
+      alert('OTP has been resent to your phone number.');
+
+    } catch (error: any) {
+      console.error('Resend OTP failed:', error);
+
+      if (error.response?.data?.message) {
+        alert(error.response.data.message);
+      } else {
+        alert('Failed to resend OTP. Please try again.');
+      }
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -918,6 +1012,116 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* OTP Verification Modal */}
+      {showOtpModal && pendingOrder && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-[#0a0a0a] rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowOtpModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Success Icon */}
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
+              Order Placed Successfully!
+            </h2>
+
+            {/* Order Number */}
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+              Order #{pendingOrder.order_number}
+            </p>
+
+            {/* Instructions */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+              <p className="text-sm text-blue-900 dark:text-blue-100 text-center">
+                We've sent a 6-digit verification code to <strong>{pendingOrder.phone_number}</strong>. Please enter the code below to verify your order and create your account.
+              </p>
+            </div>
+
+            {/* OTP Input */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 text-center">
+                Enter 6-digit OTP Code
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                value={otpCode}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '');
+                  setOtpCode(value);
+                  setOtpError('');
+                }}
+                className="w-full px-4 py-4 text-2xl text-center tracking-widest border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors font-mono"
+                placeholder="000000"
+              />
+            </div>
+
+            {/* Error Message */}
+            {otpError && (
+              <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200 text-center flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  {otpError}
+                </p>
+              </div>
+            )}
+
+            {/* Verify Button */}
+            <button
+              onClick={handleOtpVerification}
+              disabled={otpLoading || otpCode.length !== 6}
+              className="w-full py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mb-3"
+            >
+              {otpLoading ? (
+                <>
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Verifying...</span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Verify & Complete Order</span>
+                </>
+              )}
+            </button>
+
+            {/* Resend OTP Link */}
+            <div className="text-center">
+              <button
+                onClick={handleResendOtp}
+                disabled={resendLoading}
+                className="text-sm text-[#bc1215] hover:text-[#8a0f12] dark:hover:text-red-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {resendLoading ? 'Sending...' : "Didn't receive code? Resend OTP"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

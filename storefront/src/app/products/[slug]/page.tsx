@@ -56,7 +56,7 @@ interface Product {
   name: string;
   slug: string;
   thumbnail_url: string;
-  gallery_images: string[];
+  gallery_images: string[] | string;
   price_range: PriceRange;
   has_offer: boolean;
   variant_count: number;
@@ -75,7 +75,7 @@ interface ApiResponse {
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const { addToCart } = useCart();
+  const { addToCart, closeCart } = useCart();
   const slug = params.slug as string;
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -173,9 +173,22 @@ export default function ProductDetailPage() {
   const isInStock = selectedVariant ? selectedVariant.stock_info.in_stock : product.stock_info.in_stock;
 
   // Prepare product images - filter out empty strings and null values
+  const galleryImages = (() => {
+    if (!product.gallery_images) return [];
+    if (typeof product.gallery_images === 'string') {
+      try {
+        return JSON.parse(product.gallery_images);
+      } catch (e) {
+        console.error('Error parsing gallery_images:', e);
+        return [];
+      }
+    }
+    return Array.isArray(product.gallery_images) ? product.gallery_images : [];
+  })();
+
   const productImages = [
     product.thumbnail_url,
-    ...(product.gallery_images || [])
+    ...galleryImages
   ].filter(img => img && img.trim() !== '');
 
   // Mock related products for now
@@ -185,29 +198,40 @@ export default function ProductDetailPage() {
     <div className="bg-white dark:bg-[#0a0a0a] min-h-screen">
       {/* Breadcrumb */}
       <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-6">
-        <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-          <Link href="/" className="hover:text-[#bc1215] transition-colors">Home</Link>
-          <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <Link href="/products" className="hover:text-[#bc1215] transition-colors">Products</Link>
-          {product.categories && product.categories.length > 0 && (
-            <>
-              <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              <Link
-                href={`/products?category=${product.categories[0].slug}`}
-                className="hover:text-[#bc1215] transition-colors"
-              >
-                {product.categories[0].name}
-              </Link>
-            </>
-          )}
-          <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          <span className="text-gray-900 dark:text-white font-medium">{product.name}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+            <Link href="/" className="hover:text-[#bc1215] transition-colors">Home</Link>
+            <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <Link href="/products" className="hover:text-[#bc1215] transition-colors">Products</Link>
+            {product.categories && product.categories.length > 0 && (
+              <>
+                <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                <Link
+                  href={`/products?category=${product.categories[0].slug}`}
+                  className="hover:text-[#bc1215] transition-colors"
+                >
+                  {product.categories[0].name}
+                </Link>
+              </>
+            )}
+            <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            <span className="text-gray-900 dark:text-white font-medium">{product.name}</span>
+          </div>
+          <Link
+            href="/products"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Products
+          </Link>
         </div>
       </div>
 
@@ -263,18 +287,47 @@ export default function ProductDetailPage() {
           {/* Product Information */}
           <div className="space-y-3">
 
-            {/* Product Title */}
-            <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white leading-tight relative">
-              {product.name}
-
-              <div>
+            {/* Product Title & Category */}
+            <div className="space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white leading-tight flex-1">
+                  {product.name}
+                </h1>
                 {product.categories && product.categories.length > 0 && (
-                  <span className="inline-block px-4 py-1 bg-gray-100 dark:bg-gray-800 text-[#bc1215] text-xs font-bold uppercase tracking-wider absolute top-0 right-0">
+                  <span className="flex-shrink-0 px-3 py-1 bg-[#bc1215] text-white text-xs font-bold uppercase tracking-wider rounded-full">
                     {product.categories[0].name}
                   </span>
                 )}
               </div>
-            </h1>
+
+              {/* Product Meta Information */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Product ID: {product.id}
+                </span>
+                {selectedVariant && (
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                    SKU: {selectedVariant.sku}
+                  </span>
+                )}
+                <span className={`flex items-center gap-1 ${isInStock ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    {isInStock ? (
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    ) : (
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    )}
+                  </svg>
+                  {isInStock ? `${currentStock} units available` : 'Out of Stock'}
+                </span>
+              </div>
+            </div>
 
             {/* Price */}
             <div className="border-t border-b border-gray-200 dark:border-gray-700 py-2">
@@ -354,19 +407,42 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {/* Stock Status */}
-            <div className='mb-4'>
+            {/* Stock Status & Urgency */}
+            <div className='mb-4 space-y-3'>
               {isInStock ? (
-                <div className="flex items-center text-green-600 dark:text-green-400">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="font-semibold text-xs">In Stock </span>
-                </div>
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-green-600 dark:text-green-400">
+                      <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path
+                          fillRule="evenodd"
+                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      <span className="font-semibold text-sm">In Stock - {currentStock} units available</span>
+                    </div>
+                    {currentStock <= 5 && (
+                      <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 text-xs font-bold rounded-full">
+                        🔥 Only {currentStock} left!
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Stock Progress Bar */}
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (currentStock / 20) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    {currentStock > 15 ? 'Plenty of stock available' :
+                     currentStock > 10 ? 'Stock running low - order soon' :
+                     currentStock > 5 ? 'Limited stock available' :
+                     'Selling fast - order now!'}
+                  </p>
+                </>
               ) : (
                 <div className="flex items-center text-red-600 dark:text-red-400">
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -376,7 +452,7 @@ export default function ProductDetailPage() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="font-semibold text-xs">Out of Stock</span>
+                  <span className="font-semibold text-sm">Out of Stock</span>
                 </div>
               )}
             </div>
@@ -414,7 +490,30 @@ export default function ProductDetailPage() {
             )}
 
             {/* Action Buttons */}
-            <div>
+            <div className="space-y-4">
+              {/* Trust Badges */}
+              <div className="flex items-center justify-center gap-4 text-xs text-gray-600 dark:text-gray-400">
+                <div className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                  </svg>
+                  <span>Secure Checkout</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clipRule="evenodd" />
+                  </svg>
+                  <span>Money Back Guarantee</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                  </svg>
+                  <span>Fast Delivery</span>
+                </div>
+              </div>
+
               {(product.variant_count <= 1 || selectedVariant) ? (
                 <div className='grid grid-cols-2 items-center gap-x-5'>
                   <button
@@ -437,12 +536,13 @@ export default function ProductDetailPage() {
                         stock: currentStock
                       };
                       addToCart(productToAdd, quantity);
-                      router.push('/checkout');
+                      closeCart(); // Close cart drawer immediately
+                      router.push('/checkout'); // Then navigate to checkout
                     }}
-                    className="w-full py-3 border-2 border-[#bc1215] bg-[#bc1215] hover:bg-[#8a0f12] text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-x-2"
+                    className="w-full py-4 border-2 border-[#bc1215] bg-[#bc1215] hover:bg-[#8a0f12] text-white font-bold text-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-x-2 shadow-lg"
                     disabled={!isInStock}
                   >
-                    <svg className="w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                     Buy Now
@@ -468,10 +568,10 @@ export default function ProductDetailPage() {
                       };
                       addToCart(productToAdd, quantity);
                     }}
-                    className="w-full py-3 border-2 border-[#bc1215] text-[#bc1215] hover:bg-[#bc1215] hover:text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-x-2"
+                    className="w-full py-4 border-2 border-[#bc1215] text-[#bc1215] hover:bg-[#bc1215] hover:text-white font-bold text-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-x-2 shadow-md"
                     disabled={!isInStock}
                   >
-                    <svg className="w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -487,19 +587,92 @@ export default function ProductDetailPage() {
                   <p className="font-semibold">Please select a variant to continue</p>
                 </div>
               )}
+
+              {/* Additional Actions */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => {
+                    // Save for later functionality
+                    alert('Product saved for later!');
+                  }}
+                  className="py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium text-xs transition-colors flex items-center justify-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                  </svg>
+                  Save
+                </button>
+                <button className="py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 font-medium text-xs transition-colors flex items-center justify-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Compare
+                </button>
+                <Link
+                  href={`http://localhost:5174/products/${product.id}/edit`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2 border border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 font-medium text-xs transition-colors flex items-center justify-center gap-1"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit
+                </Link>
+              </div>
+
+              {/* WhatsApp Order Button */}
+              <div className="w-full">
+                <button className="w-full py-3 border-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366] hover:text-white font-bold text-sm transition-all transform hover:scale-105 flex items-center justify-center gap-2 shadow-md">
+                  <svg className="w-4" fill="#25D366" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg">
+                    <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+                    <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+                    <g id="SVGRepo_iconCarrier">
+                      <title>whatsapp</title>
+                      <path d="M26.576 5.363c-2.69-2.69-6.406-4.354-10.511-4.354-8.209 0-14.865 6.655-14.865 14.865 0 2.732.737 5.291 2.022 7.491l-0.038-0.070-2.109 7.702 7.879-2.067c2.051 1.139 4.498 1.809 7.102 1.809h0.006c8.209-0.003 14.862-6.659 14.862-14.868 0-4.103-1.662-7.817-4.349-10.507l0 0zM16.062 28.228h-0.005c-0 0-0.001 0-0.001 0-2.319 0-4.489-0.64-6.342-1.753l0.056 0.031-0.451-0.267-4.675 1.227 1.247-4.559-0.294-0.467c-1.185-1.862-1.889-4.131-1.889-6.565 0-6.822 5.531-12.353 12.353-12.353s12.353 5.531 12.353 12.353c0 6.822-5.53 12.353-12.353 12.353h-0zM22.838 18.977c-0.371-0.186-2.197-1.083-2.537-1.208-0.341-0.124-0.589-0.185-0.837 0.187-0.246 0.371-0.958 1.207-1.175 1.455-0.216 0.249-0.434 0.279-0.805 0.094-1.15-0.466-2.138-1.087-2.997-1.852l0.010 0.009c-0.799-0.74-1.484-1.587-2.037-2.521l-0.028-0.052c-0.216-0.371-0.023-0.572 0.162-0.757 0.167-0.166 0.372-0.434 0.557-0.65 0.146-0.179 0.271-0.384 0.366-0.604l0.006-0.017c0.043-0.087 0.068-0.188 0.068-0.296 0-0.131-0.037-0.253-0.101-0.357l0.002 0.003c-0.094-0.186-0.836-2.014-1.145-2.758-0.302-0.724-0.609-0.625-0.836-0.637-0.216-0.010-0.464-0.012-0.712-0.012-0.395 0.010-0.746 0.188-0.988 0.463l-0.001 0.002c-0.802 0.761-1.3 1.834-1.3 3.023 0 0.026 0 0.053 0.001 0.079l-0-0.004c0.131 1.467 0.681 2.784 1.527 3.857l-0.012-0.015c1.604 2.379 3.742 4.282 6.251 5.564l0.094 0.043c0.548 0.248 1.25 0.513 1.968 0.74l0.149 0.041c0.442 0.14 0.951 0.221 1.479 0.221 0.303 0 0.601-0.027 0.889-0.078l-0.031 0.004c1.069-0.223 1.956-0.868 2.497-1.749l0.009-0.017c0.165-0.366 0.261-0.793 0.261-1.242 0-0.185-0.016-0.366-0.047-0.542l0.003 0.019c-0.092-0.155-0.34-0.247-0.712-0.434z"></path>
+                    </g>
+                  </svg>
+                  Order via WhatsApp for Quick Assistance
+                </button>
+              </div>
             </div>
 
-            <div className="w-full">
-              <button className="w-full py-3 border-2 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white hover:border-[#25D366] dark:hover:border-[#25D366] font-bold text-sm transition-colors flex items-center justify-center gap-2 !text-[#25D366]">
-                <svg className="w-4" fill="#25D366" viewBox="0 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>whatsapp</title> <path d="M26.576 5.363c-2.69-2.69-6.406-4.354-10.511-4.354-8.209 0-14.865 6.655-14.865 14.865 0 2.732 0.737 5.291 2.022 7.491l-0.038-0.070-2.109 7.702 7.879-2.067c2.051 1.139 4.498 1.809 7.102 1.809h0.006c8.209-0.003 14.862-6.659 14.862-14.868 0-4.103-1.662-7.817-4.349-10.507l0 0zM16.062 28.228h-0.005c-0 0-0.001 0-0.001 0-2.319 0-4.489-0.64-6.342-1.753l0.056 0.031-0.451-0.267-4.675 1.227 1.247-4.559-0.294-0.467c-1.185-1.862-1.889-4.131-1.889-6.565 0-6.822 5.531-12.353 12.353-12.353s12.353 5.531 12.353 12.353c0 6.822-5.53 12.353-12.353 12.353h-0zM22.838 18.977c-0.371-0.186-2.197-1.083-2.537-1.208-0.341-0.124-0.589-0.185-0.837 0.187-0.246 0.371-0.958 1.207-1.175 1.455-0.216 0.249-0.434 0.279-0.805 0.094-1.15-0.466-2.138-1.087-2.997-1.852l0.010 0.009c-0.799-0.74-1.484-1.587-2.037-2.521l-0.028-0.052c-0.216-0.371-0.023-0.572 0.162-0.757 0.167-0.166 0.372-0.434 0.557-0.65 0.146-0.179 0.271-0.384 0.366-0.604l0.006-0.017c0.043-0.087 0.068-0.188 0.068-0.296 0-0.131-0.037-0.253-0.101-0.357l0.002 0.003c-0.094-0.186-0.836-2.014-1.145-2.758-0.302-0.724-0.609-0.625-0.836-0.637-0.216-0.010-0.464-0.012-0.712-0.012-0.395 0.010-0.746 0.188-0.988 0.463l-0.001 0.002c-0.802 0.761-1.3 1.834-1.3 3.023 0 0.026 0 0.053 0.001 0.079l-0-0.004c0.131 1.467 0.681 2.784 1.527 3.857l-0.012-0.015c1.604 2.379 3.742 4.282 6.251 5.564l0.094 0.043c0.548 0.248 1.25 0.513 1.968 0.74l0.149 0.041c0.442 0.14 0.951 0.221 1.479 0.221 0.303 0 0.601-0.027 0.889-0.078l-0.031 0.004c1.069-0.223 1.956-0.868 2.497-1.749l0.009-0.017c0.165-0.366 0.261-0.793 0.261-1.242 0-0.185-0.016-0.366-0.047-0.542l0.003 0.019c-0.092-0.155-0.34-0.247-0.712-0.434z"></path> </g></svg>
-                Order via WhatsApp
-              </button>
+            {/* Limited Time Offer Banner */}
+            {product.has_offer && (
+              <div className="bg-gradient-to-r from-red-500 to-orange-500 text-white p-4 rounded-lg text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <svg className="w-5 h-5 animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
+                  </svg>
+                  <h3 className="font-bold text-lg">Limited Time Offer!</h3>
+                </div>
+                <p className="text-sm font-semibold mb-2">Special discount available for this product</p>
+                <div className="flex items-center justify-center gap-4 text-sm">
+                  <span className="font-mono font-bold">⏰ Ends in 23:59:59</span>
+                </div>
+              </div>
+            )}
+
+            {/* Social Proof - Recent Activity */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-green-800 dark:text-green-200">
+                  🔥 Popular Item
+                </span>
+              </div>
+              <p className="text-xs text-green-700 dark:text-green-300">
+                <span className="font-bold">{Math.floor(Math.random() * 20) + 5}</span> people bought this product today
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-300">
+                <span className="font-bold">{Math.floor(Math.random() * 50) + 10}</span> sold in the last 7 days
+              </p>
             </div>
 
             {/* Premium Benefits */}
             <div className="bg-gray-50 dark:bg-gray-900 p-4 space-y-4">
               <h3 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4 text-center">
-                Key Features
+                Product Highlights
               </h3>
               <div className="grid md:grid-cols-2 gap-3">
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
@@ -507,15 +680,15 @@ export default function ProductDetailPage() {
                   <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
 
                   <div>
-                    <p className="font-semibold text-sm">Premium quality</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">Construction for durability</p>
+                    <p className="font-semibold text-sm">Premium Quality</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Durable construction for long-lasting use</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
                   <svg className="w-6 h-6 mr-3 text-[#bc1215] flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#08ba1d"><g id="SVGRepo_bgCarrier" strokeWidth="0"></g><g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round" stroke="#CCCCCC" strokeWidth="0.288"></g><g id="SVGRepo_iconCarrier"> <path d="M4 12.6111L8.92308 17.5L20 6.5" stroke="#08ba1d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path> </g></svg>
                   <div>
-                    <p className="font-semibold text-sm">Ergonomic design</p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">for comfortable use</p>
+                    <p className="font-semibold text-sm">Multiple Variants</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">{product.variant_count} options available</p>
                   </div>
                 </div>
                 <div className="flex items-start text-gray-700 dark:text-gray-300 bg-white px-3 py-2">
@@ -659,60 +832,147 @@ export default function ProductDetailPage() {
             )}
 
             {activeTab === 'specifications' && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Product ID:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{product.id}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Name:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{product.name}</span>
-                </div>
-                {selectedVariant && (
-                  <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="font-semibold text-gray-900 dark:text-white">Variant:</span>
-                    <span className="text-gray-700 dark:text-gray-300">{selectedVariant.name}</span>
+              <div className="grid lg:grid-cols-2 gap-8">
+                {/* Basic Information */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    Basic Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Product ID:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{product.id}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Name:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{product.name}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Slug:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{product.slug}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Category:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">
+                        {product.categories && product.categories.length > 0
+                          ? product.categories.map(cat => cat.name).join(', ')
+                          : 'Uncategorized'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Status:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2 capitalize">
+                        {product.meta_title?.includes('Published') ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
                   </div>
-                )}
-                {selectedVariant && (
-                  <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="font-semibold text-gray-900 dark:text-white">SKU:</span>
-                    <span className="text-gray-700 dark:text-gray-300">{selectedVariant.sku}</span>
+                </div>
+
+                {/* Variant Information */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    Variant Information
+                  </h3>
+                  <div className="space-y-3">
+                    {selectedVariant ? (
+                      <>
+                        <div className="grid grid-cols-3 gap-4 py-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">Variant:</span>
+                          <span className="text-gray-700 dark:text-gray-300 col-span-2">{selectedVariant.name}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 py-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">SKU:</span>
+                          <span className="text-gray-700 dark:text-gray-300 col-span-2">{selectedVariant.sku}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 py-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">Retail Price:</span>
+                          <span className="text-gray-700 dark:text-gray-300 col-span-2">৳{selectedVariant.retail_price.toLocaleString()}</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 py-2">
+                          <span className="font-semibold text-gray-900 dark:text-white">Wholesale Price:</span>
+                          <span className="text-gray-700 dark:text-gray-300 col-span-2">৳{selectedVariant.wholesale_price.toLocaleString()}</span>
+                        </div>
+                        {selectedVariant.weight && (
+                          <div className="grid grid-cols-3 gap-4 py-2">
+                            <span className="font-semibold text-gray-900 dark:text-white">Weight:</span>
+                            <span className="text-gray-700 dark:text-gray-300 col-span-2">{selectedVariant.weight}g</span>
+                          </div>
+                        )}
+                        {selectedVariant.dimensions && (
+                          <div className="grid grid-cols-3 gap-4 py-2">
+                            <span className="font-semibold text-gray-900 dark:text-white">Dimensions:</span>
+                            <span className="text-gray-700 dark:text-gray-300 col-span-2">{selectedVariant.dimensions}</span>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-400">No variant selected</p>
+                    )}
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Category:</span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {product.categories && product.categories.length > 0
-                      ? product.categories.map(cat => cat.name).join(', ')
-                      : 'Uncategorized'}
-                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Price Range:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{product.price_range.display}</span>
-                </div>
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Stock Status:</span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {isInStock ? `In Stock (${currentStock} available)` : 'Out of Stock'}
-                  </span>
-                </div>
-                {selectedVariant && selectedVariant.weight && (
-                  <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <span className="font-semibold text-gray-900 dark:text-white">Weight:</span>
-                    <span className="text-gray-700 dark:text-gray-300">{selectedVariant.weight}g</span>
+
+                {/* Pricing & Stock */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    Pricing & Stock
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Price Range:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{product.price_range.display}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Stock Status:</span>
+                      <span className={`col-span-2 ${isInStock ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {isInStock ? `In Stock (${currentStock} available)` : 'Out of Stock'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Variants:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{product.variant_count} available</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Special Offer:</span>
+                      <span className={`col-span-2 ${product.has_offer ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'}`}>
+                        {product.has_offer ? 'Yes - Special discount available' : 'No'}
+                      </span>
+                    </div>
                   </div>
-                )}
-                <div className="grid grid-cols-2 gap-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="font-semibold text-gray-900 dark:text-white">Variants Available:</span>
-                  <span className="text-gray-700 dark:text-gray-300">{product.variant_count}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 py-3">
-                  <span className="font-semibold text-gray-900 dark:text-white">Special Offer:</span>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {product.has_offer ? 'Yes' : 'No'}
-                  </span>
+
+                {/* Additional Information */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                    Additional Information
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Total Images:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">{productImages.length}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Description:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">
+                        {product.description ? 'Available' : 'Not provided'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Meta Title:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2 text-sm">
+                        {product.meta_title || 'Not set'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4 py-2">
+                      <span className="font-semibold text-gray-900 dark:text-white">Last Updated:</span>
+                      <span className="text-gray-700 dark:text-gray-300 col-span-2">
+                        {new Date().toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

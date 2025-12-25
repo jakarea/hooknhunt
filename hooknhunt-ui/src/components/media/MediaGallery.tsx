@@ -121,7 +121,7 @@ export function MediaGallery({
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
             <Dialog open={showLibrary} onOpenChange={setShowLibrary}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button variant="outline" size="sm" disabled={images.length >= maxImages}>
                   <Grid3X3 className="h-4 w-4 mr-2" />
                   Media Library
@@ -138,7 +138,7 @@ export function MediaGallery({
             </Dialog>
 
             <Dialog open={showUpload} onOpenChange={setShowUpload}>
-              <DialogTrigger asChild>
+              <DialogTrigger>
                 <Button variant="outline" size="sm" disabled={images.length >= maxImages}>
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Images
@@ -235,7 +235,7 @@ export function MediaGallery({
               {/* Add more button */}
               {images.length < maxImages && (
                 <Dialog open={showUpload} onOpenChange={setShowUpload}>
-                  <DialogTrigger asChild>
+                  <DialogTrigger>
                     <div className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 transition-colors flex items-center justify-center cursor-pointer bg-gray-50">
                       <div className="text-center">
                         <Plus className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />

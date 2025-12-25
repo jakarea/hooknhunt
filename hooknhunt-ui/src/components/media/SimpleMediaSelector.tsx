@@ -166,7 +166,7 @@ export function SimpleMediaSelector({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button
           variant={buttonVariant}
           size={buttonSize}

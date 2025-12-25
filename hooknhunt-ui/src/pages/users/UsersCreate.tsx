@@ -9,11 +9,11 @@ const UsersCreate = () => {
   const navigate = useNavigate();
 
   const handleBack = () => {
-    navigate('/dashboard/users');
+    navigate('/users');
   };
 
   const handleSuccess = () => {
-    navigate('/dashboard/users');
+    navigate('/users');
   };
 
   return (

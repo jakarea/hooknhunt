@@ -7,10 +7,25 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
-import { Package, Plus, Trash2, Image as ImageIcon, Wand2, AlertCircle, X } from 'lucide-react';
+import { Package, Plus, Trash2, Image as ImageIcon, Wand2, AlertCircle, X, FolderOpen } from 'lucide-react';
 import { useAttributeStore } from '@/stores/attributeStore';
 import type { Attribute, AttributeOption } from '@/stores/attributeStore';
 import api from '@/lib/api';
+import { MediaLibrary } from '@/components/media/MediaLibrary';
+
+// MediaFile interface for MediaLibrary
+interface MediaFile {
+  id: number;
+  filename: string;
+  original_filename: string;
+  mime_type: string;
+  size_bytes: number;
+  width?: number;
+  height?: number;
+  url: string;
+  thumbnail_url?: string;
+  path?: string;
+}
 
 interface Product {
   id: number;
@@ -47,7 +62,7 @@ interface ProductVariant {
 
   // Image & Attributes
   variant_thumbnail_url?: string;
-  variant_thumbnail?: File;
+  variant_thumbnail?: MediaFile;
   attribute_options: number[]; // IDs of selected attribute options
   attribute_options_display?: AttributeOption[]; // For display purposes
 }
@@ -64,6 +79,10 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Media library state for variant images
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [currentVariantIndex, setCurrentVariantIndex] = useState<number | null>(null);
 
   // Load attributes and existing variants
   useEffect(() => {
@@ -180,12 +199,27 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
   };
 
   // Handle variant image upload
-  const handleVariantImageChange = (index: number, file: File | null) => {
+  const handleVariantImageChange = (index: number, mediaFile: MediaFile | null) => {
     setVariants(prev => {
       const updated = [...prev];
-      updated[index] = { ...updated[index], variant_thumbnail: file };
+      updated[index] = { ...updated[index], variant_thumbnail: mediaFile, variant_thumbnail_url: undefined };
       return updated;
     });
+  };
+
+  // Open media modal for variant image
+  const openMediaModal = (index: number) => {
+    setCurrentVariantIndex(index);
+    setShowMediaModal(true);
+  };
+
+  // Handle media selection from modal
+  const handleMediaSelect = (files: MediaFile[]) => {
+    if (currentVariantIndex !== null && files.length > 0) {
+      handleVariantImageChange(currentVariantIndex, files[0]);
+    }
+    setShowMediaModal(false);
+    setCurrentVariantIndex(null);
   };
 
   // Remove variant
@@ -201,8 +235,11 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
       // for (const variant of variants) {
       //   const formData = new FormData();
       //   Object.entries(variant).forEach(([key, value]) => {
-      //     if (key === 'variant_thumbnail' && value instanceof File) {
-      //       formData.append(key, value);
+      //     if (key === 'variant_thumbnail' && value instanceof MediaFile) {
+      //       formData.append('media_file_id', value.id.toString());
+      //       if (value.path) {
+      //         formData.append('variant_thumbnail_url', value.path);
+      //       }
       //     } else if (key === 'attribute_options') {
       //       formData.append(key, JSON.stringify(value));
       //     } else if (value !== undefined && value !== null) {
@@ -394,15 +431,19 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
                       />
                     </div>
                     <div>
-                      <Label htmlFor={`landed-cost-${index}`}>Landed Cost</Label>
+                      <Label htmlFor={`landed-cost-${index}`}>Landed Cost (৳)</Label>
                       <Input
                         id={`landed-cost-${index}`}
                         type="number"
                         step="0.01"
                         value={variant.landed_cost}
-                        onChange={(e) => handleVariantUpdate(index, 'landed_cost', parseFloat(e.target.value))}
+                        disabled
                         placeholder="0.00"
+                        className="bg-gray-50 cursor-not-allowed"
                       />
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Managed through purchase orders
+                      </p>
                     </div>
                   </div>
 
@@ -414,35 +455,41 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
                         <div className="flex items-center gap-4">
                           <img
                             src={variant.variant_thumbnail
-                              ? URL.createObjectURL(variant.variant_thumbnail)
+                              ? variant.variant_thumbnail.url
                               : variant.variant_thumbnail_url
                             }
                             alt="Variant"
                             className="h-20 w-20 object-cover rounded border-2 border-gray-200"
                           />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleVariantImageChange(index, null)}
-                          >
-                            <X className="h-4 w-4 mr-1" />
-                            Remove
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => openMediaModal(index)}
+                            >
+                              <FolderOpen className="h-4 w-4 mr-1" />
+                              Change
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVariantImageChange(index, null)}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Remove
+                            </Button>
+                          </div>
                         </div>
                       ) : (
-                        <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors w-fit">
-                          <ImageIcon className="h-5 w-5 text-gray-400" />
-                          <span className="text-sm text-gray-600">Upload Image</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleVariantImageChange(index, file);
-                            }}
-                          />
-                        </label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => openMediaModal(index)}
+                          className="w-full border-dashed"
+                        >
+                          <FolderOpen className="h-4 w-4 mr-2" />
+                          Select from Media Library
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -605,6 +652,15 @@ export const ProductVariantsTab: React.FC<ProductVariantsTabProps> = ({ product,
           </CardContent>
         </Card>
       )}
+
+      {/* Media Library Modal */}
+      <MediaLibrary
+        open={showMediaModal}
+        onOpenChange={setShowMediaModal}
+        onSelect={handleMediaSelect}
+        multiple={false}
+        acceptedTypes={['image/*']}
+      />
     </div>
   );
 };

@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->string('password');
-            $table->enum('role', ['super_admin', 'admin', 'senior_staff','seller', 'store_keeper', 'marketer', 'retail_customer', 'wholesale_customer']);
+            $table->enum('role', ['super_admin', 'admin', 'manager','seller', 'store_keeper', 'marketer', 'retail_customer', 'wholesale_customer']);
             $table->string('phone_number')->unique();
             $table->string('whatsapp_number')->nullable();
             $table->string('otp_code')->nullable();

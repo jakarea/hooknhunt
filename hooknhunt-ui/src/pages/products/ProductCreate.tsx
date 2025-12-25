@@ -23,7 +23,6 @@ const ProductCreate = () => {
           <p className="text-sm mt-1">Redirecting to add <span className="font-semibold">Suppliers</span>...</p>
         </div>
       ),
-      duration: 3000,
     });
 
     // Immediate redirect with tab parameter to open Suppliers tab
