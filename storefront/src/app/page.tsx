@@ -32,7 +32,7 @@ export default function Home() {
       {/* Promotional Banners - Mid-Page Engagement */}
       <section className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-12 bg-white dark:bg-[#0a0a0a]" >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-          <Link href="/products?category=rods" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
+          <Link href="/products?category=rods" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02] rounded-xl">
             <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#046bd2] to-[#0353a5]">
               <Image
                 src="https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&h=400&fit=crop"
@@ -59,7 +59,7 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link href="/products?category=reels" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02]">
+          <Link href="/products?category=reels" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02] rounded-xl">
             <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#bc1215] to-[#8a0f12]">
               <Image
                 src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=400&fit=crop"
@@ -109,10 +109,10 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2">
+            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2 rounded-xl">
               <div className="absolute top-0 right-0 w-20 h-20 bg-[#bc1215]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
               <div className="flex items-center mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
                   M
                 </div>
                 <div>
@@ -136,10 +136,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2">
+            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2 rounded-xl">
               <div className="absolute top-0 right-0 w-20 h-20 bg-[#046bd2]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
               <div className="flex items-center mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#046bd2] to-[#0353a5] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#046bd2] to-[#0353a5] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
                   A
                 </div>
                 <div>
@@ -163,10 +163,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2">
+            <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2 rounded-xl">
               <div className="absolute top-0 right-0 w-20 h-20 bg-[#bc1215]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
               <div className="flex items-center mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
                   F
                 </div>
                 <div>
@@ -203,7 +203,7 @@ export default function Home() {
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 relative z-10">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
             <div className="group text-center transform hover:scale-105 transition-all duration-500">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl">
+              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl rounded-xl">
                 <svg
                   className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
                   fill="none"
@@ -224,7 +224,7 @@ export default function Home() {
             </div>
 
             <div className="group text-center transform hover:scale-105 transition-all duration-500">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl">
+              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl rounded-xl">
                 <svg
                   className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
                   fill="none"
@@ -245,7 +245,7 @@ export default function Home() {
             </div>
 
             <div className="group text-center transform hover:scale-105 transition-all duration-500">
-              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl">
+              <div className="w-20 h-20 bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-6 shadow-xl group-hover:bg-white/30 transition-all duration-300 group-hover:shadow-2xl rounded-xl">
                 <svg
                   className="w-10 h-10 group-hover:scale-110 transition-transform duration-300"
                   fill="none"
