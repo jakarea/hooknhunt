@@ -53,7 +53,14 @@ class Product extends Model
      */
     public function getCategoriesAttribute()
     {
-        if (empty($this->category_ids)) {
+        $categoryIds = $this->category_ids;
+
+        // Handle if category_ids is a JSON string (e.g., "[1,2,3]")
+        if (is_string($categoryIds)) {
+            $categoryIds = json_decode($categoryIds, true) ?? [];
+        }
+
+        if (empty($categoryIds) || !is_array($categoryIds)) {
             return collect([]);
         }
 

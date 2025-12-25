@@ -174,9 +174,9 @@ class CategoryController extends Controller
      */
     private function getProductCountForCategory(int $categoryId): int
     {
-        // Count of published products in this category using the new category_ids JSON field
+        // Count of published products in this category
         $count = Product::where('status', 'published')
-            ->whereJsonContains('category_ids', $categoryId)
+            ->where('category_id', $categoryId)
             ->count();
 
         return $count;

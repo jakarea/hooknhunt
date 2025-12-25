@@ -28,14 +28,36 @@ class ProductController extends Controller
 
         // Filter by category
         if ($request->has('category_id')) {
-            $query->whereJsonContains('category_ids', $request->category_id);
+            $categoryId = $request->category_id;
+            $patterns = [
+                '[' . $categoryId . ',',
+                ',' . $categoryId . ',',
+                ',' . $categoryId . ']',
+                '[' . $categoryId . ']'
+            ];
+            $query->where(function ($q) use ($patterns) {
+                foreach ($patterns as $pattern) {
+                    $q->orWhere('category_ids', 'LIKE', '%' . $pattern . '%');
+                }
+            });
         }
 
         // Filter by category slug
         if ($request->has('category')) {
             $category = Category::where('slug', $request->category)->first();
             if ($category) {
-                $query->whereJsonContains('category_ids', $category->id);
+                $categoryId = $category->id;
+                $patterns = [
+                    '[' . $categoryId . ',',
+                    ',' . $categoryId . ',',
+                    ',' . $categoryId . ']',
+                    '[' . $categoryId . ']'
+                ];
+                $query->where(function ($q) use ($patterns) {
+                    foreach ($patterns as $pattern) {
+                        $q->orWhere('category_ids', 'LIKE', '%' . $pattern . '%');
+                    }
+                });
             }
         }
 
@@ -150,14 +172,9 @@ class ProductController extends Controller
     {
         $limit = min($request->get('limit', 12), 50); // Max 50 featured products
 
-        $products = Product::with(['variants.inventory'])
+        $products = Product::with(['variants'])
             ->where('status', 'published')
-            ->whereHas('variants', function ($q) {
-                $q->where('status', 'active')
-                  ->whereHas('inventory', function ($invQuery) {
-                      $invQuery->whereRaw('quantity - reserved_quantity > 0');
-                  });
-            })
+            ->whereHas('variants')
             ->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get()
@@ -194,15 +211,19 @@ class ProductController extends Controller
 
         $query = Product::with(['variants'])
             ->where('status', 'published')
-            ->whereHas('variants', function ($q) {
-                $q->where('status', 'active')
-                  ->whereHas('inventory', function ($invQuery) {
-                      $invQuery->whereRaw('quantity - reserved_quantity > 0');
-                  });
-            })
+            ->whereHas('variants')
             ->where(function ($q) use ($categoryIds) {
                 foreach ($categoryIds as $categoryId) {
-                    $q->orWhereJsonContains('category_ids', $categoryId);
+                    // Use LIKE pattern matching since category_ids is stored as JSON string
+                    $patterns = [
+                        '[' . $categoryId . ',',
+                        ',' . $categoryId . ',',
+                        ',' . $categoryId . ']',
+                        '[' . $categoryId . ']'
+                    ];
+                    foreach ($patterns as $pattern) {
+                        $q->orWhere('category_ids', 'LIKE', '%' . $pattern . '%');
+                    }
                 }
             })
             ->orderBy('base_name');
@@ -266,15 +287,23 @@ class ProductController extends Controller
         $relatedProducts = Product::with(['variants'])
             ->where('status', 'published')
             ->where('id', '!=', $product->id)
-            ->whereHas('variants', function ($q) {
-                $q->where('status', 'active')
-                  ->whereHas('inventory', function ($invQuery) {
-                      $invQuery->whereRaw('quantity - reserved_quantity > 0');
-                  });
-            })
+            ->whereHas('variants')
             ->where(function ($q) use ($product) {
-                foreach ($product->category_ids ?? [] as $categoryId) {
-                    $q->orWhereJsonContains('category_ids', $categoryId);
+                $categoryIds = $product->category_ids ?? [];
+                if (is_string($categoryIds)) {
+                    $categoryIds = json_decode($categoryIds, true) ?? [];
+                }
+
+                foreach ($categoryIds as $categoryId) {
+                    $patterns = [
+                        '[' . $categoryId . ',',
+                        ',' . $categoryId . ',',
+                        ',' . $categoryId . ']',
+                        '[' . $categoryId . ']'
+                    ];
+                    foreach ($patterns as $pattern) {
+                        $q->orWhere('category_ids', 'LIKE', '%' . $pattern . '%');
+                    }
                 }
             })
             ->inRandomOrder()
