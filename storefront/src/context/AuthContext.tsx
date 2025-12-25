@@ -12,6 +12,8 @@ interface AuthContextType {
   register: (phone: string, password: string, name?: string) => Promise<void>;
   sendOtp: (phone: string) => Promise<void>;
   verifyOtp: (phone: string, otp: string) => Promise<void>;
+  sendResetOtp: (phone: string) => Promise<{ message: string; otp_code?: string }>;
+  resetPassword: (phone: string, otp: string, password: string, passwordConfirmation: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -188,6 +190,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const sendResetOtp = async (phone: string) => {
+    try {
+      const response = await api.sendResetOtp(phone);
+      return response;
+    } catch (error) {
+      console.error('Send reset OTP failed:', error);
+      throw error;
+    }
+  };
+
+  const resetPassword = async (phone: string, otp: string, password: string, passwordConfirmation: string) => {
+    try {
+      await api.resetPassword(phone, otp, password, passwordConfirmation);
+    } catch (error) {
+      console.error('Password reset failed:', error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -198,6 +219,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         sendOtp,
         verifyOtp,
+        sendResetOtp,
+        resetPassword,
         logout,
         refreshUser,
       }}

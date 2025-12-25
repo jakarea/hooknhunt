@@ -48,7 +48,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="bg-white dark:bg-[#0a0a0a] min-h-screen">
+    <div className="min-h-screen bg-[#fcf8f6]">
       {/* Breadcrumb */}
       <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">

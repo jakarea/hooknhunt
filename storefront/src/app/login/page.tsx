@@ -190,9 +190,9 @@ export default function LoginPage() {
                                 </label>
                             </div>
                             <div className="text-sm">
-                                <a href="#" className="font-medium text-[#bc1215] hover:text-[#9a0f12]">
+                                <Link href="/forgot-password" className="font-medium text-[#bc1215] hover:text-[#9a0f12]">
                                     {t('auth.login.forgotPassword')}
-                                </a>
+                                </Link>
                             </div>
                         </div>
 

@@ -22,6 +22,8 @@ Route::prefix('v1/store')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login']);
     Route::post('/auth/send-otp', [AuthController::class, 'sendOtp']);
     Route::post('/auth/verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('/auth/send-reset-otp', [AuthController::class, 'sendResetOtp']); // Send OTP for password reset
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']); // Reset password with OTP
     Route::get('/auth/test-sms-balance', [AuthController::class, 'testSmsBalance']); // Development only
 
     // Public Category Routes

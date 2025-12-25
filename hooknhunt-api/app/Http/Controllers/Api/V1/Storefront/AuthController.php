@@ -205,4 +205,89 @@ class AuthController extends Controller
             'api_key_configured' => !empty(env('ALPHA_SMS_API_KEY')),
         ]);
     }
+
+    /**
+     * Send OTP for password reset.
+     * Verifies phone number exists and sends OTP.
+     */
+    public function sendResetOtp(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|string|regex:/^01[3-9]\d{8}$/|exists:users,phone_number',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = User::where('phone_number', $request->phone_number)->first();
+
+        if (!$user) {
+            // For security, still return success even if phone doesn't exist
+            return response()->json(['message' => 'If your phone number is registered, you will receive an OTP shortly.']);
+        }
+
+        // Generate new OTP for password reset
+        $otpCode = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+        $user->otp_code = $otpCode;
+        $user->otp_expires_at = now()->addMinutes(5);
+        $user->save();
+
+        // Send OTP via SMS
+        $smsResult = $this->smsService->sendOTP($user->phone_number, $otpCode);
+
+        // Log SMS result for debugging
+        \Log::info('Password Reset OTP SMS', [
+            'phone' => $user->phone_number,
+            'otp' => $otpCode,
+            'sms_result' => $smsResult
+        ]);
+
+        $response = [
+            'message' => 'OTP sent successfully. Use it to reset your password.',
+        ];
+
+        // Include OTP only in development for testing
+        if (app()->environment('local', 'testing')) {
+            $response['otp_code'] = $otpCode;
+            $response['sms_debug'] = $smsResult;
+        }
+
+        return response()->json($response);
+    }
+
+    /**
+     * Verify OTP and reset password.
+     */
+    public function resetPassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'phone_number' => 'required|string|exists:users,phone_number',
+            'otp_code' => 'required|string|size:6',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $user = User::where('phone_number', $request->phone_number)
+            ->where('otp_code', $request->otp_code)
+            ->where('otp_expires_at', '>', now())
+            ->first();
+
+        if (!$user) {
+            return response()->json(['message' => 'Invalid or expired OTP. Please request a new one.'], 400);
+        }
+
+        // Update password
+        $user->password = Hash::make($request->password);
+        $user->otp_code = null;
+        $user->otp_expires_at = null;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Password reset successful. You can now login with your new password.'
+        ]);
+    }
 }

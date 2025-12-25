@@ -157,6 +157,25 @@ class ApiClient {
     return response;
   }
 
+  async sendResetOtp(phone: string): Promise<ApiResponse<{ message: string; otp_code?: string }>> {
+    return this.request<{ message: string; otp_code?: string }>('/store/auth/send-reset-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone_number: phone }),
+    });
+  }
+
+  async resetPassword(phone: string, otp: string, password: string, passwordConfirmation: string): Promise<ApiResponse> {
+    return this.request('/store/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({
+        phone_number: phone,
+        otp_code: otp,
+        password,
+        password_confirmation: passwordConfirmation
+      }),
+    });
+  }
+
   async login(phone: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
     const response = await this.request<{ user: User; token: string }>('/store/auth/login', {
       method: 'POST',
@@ -204,10 +223,25 @@ class ApiClient {
     }, true);
   }
 
+  async updateAddress(addressId: number, address: Partial<Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<ApiResponse> {
+    return this.request(`/store/account/addresses/${addressId}`, {
+      method: 'PUT',
+      body: JSON.stringify(address),
+    }, true);
+  }
+
   async deleteAddress(addressId: number): Promise<ApiResponse> {
     return this.request(`/store/account/addresses/${addressId}`, {
       method: 'DELETE',
     }, true);
+  }
+
+  async getOrders(): Promise<ApiResponse> {
+    return this.request('/store/account/orders', {}, true);
+  }
+
+  async getOrder(orderId: number): Promise<ApiResponse> {
+    return this.request(`/store/account/orders/${orderId}`, {}, true);
   }
 
   // Generic POST method for other API calls
