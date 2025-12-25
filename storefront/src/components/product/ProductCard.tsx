@@ -51,7 +51,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col">
+    <div className="group bg-white border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden h-full flex flex-col rounded-lg">
       <Link href={`/products/${product.slug}`} className="flex flex-col h-full">
         {/* Product Image */}
         <div className="relative overflow-hidden aspect-square bg-gray-100 p-2 flex-shrink-0">

@@ -165,9 +165,9 @@ export default function Header() {
                 <input
                   type="text"
                   placeholder={t('header.search')}
-                  className="w-full h-11 px-4 pr-12 text-[15px] border border-gray-300 dark:border-gray-700 -md focus:outline-none focus:border-[#bc1215] transition-colors bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
+                  className="w-full h-11 px-4 pr-12 text-[15px] border border-gray-300 dark:border-gray-700 rounded-l-md focus:outline-none focus:border-[#bc1215] transition-colors bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
                 />
-                <button className="absolute right-0 top-0 h-11 px-5 bg-[#bc1215] text-white -r-md hover:bg-[#9a0f12] transition-colors">
+                <button className="absolute right-0 top-0 h-11 px-5 bg-[#bc1215] text-white rounded-r-md hover:bg-[#9a0f12] transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -269,9 +269,9 @@ export default function Header() {
               <input
                 type="text"
                 placeholder={t('header.search')}
-                className="w-full h-11 px-4 pr-12 text-[15px] border border-gray-300 dark:border-gray-700 -md focus:outline-none focus:border-[#bc1215] bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
+                className="w-full h-11 px-4 pr-12 text-[15px] border border-gray-300 dark:border-gray-700 rounded-l-md focus:outline-none focus:border-[#bc1215] bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
               />
-              <button className="absolute right-0 top-0 h-11 px-4 bg-[#bc1215] text-white -r-md">
+              <button className="absolute right-0 top-0 h-11 px-4 bg-[#bc1215] text-white rounded-r-md">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
