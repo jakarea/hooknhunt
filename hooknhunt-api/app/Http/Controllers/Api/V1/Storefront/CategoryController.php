@@ -175,8 +175,21 @@ class CategoryController extends Controller
     private function getProductCountForCategory(int $categoryId): int
     {
         // Count of published products in this category
+        // category_ids is stored as a JSON string like "[1,2,3]" in the database
+        // We need to match the pattern: [,1,] or [1,] or [,1] or [1]
+        $patterns = [
+            '[' . $categoryId . ',',  // At start: [1,
+            ',' . $categoryId . ',',  // In middle: ,1,
+            ',' . $categoryId . ']',  // At end: ,1]
+            '[' . $categoryId . ']'   // Only one: [1]
+        ];
+
         $count = Product::where('status', 'published')
-            ->where('category_id', $categoryId)
+            ->where(function ($query) use ($patterns) {
+                foreach ($patterns as $pattern) {
+                    $query->orWhere('category_ids', 'LIKE', '%' . $pattern . '%');
+                }
+            })
             ->count();
 
         return $count;

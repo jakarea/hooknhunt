@@ -43,12 +43,19 @@ class Product extends Model
      */
     public function getCategoriesAttribute()
     {
-        if (empty($this->category_ids)) {
+        $categoryIds = $this->category_ids;
+
+        // Handle if category_ids is a JSON string (e.g., "[1,2,3]")
+        if (is_string($categoryIds)) {
+            $categoryIds = json_decode($categoryIds, true) ?? [];
+        }
+
+        if (empty($categoryIds) || !is_array($categoryIds)) {
             return collect([]);
         }
 
         try {
-            return Category::whereIn('id', $this->category_ids)->get();
+            return Category::whereIn('id', $categoryIds)->get();
         } catch (\Exception $e) {
             \Log::error('Error loading categories for product ' . $this->id . ': ' . $e->getMessage());
             return collect([]);
