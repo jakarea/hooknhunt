@@ -99,6 +99,36 @@ class AccountController extends Controller
     }
 
     /**
+     * Update an address for the user.
+     */
+    public function updateAddress(Request $request, Address $address)
+    {
+        if ($address->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'type' => 'sometimes|required|in:shipping,billing',
+            'is_default' => 'boolean',
+            'full_name' => 'sometimes|required|string|max:255',
+            'address_line_1' => 'sometimes|required|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'sometimes|required|string|max:100',
+            'district' => 'sometimes|required|string|max:100',
+            'post_code' => 'nullable|string|max:20',
+            'phone_number' => 'sometimes|required|string|max:20',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $address->update($request->all());
+
+        return response()->json(['message' => 'Address updated successfully.', 'address' => $address]);
+    }
+
+    /**
      * Delete an address for the user.
      */
     public function deleteAddress(Request $request, Address $address)

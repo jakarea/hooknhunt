@@ -85,7 +85,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-[#0a0a0a] min-h-screen">
+      <div className="min-h-screen bg-[#fcf8f6]">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#bc1215]"></div>
@@ -97,7 +97,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <div className="bg-white dark:bg-[#0a0a0a] min-h-screen">
+      <div className="min-h-screen bg-[#fcf8f6]">
         {/* Breadcrumb */}
         <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
