@@ -4,13 +4,16 @@ import { RoleGuard } from '@/components/guards/RoleGuard';
 import { ProductForm } from '@/components/forms/ProductForm';
 import { ProductSuppliersTab } from '@/components/forms/product/ProductSuppliersTab';
 import { ProductSeoTab } from '@/components/forms/product/ProductSeoTab';
+import { ProductGalleryTab } from '@/components/forms/product/ProductGalleryTab';
+import { ProductSpecsTab } from '@/components/forms/product/ProductSpecsTab';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { SimpleTabs as Tabs, SimpleTabsContent as TabsContent, SimpleTabsList as TabsList, SimpleTabsTrigger as TabsTrigger } from '@/components/ui/simple-tabs';
-import { ArrowLeft, Package, FileText, Building, Search } from 'lucide-react';
+import { ArrowLeft, Package, FileText, Building, Search, Image, Settings } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useProductStore } from '@/stores/productStore';
+import { useAuthStore } from '@/stores/authStore';
 import api from '@/lib/api';
 
 // Inline type definition to avoid import issues
@@ -23,8 +26,10 @@ interface Product {
   meta_description?: string;
   description?: string; // Legacy field for backward compatibility
   category_id?: number; // Legacy field for backward compatibility
+  category_ids?: number[] | string[];
   base_thumbnail_url?: string | null;
   gallery_images?: string[] | null;
+  specifications?: Record<string, any> | null;
   suppliers?: Array<{
     supplier_id: number;
     supplier_product_urls: string[];
@@ -46,6 +51,7 @@ const ProductEdit = () => {
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { fetchProduct } = useProductStore();
+  const user = useAuthStore((state) => state.user);
 
   // Debug: Log when component mounts
   useEffect(() => {
@@ -55,8 +61,9 @@ const ProductEdit = () => {
   }, [id, searchParams]);
 
   // Get the tab from URL parameters, default to 'details', but prioritize 'suppliers' when coming from create
+  // Marketers default to 'details' if tab is 'suppliers' since they can't access suppliers
   const urlTab = searchParams.get('tab');
-  const activeTab = urlTab || 'details';
+  const activeTab = (urlTab === 'suppliers' && user?.role === 'marketer') ? 'details' : (urlTab || 'details');
 
   // Check if we came from create page and handle tab activation
   useEffect(() => {
@@ -224,7 +231,7 @@ const ProductEdit = () => {
       </div>
 
       {/* Main Content */}
-      <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+      <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
         <div className="flex-1 overflow-auto bg-gray-50">
           <div className="max-w-5xl mx-auto px-6 py-6">
             {/* Tabs Container */}
@@ -240,12 +247,28 @@ const ProductEdit = () => {
                       <FileText className="h-4 w-4 mr-2" />
                       Details
                     </TabsTrigger>
+                    <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']} hide>
+                      <TabsTrigger
+                        value="suppliers"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                      >
+                        <Building className="h-4 w-4 mr-2" />
+                        Suppliers ({product.suppliers?.length || 0})
+                      </TabsTrigger>
+                    </RoleGuard>
                     <TabsTrigger
-                      value="suppliers"
+                      value="gallery"
                       className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
                     >
-                      <Building className="h-4 w-4 mr-2" />
-                      Suppliers ({product.suppliers?.length || 0})
+                      <Image className="h-4 w-4 mr-2" />
+                      Gallery
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="specs"
+                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Specs
                     </TabsTrigger>
                     <TabsTrigger
                       value="seo"
@@ -267,8 +290,18 @@ const ProductEdit = () => {
                     />
                   </TabsContent>
 
-                  <TabsContent value="suppliers" className="mt-0">
-                    <ProductSuppliersTab product={product} onSuppliersUpdated={handleSuppliersUpdated} />
+                  <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']} hide>
+                    <TabsContent value="suppliers" className="mt-0">
+                      <ProductSuppliersTab product={product as any} onSuppliersUpdated={handleSuppliersUpdated} />
+                    </TabsContent>
+                  </RoleGuard>
+
+                  <TabsContent value="gallery" className="mt-0">
+                    <ProductGalleryTab product={product} onGalleryUpdated={handleProductUpdated} />
+                  </TabsContent>
+
+                  <TabsContent value="specs" className="mt-0">
+                    <ProductSpecsTab product={product} onSpecsUpdated={handleProductUpdated} />
                   </TabsContent>
 
                   <TabsContent value="seo" className="mt-0">

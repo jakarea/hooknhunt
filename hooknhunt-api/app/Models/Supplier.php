@@ -22,8 +22,10 @@ class Supplier extends Model
         'shop_url',
         'wechat_id',
         'wechat_qr_url',
+        'wechat_qr_media_id',
         'alipay_id',
         'alipay_qr_url',
+        'alipay_qr_media_id',
         'contact_info',
     ];
 
@@ -116,5 +118,21 @@ class Supplier extends Model
         return $this->belongsToMany(Product::class, 'product_supplier')
             ->withPivot('supplier_product_urls')
             ->withTimestamps();
+    }
+
+    /**
+     * Get the WeChat QR code media file.
+     */
+    public function wechatQrMedia()
+    {
+        return $this->belongsTo(MediaFile::class, 'wechat_qr_media_id');
+    }
+
+    /**
+     * Get the Alipay QR code media file.
+     */
+    public function alipayQrMedia()
+    {
+        return $this->belongsTo(MediaFile::class, 'alipay_qr_media_id');
     }
 }

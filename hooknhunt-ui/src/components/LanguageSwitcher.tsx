@@ -1,16 +1,23 @@
-// src/components/LanguageSwitcher.tsx
 import { useTranslation } from 'react-i18next';
-import { Button } from './ui/button';
-import { Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Languages } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 
-export const LanguageSwitcher = () => {
+const languages = [
+  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' },
+  { code: 'en', name: 'English', flag: '🇬🇧' },
+];
+
+export function LanguageSwitcher() {
   const { i18n } = useTranslation();
+
+  const currentLanguage = languages.find((lang) => lang.code === i18n.language) || languages[0];
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng);
@@ -19,19 +26,29 @@ export const LanguageSwitcher = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon">
-          <Globe className="h-[1.2rem] w-[1.2rem]" />
-          <span className="sr-only">Change language</span>
+        <Button variant="outline" size="sm" className="gap-2">
+          <Languages className="h-4 w-4" />
+          <span>{currentLanguage.flag}</span>
+          <span className="hidden md:inline">{currentLanguage.name}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => changeLanguage('en')}>
-          English
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => changeLanguage('bn')}>
-          বাংলা
-        </DropdownMenuItem>
+        {languages.map((lang) => (
+          <DropdownMenuItem
+            key={lang.code}
+            onClick={() => changeLanguage(lang.code)}
+            className={i18n.language === lang.code ? 'bg-accent' : ''}
+          >
+            <span className="mr-2">{lang.flag}</span>
+            <span>{lang.name}</span>
+            {i18n.language === lang.code && (
+              <Badge variant="secondary" className="ml-auto text-xs">
+                ✓
+              </Badge>
+            )}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
-};
+}

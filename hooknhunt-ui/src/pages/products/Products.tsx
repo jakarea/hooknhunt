@@ -2,9 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { RoleGuard } from '@/components/guards/RoleGuard';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Package, Search, Filter, Edit, Eye, MoreHorizontal, X, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { Plus, Package, Search, Edit, Eye, MoreHorizontal, X, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -23,6 +22,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import api from '@/lib/api';
 import { toast } from '@/components/ui/use-toast';
 import { ProductImage } from '@/components/ProductImage';
@@ -42,6 +51,7 @@ interface Supplier {
   shop_name?: string;
   email?: string;
 }
+
 
 interface Product {
   id: number;
@@ -76,6 +86,9 @@ const Products = () => {
     from: 0,
     to: 0,
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch categories from API
   const fetchCategories = async () => {
@@ -195,7 +208,7 @@ const Products = () => {
       const currentParams = Object.fromEntries(searchParams.entries());
 
       // Update params with new filter values and reset page to 1
-      const updatedParams = {
+      const updatedParams: Record<string, string> = {
         ...currentParams,
         page: '1'
       };
@@ -244,8 +257,8 @@ const Products = () => {
     };
 
     // Remove empty search term if it exists
-    if (updatedParams.search === '') {
-      delete updatedParams.search;
+    if ((updatedParams as any).search === '') {
+      delete (updatedParams as any).search;
     }
 
     setSearchParams(updatedParams);
@@ -264,6 +277,59 @@ const Products = () => {
     const editUrl = `/products/${id}/edit`;
     console.log('📍 Navigating to:', editUrl);
     navigate(editUrl);
+  };
+
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      console.log('🗑️ Deleting product:', productToDelete.id);
+      const response = await api.delete(`/admin/products/${productToDelete.id}`);
+      console.log('✅ Product deleted:', response.data);
+
+      toast({
+        title: "Success",
+        description: `Product "${productToDelete.base_name}" has been deleted successfully.`,
+      });
+
+      // Refresh products list
+      await fetchProducts(pagination.currentPage);
+    } catch (error: any) {
+      console.error('❌ Error deleting product:', error);
+
+      let errorMessage = 'Failed to delete product. Please try again.';
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to delete this product.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Product not found.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Cannot delete product. It may be associated with existing orders.';
+      }
+
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setProductToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setProductToDelete(null);
   };
 
   const clearFilters = () => {
@@ -363,6 +429,7 @@ const Products = () => {
         </div>
       </div>
 
+  
       {/* Table */}
       <div className="flex-1 bg-white">
         <Table>
@@ -370,18 +437,17 @@ const Products = () => {
             <TableRow>
               <TableHead className="w-[60px]">Image</TableHead>
               <TableHead className="min-w-[200px]">Product</TableHead>
-              <TableHead className="w-[120px]">Status</TableHead>
               <TableHead className="min-w-[150px]">Category</TableHead>
-              <TableHead className="min-w-[150px]">Suppliers</TableHead>
-              <TableHead className="w-[120px]">Created</TableHead>
-              <TableHead className="w-[80px] text-right">Actions</TableHead>
+              <TableHead className="min-w-[150px]">Supplier</TableHead>
+              <TableHead className="w-[120px]">Status</TableHead>
+              <TableHead className="w-20 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, index) => (
                 <TableRow key={index}>
-                  <TableCell colSpan={7} className="h-16">
+                  <TableCell colSpan={6} className="h-16">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 bg-gray-200 rounded animate-pulse" />
                       <div className="flex-1 space-y-2">
@@ -411,11 +477,7 @@ const Products = () => {
                       {product.base_name}
                     </button>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                      {product.status}
-                    </Badge>
-                  </TableCell>
+                  
                   <TableCell>
                     {product.categories && product.categories.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
@@ -434,6 +496,7 @@ const Products = () => {
                       <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </TableCell>
+                  {/* Supplier Column */}
                   <TableCell>
                     {product.suppliers && product.suppliers.length > 0 ? (
                       <div className="flex flex-wrap gap-1">
@@ -452,14 +515,10 @@ const Products = () => {
                       <span className="text-sm text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(product.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
+                    <TableCell>
+                    <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
+                      {product.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -475,10 +534,20 @@ const Products = () => {
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </DropdownMenuItem>
-                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper']}>
+                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']} hide>
                           <DropdownMenuItem onClick={() => handleEditProduct(product.id)}>
                             <Edit className="h-4 w-4 mr-2" />
                             Edit Product
+                          </DropdownMenuItem>
+                        </RoleGuard>
+                        <RoleGuard allowedRoles={['super_admin', 'admin']} hide>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteProduct(product)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Product
                           </DropdownMenuItem>
                         </RoleGuard>
                       </DropdownMenuContent>
@@ -488,7 +557,7 @@ const Products = () => {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="h-64">
+                <TableCell colSpan={6} className="h-64">
                   <div className="flex flex-col items-center justify-center text-center">
                     <Package className="h-12 w-12 text-muted-foreground/50 mb-4" />
                     <h3 className="text-lg font-semibold mb-2">No products found</h3>
@@ -590,6 +659,40 @@ const Products = () => {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-semibold">{productToDelete?.base_name}</span>?
+              <br />
+              <span className="text-red-600">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProduct}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Product
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -17,10 +17,23 @@ import { toast } from '@/components/ui/use-toast';
 import { SupplierImage } from '@/components/SupplierImage';
 import api from '@/lib/api';
 
+// Supplier interface
+interface Supplier {
+  id: number;
+  name: string;
+  shop_name?: string;
+  email?: string;
+  wechat_id?: string;
+  alipay_id?: string;
+  wechat_qr_url?: string;
+  alipay_qr_url?: string;
+  product_count?: number;
+}
+
 const Suppliers = () => {
   const userRole = useAuthStore((state) => state.user?.role);
   const navigate = useNavigate();
-  const [suppliers, setSuppliers] = useState([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // State for Delete Alert

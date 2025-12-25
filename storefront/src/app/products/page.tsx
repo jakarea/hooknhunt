@@ -78,6 +78,7 @@ function ProductsPageContent() {
               supplier_id: product.supplier_id || 0,
               product_link: product.product_link || '',
               category_id: product.category_id || 0,
+              category_ids: product.category_ids || [],
               brand: product.brand || '',
               tags: product.tags || [],
               featured_image: product.thumbnail_url || '',
@@ -116,6 +117,7 @@ function ProductsPageContent() {
               rating: product.rating || 0,
               reviews: product.reviews || 0,
               category: product.categories?.[0]?.name || '',
+              categories: product.categories || [],
               variant_count: product.variant_count || 0,
               price_range_display: product.price_range?.display || '',
               has_offer: product.has_offer || false,
@@ -136,9 +138,12 @@ function ProductsPageContent() {
   // Filter products by category
   const filteredProducts = products.filter(product => {
     if (selectedCategories.includes('all')) return true;
-    return selectedCategories.some(categorySlug =>
-      categories.find(c => c.slug === categorySlug)?.id === product.category_id
-    );
+    return selectedCategories.some(categorySlug => {
+      const category = categories.find(c => c.slug === categorySlug);
+      if (!category) return false;
+      // Check if product category_ids contains the category ID
+      return product.category_ids?.includes(category.id) || product.category === category.name;
+    });
   });
 
   // Apply additional filters
@@ -392,7 +397,7 @@ function ProductsPageContent() {
                   ) : (
                     categories.map(category => {
                       const categoryProductCount = category.product_count ?? products.filter(p =>
-                        p.category_id === category.id
+                        p.category_ids?.includes(category.id) || p.category === category.name
                       ).length;
 
                       if (categoryProductCount === 0) return null;

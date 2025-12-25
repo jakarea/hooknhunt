@@ -63,8 +63,8 @@ export function DialogHeader({ children }: { children: React.ReactNode }) {
 	return <div className="mb-2">{children}</div>;
 }
 
-export function DialogTitle({ children }: { children: React.ReactNode }) {
-	return <h3 className="text-lg font-semibold">{children}</h3>;
+export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
+	return <h3 className={cn("text-lg font-semibold", className)}>{children}</h3>;
 }
 
 export function DialogDescription({ children }: { children: React.ReactNode }) {

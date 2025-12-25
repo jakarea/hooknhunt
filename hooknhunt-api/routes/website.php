@@ -38,6 +38,7 @@ Route::prefix('v1/store')->group(function () {
 
     // Public Order Route (Place Order - works for both guests and authenticated users)
     Route::post('/orders', [OrderController::class, 'placeOrder']);
+    Route::post('/orders/verify', [OrderController::class, 'verifyOrder']);
 
     // We will add public '/brands' routes here in a future step
     // We will add public '/pages' routes here in a future step (About, Contact, etc.)

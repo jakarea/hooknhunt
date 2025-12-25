@@ -31,7 +31,9 @@ interface SupplierFormProps {
 export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData, onClose }) => {
   const isEdit = !!initialData;
   const [wechatQrFile, setWechatQrFile] = useState<File | null>(null);
+  const [wechatQrMediaId, setWechatQrMediaId] = useState<number | null>(null);
   const [alipayQrFile, setAlipayQrFile] = useState<File | null>(null);
+  const [alipayQrMediaId, setAlipayQrMediaId] = useState<number | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -77,11 +79,22 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData, onClose
       }
 
       // Add QR code files if selected
-      if (wechatQrFile) {
+      // Handle WeChat QR code - file upload or media selection
+      if (wechatQrFile && !wechatQrMediaId) {
+        // File upload
         formData.append('wechat_qr_file', wechatQrFile);
+      } else if (wechatQrMediaId) {
+        // Media library selection
+        formData.append('wechat_qr_media_id', wechatQrMediaId.toString());
       }
-      if (alipayQrFile) {
+
+      // Handle Alipay QR code - file upload or media selection
+      if (alipayQrFile && !alipayQrMediaId) {
+        // File upload
         formData.append('alipay_qr_file', alipayQrFile);
+      } else if (alipayQrMediaId) {
+        // Media library selection
+        formData.append('alipay_qr_media_id', alipayQrMediaId.toString());
       }
 
       console.log('🔑 Authentication handled by axios interceptor');
@@ -253,11 +266,13 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData, onClose
                 <QRCodeUpload
                   label="WeChat QR Code"
                   currentUrl={initialData?.wechat_qr_url}
-                  onFileChange={setWechatQrFile}
+                  onFileChange={(file, mediaId) => {
+                    setWechatQrFile(file);
+                    setWechatQrMediaId(mediaId || null);
+                  }}
                   onRemoveImage={() => {
-                    if (initialData) {
-                      // TODO: Call API to remove QR code
-                    }
+                    setWechatQrFile(null);
+                    setWechatQrMediaId(null);
                   }}
                 />
               </div>
@@ -282,11 +297,13 @@ export const SupplierForm: React.FC<SupplierFormProps> = ({ initialData, onClose
                 <QRCodeUpload
                   label="Alipay QR Code"
                   currentUrl={initialData?.alipay_qr_url}
-                  onFileChange={setAlipayQrFile}
+                  onFileChange={(file, mediaId) => {
+                    setAlipayQrFile(file);
+                    setAlipayQrMediaId(mediaId || null);
+                  }}
                   onRemoveImage={() => {
-                    if (initialData) {
-                      // TODO: Call API to remove QR code
-                    }
+                    setAlipayQrFile(null);
+                    setAlipayQrMediaId(null);
                   }}
                 />
               </div>

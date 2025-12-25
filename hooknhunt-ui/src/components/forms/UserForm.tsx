@@ -22,21 +22,25 @@ const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
   phone_number: z.string().min(10, { message: 'Phone number must be at least 10 characters.' }),
   whatsapp_number: z.string().optional(),
-  password: z.string().min(8, { message: 'Password must be at least 8 characters.' }).optional(),
+  password: z.string().optional(),
   password_confirmation: z.string().optional(),
-  role: z.enum(['super_admin', 'admin', 'seller', 'store_keeper', 'marketer'], {
+  role: z.enum(['super_admin', 'admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'], {
     message: 'Please select a valid role.',
   }),
-}).refine((data, ctx) => {
-  if (data.password && data.password !== data.password_confirmation) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Passwords don't match",
-      path: ['password_confirmation'],
-    });
-    return false;
+}).refine((data: any) => {
+  // Only validate password if it's provided (non-empty)
+  if (data.password && data.password.length > 0) {
+    if (data.password.length < 8) {
+      return false;
+    }
+    if (data.password !== data.password_confirmation) {
+      return false;
+    }
   }
   return true;
+}, {
+  message: "Password must be at least 8 characters and match confirmation",
+  path: ["password_confirmation"],
 });
 
 interface UserFormProps {
@@ -62,7 +66,7 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
       whatsapp_number: initialData?.whatsapp_number || '',
       password: '',
       password_confirmation: '',
-      role: initialData?.role || undefined,
+      role: (initialData?.role && ['super_admin', 'admin', 'manager', 'supervisor', 'senior_staff', 'seller', 'store_keeper', 'marketer'].includes(initialData.role)) ? initialData.role as any : undefined,
     },
   });
 
@@ -71,6 +75,9 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
   const availableRoles = [
     { value: 'super_admin', label: 'Super Admin' },
     { value: 'admin', label: 'Admin' },
+    { value: 'manager', label: 'Manager' },
+    { value: 'supervisor', label: 'Supervisor' },
+    { value: 'senior_staff', label: 'Senior Staff' },
     { value: 'seller', label: 'Seller' },
     { value: 'store_keeper', label: 'Store Keeper' },
     { value: 'marketer', label: 'Marketer' },
@@ -89,15 +96,15 @@ export const UserForm: React.FC<UserFormProps> = ({ initialData, onClose }) => {
       const formData: CreateUserData | UpdateUserData = {
         name: values.name,
         email: values.email,
-        phone_number: values.phone_number,
+        phone_number: values.phone_number || '',
         whatsapp_number: values.whatsapp_number || undefined,
         role: values.role as any,
       };
 
-      // Only include password if it's provided
-      if (values.password) {
-        (formData as CreateUserData).password = values.password;
-        (formData as CreateUserData).password_confirmation = values.password_confirmation;
+      // Only include password if it's provided (non-empty)
+      if (values.password && values.password.trim().length > 0) {
+        (formData as any).password = values.password;
+        (formData as any).password_confirmation = values.password_confirmation;
       }
 
       if (initialData) {

@@ -27,6 +27,7 @@ import { toast } from '@/components/ui/use-toast';
 import { RoleGuard } from '@/components/auth/RoleGuard';
 import { MediaUpload } from '@/components/media/MediaUpload';
 import { useMediaStore } from '@/stores/mediaStore';
+import { transformMediaUrl } from '@/lib/config';
 
 interface MediaFile {
   id: number;
@@ -241,11 +242,11 @@ export function MediaManagement() {
                 onClick={() => setShowUpload(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Test Upload
+                Upload
               </Button>
 
               <Dialog open={showUpload} onOpenChange={setShowUpload}>
-                <DialogTrigger asChild>
+                <DialogTrigger>
                   <Button className="bg-red-500 text-white hover:bg-red-600">
                     <Plus className="h-4 w-4 mr-2" />
                     Upload Files
@@ -385,7 +386,7 @@ export function MediaManagement() {
                   {/* File preview */}
                   {file.mime_type.startsWith('image/') ? (
                     <img
-                      src={file.thumbnail_url || file.url}
+                      src={transformMediaUrl(file.thumbnail_url || file.url)}
                       alt={file.original_filename}
                       className={
                         viewMode === 'grid'
@@ -420,7 +421,7 @@ export function MediaManagement() {
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => window.open(file.url, '_blank')}
+                        onClick={() => window.open(transformMediaUrl(file.url), '_blank')}
                         className="h-8 w-8 p-0"
                       >
                         <Download className="h-3 w-3" />
@@ -472,7 +473,7 @@ export function MediaManagement() {
 
               {previewFile.mime_type.startsWith('image/') ? (
                 <img
-                  src={previewFile.url}
+                  src={transformMediaUrl(previewFile.url)}
                   alt={previewFile.original_filename}
                   className="max-w-full max-h-[60vh] object-contain mx-auto"
                 />
@@ -485,7 +486,7 @@ export function MediaManagement() {
                   <Button
                     variant="outline"
                     className="mt-4"
-                    onClick={() => window.open(previewFile.url, '_blank')}
+                    onClick={() => window.open(transformMediaUrl(previewFile.url), '_blank')}
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Download File

@@ -32,7 +32,7 @@ interface PurchaseOrder {
 
 export function PurchaseList() {
   return (
-    <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'senior_staff']}>
+    <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'manager']}>
       <PurchaseListContent />
     </RoleGuard>
   );
@@ -295,7 +295,7 @@ function PurchaseListContent() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-2 justify-end">
-                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'senior_staff']}>
+                        <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'manager']}>
                           <Button
                             variant="outline"
                             size="sm"

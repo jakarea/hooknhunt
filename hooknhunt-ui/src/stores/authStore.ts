@@ -98,4 +98,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Load from storage immediately when the store is created (outside React lifecycle)
 console.log('🏪 Initializing authStore...');
-useAuthStore.getState().loadUserFromStorage();
+try {
+  useAuthStore.getState().loadUserFromStorage();
+} catch (e) {
+  console.error('Failed to load from storage:', e);
+}

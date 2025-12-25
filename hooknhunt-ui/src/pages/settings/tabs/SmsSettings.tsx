@@ -189,7 +189,7 @@ function SmsSettingsContent() {
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-green-600">
-                {balance ? Math.floor(balance / 0.40) : '0'}
+                {balance ? Math.floor(Number(balance) / 0.40) : '0'}
               </p>
             </CardContent>
           </Card>

@@ -405,7 +405,7 @@ export function EditPurchaseOrder() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{t('editPurchaseOrder.orderItems')}</h3>
-                  {currentOrder.status === 'completed' && (
+                  {(currentOrder.status as string) === 'completed' && (
                     <Button
                       variant="default"
                       className="bg-green-600 hover:bg-green-700"
@@ -434,7 +434,7 @@ export function EditPurchaseOrder() {
                           <TableHead>{t('editPurchaseOrder.rmbPrice')}</TableHead>
                           <TableHead>{t('editPurchaseOrder.quantity')}</TableHead>
                           <TableHead className="text-right">{t('editPurchaseOrder.subtotal')}</TableHead>
-                          {currentOrder.status === 'completed' && (
+                          {(currentOrder.status as string) === 'completed' && (
                             <TableHead className="w-[100px]">{t('editPurchaseOrder.actions')}</TableHead>
                           )}
                         </TableRow>
@@ -443,7 +443,7 @@ export function EditPurchaseOrder() {
                         {loadingProducts ? (
                           <TableRow>
                             <TableCell
-                              colSpan={currentOrder.status === 'completed' ? 5 : 5}
+                              colSpan={(currentOrder.status as string) === 'completed' ? 5 : 5}
                               className="text-center py-8"
                             >
                               <div className="flex items-center justify-center gap-2">
@@ -592,7 +592,7 @@ export function EditPurchaseOrder() {
                                     </div>
                                   </div>
                                 </TableCell>
-                                {currentOrder.status === 'completed' && (
+                                {(currentOrder.status as string) === 'completed' && (
                                   <TableCell>
                                     <Button
                                       variant="outline"

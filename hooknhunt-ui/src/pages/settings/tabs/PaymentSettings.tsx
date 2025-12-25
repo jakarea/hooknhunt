@@ -35,7 +35,7 @@ export const PaymentSettings = () => {
   const initialValue = useMemo(() => ({
     sslcommerz_store_id: settings.sslcommerz_store_id || '',
     sslcommerz_store_password: settings.sslcommerz_store_password || '',
-    sslcommerz_is_sandbox: settings.sslcommerz_is_sandbox === '1' || settings.sslcommerz_is_sandbox === true,
+    sslcommerz_is_sandbox: settings.sslcommerz_is_sandbox === '1' || (settings.sslcommerz_is_sandbox as unknown) === true,
     bkash_app_key: settings.bkash_app_key || '',
     bkash_app_secret: settings.bkash_app_secret || '',
   }), [settings]);

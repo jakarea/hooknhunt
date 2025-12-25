@@ -119,7 +119,7 @@ const Categories = () => {
               </div>
             </div>
 
-            <RoleGuard allowedRoles={['super_admin', 'admin']}>
+            <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
               <Button onClick={handleOpenCreatePage} className="shadow-sm">
                 <Plus className="h-4 w-4 mr-2" />
                 Add Category
@@ -170,13 +170,13 @@ const Categories = () => {
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-gray-600">
-                  {categories.filter(c => !c.parent_id).length} Main Categories
+                  {categories.filter(c => c && !c.parent_id).length} Main Categories
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                 <span className="text-gray-600">
-                  {categories.filter(c => c.parent_id).length} Subcategories
+                  {categories.filter(c => c && c.parent_id).length} Subcategories
                 </span>
               </div>
             </div>
@@ -291,7 +291,7 @@ const Categories = () => {
                     Clear Search
                   </Button>
                 ) : (
-                  <RoleGuard allowedRoles={['super_admin', 'admin']}>
+                  <RoleGuard allowedRoles={['super_admin', 'admin', 'store_keeper', 'marketer']}>
                     <Button onClick={handleOpenCreatePage}>
                       <Plus className="h-4 w-4 mr-2" />
                       Create Category

@@ -206,7 +206,7 @@ class InventoryController extends Controller
             'variants.*.internal_name' => 'required|string|max:255',
             'variants.*.sku' => 'required|string|max:255|unique:product_variants,sku',
             'variants.*.stock_qty' => 'required|integer|min:0',
-            'variants.*.landed_cost' => 'required|numeric|min:0',
+            'variants.*.landed_cost' => 'nullable|numeric|min:0', // Can be null if PO is locked
             // Wholesale
             'variants.*.wholesale_name' => 'nullable|string|max:255',
             'variants.*.wholesale_price' => 'nullable|numeric|min:0',
@@ -275,9 +275,15 @@ class InventoryController extends Controller
 
             $createdVariants = [];
 
+            // Get PO item if available for landed_cost fallback
+            $poItem = !empty($validated['po_item_id']) ? PurchaseOrderItem::find($validated['po_item_id']) : null;
+
             foreach ($validated['variants'] as $variantData) {
                 // Use provided SKU (required field)
                 $sku = $variantData['sku'];
+
+                // Use provided landed_cost or fall back to PO item's final_unit_cost
+                $landedCost = $variantData['landed_cost'] ?? $poItem?->final_unit_cost ?? 0;
 
                 // Calculate offer discount
                 $retailDiscount = $this->calculateDiscount(
@@ -300,7 +306,7 @@ class InventoryController extends Controller
                     'product_id' => $product->id,
                     'sku' => $sku,
                     'internal_name' => $variantData['internal_name'],
-                    'landed_cost' => $variantData['landed_cost'],
+                    'landed_cost' => $landedCost,
                     // Retail
                     'retail_name' => $variantData['retail_name'] ?? $variantData['internal_name'],
                     'retail_price' => $variantData['retail_price'] ?? 0,
@@ -516,6 +522,19 @@ class InventoryController extends Controller
                 'retail_price' => (float) ($variant->retail_price ?? 0),
                 'wholesale_price' => (float) ($variant->wholesale_price ?? 0),
                 'daraz_price' => (float) ($variant->daraz_price ?? 0),
+                // Offer discount fields
+                'retail_offer_discount_type' => $variant->retail_offer_discount_type,
+                'retail_offer_discount_value' => $variant->retail_offer_discount_value,
+                'wholesale_offer_discount_type' => $variant->wholesale_offer_discount_type,
+                'wholesale_offer_discount_value' => $variant->wholesale_offer_discount_value,
+                'daraz_offer_discount_type' => $variant->daraz_offer_discount_type,
+                'daraz_offer_discount_value' => $variant->daraz_offer_discount_value,
+                'retail_offer_start_date' => $variant->retail_offer_start_date,
+                'retail_offer_end_date' => $variant->retail_offer_end_date,
+                'wholesale_offer_start_date' => $variant->wholesale_offer_start_date,
+                'wholesale_offer_end_date' => $variant->wholesale_offer_end_date,
+                'daraz_offer_start_date' => $variant->daraz_offer_start_date,
+                'daraz_offer_end_date' => $variant->daraz_offer_end_date,
                 'status' => $variant->status ?? 'active',
                 'product' => [
                     'id' => $variant->product->id,
@@ -529,6 +548,9 @@ class InventoryController extends Controller
                     'quantity' => (int) $inventory->quantity,
                     'reserved_quantity' => (int) $inventory->reserved_quantity,
                     'min_stock_level' => (int) $inventory->min_stock_level,
+                    'max_stock_level' => $inventory->max_stock_level,
+                    'reorder_point' => $inventory->reorder_point,
+                    'location' => $inventory->location,
                 ] : null,
                 'available_quantity' => $availableQuantity,
                 'stock_status' => $availableQuantity === 0 ? 'out_of_stock' :
