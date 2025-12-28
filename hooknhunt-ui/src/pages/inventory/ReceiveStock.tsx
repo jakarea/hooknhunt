@@ -1,7 +1,7 @@
 // src/pages/inventory/ReceiveStock.tsx
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Plus, Trash2, Save, Check } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Plus, Trash2, Save, Check, Image } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import apiClient from '@/lib/apiClient';
 import { useSettingStore } from '@/stores/settingStore';
+import { MediaLibrary } from '@/components/media/MediaLibrary';
+import { transformMediaUrl } from '@/lib/config';
 
 interface VariantRow {
   sku: string;
+  batch: string;
   qty: string;
   landed_cost: string;
   retail_price: string;
@@ -52,6 +55,7 @@ export function ReceiveStock() {
   // Step 1: Product Type & Basic Stock
   const [productType, setProductType] = useState<ProductType>('simple');
   const [simpleSku, setSimpleSku] = useState('');
+  const [simpleBatch, setSimpleBatch] = useState('');
   const [simpleQty, setSimpleQty] = useState('');
   const [simpleLandedCost, setSimpleLandedCost] = useState('');
   const [simpleRetailPrice, setSimpleRetailPrice] = useState('');
@@ -62,6 +66,7 @@ export function ReceiveStock() {
   const [variantRows, setVariantRows] = useState<VariantRow[]>([
     {
       sku: '',
+      batch: '',
       qty: '',
       landed_cost: '',
       retail_price: '',
@@ -82,6 +87,7 @@ export function ReceiveStock() {
   const [metaDescription, setMetaDescription] = useState('');
   const [metaKeywords, setMetaKeywords] = useState('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
+  const [showMediaModal, setShowMediaModal] = useState(false);
 
   const orderedQty = poItem?.quantity || 0;
   const stockedQty = poItem?.stocked_quantity || 0;
@@ -126,6 +132,23 @@ export function ReceiveStock() {
 
     if (!price || !cost) return false;
     return price <= cost;
+  };
+
+  // Handle media selection from media library
+  const handleMediaSelect = (files: any[]) => {
+    // Extract URLs from selected media files and transform them
+    const urls = files.map(file => transformMediaUrl(file.url));
+    // Combine with existing gallery images (avoid duplicates)
+    const combinedUrls = [...new Set([...galleryImages, ...urls])];
+    setGalleryImages(combinedUrls);
+    setShowMediaModal(false);
+    toast.success(`Added ${files.length} image(s) to gallery`);
+  };
+
+  // Handle removing a gallery image
+  const handleRemoveGalleryImage = (index: number) => {
+    const newImages = galleryImages.filter((_, i) => i !== index);
+    setGalleryImages(newImages);
   };
 
   // Auto-calculate prices when landed cost changes (for simple product)
@@ -201,6 +224,7 @@ export function ReceiveStock() {
       ...variantRows,
       {
         sku: '',
+        batch: '',
         qty: '',
         landed_cost: simpleLandedCost, // Copy from simple product
         retail_price: landedCost > 0 && retailMargin > 0 ? calculatePrice(landedCost, retailMargin) : '',
@@ -355,6 +379,8 @@ export function ReceiveStock() {
         payload.variants = [
           {
             sku: simpleSku,
+            variant_name: simpleSku,
+            batch: simpleBatch || undefined,
             qty: parseInt(simpleQty),
             landed_cost: parseFloat(simpleLandedCost),
             retail_price: parseFloat(simpleRetailPrice),
@@ -367,6 +393,8 @@ export function ReceiveStock() {
         // Variable product
         payload.variants = variantRows.map((row) => ({
           sku: row.sku,
+          variant_name: row.sku,
+          batch: row.batch || undefined,
           qty: parseInt(row.qty),
           landed_cost: parseFloat(row.landed_cost || simpleLandedCost),
           retail_price: parseFloat(row.retail_price),
@@ -534,6 +562,21 @@ export function ReceiveStock() {
                   </Label>
                 </div>
               </RadioGroup>
+            </div>
+
+            {/* Batch Selection - Common for Both Product Types */}
+            <div className="pt-4 border-t">
+              <Label htmlFor="simpleBatch">Batch</Label>
+              <Input
+                id="simpleBatch"
+                placeholder="Leave empty to auto-generate (e.g., batch_1, batch_2)"
+                value={simpleBatch}
+                onChange={(e) => setSimpleBatch(e.target.value)}
+                className="max-w-md"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Leave empty for auto-generation, or enter custom batch name (e.g., "Jan-2025-Lot")
+              </p>
             </div>
 
             {/* Simple Product Form */}
@@ -801,7 +844,7 @@ export function ReceiveStock() {
                     ))}
                   </div>
 
-                  {/* SKU and Quantity */}
+                  {/* SKU and Batch */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">SKU *</Label>
@@ -811,6 +854,18 @@ export function ReceiveStock() {
                         onChange={(e) => updateVariantRow(index, 'sku', e.target.value)}
                       />
                     </div>
+                    <div>
+                      <Label className="text-xs">Batch</Label>
+                      <Input
+                        placeholder="Auto-generate if empty"
+                        value={row.batch}
+                        onChange={(e) => updateVariantRow(index, 'batch', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Quantity */}
+                  <div className="grid grid-cols-1 gap-3">
                     <div>
                       <Label className="text-xs">Quantity *</Label>
                       <Input
@@ -930,14 +985,67 @@ export function ReceiveStock() {
             </div>
 
             <div>
-              <Label htmlFor="galleryImages">Gallery Images (URLs, comma-separated)</Label>
-              <Textarea
-                id="galleryImages"
-                placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                value={galleryImages.join(', ')}
-                onChange={(e) => setGalleryImages(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
-                rows={3}
-              />
+              <Label>Gallery Images</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Select images from media library or enter URLs manually
+              </p>
+
+              {/* Media Selector Button */}
+              <div className="mb-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowMediaModal(true)}
+                  className="w-full"
+                >
+                  <Image className="h-4 w-4 mr-2" />
+                  Select from Media Library
+                </Button>
+              </div>
+
+              {/* Selected Images Preview */}
+              {galleryImages.length > 0 && (
+                <div className="mb-4 p-4 border rounded-lg bg-muted/30">
+                  <div className="text-sm font-medium mb-3">Selected Images ({galleryImages.length}):</div>
+                  <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
+                    {galleryImages.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-20 object-cover rounded border"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/100?text=Error';
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGalleryImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove image"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Manual URL Entry (Fallback) */}
+              <div>
+                <Label htmlFor="galleryImages" className="text-xs text-muted-foreground">
+                  Or enter image URLs manually (comma-separated):
+                </Label>
+                <Textarea
+                  id="galleryImages"
+                  placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
+                  value={galleryImages.join(', ')}
+                  onChange={(e) => setGalleryImages(e.target.value.split(',').map((s) => s.trim()).filter(Boolean))}
+                  rows={3}
+                  className="mt-1"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -1028,6 +1136,15 @@ export function ReceiveStock() {
           </Button>
         )}
       </div>
+
+      {/* Media Library Modal */}
+      <MediaLibrary
+        open={showMediaModal}
+        onOpenChange={setShowMediaModal}
+        onSelect={handleMediaSelect}
+        multiple={true}
+        acceptedTypes={['image/*']}
+      />
     </div>
   );
 }

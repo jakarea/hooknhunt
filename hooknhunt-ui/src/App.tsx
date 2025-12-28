@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
+import Dashboard3Layout from './components/layouts/Dashboard3Layout';
 import { Toaster } from './components/ui/toaster';
 import { Loader2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ import { Loader2 } from 'lucide-react';
 // For named exports: use .then() to convert to default
 const LoginForm = lazy(() => import('./pages/Login').then(m => ({ default: m.LoginForm })));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Dashboard3 = lazy(() => import('./pages/Dashboard3'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Attributes = lazy(() => import('./pages/Attributes'));
 const Products = lazy(() => import('./pages/products/Products'));
@@ -135,6 +137,11 @@ function App() {
                 {/* SMS Routes */}
                 <Route path="settings/sms" element={<SmsSettings />} />
                 <Route path="sms" element={<SmsManagement />} />
+              </Route>
+
+              {/* Dashboard 3 Routes with separate layout */}
+              <Route element={<Dashboard3Layout />}>
+                <Route path="dashboard3" element={<Dashboard3 />} />
               </Route>
             </Route>
           </Routes>

@@ -335,27 +335,51 @@ class ProductController extends Controller
         $minPrice = $variants->min('retail_price');
         $maxPrice = $variants->max('retail_price');
 
-        // Check for active offers
+        // Check for active offers and get best offer
         $hasActiveOffer = $variants->contains(function ($variant) {
             return $this->hasActiveOffer($variant, 'retail');
         });
 
+        // Get the best retail offer across all variants (for product listings)
+        $bestRetailOffer = null;
+        foreach ($variants as $variant) {
+            $offer = $this->getOfferData($variant, 'retail');
+            if ($offer && $offer['active']) {
+                // Store the offer with the variant having the lowest discounted price
+                if (!$bestRetailOffer || $offer['discounted_price'] < $bestRetailOffer['discounted_price']) {
+                    $bestRetailOffer = $offer;
+                    $bestRetailOffer['variant_id'] = $variant->id;
+                }
+            }
+        }
+
         // For now, assume all products are in stock since inventory table is not implemented
         $inStock = true;
         $totalStock = 999;
+
+        // Convert gallery images to full URLs
+        $galleryImages = collect($product->gallery_images ?? [])->map(function ($image) {
+            // If already a full URL, return as is
+            if (filter_var($image, FILTER_VALIDATE_URL)) {
+                return $image;
+            }
+            // Prepend storage URL if it's a relative path
+            return url('storage/' . $image);
+        })->toArray();
 
         $transformed = [
             'id' => $product->id,
             'name' => $product->base_name,
             'slug' => $product->slug,
             'thumbnail_url' => $product->base_thumbnail_url,
-            'gallery_images' => $product->gallery_images ?? [],
+            'gallery_images' => $galleryImages,
             'price_range' => [
                 'min' => $minPrice,
                 'max' => $maxPrice,
                 'display' => $this->formatPriceRange($minPrice, $maxPrice)
             ],
             'has_offer' => $hasActiveOffer,
+            'retail_offer' => $bestRetailOffer,
             'variant_count' => $variants->count(),
             'categories' => $product->categories->map(function ($category) {
                 return [
@@ -460,9 +484,11 @@ class ProductController extends Controller
             : max(0, $basePrice - $discountValue);
 
         return [
+            'active' => true,
             'type' => $discountType,
             'value' => (float) $discountValue,
             'original_price' => (float) $basePrice,
+            'discounted_price' => round($finalPrice, 2),
             'final_price' => round($finalPrice, 2),
             'start_date' => $startDate,
             'end_date' => $endDate,

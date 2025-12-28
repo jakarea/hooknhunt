@@ -1038,18 +1038,18 @@ export default function CheckoutPage() {
 
             {/* Title */}
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
-              Order Placed Successfully!
+              Confirm Your Order
             </h2>
 
             {/* Order Number */}
-            <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-center text-gray-600 dark:text-gray-400 mb-4">
               Order #{pendingOrder.order_number}
             </p>
 
             {/* Instructions */}
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
               <p className="text-sm text-blue-900 dark:text-blue-100 text-center">
-                We've sent a 6-digit verification code to <strong>{pendingOrder.phone_number}</strong>. Please enter the code below to verify your order and create your account.
+                We've sent a 6-digit verification code to <strong>{pendingOrder.phone_number}</strong>. Please enter the code below to confirm your order.
               </p>
             </div>
 
