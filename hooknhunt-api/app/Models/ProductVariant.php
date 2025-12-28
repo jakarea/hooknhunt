@@ -12,6 +12,8 @@ class ProductVariant extends Model
     protected $fillable = [
         'product_id',
         'sku',
+        'po_number',
+        'batch',
         'retail_name',
         'retail_price',
         'wholesale_name',
@@ -68,6 +70,21 @@ class ProductVariant extends Model
         return $this->hasMany(Inventory::class);
     }
 
+    public function inventoryBatches(): HasMany
+    {
+        return $this->hasMany(InventoryBatch::class);
+    }
+    
+    public function batches() {
+        return $this->hasMany(InventoryBatch::class);
+    }
+    
+    // Helper to get active batches
+    public function activeBatches() {
+        return $this->hasMany(InventoryBatch::class)
+                    ->where('status', 'active')
+                    ->where('current_quantity', '>', 0);
+    }
     public function attributeOptions(): BelongsToMany
     {
         return $this->belongsToMany(AttributeOption::class, 'variant_attribute_options');
@@ -108,6 +125,18 @@ class ProductVariant extends Model
     {
         $inventory = $this->inventory()->first();
         return $inventory ? $inventory->available_quantity : 0;
+    }
+
+    // Get total stock from all inventory batches
+    public function getTotalBatchStockAttribute(): int
+    {
+        return $this->inventoryBatches()->available()->sum('current_quantity');
+    }
+
+    // Get latest batch (most recent purchase)
+    public function getLatestBatchAttribute(): ?InventoryBatch
+    {
+        return $this->inventoryBatches()->latest()->first();
     }
 
     // Helper methods

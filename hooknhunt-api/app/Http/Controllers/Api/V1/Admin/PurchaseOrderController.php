@@ -907,6 +907,7 @@ class PurchaseOrderController extends Controller
             'variants' => 'required|array|min:1',
             'variants.*.sku' => 'required|string|max:255|unique:product_variants,sku',
             'variants.*.variant_name' => 'required|string|max:255',
+            'variants.*.batch' => 'nullable|string|max:255',
             'variants.*.quantity' => 'required|integer|min:1',
             'variants.*.landed_cost' => 'nullable|numeric|min:0', // Can be null if PO is locked
             'variants.*.retail_price' => 'nullable|numeric|min:0',
@@ -938,6 +939,10 @@ class PurchaseOrderController extends Controller
             DB::beginTransaction();
 
             $poItem = PurchaseOrderItem::findOrFail($request->po_item_id);
+            $purchaseOrder = $poItem->purchaseOrder;
+
+            // Get PO number from purchase order
+            $poNumber = $purchaseOrder->po_number ?? 'PO-' . $purchaseOrder->id;
 
             // Create product variants and inventory records
             $totalQuantity = 0;
@@ -945,10 +950,34 @@ class PurchaseOrderController extends Controller
                 // Use provided landed_cost or fall back to PO item's final_unit_cost
                 $landedCost = $variantData['landed_cost'] ?? $poItem->final_unit_cost ?? 0;
 
+                // Auto-generate batch if empty
+                $batch = $variantData['batch'] ?? null;
+                if (empty($batch)) {
+                    // Find existing batches for this product
+                    $existingBatches = ProductVariant::where('product_id', $poItem->product_id)
+                        ->whereNotNull('batch')
+                        ->where('batch', '!=', '')
+                        ->pluck('batch');
+
+                    // Extract batch numbers from batch_X format
+                    $batchNumbers = $existingBatches->filter(function ($batchName) {
+                        return preg_match('/^batch_(\d+)$/', $batchName, $matches);
+                    })->map(function ($batchName) {
+                        preg_match('/^batch_(\d+)$/', $batchName, $matches);
+                        return (int) $matches[1];
+                    })->sortDesc();
+
+                    // Generate next batch number
+                    $nextBatchNum = $batchNumbers->first() ? $batchNumbers->first() + 1 : 1;
+                    $batch = 'batch_' . $nextBatchNum;
+                }
+
                 // Create product variant
                 $productVariant = ProductVariant::create([
                     'product_id' => $poItem->product_id,
                     'sku' => $variantData['sku'],
+                    'po_number' => $poNumber,
+                    'batch' => $batch,
                     'retail_name' => $variantData['retail_name'] ?? $variantData['variant_name'],
                     'wholesale_name' => $variantData['wholesale_name'] ?? $variantData['variant_name'],
                     'daraz_name' => $variantData['daraz_name'] ?? $variantData['variant_name'],
@@ -976,7 +1005,6 @@ class PurchaseOrderController extends Controller
             $poItem->stocked_quantity = ($poItem->stocked_quantity ?? 0) + $totalQuantity;
 
             // Only update final_unit_cost if PO is NOT completed or completed_partially
-            $purchaseOrder = $poItem->purchaseOrder;
             if (!in_array($purchaseOrder->status, ['completed', 'completed_partially'])) {
                 // Calculate average from variants that have landed_cost
                 $landedCosts = collect($request->variants)

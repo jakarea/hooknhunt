@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -17,6 +18,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Package,
   Search,
   AlertCircle,
@@ -24,8 +33,13 @@ import {
   TrendingUp,
   MapPin,
   DollarSign,
-  Archive
+  Archive,
+  Edit,
+  Save,
+  X
 } from 'lucide-react';
+import { toast } from 'sonner';
+import apiClient from '@/lib/apiClient';
 
 const InventoryList = () => {
   const { t } = useTranslation('inventory'); // Instantiate useTranslation
@@ -46,6 +60,13 @@ const InventoryList = () => {
   const [stockStatusFilter, setStockStatusFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Edit stock modal states
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editQuantity, setEditQuantity] = useState('');
+  const [editReserved, setEditReserved] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -95,6 +116,59 @@ const InventoryList = () => {
     return attributeOptions
       .map((opt) => `${opt.attribute?.name}: ${opt.value}`)
       .join(', ');
+  };
+
+  const handleEditStock = (item: any) => {
+    setEditingItem(item);
+    setEditQuantity(item.quantity.toString());
+    setEditReserved(item.reserved_quantity.toString());
+    setEditModalOpen(true);
+  };
+
+  const handleSaveStock = async () => {
+    if (!editingItem) return;
+
+    const newQuantity = parseInt(editQuantity);
+    const newReserved = parseInt(editReserved);
+
+    if (isNaN(newQuantity) || newQuantity < 0) {
+      toast.error('Quantity must be a valid number');
+      return;
+    }
+
+    if (isNaN(newReserved) || newReserved < 0) {
+      toast.error('Reserved quantity must be a valid number');
+      return;
+    }
+
+    if (newReserved > newQuantity) {
+      toast.error('Reserved quantity cannot be greater than total quantity');
+      return;
+    }
+
+    setEditLoading(true);
+
+    try {
+      await apiClient.put(`/admin/inventory/${editingItem.id}`, {
+        quantity: newQuantity,
+        reserved_quantity: newReserved,
+      });
+
+      toast.success('Stock updated successfully');
+      setEditModalOpen(false);
+      // Refresh inventory list
+      fetchInventory(currentPage, {
+        search: searchTerm,
+        stock_status: stockStatusFilter !== 'all' ? stockStatusFilter : undefined,
+        location: locationFilter,
+      });
+      fetchStats();
+    } catch (error: any) {
+      console.error('Failed to update stock:', error);
+      toast.error(error.response?.data?.message || 'Failed to update stock');
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   return (
@@ -270,6 +344,7 @@ const InventoryList = () => {
                         <TableHead className="text-center">{t('inventory.table.available')}</TableHead>
                         {canViewCost && <TableHead className="text-right">{t('inventory.table.stockValue')}</TableHead>}
                         <TableHead>{t('inventory.table.status')}</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -342,6 +417,16 @@ const InventoryList = () => {
                           <TableCell>
                             {getStockStatusBadge(item.stock_status, item.is_low_stock, item.should_reorder)}
                           </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditStock(item)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -379,6 +464,80 @@ const InventoryList = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Stock Dialog */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Stock</DialogTitle>
+            <DialogDescription>
+              Update stock quantity for {editingItem?.product_variant?.product?.base_name} - {editingItem?.product_variant?.retail_name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="quantity">Total Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                value={editQuantity}
+                onChange={(e) => setEditQuantity(e.target.value)}
+                min="0"
+                className="col-span-3"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="reserved">Reserved Quantity</Label>
+              <Input
+                id="reserved"
+                type="number"
+                value={editReserved}
+                onChange={(e) => setEditReserved(e.target.value)}
+                min="0"
+                className="col-span-3"
+              />
+              <p className="text-xs text-gray-500">
+                Available: {Math.max(0, parseInt(editQuantity || '0') - parseInt(editReserved || '0'))}
+              </p>
+            </div>
+
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm font-medium">Product Info:</p>
+              <p className="text-sm text-gray-600">SKU: {editingItem?.product_variant?.sku}</p>
+              <p className="text-sm text-gray-600">Current Available: {editingItem?.available_quantity}</p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              disabled={editLoading}
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+            <Button onClick={handleSaveStock} disabled={editLoading}>
+              {editLoading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -11,10 +11,10 @@ import {
   Layers,
   Image as ImageIcon,
   CheckCircle2,
-  Upload,
   X,
   DollarSign,
   FileText,
+  FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -32,6 +32,8 @@ import { toast } from 'sonner';
 import apiClient from '@/lib/apiClient';
 import { ProductImage } from '@/components/ProductImage';
 import api from '@/lib/api';
+import { MediaLibrary } from '@/components/media/MediaLibrary';
+import { transformMediaUrl } from '@/lib/config';
 
 // ============================================================================
 // TYPES FOR API DATA
@@ -329,6 +331,10 @@ export function ReceiveStockNew() {
     metaKeywords: '',
     seoSlug: '',
   });
+
+  // Media Library Modal
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [editingVariantThumbnailId, setEditingVariantThumbnailId] = useState<string | null>(null);
 
   // Validation errors
   const [validationErrors, setValidationErrors] = useState<{
@@ -665,23 +671,6 @@ export function ReceiveStockNew() {
     setProductData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleProductGalleryUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files) return;
-
-    const newImageUrls: string[] = [];
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newImageUrls.push(reader.result as string);
-        if (newImageUrls.length === files.length) {
-          updateProductData('galleryImages', [...productData.galleryImages, ...newImageUrls]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
   const removeProductGalleryImage = (imageIndex: number) => {
     updateProductData(
       'galleryImages',
@@ -689,15 +678,25 @@ export function ReceiveStockNew() {
     );
   };
 
-  const handleVariantThumbnailUpload = (variantId: string, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Handle media selection from media library
+  const handleMediaSelect = (files: any[]) => {
+    // Extract URLs from selected media files and transform them
+    const urls = files.map(file => transformMediaUrl(file.url));
+    // Combine with existing gallery images (avoid duplicates)
+    const combinedUrls = [...new Set([...productData.galleryImages, ...urls])];
+    updateProductData('galleryImages', combinedUrls);
+    setShowMediaModal(false);
+    toast.success(`Added ${files.length} image(s) to gallery`);
+  };
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      updateVariant(variantId, 'thumbnail', reader.result as string);
-    };
-    reader.readAsDataURL(file);
+  // Handle variant thumbnail selection from media library
+  const handleVariantThumbnailSelect = (files: any[]) => {
+    if (files.length > 0 && editingVariantThumbnailId) {
+      // Use the first selected file as thumbnail and transform the URL
+      updateVariant(editingVariantThumbnailId, 'thumbnail', transformMediaUrl(files[0].url));
+      setEditingVariantThumbnailId(null);
+      toast.success('Thumbnail updated successfully');
+    }
   };
 
   const canSave = () => {
@@ -1456,37 +1455,33 @@ export function ReceiveStockNew() {
                           {/* Variant Thumbnail */}
                           <td className="px-3 py-2">
                             <div className="relative group">
-                              <label htmlFor={`thumb-${variant.id}`} className="cursor-pointer block">
+                              <button
+                                type="button"
+                                onClick={() => setEditingVariantThumbnailId(variant.id)}
+                                className="cursor-pointer block w-full"
+                                title={variant.thumbnail ? "Click to change thumbnail" : "Click to select thumbnail"}
+                              >
                                 {variant.thumbnail ? (
-                                  <>
-                                    <div className="relative">
-                                      <img
-                                        src={variant.thumbnail}
-                                        alt={variant.internalName}
-                                        className="w-12 h-12 object-cover rounded border-2 border-gray-300 hover:border-blue-500 transition-colors"
-                                        style={{ display: 'block' }}
-                                      />
+                                  <div className="relative">
+                                    <img
+                                      src={variant.thumbnail}
+                                      alt={variant.internalName}
+                                      className="w-12 h-12 object-cover rounded border-2 border-gray-300 hover:border-blue-500 transition-colors"
+                                      style={{ display: 'block' }}
+                                    />
+                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity flex items-center justify-center">
+                                      <ImageIcon className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
                                     </div>
-                                  </>
+                                  </div>
                                 ) : (
-                                  <>
-                                    <div className="w-12 h-12 flex items-center justify-center border-2 border-dashed border-gray-300 rounded hover:border-blue-500 transition-colors">
+                                  <div className="text-center">
+                                    <div className="w-12 h-12 flex items-center justify-center border-2 border-dashed border-gray-300 rounded hover:border-blue-500 transition-colors mx-auto">
                                       <ImageIcon className="h-4 w-4 text-gray-400" />
                                     </div>
-                                    <div className="text-xs text-red-500 mt-1 font-bold">❌ No thumbnail</div>
-                                    <div className="text-xs text-gray-400">
-                                      Expected: base_thumbnail_url
-                                    </div>
-                                  </>
+                                    <p className="text-xs text-blue-600 mt-1 font-medium">Select Image</p>
+                                  </div>
                                 )}
-                              </label>
-                              <input
-                                id={`thumb-${variant.id}`}
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                onChange={(e) => handleVariantThumbnailUpload(variant.id, e)}
-                              />
+                              </button>
                               {variant.thumbnail && (
                                 <Button
                                   type="button"
@@ -1961,67 +1956,71 @@ export function ReceiveStockNew() {
           <Card className="shadow-sm">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <ImageIcon className="h-4 w-4" />
-                  Product Gallery
-                </CardTitle>
-                <Badge variant="outline" className="text-xs">
-                  {productData.galleryImages.length > 1 ? `${productData.galleryImages.length} images` : `${productData.galleryImages.length} image`}
-                </Badge>
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ImageIcon className="h-4 w-4" />
+                    Product Gallery
+                  </CardTitle>
+                  <CardDescription className="text-xs mt-1">
+                    Shared across all variants
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-xs">
+                    {productData.galleryImages.length} / 8 Images
+                  </Badge>
+                  <Button
+                    onClick={() => setShowMediaModal(true)}
+                    disabled={productData.galleryImages.length >= 8}
+                    size="sm"
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Select Images
+                  </Button>
+                </div>
               </div>
-              <CardDescription className="text-xs">
-                Shared across all variants
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div>
-                <Label
-                  htmlFor="product-gallery-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-md hover:bg-indigo-700 transition-colors"
-                >
-                  <Upload className="h-3 w-3" />
-                  Upload Images
-                </Label>
-                <Input
-                  id="product-gallery-upload"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={handleProductGalleryUpload}
-                />
-              </div>
-
               {productData.galleryImages.length > 0 && (
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {productData.galleryImages.map((imageUrl, index) => (
                     <div key={index} className="relative group">
-                      <img
-                        src={imageUrl}
-                        alt={`Gallery ${index + 1}`}
-                        className="w-full h-24 object-cover rounded border-2 border-gray-300"
-                      />
+                      <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors">
+                        <img
+                          src={imageUrl}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                       <Button
                         type="button"
                         variant="destructive"
                         size="sm"
-                        className="absolute top-1 right-1 h-5 w-5 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-all shadow-lg"
                         onClick={() => removeProductGalleryImage(index)}
                       >
                         <X className="h-3 w-3" />
                       </Button>
-                      <Badge variant="secondary" className="absolute bottom-1 left-1 text-[10px] px-1 py-0">
-                        {index + 1}
-                      </Badge>
+                      <div className="absolute bottom-2 left-2 bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                        #{index + 1}
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
 
               {productData.galleryImages.length === 0 && (
-                <div className="text-center py-6 border-2 border-dashed border-gray-300 rounded-lg">
-                  <ImageIcon className="h-8 w-8 mx-auto text-gray-400 mb-1" />
-                  <p className="text-xs text-gray-500">No images uploaded yet</p>
+                <div className="text-center py-12">
+                  <ImageIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Gallery Images</h3>
+                  <p className="text-gray-500 mb-4">Add images to showcase your product from different angles</p>
+                  <Button
+                    onClick={() => setShowMediaModal(true)}
+                    variant="outline"
+                  >
+                    <FolderOpen className="h-4 w-4 mr-2" />
+                    Add Gallery Images
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -2186,6 +2185,26 @@ export function ReceiveStockNew() {
             </CardContent>
           </Card>
         )}
+
+        {/* Media Library Modal for Product Gallery */}
+        <MediaLibrary
+          open={showMediaModal}
+          onOpenChange={setShowMediaModal}
+          onSelect={handleMediaSelect}
+          multiple={true}
+          maxSelections={8 - productData.galleryImages.length}
+          acceptedTypes={['image/*']}
+        />
+
+        {/* Media Library Modal for Variant Thumbnails */}
+        <MediaLibrary
+          open={editingVariantThumbnailId !== null}
+          onOpenChange={() => setEditingVariantThumbnailId(null)}
+          onSelect={handleVariantThumbnailSelect}
+          multiple={false}
+          maxSelections={1}
+          acceptedTypes={['image/*']}
+        />
       </div>
     </div>
   );

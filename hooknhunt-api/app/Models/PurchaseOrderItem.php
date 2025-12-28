@@ -11,6 +11,7 @@ class PurchaseOrderItem extends Model
         'po_number',
         'product_id',
         'product_variant_id',
+        'inventory_batch_id',
         'china_price',
         'quantity',
         'unit_price',
@@ -49,6 +50,11 @@ class PurchaseOrderItem extends Model
     public function productVariant(): BelongsTo
     {
         return $this->belongsTo(ProductVariant::class);
+    }
+
+    public function inventoryBatch(): BelongsTo
+    {
+        return $this->belongsTo(InventoryBatch::class);
     }
 
     // Computed properties
