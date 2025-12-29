@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Storage;
@@ -15,35 +15,32 @@ class MediaFile extends Model
     use HasFactory;
 
     protected $fillable = [
-        'filename',
-        'original_filename',
+        'folder_id',
+        'filename',           // Unique Name
+        'original_filename',  // User's original name
+        'path',               // Storage Path
+        'url',                // Public URL
         'mime_type',
-        'extension',
-        'size_bytes',
+        'size',               // In Bytes (Migration calls it 'size')
+        'disk',               // local, s3, public
+        'uploaded_by_user_id',
+        
+        // Metadata (Optional - if columns exist)
         'width',
         'height',
         'alt_text',
-        'title',
-        'description',
-        'disk',
-        'path',
-        'url',
-        'variants',
-        'hash',
-        'folder_id',
-        'uploaded_by_user_id',
-        'usage_count',
-        'usage_models',
+        'variants',           // JSON: { "thumb": "path/thumb.jpg" }
     ];
 
     protected $casts = [
-        'variants' => 'array',
-        'usage_models' => 'array',
+        'size' => 'integer',
         'width' => 'integer',
         'height' => 'integer',
-        'size_bytes' => 'integer',
-        'usage_count' => 'integer',
+        'variants' => 'array',
     ];
+
+    // অটোমেটিক JSON রেসপন্সে যুক্ত হবে
+    protected $appends = ['formatted_size', 'full_url'];
 
     /**
      * Get the folder that contains the media file.
@@ -70,38 +67,17 @@ class MediaFile extends Model
     }
 
     /**
-     * Check if the file is an image.
+     * Accessor: Human Readable File Size
+     * $file->formatted_size // Output: "2.5 MB"
      */
-    public function isImage(): bool
-    {
-        return str_starts_with($this->mime_type, 'image/');
-    }
-
-    /**
-     * Check if the file is a video.
-     */
-    public function isVideo(): bool
-    {
-        return str_starts_with($this->mime_type, 'video/');
-    }
-
-    /**
-     * Check if the file is a document.
-     */
-    public function isDocument(): bool
-    {
-        return str_starts_with($this->mime_type, 'application/') ||
-               str_starts_with($this->mime_type, 'text/');
-    }
-
-    /**
-     * Get the human-readable file size.
-     */
-    protected function humanSize(): Attribute
+    protected function formattedSize(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                $bytes = $this->size_bytes;
+            get: function () {
+                // Check if size is null
+                if (!$this->size) return '0 B';
+
+                $bytes = $this->size;
                 $units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
                 for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
@@ -114,103 +90,58 @@ class MediaFile extends Model
     }
 
     /**
-     * Get the full URL for the media file.
+     * Accessor: Full URL Logic
+     * Handles Cloud Storage (S3) or Local
      */
     protected function fullUrl(): Attribute
     {
         return Attribute::make(
-            get: function ($value) {
-                // Always generate full URL from path to avoid storing localhost URLs
-                return Storage::disk($this->disk)->url($this->path);
-            },
-        );
-    }
-
-    /**
-     * Get the URL for API responses (converts stored path to full URL).
-     */
-    protected function url(): Attribute
-    {
-        return Attribute::make(
-            get: function ($value) {
-                // Convert stored relative path to full URL for API responses
-                if ($value && !str_starts_with($value, 'http')) {
-                    return Storage::disk($this->disk)->url($value);
+            get: function () {
+                // 1. If absolute URL exists in DB, use it
+                if (str_starts_with($this->url, 'http')) {
+                    return $this->url;
                 }
-                return $value;
+                
+                // 2. Otherwise generate from Disk
+                return Storage::disk($this->disk ?? 'public')->url($this->path);
             },
         );
     }
 
     /**
-     * Get a specific variant URL.
+     * Helper: Check File Types
      */
-    public function getVariantUrl(string $variant): ?string
+    public function isImage(): bool
     {
-        $variantPath = $this->variants[$variant] ?? null;
-        if ($variantPath && !str_starts_with($variantPath, 'http')) {
-            return Storage::disk($this->disk)->url($variantPath);
+        return str_starts_with($this->mime_type, 'image/');
+    }
+
+    public function isVideo(): bool
+    {
+        return str_starts_with($this->mime_type, 'video/');
+    }
+
+    public function isDocument(): bool
+    {
+        return str_starts_with($this->mime_type, 'application/') ||
+               str_starts_with($this->mime_type, 'text/') || 
+               str_contains($this->mime_type, 'pdf');
+    }
+
+    /**
+     * Helper: Get Thumbnail
+     * Returns variant thumb if exists, otherwise original image
+     */
+    public function getThumbnailUrl(): string
+    {
+        if (!empty($this->variants['thumbnail'])) {
+            $path = $this->variants['thumbnail'];
+            // If path is full URL
+            if (str_starts_with($path, 'http')) return $path;
+            
+            return Storage::disk($this->disk ?? 'public')->url($path);
         }
-        return $variantPath;
-    }
 
-    /**
-     * Get the thumbnail URL.
-     */
-    public function getThumbnailUrl(): ?string
-    {
-        return $this->getVariantUrl('thumbnail') ?: ($this->isImage() ? $this->full_url : null);
-    }
-
-    /**
-     * Increment usage count and track model usage.
-     */
-    public function recordUsage(string $modelType, int $modelId): void
-    {
-        $this->increment('usage_count');
-
-        $usageModels = $this->usage_models ?? [];
-        $key = "{$modelType}:{$modelId}";
-
-        if (!in_array($key, $usageModels)) {
-            $usageModels[] = $key;
-            $this->update(['usage_models' => $usageModels]);
-        }
-    }
-
-    /**
-     * Remove usage tracking for a specific model.
-     */
-    public function removeUsage(string $modelType, int $modelId): void
-    {
-        $usageModels = $this->usage_models ?? [];
-        $key = "{$modelType}:{$modelId}";
-
-        $usageModels = array_values(array_filter($usageModels, fn($model) => $model !== $key));
-
-        $this->update([
-            'usage_models' => $usageModels,
-            'usage_count' => max(0, $this->usage_count - 1),
-        ]);
-    }
-
-    /**
-     * Generate a unique filename.
-     */
-    public static function generateUniqueFilename(string $originalFilename): string
-    {
-        $extension = pathinfo($originalFilename, PATHINFO_EXTENSION);
-        $basename = pathinfo($originalFilename, PATHINFO_FILENAME);
-        $slug = Str::slug($basename);
-
-        return $slug . '-' . Str::random(8) . '.' . $extension;
-    }
-
-    /**
-     * Generate SHA-256 hash for a file.
-     */
-    public static function generateFileHash(string $filePath): string
-    {
-        return hash_file('sha256', $filePath) ?: '';
+        return $this->isImage() ? $this->full_url : asset('assets/icons/file-icon.png');
     }
 }

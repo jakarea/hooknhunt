@@ -2,118 +2,60 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    protected $fillable = [
-        'base_name',
-        'slug',
-        'status',
-        'meta_title',
-        'meta_description',
-        'meta_keywords',
-        'canonical_url',
-        'description',
-        'category_ids', // Store multiple categories as JSON array
-        'base_thumbnail_url',
-        'gallery_images',
-        'brand_id',
-        'short_description',
-        'specifications',
-        'video_url',
-        'is_featured',
-    ];
+    protected $guarded = ['id'];
 
     protected $casts = [
-        'gallery_images' => 'array',
-        'category_ids' => 'array',
-        'specifications' => 'array',
-        'is_featured' => 'boolean',
+        'gallery_images' => 'array', // JSON Column for multiple images
+        'is_active' => 'boolean',
     ];
 
-    /**
-     * Get the full URL for the base thumbnail.
-     */
-    protected function baseThumbnailUrl(): Attribute
+    // 1. Relation with Category
+    public function category()
     {
-        return Attribute::make(
-            get: fn (?string $value) => $value ? url('storage/' . $value) : null,
-        );
+        return $this->belongsTo(Category::class);
     }
 
-    /**
-     * Get categories from the JSON field.
-     */
-    public function getCategoriesAttribute()
-    {
-        $categoryIds = $this->category_ids;
-
-        // Handle if category_ids is a JSON string (e.g., "[1,2,3]")
-        if (is_string($categoryIds)) {
-            $categoryIds = json_decode($categoryIds, true) ?? [];
-        }
-
-        if (empty($categoryIds) || !is_array($categoryIds)) {
-            return collect([]);
-        }
-
-        // Handle both string and array cases (for legacy data)
-        $categoryIds = $this->category_ids;
-        if (is_string($categoryIds)) {
-            $categoryIds = json_decode($categoryIds, true) ?? [];
-        }
-
-        if (empty($categoryIds)) {
-            return collect([]);
-        }
-
-        try {
-            return Category::whereIn('id', $categoryIds)->get();
-        } catch (\Exception $e) {
-            \Log::error('Error loading categories for product ' . $this->id . ': ' . $e->getMessage());
-            return collect([]);
-        }
-    }
-
-    /**
-     * Get category names as comma-separated string (for backward compatibility).
-     */
-    public function getCategoryNamesAttribute()
-    {
-        $categories = $this->categories;
-        return $categories->pluck('name')->implode(', ');
-    }
-
-    /**
-     * Get the variants for the product.
-     */
-    public function variants(): HasMany
-    {
-        return $this->hasMany(ProductVariant::class);
-    }
-
-    /**
-     * Get the brand for the product.
-     */
+    // 2. Relation with Brand
     public function brand()
     {
         return $this->belongsTo(Brand::class);
     }
 
-    /**
-     * Get the suppliers for the product.
-     */
+    // 3. Relation with Variants
+    public function variants()
+    {
+        return $this->hasMany(ProductVariant::class);
+    }
+
+    // 4. Relation with Thumbnail (This was missing)
+    public function thumbnail()
+    {
+        return $this->belongsTo(MediaFile::class, 'thumbnail_id');
+    }
+
+    // 5. Accessor for Gallery Images (Optional Helper)
+    // যেহেতু gallery_images একটি JSON কলাম (IDs), সরাসরি রিলেশন করা কঠিন।
+    // তাই আমরা একটি Accessor বা Helper মেথড রাখতে পারি।
+    public function getGalleryFilesAttribute()
+    {
+        if (empty($this->gallery_images)) return [];
+        return MediaFile::whereIn('id', $this->gallery_images)->get();
+    }
+    
+
+
     public function suppliers()
     {
         return $this->belongsToMany(Supplier::class, 'product_supplier')
-            ->withPivot('supplier_product_urls')
-            ->withTimestamps();
+                    ->withPivot('product_links', 'supplier_sku', 'cost_price')
+                    ->withTimestamps();
     }
 }
