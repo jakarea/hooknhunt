@@ -3,160 +3,76 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProductVariant extends Model
 {
-    protected $fillable = [
-        'product_id',
-        'sku',
-        'po_number',
-        'batch',
-        'retail_name',
-        'retail_price',
-        'wholesale_name',
-        'wholesale_price',
-        'daraz_name',
-        'daraz_price',
-        'retail_offer_discount_type',
-        'retail_offer_discount_value',
-        'retail_offer_start_date',
-        'retail_offer_end_date',
-        'wholesale_offer_discount_type',
-        'wholesale_offer_discount_value',
-        'wholesale_offer_start_date',
-        'wholesale_offer_end_date',
-        'daraz_offer_discount_type',
-        'daraz_offer_discount_value',
-        'daraz_offer_start_date',
-        'daraz_offer_end_date',
-        'landed_cost',
-        'moq_wholesale',
-        'weight',
-        'dimensions',
-        'status',
-    ];
+    use SoftDeletes;
 
-    protected $casts = [
-        'retail_price' => 'decimal:2',
-        'wholesale_price' => 'decimal:2',
-        'daraz_price' => 'decimal:2',
-        'retail_offer_discount_value' => 'decimal:2',
-        'wholesale_offer_discount_value' => 'decimal:2',
-        'daraz_offer_discount_value' => 'decimal:2',
-        'retail_offer_start_date' => 'datetime',
-        'retail_offer_end_date' => 'datetime',
-        'wholesale_offer_start_date' => 'datetime',
-        'wholesale_offer_end_date' => 'datetime',
-        'daraz_offer_start_date' => 'datetime',
-        'daraz_offer_end_date' => 'datetime',
-        'landed_cost' => 'decimal:2',
-        'moq_wholesale' => 'integer',
-        'weight' => 'decimal:2',
-        'dimensions' => 'json',
-        'status' => 'string',
-    ];
+    protected $guarded = ['id'];
+    protected $appends = ['current_stock', 'full_name'];
 
-    // Relationships
-    public function product(): BelongsTo
+    // --- Relationships ---
+
+    public function product()
     {
         return $this->belongsTo(Product::class);
     }
 
-    public function inventory(): HasMany
+    public function unit()
     {
-        return $this->hasMany(Inventory::class);
+        return $this->belongsTo(Unit::class);
     }
 
-    public function inventoryBatches(): HasMany
+    public function batches()
     {
-        return $this->hasMany(InventoryBatch::class);
-    }
-    
-    public function batches() {
-        return $this->hasMany(InventoryBatch::class);
-    }
-    
-    // Helper to get active batches
-    public function activeBatches() {
-        return $this->hasMany(InventoryBatch::class)
-                    ->where('status', 'active')
-                    ->where('current_quantity', '>', 0);
-    }
-    public function attributeOptions(): BelongsToMany
-    {
-        return $this->belongsToMany(AttributeOption::class, 'variant_attribute_options');
+        return $this->hasMany(InventoryBatch::class, 'product_variant_id');
     }
 
-    // Computed properties
-    public function getRetailMarginAttribute(): float
+    public function channelSettings()
     {
-        return $this->retail_price - $this->landed_cost;
+        return $this->hasMany(ProductChannelSetting::class, 'product_variant_id'); 
     }
 
-    public function getWholesaleMarginAttribute(): float
-    {
-        return $this->wholesale_price - $this->landed_cost;
-    }
+    // --- Accessors ---
 
-    public function getRetailMarginPercentageAttribute(): float
+    public function getCurrentStockAttribute()
     {
-        return $this->landed_cost > 0
-            ? (($this->retail_price - $this->landed_cost) / $this->landed_cost) * 100
-            : 0;
-    }
-
-    public function getWholesaleMarginPercentageAttribute(): float
-    {
-        return $this->landed_cost > 0
-            ? (($this->wholesale_price - $this->landed_cost) / $this->landed_cost) * 100
-            : 0;
-    }
-
-    public function getCurrentStockAttribute(): int
-    {
-        $inventory = $this->inventory()->first();
-        return $inventory ? $inventory->quantity : 0;
-    }
-
-    public function getAvailableStockAttribute(): int
-    {
-        $inventory = $this->inventory()->first();
-        return $inventory ? $inventory->available_quantity : 0;
-    }
-
-    // Get total stock from all inventory batches
-    public function getTotalBatchStockAttribute(): int
-    {
-        return $this->inventoryBatches()->available()->sum('current_quantity');
-    }
-
-    // Get latest batch (most recent purchase)
-    public function getLatestBatchAttribute(): ?InventoryBatch
-    {
-        return $this->inventoryBatches()->latest()->first();
-    }
-
-    // Helper methods
-    public function isInStock(): bool
-    {
-        return $this->available_stock > 0;
-    }
-
-    public function isLowStock(): bool
-    {
-        $inventory = $this->inventory()->first();
-        return $inventory ? $inventory->is_low_stock : false;
-    }
-
-    public function getFullNameAttribute(): string
-    {
-        $name = $this->retail_name ?: $this->sku;
-        if ($this->product) {
-            $name = $this->product->base_name . ' - ' . $name;
+        if ($this->relationLoaded('batches')) {
+            return $this->batches->sum('remaining_qty');
         }
-        return $name;
+        return $this->batches()->sum('remaining_qty');
+    }
+
+    public function getFullNameAttribute()
+    {
+        $productName = $this->relationLoaded('product') ? $this->product->name : 'Unknown Product';
+        return $productName . ' - ' . ($this->variant_name ?? $this->sku);
+    }
+
+    // --- Helper: Get Selling Price ---
+    
+    public function getPriceForChannel($channel)
+    {
+        // রিলেশন লোড না থাকলে লোড করে নিব (Performance Optimization)
+        if (!$this->relationLoaded('channelSettings')) {
+            $this->load('channelSettings');
+        }
+
+        // 1. Check specific channel price
+        // Fix: 'channel_slug' -> 'channel' (Database ENUM match)
+        $setting = $this->channelSettings->where('channel', $channel)->first();
+
+        if ($setting) {
+            return $setting->price;
+        }
+
+        // 2. Fallback Logic (যদি স্পেসিফিক দাম না থাকে)
+        if ($channel === 'wholesale_web') {
+            return $this->default_wholesale_price;
+        }
+
+        // বাকি সবার জন্য ডিফল্ট রিটেইল প্রাইস
+        return $this->default_retail_price;
     }
 }

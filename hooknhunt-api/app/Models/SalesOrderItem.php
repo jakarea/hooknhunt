@@ -3,74 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalesOrderItem extends Model
 {
-    protected $fillable = [
-        'order_id',
-        'product_variant_id',
-        'inventory_batch_id',
-        'quantity',
-        'unit_price',
-        'landed_cost_at_sale',
-    ];
+    protected $guarded = ['id'];
 
-    protected $casts = [
-        'quantity' => 'integer',
-        'unit_price' => 'decimal:2',
-        'landed_cost_at_sale' => 'decimal:2',
-    ];
-
-    /**
-     * Relationships
-     */
-
-    // Each sales order item belongs to a sales order
-    public function salesOrder(): BelongsTo
+    public function order()
     {
-        return $this->belongsTo(SalesOrder::class, 'order_id');
+        return $this->belongsTo(SalesOrder::class, 'sales_order_id');
     }
 
-    // Each sales order item is for a specific product variant
-    public function productVariant(): BelongsTo
+    public function variant()
     {
-        return $this->belongsTo(ProductVariant::class);
+        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
     }
 
-    // Each sales order item comes from a specific inventory batch
-    public function inventoryBatch(): BelongsTo
+    // Relation: Which batches fulfilled this item?
+    public function allocations()
     {
-        return $this->belongsTo(InventoryBatch::class);
+        return $this->hasMany(SalesItemAllocation::class);
     }
 
-    /**
-     * Accessors & Helpers
-     */
-
-    // Calculate total price for this line item
-    public function getTotalPriceAttribute(): float
+    // Calculate Profit for this line item
+    public function getProfitAttribute()
     {
-        return $this->quantity * $this->unit_price;
-    }
-
-    // Calculate total landed cost for this line item
-    public function getTotalLandedCostAttribute(): float
-    {
-        return $this->quantity * $this->landed_cost_at_sale;
-    }
-
-    // Calculate profit for this line item
-    public function getProfitAttribute(): float
-    {
-        return $this->total_price - $this->total_landed_cost;
-    }
-
-    // Calculate profit margin percentage
-    public function getProfitMarginAttribute(): float
-    {
-        return $this->total_price > 0
-            ? ($this->profit / $this->total_price) * 100
-            : 0;
+        return $this->total_price - $this->total_cost;
     }
 }
