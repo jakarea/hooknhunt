@@ -5,20 +5,42 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Models\Role;
 use App\Models\Permission;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class RoleController extends Controller
 {
-    public function index()
+    use ApiResponse;
+
+    /**
+     * স্টাফ অথবা কাস্টমার রোল আলাদাভাবে ড্রপডাউন বা লিস্টে দেখানো
+     */
+    public function index(Request $request)
     {
-        return Role::withCount('users')->get();
+        $type = $request->query('type'); // 'staff' or 'customer'
+
+        $query = Role::withCount('users');
+
+        if ($type === 'staff') {
+            $query->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+        } elseif ($type === 'customer') {
+            $query->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+        }
+
+        return $this->sendSuccess($query->get(), 'Role list retrieved.');
     }
 
+    /**
+     * ডাইনামিক রোল তৈরি
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|unique:roles,name'
+            'name' => 'required|unique:roles,name',
+            'description' => 'nullable|string',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:permissions,id'
         ]);
 
         $role = Role::create([
@@ -27,27 +49,70 @@ class RoleController extends Controller
             'description' => $request->description
         ]);
 
-        return response()->json($role, 201);
+        // রোল তৈরির সময় সরাসরি পারমিশন সিঙ্ক করা (ডাইনামিক)
+        if ($request->has('permissions')) {
+            $role->permissions()->sync($request->permissions);
+        }
+
+        return $this->sendSuccess($role->load('permissions'), 'Role created successfully.', 201);
     }
 
-    public function show($id)
+    /**
+     * সব পারমিশনের লিস্ট (মডিউল অনুযায়ী গ্রুপ করা)
+     * এটি অ্যাডমিন প্যানেলে চেকবক্স সাজাতে সাহায্য করবে
+     */
+    public function getAllPermissions()
     {
-        return Role::with('permissions')->findOrFail($id);
+        $permissions = Permission::all()->groupBy('module');
+        return $this->sendSuccess($permissions, 'Permissions grouped by module.');
     }
 
-    // Sync Permissions to Role (The Custom Logic)
+    /**
+     * ডাইনামিক পারমিশন সিঙ্কিং
+     */
     public function syncPermissions(Request $request, $id)
     {
+        $role = Role::findOrFail($id);
+
+        if ($role->slug === 'super_admin') {
+            return $this->sendError('Super Admin permissions cannot be modified.', null, 403);
+        }
+
         $request->validate([
-            'permissions' => 'required|array', // Array of permission IDs
+            'permissions' => 'required|array',
             'permissions.*' => 'exists:permissions,id'
         ]);
 
-        $role = Role::findOrFail($id);
-        
-        // Pivot Table Sync
         $role->permissions()->sync($request->permissions);
 
-        return response()->json(['message' => 'Permissions updated successfully']);
+        return $this->sendSuccess($role->load('permissions'), 'Permissions synced successfully.');
     }
+
+    public function getPermissions($id)
+    {
+        try {
+            // ১. রোলটি খুঁজে বের করা এবং তার সাথে পারমিশনগুলো লোড করা
+            $role = \App\Models\Role::with('permissions:id,name,slug,group_name')->findOrFail($id);
+
+            return response()->json([
+                'status' => true,
+                'message' => "Permissions for role: {$role->name}",
+                'data' => [
+                    'role_id' => $role->id,
+                    'role_name' => $role->name,
+                    'permissions' => $role->permissions
+                ],
+                'errors' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'রোলের পারমিশন পাওয়া যায়নি।',
+                'errors' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
 }

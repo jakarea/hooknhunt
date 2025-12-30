@@ -164,4 +164,15 @@ class AuthController extends Controller
         // 4. Send SMS Log
         \Log::info("OTP for User ID {$userId} ({$phone}): {$code}");
     }
+
+    public function profile(Request $request)
+    {
+        return response()->json([
+            'status' => true,
+            'message' => 'Profile retrieved successfully',
+            'data' => [
+                'user' => $request->user()->load('role')
+            ]
+        ]);
+    }
 }

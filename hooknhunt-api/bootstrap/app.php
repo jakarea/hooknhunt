@@ -3,10 +3,14 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
-use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use App\Http\Middleware\XssSanitization;
+
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -16,60 +20,110 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // API এর জন্য স্টেটফুল মিডলওয়্যার কনফিগারেশন (যদি দরকার হয়)
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-    })
-    ->withExceptions(function (Exceptions $exceptions) {
-        // 1. Handle Authentication Error (401)
+            $middleware->api(prepend: [
+                \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            ]);
+            
+            $middleware->append(XssSanitization::class);
+            $middleware->append(\App\Http\Middleware\AuditLogMiddleware::class);
+
+            $middleware->alias([
+                'auth' => \App\Http\Middleware\Authenticate::class,
+                'permission' => \App\Http\Middleware\CheckPermission::class, // এটি যুক্ত করুন
+                'role' => \App\Http\Middleware\CheckRoleMiddleware::class,   // এটিও যুক্ত করে রাখা ভালো
+            ]);
+        })
+        ->withExceptions(function (Exceptions $exceptions) {
+        
+        /**
+         * ১. Unauthenticated (401) - টোকেন ভুল বা না থাকলে।
+         * এটি আপনার সেই "Route [login] not defined" গর্তটি বন্ধ করবে।
+         */
         $exceptions->render(function (AuthenticationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Unauthenticated or Token Expired',
-                    'errors' => null,
+                    'message' => 'Unauthenticated',
+                    'errors' => 'আপনার টোকেনটি ভুল অথবা মেয়াদ শেষ হয়ে গেছে। দয়া করে আবার লগইন করুন।',
                     'data' => null
                 ], 401);
             }
         });
 
-        // 2. Handle Validation Error (422) - Global Fallback
+        /**
+         * ২. Validation Failed (422) - ভ্যালিডেশন এরর।
+         */
         $exceptions->render(function (ValidationException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Validation Failed',
-                    'errors' => $e->errors(), // Field specific errors
+                    'message' => 'ভ্যালিডেশন এরর',
+                    'errors' => $e->errors(),
                     'data' => null
                 ], 422);
             }
         });
 
-        // 3. Handle Not Found (404)
+        /**
+         * ৩. Resource Not Found (404) - ভুল URL বা ডাটা না থাকলে।
+         */
         $exceptions->render(function (NotFoundHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Resource Not Found',
-                    'errors' => null,
+                    'message' => 'লিংকটি খুঁজে পাওয়া যায়নি',
+                    'errors' => 'আপনি যে এপিআই এন্ডপয়েন্টটি খুঁজছেন তা আমাদের সিস্টেমে নেই।',
                     'data' => null
                 ], 404);
             }
         });
 
-        // 4. General Server Error (500) - For unexpected crashes
-        // প্রোডাকশনে ডিটেইলস হাইড করা ভালো, কিন্তু ডেভেলপমেন্টে দেখতে পারেন
-        //
-        $exceptions->render(function (\Throwable $e, Request $request) {
+        /**
+         * ৪. Access Denied (403) - পারমিশন না থাকলে।
+         */
+        $exceptions->render(function (AccessDeniedHttpException $e, Request $request) {
             if ($request->is('api/*')) {
                 return response()->json([
                     'status' => false,
-                    'message' => 'Server Error',
-                    'errors' => $e->getMessage(), // Hide in production
+                    'message' => 'অ্যাক্সেস ডিনাইড',
+                    'errors' => 'এই কাজটি করার অনুমতি আপনার নেই।',
+                    'data' => null
+                ], 403);
+            }
+        });
+
+        /**
+         * ৫. Method Not Allowed (405) - ভুল মেথডে রিকোয়েস্ট দিলে (যেমন GET এর জায়গায় POST)।
+         */
+        $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'ভুল মেথড',
+                    'errors' => 'এই এপিআই-তে রিকোয়েস্ট করার মেথডটি সঠিক নয়।',
+                    'data' => null
+                ], 405);
+            }
+        });
+
+        /**
+         * ৬. General Server Error (500) - ক্র্যাশ বা ইন্টারনাল বাগ।
+         * হ্যাকার যাতে কোড বা পাথের হদিস না পায়, তাই আমরা ডিটেইলস লুকিয়ে ফেলব।
+         */
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if ($request->is('api/*')) {
+                // অ্যাপ যদি প্রোডাকশনে থাকে তবে ডিটেইল এরর লুকান
+                $message = config('app.debug') ? $e->getMessage() : 'সার্ভার ইন্টারনাল এরর। দয়া করে এডমিনের সাথে যোগাযোগ করুন।';
+                
+                return response()->json([
+                    'status' => false,
+                    'message' => 'সার্ভার এরর',
+                    'errors' => $message,
                     'data' => null
                 ], 500);
             }
         });
-        
+
     })->create();
+
+     // 'errors' => $e->getMessage(), // Hide in production

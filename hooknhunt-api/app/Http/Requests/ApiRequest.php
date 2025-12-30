@@ -17,6 +17,20 @@ class ApiRequest extends FormRequest
     }
 
     /**
+     * Handle a failed authorization attempt.
+     */
+    protected function failedAuthorization()
+    {
+        throw new HttpResponseException(response()->json([
+            'status' => false,
+            'message' => 'Unauthorized Access',
+            'errors' => 'You do not have permission to perform this action.',
+            'data' => null
+        ], 403));
+    }
+
+
+    /**
      * Handle a failed validation attempt.
      * Overriding default behavior to return JSON.
      */
@@ -29,4 +43,5 @@ class ApiRequest extends FormRequest
             'errors' => $validator->errors()
         ], 422));
     }
+
 }

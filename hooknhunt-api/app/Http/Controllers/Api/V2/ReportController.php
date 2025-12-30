@@ -7,6 +7,7 @@ use App\Models\JournalItem;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon; // <--- Carbon Import করুন
 
 class ReportController extends Controller
 {
@@ -17,8 +18,14 @@ class ReportController extends Controller
      */
     public function profitLoss(Request $request)
     {
-        $startDate = $request->start_date ?? date('Y-m-01');
-        $endDate = $request->end_date ?? date('Y-m-d');
+        // Date Fix: Ensure full day coverage
+        $startDate = $request->start_date 
+            ? Carbon::parse($request->start_date)->startOfDay() 
+            : Carbon::now()->startOfMonth();
+            
+        $endDate = $request->end_date 
+            ? Carbon::parse($request->end_date)->endOfDay() 
+            : Carbon::now()->endOfDay();
 
         // Calculate Total Income (Credit balance of 'income' type accounts)
         $income = JournalItem::whereHas('account', fn($q) => $q->where('type', 'income'))
@@ -26,7 +33,6 @@ class ReportController extends Controller
             ->sum(DB::raw('credit - debit'));
 
         // Calculate Total Expense (Debit balance of 'expense' type accounts)
-        // Also include COGS (Cost of Goods Sold)
         $expense = JournalItem::whereHas('account', fn($q) => $q->where('type', 'expense'))
             ->whereBetween('created_at', [$startDate, $endDate])
             ->sum(DB::raw('debit - credit'));
@@ -34,10 +40,10 @@ class ReportController extends Controller
         $netProfit = $income - $expense;
 
         return $this->sendSuccess([
-            'date_range' => "$startDate to $endDate",
-            'total_income' => $income,
-            'total_expense' => $expense,
-            'net_profit' => $netProfit,
+            'date_range' => $startDate->format('Y-m-d') . " to " . $endDate->format('Y-m-d'),
+            'total_income' => (float) $income,
+            'total_expense' => (float) $expense,
+            'net_profit' => (float) $netProfit,
             'status' => $netProfit >= 0 ? 'Profit' : 'Loss'
         ]);
     }

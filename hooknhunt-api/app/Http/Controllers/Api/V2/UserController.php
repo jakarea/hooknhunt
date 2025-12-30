@@ -1,0 +1,208 @@
+<?php
+
+namespace App\Http\Controllers\Api\V2; // Namespace updated to V2
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\ApiRequest; // আমাদের তৈরি করা সেই সিকিউর বেস রিকোয়েস্ট
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\JsonResponse;
+use App\Models\Role;
+use App\Traits\ApiResponse;
+
+
+
+class UserController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * অ্যাডমিন প্যানেলের জন্য ইউজার লিস্ট (কাস্টমার বাদে বাকি স্টাফরা)
+     */
+   // ১. ইউজার লিস্ট (ফিল্টারসহ)
+/**
+     * Display a listing of Users (Isolated Staff or Customer)
+     */
+    public function index(Request $request)
+    {
+        $type = $request->query('type'); // 'staff' or 'customer'
+
+        $query = User::with('role');
+
+        if ($type === 'staff') {
+            // শুধুমাত্র স্টাফ রোলগুলো ফিল্টার (কাস্টমার বাদে বাকি সব)
+            $query->whereHas('role', function($q) {
+                $q->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+            });
+        } elseif ($type === 'customer') {
+            // শুধুমাত্র কাস্টমার রোলগুলো ফিল্টার
+            $query->whereHas('role', function($q) {
+                $q->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+            });
+        } else {
+            // যদি টাইপ না থাকে, তবে সিকিউরিটির জন্য খালি রেজাল্ট পাঠানোই প্রফেশনালিজম
+            return $this->sendError('User type is required (staff or customer).', null, 400);
+        }
+
+        return $this->sendSuccess($query->latest()->paginate(20), ucfirst($type) . ' list retrieved.');
+    }
+
+    /**
+     * Store a User (With Strict Role Enforcement)
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|unique:users,phone',
+            'role_id' => 'required|exists:roles,id',
+            'password' => 'required|min:6',
+            'type' => 'required|in:staff,customer' // রিকোয়েস্টে টাইপ থাকা বাধ্যতামূলক
+        ]);
+
+        $role = Role::find($request->role_id);
+        
+        // ভ্যালিডেশন: স্টাফ রোলে কাস্টমার বা কাস্টমার রোলে স্টাফ ঢুকছে কি না চেক
+        if ($request->type === 'staff' && in_array($role->slug, ['retail_customer', 'wholesale_customer'])) {
+            return $this->sendError('Invalid role assigned for a Staff user.', null, 422);
+        }
+
+        if ($request->type === 'customer' && !in_array($role->slug, ['retail_customer', 'wholesale_customer'])) {
+            return $this->sendError('Invalid role assigned for a Customer.', null, 422);
+        }
+
+        $user = User::create([
+            'name' => strip_tags($request->name),
+            'phone' => $request->phone,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role_id' => $request->role_id,
+            'is_active' => true,
+            'phone_verified_at' => now(),
+        ]);
+
+        return $this->sendSuccess($user->load('role'), ucfirst($request->type) . ' created successfully.', 201);
+    }
+    // ৩. ইউজার আপডেট (রোল এবং পারমিশন পরিবর্তন)
+   public function update(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        
+        // শুধু সেই ডেটাগুলোই আপডেট হবে যা রিকোয়েস্টে পাঠানো হয়েছে
+        if($request->has('role_id')) {
+            $user->role_id = $request->role_id;
+        }
+        
+        if($request->has('name')) $user->name = $request->name;
+        if($request->has('email')) $user->email = $request->email;
+        
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User updated successfully.',
+            'data' => $user->load('role') // রোলসহ ডাটা লোড হবে
+        ]);
+    }
+
+    // ৪. ইউজার ব্যান/অ্যাক্টিভ করা
+    public function banUser($id)
+    {
+        $user = User::findOrFail($id);
+        $user->update(['is_active' => !$user->is_active]);
+        
+        $status = $user->is_active ? 'activated' : 'banned';
+        return $this->sendSuccess(null, "User has been {$status}.");
+    }
+
+    // ৫. রোল লিস্ট (ড্রপডাউনের জন্য)
+    public function roleList()
+    {
+        return $this->sendSuccess(Role::all(), 'Roles retrieved.');
+    }
+
+    // ৬. ডিলিট
+    public function destroy(User $user)
+    {
+        if ($user->id === auth()->id()) {
+            return $this->sendError('You cannot delete yourself.', null, 400);
+        }
+        $user->delete();
+        return $this->sendSuccess(null, 'User deleted successfully.');
+    }
+
+    public function blockPermission(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $permissionId = $request->permission_id;
+
+        // syncWithoutDetaching ব্যবহার করে is_blocked ১ করে দিন
+        $user->directPermissions()->syncWithoutDetaching([
+            $permissionId => ['is_blocked' => true]
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'পারমিশনটি এই ইউজারের জন্য ব্লক করা হয়েছে।',
+        ]);
+    }
+
+    public function giveDirectPermission(Request $request, $userId)
+    {
+        $request->validate([
+            'permissions' => 'required|array',
+            'permissions.*' => 'exists:permissions,id'
+        ]);
+
+        $user = User::findOrFail($userId);
+        // sync ব্যবহার করলে আগের পারমিশন মুছে নতুনগুলো বসবে
+        $user->directPermissions()->sync($request->permissions);
+
+        return $this->sendSuccess(null, 'Personal permissions updated for ' . $user->name);
+    }
+
+    public function show($id)
+    {
+        try {
+            $user = \App\Models\User::with([
+                'role.permissions:id,name,slug', 
+                'directPermissions:id,name,slug' 
+            ])->findOrFail($id);
+
+            // ১. directPermissions থেকে pivot হাইড করা
+            $user->directPermissions->makeHidden('pivot');
+
+            // ২. রোলের পারমিশন থেকে pivot হাইড করা
+            if ($user->role) {
+                $user->role->permissions->makeHidden('pivot');
+            }
+
+            // ৩. Effective permissions তৈরি করা এবং সেখান থেকেও pivot হাইড করা
+            $rolePermissions = $user->role ? $user->role->permissions : collect([]);
+            $effectivePermissions = $rolePermissions->merge($user->directPermissions)
+                                    ->unique('id')
+                                    ->values() // ইন্ডেক্স রিসেট করার জন্য
+                                    ->makeHidden(['pivot','id']);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'ইউজার ডিটেইলস এবং পারমিশন পাওয়া গেছে।',
+                'data' => [
+                    'user' => $user,
+                    'effective_permissions' => $effectivePermissions
+                ],
+                'errors' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'ইউজার খুঁজে পাওয়া যায়নি।',
+                'errors' => $e->getMessage(),
+                'data' => null
+            ], 404);
+        }
+    }
+
+}

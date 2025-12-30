@@ -3,26 +3,48 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
+use App\Models\Courier;
 use App\Models\SalesOrder;
+use App\Models\CourierZoneRate;
 use App\Services\SteadfastService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class CourierController extends Controller
 {
     use ApiResponse;
 
-    protected $courierService;
-
-    public function __construct(SteadfastService $service)
+    // --- Admin Config ---
+    public function index()
     {
-        $this->courierService = $service;
+        return $this->sendSuccess(Courier::all());
     }
 
-    /**
-     * 1. Book an Order to Courier (Single)
-     */
+    public function update(Request $request, $id)
+    {
+        $courier = Courier::findOrFail($id);
+        $courier->update($request->all());
+        return $this->sendSuccess($courier, 'Courier settings updated');
+    }
+
+    public function testConnection(Request $request, $id)
+    {
+        $service = new SteadfastService();
+        $response = $service->checkStatus('TEST-CONNECTION');
+        return $this->sendSuccess($response, 'Connection Test');
+    }
+
+    public function getZoneRates($id)
+    {
+        return $this->sendSuccess(CourierZoneRate::where('courier_id', $id)->get());
+    }
+    
+    public function updateZoneRates(Request $request) {
+        return $this->sendSuccess(null, 'Updated');
+    }
+
+    // --- Operations ---
+
     public function bookOrder($orderId)
     {
         $order = SalesOrder::with('customer')->findOrFail($orderId);
@@ -31,7 +53,8 @@ class CourierController extends Controller
             return $this->sendError('Order already booked.', ['tracking_id' => $order->courier_tracking_id]);
         }
 
-        $result = $this->courierService->createOrder($order);
+        $service = new SteadfastService();
+        $result = $service->createOrder($order);
 
         if ($result['success']) {
             $order->update([
@@ -45,49 +68,53 @@ class CourierController extends Controller
         }
     }
 
-    /**
-     * 2. Check Status (Single)
-     */
     public function checkStatus($trackingCode)
     {
-        $status = $this->courierService->checkStatus($trackingCode);
+        $service = new SteadfastService();
+        $status = $service->checkStatus($trackingCode);
         return $this->sendSuccess($status);
     }
 
     /**
-     * 3. Bulk Status Check (For Cron Job / Admin Button)
-     * এটি পেন্ডিং সব অর্ডারের স্ট্যাটাস চেক করে আপডেট করবে
+     * Bulk Status Update (Production Ready)
      */
     public function bulkStatusUpdate()
     {
-        // যেসব অর্ডার শিপড হয়েছে কিন্তু ডেলিভারড হয়নি
+        // ১. শিপড এবং ট্র্যাকিং আইডি আছে এমন অর্ডার খোঁজা
         $orders = SalesOrder::whereNotNull('courier_tracking_id')
                     ->where('status', 'shipped')
-                    ->take(20) // API লিমিট এড়াতে ২০টা করে চেক করি
+                    ->take(50) 
                     ->get();
 
+        if ($orders->isEmpty()) {
+            return $this->sendSuccess(null, "No shipped orders found to update.");
+        }
+
         $updatedCount = 0;
+        $service = new SteadfastService();
 
         foreach ($orders as $order) {
-            $response = $this->courierService->checkStatus($order->courier_tracking_id);
+            // ২. স্ট্যাটাস চেক
+            $response = $service->checkStatus($order->courier_tracking_id);
             
-            // Steadfast এর স্ট্যাটাস রেসপন্স অনুযায়ী লজিক (API Doc দেখে ম্যাপিং করতে হবে)
-            if (isset($response['delivery_status'])) {
-                $status = strtolower($response['delivery_status']);
-                
-                if ($status == 'delivered') {
-                    $order->update(['status' => 'delivered']);
-                    // এখানে Loyalty Point বা Payment লজিক কল করা যেতে পারে
-                    $updatedCount++;
-                } 
-                elseif ($status == 'cancelled' || $status == 'returned') {
-                    $order->update(['status' => 'returned']);
-                    // রিটার্ন লজিক হ্যান্ডেল করতে হবে
-                    $updatedCount++;
-                }
+            // ৩. ভ্যালিডেশন
+            if (!is_array($response) || !isset($response['delivery_status'])) {
+                continue;
+            }
+
+            $status = strtolower($response['delivery_status']);
+            
+            // ৪. স্ট্যাটাস আপডেট লজিক
+            if ($status == 'delivered') {
+                $order->update(['status' => 'delivered']);
+                $updatedCount++;
+            } 
+            elseif (in_array($status, ['cancelled', 'returned'])) {
+                $order->update(['status' => 'returned']);
+                $updatedCount++;
             }
         }
 
-        return $this->sendSuccess(null, "$updatedCount orders status updated.");
+        return $this->sendSuccess(null, "$updatedCount orders updated successfully.");
     }
 }

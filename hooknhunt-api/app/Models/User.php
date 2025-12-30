@@ -35,4 +35,31 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserProfile::class);
     }
+    public function directPermissions()
+    {
+        return $this->belongsToMany(Permission::class, 'permission_user');
+    }
+
+
+    public function hasPermissionTo($slug): bool
+    {
+        // ১. প্রথমেই চেক করুন এই ইউজারের জন্য এই পারমিশনটি 'Block' করা কি না
+        $isBlocked = $this->directPermissions()
+                        ->where('slug', $slug)
+                        ->where('is_blocked', 1)
+                        ->exists();
+
+        if ($isBlocked) {
+            return false; // রোলে থাকলেও সে এটি করতে পারবে না
+        }
+
+        // ২. আগের মতো রোল এবং ডাইরেক্ট পারমিশন চেক করুন
+        $rolePermissions = $this->role?->permissions()->pluck('slug')->toArray() ?? [];
+        $directAllowed = $this->directPermissions()
+                            ->where('is_blocked', 0)
+                            ->pluck('slug')->toArray();
+
+        return in_array($slug, array_merge($rolePermissions, $directAllowed));
+    }
+
 }

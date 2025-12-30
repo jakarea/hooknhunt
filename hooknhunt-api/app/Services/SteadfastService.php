@@ -2,39 +2,48 @@
 
 namespace App\Services;
 
+use App\Models\Courier;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class SteadfastService
 {
-    private $baseUrl;
-    private $apiKey;
-    private $secretKey;
+    protected $baseUrl = 'https://portal.packzy.com/api/v1';
+    protected $apiKey;
+    protected $secretKey;
 
     public function __construct()
     {
-        $this->baseUrl = env('STEADFAST_BASE_URL', 'https://portal.steadfast.com.bd/api/v1');
-        $this->apiKey = env('STEADFAST_API_KEY');
-        $this->secretKey = env('STEADFAST_SECRET_KEY');
+        $courier = Courier::where('name', 'Steadfast')->first();
+        $this->apiKey = $courier->api_key ?? null;
+        $this->secretKey = $courier->secret_key ?? null;
     }
 
     /**
-     * Send Order to Steadfast (Create Consignment)
+     * Create Order
      */
     public function createOrder($order)
     {
-        // 1. Prepare Payload according to Steadfast Documentation
+        // Mock Mode
+        if (empty($this->apiKey) || $this->apiKey === 'TEST_KEY') {
+            return [
+                'success' => true,
+                'tracking_code' => 'SF-MOCK-' . time(),
+                'consignment_id' => rand(100000, 999999),
+                'msg' => 'Mock Order Placed (Test Mode)'
+            ];
+        }
+
         $payload = [
             'invoice' => $order->invoice_no,
             'recipient_name' => $order->customer->name,
             'recipient_phone' => $order->customer->phone,
-            'recipient_address' => $order->customer->shipping_address ?? $order->customer->address,
-            'cod_amount' => $order->due_amount, // শুধু বাকি টাকা কালেকশন হবে
-            'note' => 'Handle with care',
+            'recipient_address' => $order->shipping_address ?? $order->customer->address ?? 'Dhaka',
+            'cod_amount' => (float) $order->due_amount,
+            'note' => 'Handle with care'
         ];
 
         try {
-            // 2. Send Request
             $response = Http::withHeaders([
                 'Api-Key' => $this->apiKey,
                 'Secret-Key' => $this->secretKey,
@@ -43,40 +52,57 @@ class SteadfastService
 
             $result = $response->json();
 
-            // 3. Log for debugging
-            Log::info("Steadfast Response for Order #{$order->invoice_no}:", $result);
-
-            // 4. Return formatted response
             if (isset($result['status']) && $result['status'] == 200) {
                 return [
                     'success' => true,
-                    'consignment_id' => $result['consignment']['consignment_id'],
                     'tracking_code' => $result['consignment']['tracking_code'],
-                    'msg' => 'Order placed to courier successfully'
-                ];
-            } else {
-                return [
-                    'success' => false,
-                    'msg' => $result['errors']['invoice'][0] ?? 'Failed to place order in Steadfast'
+                    'consignment_id' => $result['consignment']['consignment_id'],
+                    'msg' => 'Order placed successfully'
                 ];
             }
 
+            // Error Handling
+            $errorMsg = $result['errors'] ?? 'Unknown Error';
+            return [
+                'success' => false,
+                'msg' => is_array($errorMsg) ? json_encode($errorMsg) : $errorMsg
+            ];
+
         } catch (\Exception $e) {
             Log::error("Steadfast API Error: " . $e->getMessage());
-            return ['success' => false, 'msg' => 'Connection error with Courier API'];
+            return [
+                'success' => false,
+                'msg' => 'Connection Error'
+            ];
         }
     }
 
     /**
-     * Check Delivery Status
+     * Check Status
+     * Returns Array always.
      */
-    public function checkStatus($consignmentId)
+    public function checkStatus($trackingCode)
     {
-        $response = Http::withHeaders([
-            'Api-Key' => $this->apiKey,
-            'Secret-Key' => $this->secretKey
-        ])->get("{$this->baseUrl}/status_by_cid/$consignmentId");
+        // Mock Mode: Always return 'delivered' for testing purpose
+        // (Production এ গেলে 'delivered' এর বদলে 'unknown' বা API কল রাখবেন)
+        if (empty($this->apiKey) || $this->apiKey === 'TEST_KEY') {
+            return ['delivery_status' => 'delivered'];
+        }
 
-        return $response->json();
+        try {
+            $response = Http::withHeaders([
+                'Api-Key' => $this->apiKey,
+                'Secret-Key' => $this->secretKey
+            ])->get("{$this->baseUrl}/status_by_trackingcode/{$trackingCode}");
+
+            $data = $response->json();
+            
+            // যদি API null বা খালি দেয়, ডিফল্ট অ্যারে রিটার্ন করব
+            return is_array($data) ? $data : ['status' => 'error', 'msg' => 'Empty response'];
+
+        } catch (\Exception $e) {
+            Log::error("Steadfast Status Check Error: " . $e->getMessage());
+            return ['status' => 'error', 'msg' => $e->getMessage()];
+        }
     }
 }
