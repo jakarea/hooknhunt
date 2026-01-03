@@ -17,11 +17,16 @@ class PayrollController extends Controller
     use ApiResponse;
 
     /**
-     * 1. List Payrolls (Filter by Month)
+     * 1. List Payrolls (Filter by Month, User, Status)
      */
     public function index(Request $request)
     {
         $query = Payroll::with(['user:id,name', 'user.profile:user_id,designation,department_id', 'user.profile.department']);
+
+        // Admin can filter by specific user
+        if ($request->has('user_id') && in_array(auth()->user()->role_id, [1, 2])) {
+            $query->where('user_id', $request->user_id);
+        }
 
         if ($request->month_year) {
             $query->where('month_year', $request->month_year);
@@ -30,8 +35,8 @@ class PayrollController extends Controller
         if ($request->status) {
             $query->where('status', $request->status);
         }
-        
-        // Staff can only see their own
+
+        // Staff can only see their own (unless admin already filtered by user_id above)
         if (!in_array(auth()->user()->role_id, [1, 2])) {
             $query->where('user_id', auth()->id());
         }

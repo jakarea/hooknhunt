@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Role;
+use App\Models\Permission;
 
 class BatchOneSeeder extends Seeder
 {
@@ -18,6 +20,14 @@ class BatchOneSeeder extends Seeder
             ['name' => 'Retail Customer', 'slug' => 'retail_customer', 'description' => 'Regular Web User'],
         ];
         DB::table('roles')->insert($roles);
+
+        // Assign all permissions to Super Admin (role_id: 1)
+        $superAdmin = Role::find(1);
+        if ($superAdmin) {
+            $allPermissionIds = Permission::pluck('id');
+            $superAdmin->permissions()->sync($allPermissionIds);
+            $this->command->info('Assigned all permissions to Super Admin role.');
+        }
 
         // 2. Units
         $units = [

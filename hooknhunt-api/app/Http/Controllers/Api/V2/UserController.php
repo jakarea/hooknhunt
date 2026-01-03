@@ -58,11 +58,23 @@ class UserController extends Controller
             'phone' => 'required|unique:users,phone',
             'role_id' => 'required|exists:roles,id',
             'password' => 'required|min:6',
-            'type' => 'required|in:staff,customer' // রিকোয়েস্টে টাইপ থাকা বাধ্যতামূলক
+            'type' => 'required|in:staff,customer', // রিকোয়েস্টে টাইপ থাকা বাধ্যতামূলক
+            'email' => 'nullable|email|unique:users,email',
+
+            // Profile fields (optional)
+            'profile' => 'nullable|array',
+            'profile.department_id' => 'nullable|exists:departments,id',
+            'profile.designation' => 'nullable|string|max:255',
+            'profile.joining_date' => 'nullable|date',
+            'profile.base_salary' => 'nullable|numeric',
+            'profile.address' => 'nullable|string',
+            'profile.city' => 'nullable|string',
+            'profile.dob' => 'nullable|date',
+            'profile.gender' => 'nullable|in:male,female,other',
         ]);
 
         $role = Role::find($request->role_id);
-        
+
         // ভ্যালিডেশন: স্টাফ রোলে কাস্টমার বা কাস্টমার রোলে স্টাফ ঢুকছে কি না চেক
         if ($request->type === 'staff' && in_array($role->slug, ['retail_customer', 'wholesale_customer'])) {
             return $this->sendError('Invalid role assigned for a Staff user.', null, 422);
@@ -82,27 +94,93 @@ class UserController extends Controller
             'phone_verified_at' => now(),
         ]);
 
-        return $this->sendSuccess($user->load('role'), ucfirst($request->type) . ' created successfully.', 201);
+        // Create profile if provided
+        if ($request->has('profile') && is_array($request->profile)) {
+            $user->profile()->create($request->profile);
+        }
+
+        return $this->sendSuccess($user->load('role', 'profile'), ucfirst($request->type) . ' created successfully.', 201);
     }
     // ৩. ইউজার আপডেট (রোল এবং পারমিশন পরিবর্তন)
    public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
-        // শুধু সেই ডেটাগুলোই আপডেট হবে যা রিকোয়েস্টে পাঠানো হয়েছে
+
+        // Validation
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|unique:users,phone,' . $id,
+            'email' => 'nullable|email|unique:users,email,' . $id,
+            'role_id' => 'required|exists:roles,id',
+            'is_active' => 'sometimes|boolean',
+            'password' => 'nullable|min:6',
+
+            // Profile fields (optional)
+            'department_id' => 'nullable|exists:departments,id',
+            'designation' => 'nullable|string|max:255',
+            'joining_date' => 'nullable|date',
+            'base_salary' => 'nullable|numeric',
+            'address' => 'nullable|string',
+            'city' => 'nullable|string',
+            'dob' => 'nullable|date',
+            'gender' => 'nullable|in:male,female,other',
+        ]);
+
+        // Update user basic fields
         if($request->has('role_id')) {
-            $user->role_id = $request->role_id;
+            $user->role_id = $validated['role_id'];
         }
-        
-        if($request->has('name')) $user->name = $request->name;
-        if($request->has('email')) $user->email = $request->email;
-        
+        if($request->has('name')) {
+            $user->name = $validated['name'];
+        }
+        if($request->has('phone')) {
+            $user->phone = $validated['phone'];
+        }
+        if($request->has('email')) {
+            $user->email = $validated['email'];
+        }
+        if($request->has('is_active')) {
+            $user->is_active = $validated['is_active'];
+        }
+        if($request->has('password') && !empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+
         $user->save();
+
+        // Update or create profile if any profile field is provided
+        $profileFields = ['department_id', 'designation', 'joining_date', 'base_salary', 'address', 'city', 'dob', 'gender'];
+        $hasProfileData = false;
+
+        foreach ($profileFields as $field) {
+            if ($request->has($field) && !is_null($validated[$field])) {
+                $hasProfileData = true;
+                break;
+            }
+        }
+
+        if ($hasProfileData) {
+            $profileData = [];
+
+            // Build profile data from request
+            foreach ($profileFields as $field) {
+                if ($request->has($field)) {
+                    $profileData[$field] = $validated[$field] ?? null;
+                }
+            }
+
+            // Update existing profile or create new one
+            if ($user->profile) {
+                $user->profile()->update($profileData);
+            } else {
+                $user->profile()->create($profileData);
+            }
+        }
 
         return response()->json([
             'status' => true,
             'message' => 'User updated successfully.',
-            'data' => $user->load('role') // রোলসহ ডাটা লোড হবে
+            'data' => $user->load('role', 'profile')
         ]);
     }
 
@@ -117,9 +195,21 @@ class UserController extends Controller
     }
 
     // ৫. রোল লিস্ট (ড্রপডাউনের জন্য)
-    public function roleList()
+    public function roleList(Request $request)
     {
-        return $this->sendSuccess(Role::all(), 'Roles retrieved.');
+        $type = $request->query('type'); // 'staff' or 'customer'
+
+        $query = Role::query();
+
+        if ($type === 'staff') {
+            // শুধুমাত্র স্টাফ রোলগুলো ফিল্টার (কাস্টমার বাদে বাকি সব)
+            $query->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+        } elseif ($type === 'customer') {
+            // শুধুমাত্র কাস্টমার রোলগুলো ফিল্টার
+            $query->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+        }
+
+        return $this->sendSuccess($query->get(), 'Roles retrieved.');
     }
 
     // ৬. ডিলিট
@@ -166,31 +256,42 @@ class UserController extends Controller
     {
         try {
             $user = \App\Models\User::with([
-                'role.permissions:id,name,slug', 
-                'directPermissions:id,name,slug' 
+                'role.permissions:id,name,slug,group_name',
+                'directPermissions' => function ($query) {
+                    $query->select('permissions.id', 'permissions.name', 'permissions.slug', 'permissions.group_name')
+                          ->withPivot('is_blocked');
+                },
+                'profile' // Load user profile
             ])->findOrFail($id);
 
-            // ১. directPermissions থেকে pivot হাইড করা
-            $user->directPermissions->makeHidden('pivot');
-
-            // ২. রোলের পারমিশন থেকে pivot হাইড করা
+            // ১. রোলের পারমিশন থেকে pivot হাইড করা
             if ($user->role) {
                 $user->role->permissions->makeHidden('pivot');
             }
 
-            // ৩. Effective permissions তৈরি করা এবং সেখান থেকেও pivot হাইড করা
+            // ২. Separate granted and blocked permissions BEFORE hiding pivot
+            $grantedPermissions = $user->directPermissions->filter(function ($perm) {
+                return isset($perm->pivot) && $perm->pivot->is_blocked == 0;
+            })->makeHidden(['pivot', 'id']);
+
+            $blockedPermissions = $user->directPermissions->filter(function ($perm) {
+                return isset($perm->pivot) && $perm->pivot->is_blocked == 1;
+            })->makeHidden(['pivot', 'id']);
+
+            // ৩. Hide pivot from remaining directPermissions
+            $user->directPermissions->makeHidden('pivot');
+
+            // Role permissions (for reference)
             $rolePermissions = $user->role ? $user->role->permissions : collect([]);
-            $effectivePermissions = $rolePermissions->merge($user->directPermissions)
-                                    ->unique('id')
-                                    ->values() // ইন্ডেক্স রিসেট করার জন্য
-                                    ->makeHidden(['pivot','id']);
 
             return response()->json([
                 'status' => true,
-                'message' => 'ইউজার ডিটেইলস এবং পারমিশন পাওয়া গেছে।',
+                'message' => 'User details retrieved.',
                 'data' => [
                     'user' => $user,
-                    'effective_permissions' => $effectivePermissions
+                    'role_permissions' => $rolePermissions,
+                    'granted_permissions' => $grantedPermissions,
+                    'blocked_permissions' => $blockedPermissions,
                 ],
                 'errors' => null
             ], 200);
@@ -198,11 +299,49 @@ class UserController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'ইউজার খুঁজে পাওয়া যায়নি।',
+                'message' => 'User not found.',
                 'errors' => $e->getMessage(),
                 'data' => null
             ], 404);
         }
+    }
+
+    // ৭. Sync granted permissions
+    public function syncGrantedPermissions(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'permissions' => 'required|array',
+            'permissions.*' => 'exists:permissions,id'
+        ]);
+
+        // Sync with is_blocked = 0
+        $user->directPermissions()->syncWithPivotValues(
+            $request->permissions,
+            ['is_blocked' => 0]
+        );
+
+        return $this->sendSuccess(null, 'Granted permissions updated.');
+    }
+
+    // ৮. Sync blocked permissions
+    public function syncBlockedPermissions(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'permissions' => 'required|array',
+            'permissions.*' => 'exists:permissions,id'
+        ]);
+
+        // Sync with is_blocked = 1
+        $user->directPermissions()->syncWithPivotValues(
+            $request->permissions,
+            ['is_blocked' => 1]
+        );
+
+        return $this->sendSuccess(null, 'Blocked permissions updated.');
     }
 
 }

@@ -8,9 +8,30 @@ class Department extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * Department has many employees (through user profiles)
+     */
     public function employees()
     {
-        // UserProfile এর মাধ্যমে User এর সাথে সম্পর্ক
-        return $this->hasManyThrough(User::class, UserProfile::class, 'department_id', 'id', 'id', 'user_id');
+        return $this->hasMany(UserProfile::class, 'department_id');
+    }
+
+    /**
+     * Get all users belonging to this department
+     */
+    public function users()
+    {
+        return $this->hasManyThrough(
+            User::class,
+            UserProfile::class,
+            'department_id',
+            'id',
+            'id',
+            'user_id'
+        );
     }
 }

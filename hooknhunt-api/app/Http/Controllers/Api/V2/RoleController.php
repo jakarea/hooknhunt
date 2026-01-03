@@ -68,6 +68,61 @@ class RoleController extends Controller
     }
 
     /**
+     * Show specific role with permissions
+     */
+    public function show($id)
+    {
+        $role = Role::with(['permissions:id,name,slug,group_name', 'users'])->findOrFail($id);
+        return $this->sendSuccess($role, 'Role retrieved successfully.');
+    }
+
+    /**
+     * Update role
+     */
+    public function update(Request $request, $id)
+    {
+        $role = Role::findOrFail($id);
+
+        // Prevent modifying super admin role
+        if ($role->slug === 'super_admin') {
+            return $this->sendError('Super Admin role cannot be modified.', null, 403);
+        }
+
+        $request->validate([
+            'name' => 'required|unique:roles,name,' . $id,
+            'description' => 'nullable|string',
+        ]);
+
+        $role->update([
+            'name' => $request->name,
+            'description' => $request->description,
+        ]);
+
+        return $this->sendSuccess($role->load('permissions'), 'Role updated successfully.');
+    }
+
+    /**
+     * Delete role
+     */
+    public function destroy($id)
+    {
+        $role = Role::findOrFail($id);
+
+        // Prevent deleting super admin role
+        if ($role->slug === 'super_admin') {
+            return $this->sendError('Super Admin role cannot be deleted.', null, 403);
+        }
+
+        // Check if role has users
+        if ($role->users()->count() > 0) {
+            return $this->sendError('Cannot delete role with assigned users.', null, 400);
+        }
+
+        $role->delete();
+        return $this->sendSuccess(null, 'Role deleted successfully.');
+    }
+
+    /**
      * ডাইনামিক পারমিশন সিঙ্কিং
      */
     public function syncPermissions(Request $request, $id)

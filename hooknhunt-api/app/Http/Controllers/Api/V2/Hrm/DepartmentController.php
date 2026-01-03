@@ -6,26 +6,101 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class DepartmentController extends Controller
 {
     use ApiResponse;
 
-    public function index()
+    /**
+     * Display a listing of departments
+     */
+    public function index(Request $request)
     {
-        return $this->sendSuccess(Department::where('is_active', true)->get());
+        $query = Department::query();
+
+        // Filter by active status if requested
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Default to active departments only if no filter specified
+        if (!$request->has('is_active')) {
+            $query->where('is_active', true);
+        }
+
+        // With employee count
+        $departments = $query->withCount('employees')->get();
+
+        return $this->sendSuccess($departments, 'Departments retrieved successfully.');
     }
 
-    public function store(Request $request)
+    /**
+     * Store a newly created department
+     */
+    public function store(Request $request): JsonResponse
     {
-        $request->validate(['name' => 'required|unique:departments,name']);
-        $dept = Department::create($request->all());
-        return $this->sendSuccess($dept, 'Department created');
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name',
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        $department = Department::create([
+            'name' => $validated['name'],
+            'is_active' => $validated['is_active'] ?? true,
+        ]);
+
+        return $this->sendSuccess($department->loadCount('employees'), 'Department created successfully.', 201);
     }
 
-    public function destroy($id)
+    /**
+     * Display the specified department
+     */
+    public function show($id): JsonResponse
     {
-        Department::destroy($id);
-        return $this->sendSuccess(null, 'Department deleted');
+        $department = Department::withCount('employees')->findOrFail($id);
+
+        return $this->sendSuccess($department, 'Department retrieved successfully.');
+    }
+
+    /**
+     * Update the specified department
+     */
+    public function update(Request $request, $id): JsonResponse
+    {
+        $department = Department::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:departments,name,' . $id,
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        $department->update([
+            'name' => $validated['name'],
+            'is_active' => $validated['is_active'] ?? $department->is_active,
+        ]);
+
+        return $this->sendSuccess($department->loadCount('employees'), 'Department updated successfully.');
+    }
+
+    /**
+     * Remove the specified department
+     */
+    public function destroy($id): JsonResponse
+    {
+        $department = Department::findOrFail($id);
+
+        // Check if department has employees
+        if ($department->employees()->count() > 0) {
+            return $this->sendError(
+                'Cannot delete department with employees. Please reassign or remove employees first.',
+                null,
+                422
+            );
+        }
+
+        $department->delete();
+
+        return $this->sendSuccess(null, 'Department deleted successfully.');
     }
 }

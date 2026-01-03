@@ -42,12 +42,7 @@ Route::group([
 
     // --- Module: SYSTEM & ACCESS CONTROL ---
     Route::group(['prefix' => 'system', 'middleware' => ['permission:system.manage']], function () {
-        Route::apiResource('roles', 'RoleController');
-        Route::get('roles/{id}/permissions', 'RoleController@getPermissions');
-        Route::post('roles/{id}/sync-permissions', 'RoleController@syncPermissions');
         
-        Route::post('permissions', 'PermissionController@store');
-        Route::get('permissions', 'PermissionController@list');
         Route::apiResource('units', 'UnitController');
         Route::get('helpers/units', 'UnitController@dropdown');
         Route::apiResource('settings', 'SettingController');
@@ -55,7 +50,7 @@ Route::group([
     });
 
     Route::group(['prefix' => 'user-management', 'middleware' => ['auth:sanctum']], function () {
-        
+
         // শুধু ইউজার দেখার জন্য
         Route::get('users', 'UserController@index')->middleware('permission:user.index');
 
@@ -73,7 +68,16 @@ Route::group([
         // ইউজার আপডেট করার জন্য PUT রাউট
         Route::put('users/{id}', 'UserController@update')->middleware('permission:user.edit');
         Route::post('users/{id}/block-permission', 'UserController@blockPermission')->middleware('permission:user.direct-access');
-        
+
+        // Sync granted/blocked permissions
+        Route::put('users/{id}/permissions/granted', 'UserController@syncGrantedPermissions')->middleware('permission:user.direct-access');
+        Route::put('users/{id}/permissions/blocked', 'UserController@syncBlockedPermissions')->middleware('permission:user.direct-access');
+
+        // Dropdown data for user management
+        Route::get('roles', 'UserController@roleList')->middleware('permission:user.edit');
+        Route::get('permissions', 'PermissionController@list')->middleware('permission:user.edit');
+        // Note: departments dropdown is available at /hrm/departments with hrm.manage permission
+
         // Supplier management
         Route::apiResource('suppliers', 'SupplierController')->middleware('permission:supplier.manage');
     });
@@ -141,16 +145,30 @@ Route::group([
     });
 
     // --- Module: HRM & PAYROLL ---
-    Route::group(['prefix' => 'hrm', 'namespace' => 'Hrm', 'middleware' => ['permission:hrm.manage']], function() {
-        Route::apiResource('departments', 'DepartmentController');
-        Route::apiResource('employees', 'EmployeeController');
-        Route::post('clock-in', 'AttendanceController@clockIn');
-        Route::post('clock-out', 'AttendanceController@clockOut');
-        Route::apiResource('leaves', 'LeaveController');
-        Route::get('payrolls', 'PayrollController@index');
-        Route::post('payrolls/generate', 'PayrollController@generate');
-        Route::post('payrolls/{id}/pay', 'PayrollController@pay');
-    });
+    Route::group(['prefix' => 'hrm', 'middleware' => ['permission:hrm.manage']], function() {
+        // HRM Controllers
+        Route::group(['namespace' => 'Hrm'], function() {
+            Route::apiResource('departments', 'DepartmentController');
+            Route::apiResource('employees', 'EmployeeController');
+            Route::apiResource('leaves', 'LeaveController');
+            // Attendance routes
+            Route::get('attendance', 'AttendanceController@index');
+            Route::post('attendance', 'AttendanceController@store');
+            Route::post('clock-in', 'AttendanceController@clockIn');
+            Route::post('clock-out', 'AttendanceController@clockOut');
+            Route::get('payrolls', 'PayrollController@index');
+            Route::post('payrolls/generate', 'PayrollController@generate');
+            Route::put('payrolls/{id}', 'PayrollController@update');
+            Route::post('payrolls/{id}/pay', 'PayrollController@pay');
+        });
+
+        // System Controllers (Roles & Permissions)
+        Route::apiResource('roles', 'RoleController');
+        Route::get('roles/{id}/permissions', 'RoleController@getPermissions');
+        Route::post('roles/{id}/sync-permissions', 'RoleController@syncPermissions');
+        Route::post('permissions', 'PermissionController@store');
+        Route::get('permissions', 'PermissionController@list');
+    }); 
 
     // --- Module: CRM ---
     Route::group(['prefix' => 'crm', 'namespace' => 'Crm', 'middleware' => ['permission:crm.manage']], function() {
@@ -166,7 +184,8 @@ Route::group([
     Route::group(['prefix' => 'finance', 'middleware' => ['permission:account.manage']], function () {
         Route::apiResource('accounts', 'AccountController');
         Route::apiResource('expenses', 'ExpenseController');
-        Route::apiResource('journals', 'JournalEntryController');
+        // TODO: JournalEntryController not implemented yet
+        // Route::apiResource('journals', 'JournalEntryController');
         Route::get('reports/profit-loss', 'ReportController@profitLoss');
     });
 
