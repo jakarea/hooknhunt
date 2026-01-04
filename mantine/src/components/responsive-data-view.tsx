@@ -5,9 +5,6 @@ import {
   Box,
   Text,
   Group,
-  SimpleGrid,
-  Badge,
-  Button,
   Stack,
 } from '@mantine/core'
 
@@ -31,7 +28,6 @@ interface ResponsiveDataViewProps<T> {
 export function ResponsiveDataView<T extends Record<string, any>>({
   data,
   columns,
-  title,
   loading = false,
   onRowClick,
   actions,

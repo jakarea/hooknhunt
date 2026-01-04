@@ -63,9 +63,6 @@ export default function SignupPage() {
                 position: 'absolute',
                 inset: 0,
               },
-              image: {
-                objectFit: 'cover',
-              },
             }}
           />
           {/* Overlay */}
@@ -79,10 +76,10 @@ export default function SignupPage() {
           {/* Content */}
           <Box
             pos="relative"
-            zIndex={1}
             p="xl"
             display="flex"
             style={{
+              zIndex: 1,
               flexDirection: 'column',
               justifyContent: 'center',
               alignItems: 'center',

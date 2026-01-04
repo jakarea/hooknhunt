@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Stack, TextInput, PinInput, Group, Text, Button, Anchor, Box } from '@mantine/core'
+import { Stack, PinInput, Text, Button, Anchor, Box } from '@mantine/core'
 
 interface OTPFormProps extends React.ComponentProps<'form'> {
   phone?: string
@@ -21,21 +21,14 @@ export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
   }
 
   return (
-    <Stack
-      component="form"
-      onSubmit={handleSubmit}
-      gap="lg"
-      className={className}
-      {...props}
-    >
+    <form onSubmit={handleSubmit} className={className} {...props}>
       <Stack align="center" gap="xs">
         <Text size="xl" fw="bold">Verify OTP</Text>
         <Text size="sm" c="dimmed" style={{ textAlign: 'center', textWrap: 'balance' }}>
           Enter the 6-digit code sent to {phone || 'your phone'}
         </Text>
-      </Stack>
 
-      <Stack gap="md">
+        <Stack gap="md">
         <Box>
           <Text component="label" size="sm" fw={500} mb="xs" display="block">
             OTP Code
@@ -66,7 +59,8 @@ export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
             Back to Login
           </Anchor>
         </Text>
+        </Stack>
       </Stack>
-    </Stack>
+    </form>
   )
 }

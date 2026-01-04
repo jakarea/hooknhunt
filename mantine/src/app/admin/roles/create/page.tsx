@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -39,7 +38,6 @@ interface ValidationErrors {
 }
 
 export default function CreateRolePage() {
-  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [roleName, setRoleName] = useState('')
@@ -66,11 +64,11 @@ export default function CreateRolePage() {
             }
             acc[perm.group_name].push(perm)
             return acc
-          }, {})
+          }, {} as Record<string, Permission[]>)
 
           const groups = Object.entries(grouped).map(([groupName, perms]) => ({
             groupName,
-            permissions: perms,
+            permissions: perms as Permission[],
           }))
 
           setPermissionGroups(groups)
@@ -202,7 +200,7 @@ export default function CreateRolePage() {
           message: 'Role created successfully',
           color: 'green',
         })
-        navigate('/admin/hrm/roles')
+        navigate('/hrm/roles')
       } else {
         throw new Error(response.data.message || 'Failed to create role')
       }
@@ -220,16 +218,16 @@ export default function CreateRolePage() {
 
   // Handle cancel
   const handleCancel = () => {
-    navigate('/admin/hrm/roles')
+    navigate('/hrm/roles')
   }
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor href="/admin/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor href="/admin/hrm/roles" c="dimmed">Roles</Anchor>
+          <Anchor href="/dashboard" c="dimmed">Dashboard</Anchor>
+          <Anchor href="/hrm/roles" c="dimmed">Roles</Anchor>
           <Text c="red">Create Role</Text>
         </Breadcrumbs>
 
@@ -239,11 +237,11 @@ export default function CreateRolePage() {
           <Text c="dimmed">Create a new role with specific permissions</Text>
         </Box>
 
-        <Stack gap="lg">
+        <Stack >
           {/* Role Information Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={loadingPermissions} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3}>Role Information</Title>
 
               <Grid>
@@ -280,7 +278,7 @@ export default function CreateRolePage() {
                 <Text size="sm" c="dimmed">
                   {totalSelectedPermissions} of {totalPermissions} permissions selected
                 </Text>
-                <Group gap="sm">
+                <Group >
                   <Button variant="default" onClick={handleCancel} size="md" disabled={saving}>
                     Cancel
                   </Button>
@@ -300,13 +298,13 @@ export default function CreateRolePage() {
 
           {/* Permissions Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-            <Stack gap="lg">
+            <Stack >
               <Group justify="space-between">
                 <div>
                   <Title order={3}>Permissions</Title>
                   <Text size="sm" c="dimmed">Select permissions for this role</Text>
                 </div>
-                <Group gap="xs">
+                <Group >
                   <Button variant="light" size="sm" onClick={handleSelectAll} disabled={loadingPermissions}>
                     Select All
                   </Button>
@@ -334,7 +332,7 @@ export default function CreateRolePage() {
                   <Text c="dimmed">No permissions found matching "{searchQuery}"</Text>
                 </Box>
               ) : (
-                <Stack gap="md">
+                <Stack >
                   {filteredGroups.map((group) => {
                     const hasAny = hasAnyPermissionInGroup(group)
                     const hasAll = hasAllPermissionsInGroup(group)
@@ -348,7 +346,7 @@ export default function CreateRolePage() {
                         bd={hasAny ? '1px solid var(--mantine-color-blue-4)' : undefined}
                         bg={hasAny ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6))' : undefined}
                       >
-                        <Stack gap="sm">
+                        <Stack >
                           {/* Group Header */}
                           <Group justify="space-between">
                             <Box>

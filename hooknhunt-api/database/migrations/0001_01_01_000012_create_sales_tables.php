@@ -28,14 +28,14 @@ return new class extends Migration
         Schema::create('sales_orders', function (Blueprint $table) {
             $table->id();
             $table->string('invoice_no')->unique(); // e.g., INV-1001
-            
+
             $table->foreignId('customer_id')->constrained('customers');
             $table->foreignId('sold_by')->nullable()->constrained('users'); // Salesman ID
-            
+
             $table->enum('channel', ['pos', 'retail_web', 'wholesale_web', 'daraz', 'app']);
             $table->enum('status', ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned'])->default('pending');
             $table->enum('payment_status', ['unpaid', 'paid', 'partial'])->default('unpaid');
-            
+
             // Financials
             $table->decimal('sub_total', 12, 2);
             $table->decimal('discount_amount', 10, 2)->default(0);
@@ -43,14 +43,14 @@ return new class extends Migration
             $table->decimal('delivery_charge', 8, 2)->default(0);
             $table->decimal('total_amount', 12, 2); // Final Receivable
             $table->decimal('paid_amount', 12, 2)->default(0);
-            
+
             // Profit Tracking (Sum of all items' profit)
             $table->decimal('total_profit', 12, 2)->default(0); // System will calculate this
-            
+
             // External Order Integration
-            $table->string('courier_tracking_id')->nullable()->after('status');
-            $table->timestamp('shipped_at')->nullable()->after('courier_tracking_id');
-            $table->decimal('due_amount', 10, 2)->default(0)->after('total_amount'); // COD Amount
+            $table->string('courier_tracking_id')->nullable();
+            $table->timestamp('shipped_at')->nullable();
+            $table->decimal('due_amount', 10, 2)->default(0); // COD Amount
 
             $table->text('note')->nullable();
             $table->timestamps();

@@ -5,7 +5,6 @@ import {
   Group,
   Title,
   Text,
-  Table,
   Paper,
   TextInput,
   Badge,
@@ -13,7 +12,6 @@ import {
   Card,
   SimpleGrid,
   Collapse,
-  Button,
   ActionIcon,
 } from '@mantine/core'
 import {
@@ -133,7 +131,7 @@ export default function PermissionsListPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Header */}
         <Box>
           <Title className="text-xl md:text-2xl lg:text-3xl font-semibold">Permissions</Title>
@@ -153,7 +151,7 @@ export default function PermissionsListPage() {
         />
 
         {/* Stats */}
-        <Group gap="md">
+        <Group >
           <Paper p="md" radius="md" withBorder className="flex-1">
             <Stack gap={0}>
               <Text className="text-xs md:text-sm text-gray-500">Total Permissions</Text>
@@ -216,11 +214,11 @@ function PermissionGroupCard({
 }: PermissionGroupCardProps) {
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack gap="md">
+      <Stack >
         {/* Group Header */}
         <Group justify="space-between">
           <Text className="text-base md:text-lg font-semibold">{group}</Text>
-          <Group gap="xs">
+          <Group >
             <Badge variant="light" className="text-xs md:text-sm">
               {permissions.length} permissions
             </Badge>
@@ -236,7 +234,7 @@ function PermissionGroupCard({
 
         {/* Permissions List */}
         <Collapse in={isOpen}>
-          <Stack gap="xs" mt="sm">
+          <Stack  mt="sm">
             {permissions.map((permission) => (
               <Paper
                 key={permission.id}

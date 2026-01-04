@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import {
   Box,
   Stack,
@@ -12,16 +11,13 @@ import {
   Paper,
   SimpleGrid,
   Card,
-  Grid,
   Table,
   ActionIcon,
   Avatar,
   Anchor,
   Breadcrumbs,
-  Alert,
   Tabs,
   Timeline,
-  Progress,
 } from '@mantine/core'
 import {
   IconChevronRight,
@@ -38,12 +34,9 @@ import {
   IconTruck,
   IconClock,
   IconCheck,
-  IconX,
-  IconRefresh,
   IconEye,
   IconTrendingUp,
 } from '@tabler/icons-react'
-import { notifications } from '@mantine/notifications'
 
 // Mock customer data
 const mockCustomer = {
@@ -158,9 +151,6 @@ const mockCustomer = {
 }
 
 export default function CustomerDetailsPage() {
-  const { t } = useTranslation()
-  const { id } = useParams()
-  const navigate = useNavigate()
   const customer = mockCustomer
 
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'wallet' | 'activity'>('overview')
@@ -193,19 +183,19 @@ export default function CustomerDetailsPage() {
   const profileHeader = useMemo(() => (
     <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
       <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group gap="xl" wrap="wrap">
+        <Group  wrap="wrap">
           <Avatar
             src={null}
             alt={customer.name}
             radius="xl"
-            size={{ base: 'md', md: 'xl' }}
+            size="xl"
             color="red"
           >
             {customer.name.charAt(0).toUpperCase()}
           </Avatar>
           <Box>
-            <Group gap="xs" mb="xs">
-              <Title order={{ base: 3, md: 2 }}>{customer.name}</Title>
+            <Group  mb="xs">
+              <Title order={2}>{customer.name}</Title>
               <Badge
                 color={customer.status === 'active' ? 'green' : 'gray'}
                 variant="light"
@@ -220,36 +210,36 @@ export default function CustomerDetailsPage() {
                 {customer.type.charAt(0).toUpperCase() + customer.type.slice(1)}
               </Badge>
             </Group>
-            <Group gap="md" mb="sm">
+            <Group  mb="sm">
               {customer.email && (
-                <Group gap="xs">
+                <Group >
                   <IconMail size={16} />
                   <Text size="sm">{customer.email}</Text>
                 </Group>
               )}
-              <Group gap="xs">
+              <Group >
                 <IconPhone size={16} />
                 <Text size="sm">{customer.phone}</Text>
               </Group>
             </Group>
-            <Group gap="xs">
+            <Group >
               <Text size="sm" c="dimmed">Member since {formatDate(customer.created_at)}</Text>
             </Group>
           </Box>
         </Group>
-        <Group gap="sm">
+        <Group >
           <Button
             variant="default"
             size="sm"
             component={Link}
-            to="/admin/crm/customers"
+            to="/crm/customers"
             leftSection={<IconArrowLeft size={16} />}
           >
             Back
           </Button>
           <Button
             component={Link}
-            to={`/admin/crm/customers/${customer.id}/edit`}
+            to={`/crm/customers/${customer.id}/edit`}
             leftSection={<IconEdit size={16} />}
           >
             Edit Customer
@@ -263,7 +253,7 @@ export default function CustomerDetailsPage() {
   const statsCards = useMemo(() => (
     <SimpleGrid cols={{ base: 2, md: 3, lg: 6 }} spacing="md">
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
           <Text size="xs" c="dimmed">Wallet Balance</Text>
         </Group>
@@ -271,7 +261,7 @@ export default function CustomerDetailsPage() {
       </Card>
 
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconShoppingBag size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
           <Text size="xs" c="dimmed">Total Orders</Text>
         </Group>
@@ -279,7 +269,7 @@ export default function CustomerDetailsPage() {
       </Card>
 
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconCoin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Text size="xs" c="dimmed">Total Spent</Text>
         </Group>
@@ -287,7 +277,7 @@ export default function CustomerDetailsPage() {
       </Card>
 
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconPackage size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
           <Text size="xs" c="dimmed">Loyalty Points</Text>
         </Group>
@@ -295,7 +285,7 @@ export default function CustomerDetailsPage() {
       </Card>
 
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-cyan-filled)' }} />
           <Text size="xs" c="dimmed">Avg Order Value</Text>
         </Group>
@@ -303,7 +293,7 @@ export default function CustomerDetailsPage() {
       </Card>
 
       <Card withBorder p="md" radius="md">
-        <Group gap="xs" mb="xs">
+        <Group  mb="xs">
           <IconCalendar size={20} style={{ color: 'var(--mantine-color-violet-filled)' }} />
           <Text size="xs" c="dimmed">Last Order</Text>
         </Group>
@@ -317,28 +307,28 @@ export default function CustomerDetailsPage() {
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
       <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Personal Information</Title>
       <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <Group gap="xs">
+        <Group >
           <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Box>
             <Text size="xs" c="dimmed">Email</Text>
             <Text fw={500} size="sm">{customer.email || 'N/A'}</Text>
           </Box>
         </Group>
-        <Group gap="xs">
+        <Group >
           <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Box>
             <Text size="xs" c="dimmed">Phone</Text>
             <Text fw={500} size="sm">{customer.phone}</Text>
           </Box>
         </Group>
-        <Group gap="xs">
+        <Group >
           <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Box>
             <Text size="xs" c="dimmed">Member Since</Text>
             <Text fw={500} size="sm">{formatDate(customer.created_at)}</Text>
           </Box>
         </Group>
-        <Group gap="xs">
+        <Group >
           <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Box>
             <Text size="xs" c="dimmed">Account Status</Text>
@@ -359,11 +349,11 @@ export default function CustomerDetailsPage() {
   const addressesSection = useMemo(() => (
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
       <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Addresses</Title>
-      <Stack gap="md">
+      <Stack >
         {customer.addresses.map((address) => (
           <Paper key={address.id} withBorder p="md" radius="md">
             <Group justify="space-between" mb="xs">
-              <Group gap="xs">
+              <Group >
                 <IconMapPin size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
                 <Text fw={600} size="sm">{address.label}</Text>
                 {address.is_default && (
@@ -390,7 +380,7 @@ export default function CustomerDetailsPage() {
           variant="subtle"
           size="sm"
           component={Link}
-          to="/admin/sales/orders"
+          to="/sales/orders"
         >
           View All Orders
         </Button>
@@ -417,7 +407,7 @@ export default function CustomerDetailsPage() {
                   <Table.Td>
                     <Anchor
                       component={Link}
-                      to={`/admin/sales/orders/${order.id}`}
+                      to={`/sales/orders/${order.id}`}
                       size="sm"
                       fw={600}
                     >
@@ -451,7 +441,7 @@ export default function CustomerDetailsPage() {
                     <Badge size="xs" variant="light" color="green">Paid</Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Group gap="xs">
+                    <Group >
                       <IconTruck size={14} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                       <Text size="xs">Home Delivery</Text>
                     </Group>
@@ -461,7 +451,7 @@ export default function CustomerDetailsPage() {
                       variant="subtle"
                       color="blue"
                       component={Link}
-                      to={`/admin/sales/orders/${order.id}`}
+                      to={`/sales/orders/${order.id}`}
                       size="sm"
                     >
                       <IconEye size={16} />
@@ -475,13 +465,13 @@ export default function CustomerDetailsPage() {
       </Box>
 
       {/* Mobile: Card view for orders */}
-      <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+      <Stack  display={{ base: 'block', md: 'none' }}>
         {customer.recent_orders.map((order) => (
           <Card key={order.id} shadow="sm" p="sm" radius="md" withBorder>
             <Group justify="space-between" mb="xs">
               <Anchor
                 component={Link}
-                to={`/admin/sales/orders/${order.id}`}
+                to={`/sales/orders/${order.id}`}
                 size="sm"
                 fw={600}
               >
@@ -500,7 +490,7 @@ export default function CustomerDetailsPage() {
               </Badge>
             </Group>
             <Text size="sm" mb="xs" c="dimmed">{formatDate(order.date)}</Text>
-            <Group gap="md" mb="xs">
+            <Group  mb="xs">
               <Box>
                 <Text size="xs" c="dimmed">Items</Text>
                 <Text size="sm">{order.items} items</Text>
@@ -510,9 +500,9 @@ export default function CustomerDetailsPage() {
                 <Text fw={600} size="sm">{formatCurrency(order.total)}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <Badge size="xs" variant="light" color="green">Paid</Badge>
-              <Group gap="xs">
+              <Group >
                 <IconTruck size={14} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                 <Text size="xs">Home Delivery</Text>
               </Group>
@@ -525,12 +515,12 @@ export default function CustomerDetailsPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor component={Link} to="/admin/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor component={Link} to="/admin/crm" c="dimmed">CRM</Anchor>
-          <Anchor component={Link} to="/admin/crm/customers" c="dimmed">Customers</Anchor>
+          <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
+          <Anchor component={Link} to="/crm" c="dimmed">CRM</Anchor>
+          <Anchor component={Link} to="/crm/customers" c="dimmed">Customers</Anchor>
           <Text c="red">{customer.name}</Text>
         </Breadcrumbs>
 
@@ -562,7 +552,7 @@ export default function CustomerDetailsPage() {
 
           {/* Overview Tab */}
           <Tabs.Panel value="overview">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <SimpleGrid cols={{ base: 1, md: 2 }}>
                 {personalInfo}
                 {addressesSection}
@@ -574,7 +564,7 @@ export default function CustomerDetailsPage() {
 
           {/* Wallet Tab */}
           <Tabs.Panel value="wallet">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
                 <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Wallet Transactions</Title>
                 <Box display={{ base: 'none', md: 'block' }}>
@@ -625,7 +615,7 @@ export default function CustomerDetailsPage() {
                 </Box>
 
                 {/* Mobile wallet transactions */}
-                <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+                <Stack  display={{ base: 'block', md: 'none' }}>
                   {customer.wallet_transactions.map((txn) => (
                     <Paper key={txn.id} withBorder p="sm" radius="md">
                       <Group justify="space-between" mb="xs">
@@ -642,7 +632,7 @@ export default function CustomerDetailsPage() {
                       </Group>
                       <Text size="sm">{txn.description}</Text>
                       <Text size="xs" c="dimmed">{formatDateTime(txn.date)}</Text>
-                      <Group gap="xs" mt="xs">
+                      <Group  mt="xs">
                         <Text size="xs" c="dimmed">Balance:</Text>
                         <Text fw={600} size="xs">{formatCurrency(txn.balance)}</Text>
                       </Group>
@@ -655,11 +645,11 @@ export default function CustomerDetailsPage() {
 
           {/* Activity Tab */}
           <Tabs.Panel value="activity">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
                 <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Activity Log</Title>
                 <Timeline bulletSize={24}>
-                  {customer.activity_log.map((activity, index) => (
+                  {customer.activity_log.map((activity) => (
                     <Timeline.Item
                       key={activity.id}
                       bullet={<IconClock size={12} />}

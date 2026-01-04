@@ -3,23 +3,10 @@ import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
   IconDashboard,
-  IconChartBar,
-  IconPackage,
-  IconShoppingCart,
-  IconShip,
-  IconBuildingWarehouse,
-  IconReceipt,
-  IconCashRegister,
-  IconUsers,
   IconUsersGroup,
-  IconChartPie,
   IconShield,
-  IconSettings,
-  IconBell,
-  IconUser,
   IconSearch,
   IconInnerShadowTop,
-  IconCoin,
   IconChevronRight,
 } from "@tabler/icons-react"
 import {
@@ -32,11 +19,19 @@ import {
   Avatar,
   rem,
   Drawer,
-  Burger,
   ActionIcon,
 } from "@mantine/core"
 import { useMediaQuery } from "@mantine/hooks"
 import { useAuthStore } from "@/stores/authStore"
+import { usePermissions } from "@/hooks/usePermissions"
+
+interface NavItem {
+  title: string
+  url?: string
+  icon?: any
+  children?: NavItem[]
+}
+
 
 interface AppSidebarMantineProps {
   mobileOpened: boolean
@@ -49,54 +44,23 @@ export function AppSidebarMantine({
   mobileOpened,
   desktopOpened,
   toggleMobile,
-  toggleDesktop,
 }: AppSidebarMantineProps) {
   const { t } = useTranslation()
   const location = useLocation()
   const [searchValue, setSearchValue] = React.useState("")
   const [opened, setOpened] = React.useState<Record<string, boolean>>({})
   const isMobile = useMediaQuery("(max-width: 768px)")
-  const hasPermission = useAuthStore((state) => state.hasPermission)
-  const isSuperAdmin = useAuthStore((state) => state.isSuperAdmin)
+  const { canAccessRoute } = usePermissions()
   const user = useAuthStore((state) => state.user)
 
   const toggleSection = (label: string) => {
     setOpened((prev) => ({ ...prev, [label]: !prev[label] }))
   }
 
-  // Permission mapping for menu items
-  const canAccess = React.useCallback((url: string): boolean => {
-    // Super admin has access to everything
-    if (isSuperAdmin()) return true
-
-    // Map URLs to required permissions
-    const permissionMap: Record<string, string> = {
-      // User Management
-      '/admin/settings/users': 'user.index',
-      '/admin/users': 'user.index',
-      '/admin/roles': 'role.index',
-      '/admin/hrm/roles': 'role.index',
-      '/admin/settings/roles': 'role.index',
-      '/admin/permissions': 'permission.index',
-      '/admin/settings/permissions': 'user.direct-access',
-      '/admin/hrm/employees': 'staff.index',
-      '/admin/hrm/employees/create': 'staff.create',
-
-      // Products (examples - add more as needed)
-      '/admin/catalog/products': 'product.index',
-      '/admin/catalog/products/create': 'product.create',
-
-      // Add more mappings as needed
-    }
-
-    const requiredPermission = permissionMap[url]
-    return requiredPermission ? hasPermission(requiredPermission) : true
-  }, [hasPermission, isSuperAdmin])
-
   const data = React.useMemo(() => ({
     user: {
       name: user?.name || "Admin",
-      email: user?.email || user?.phone_number || "admin@hooknhunt.com",
+      email: user?.email || "admin@hooknhunt.com",
       avatar: "/avatars/default.jpg",
     },
     navItems: [
@@ -105,17 +69,17 @@ export function AppSidebarMantine({
         items: [
           {
             title: t("nav.dashboard"),
-            url: "/admin/dashboard",
+            url: "/dashboard",
             icon: IconDashboard,
           },
           // {
           //   title: t("nav.analytics"),
-          //   url: "/admin/dashboard/analytics",
+          //   url: "/dashboard/analytics",
           //   icon: IconChartBar,
           // },
           // {
           //   title: t("nav.notifications"),
-          //   url: "/admin/notifications",
+          //   url: "/notifications",
           //   icon: IconBell,
           // },
         ],
@@ -127,90 +91,90 @@ export function AppSidebarMantine({
           //   title: t("nav.products"),
           //   icon: IconPackage,
           //   children: [
-          //     { title: t("products.productList"), url: "/admin/catalog/products" },
-          //     { title: t("products.createProduct"), url: "/admin/catalog/products/create" },
-          //     { title: t("products.variants"), url: "/admin/catalog/variants" },
-          //     { title: t("products.categories"), url: "/admin/catalog/categories" },
-          //     { title: t("products.brands"), url: "/admin/catalog/brands" },
-          //     { title: t("products.attributes"), url: "/admin/catalog/attributes" },
-          //     { title: t("products.units"), url: "/admin/catalog/units" },
-          //     { title: t("products.printLabels"), url: "/admin/catalog/print-labels" },
+          //     { title: t("products.productList"), url: "/catalog/products" },
+          //     { title: t("products.createProduct"), url: "/catalog/products/create" },
+          //     { title: t("products.variants"), url: "/catalog/variants" },
+          //     { title: t("products.categories"), url: "/catalog/categories" },
+          //     { title: t("products.brands"), url: "/catalog/brands" },
+          //     { title: t("products.attributes"), url: "/catalog/attributes" },
+          //     { title: t("products.units"), url: "/catalog/units" },
+          //     { title: t("products.printLabels"), url: "/catalog/print-labels" },
           //   ],
           // },
           // {
           //   title: t("nav.inventory"),
           //   icon: IconBuildingWarehouse,
           //   children: [
-          //     { title: t("inventory.currentStock"), url: "/admin/inventory/stock" },
-          //     { title: t("inventory.sorting"), url: "/admin/inventory/sorting" },
-          //     { title: t("inventory.stockHistory"), url: "/admin/inventory/history" },
-          //     { title: t("inventory.adjustments"), url: "/admin/inventory/adjustments" },
-          //     { title: t("inventory.stockTake"), url: "/admin/inventory/stock-take" },
-          //     { title: t("inventory.warehouses"), url: "/admin/inventory/warehouses" },
-          //     { title: t("inventory.transfers"), url: "/admin/inventory/transfers" },
+          //     { title: t("inventory.currentStock"), url: "/inventory/stock" },
+          //     { title: t("inventory.sorting"), url: "/inventory/sorting" },
+          //     { title: t("inventory.stockHistory"), url: "/inventory/history" },
+          //     { title: t("inventory.adjustments"), url: "/inventory/adjustments" },
+          //     { title: t("inventory.stockTake"), url: "/inventory/stock-take" },
+          //     { title: t("inventory.warehouses"), url: "/inventory/warehouses" },
+          //     { title: t("inventory.transfers"), url: "/inventory/transfers" },
           //   ],
           // },
           // {
           //   title: t("nav.procurement"),
           //   icon: IconShoppingCart,
           //   children: [
-          //     { title: t("procurement.orders"), url: "/admin/procurement/orders" },
-          //     { title: t("procurement.createPO"), url: "/admin/procurement/create" },
-          //     { title: t("procurement.suppliers"), url: "/admin/procurement/suppliers" },
-          //     { title: t("procurement.returns"), url: "/admin/procurement/returns" },
+          //     { title: t("procurement.orders"), url: "/procurement/orders" },
+          //     { title: t("procurement.createPO"), url: "/procurement/create" },
+          //     { title: t("procurement.suppliers"), url: "/procurement/suppliers" },
+          //     { title: t("procurement.returns"), url: "/procurement/returns" },
           //   ],
           // },
           // {
           //   title: t("nav.importShipments"),
           //   icon: IconShip,
           //   children: [
-          //     { title: t("shipments.shipments"), url: "/admin/shipments" },
-          //     { title: t("shipments.create"), url: "/admin/shipments/create" },
-          //     { title: t("shipments.view"), url: "/admin/shipments/view" },
-          //     { title: t("shipments.costing"), url: "/admin/shipments/costing" },
-          //     { title: t("shipments.receiveStock"), url: "/admin/shipments/receive" },
+          //     { title: t("shipments.shipments"), url: "/shipments" },
+          //     { title: t("shipments.create"), url: "/shipments/create" },
+          //     { title: t("shipments.view"), url: "/shipments/view" },
+          //     { title: t("shipments.costing"), url: "/shipments/costing" },
+          //     { title: t("shipments.receiveStock"), url: "/shipments/receive" },
           //   ],
           // },
           // {
           //   title: t("nav.sales"),
           //   icon: IconReceipt,
           //   children: [
-          //     { title: t("sales.orders"), url: "/admin/sales/orders" },
-          //     { title: t("sales.create"), url: "/admin/sales/create" },
-          //     { title: t("sales.returns"), url: "/admin/sales/returns" },
-          //     { title: t("sales.quotations"), url: "/admin/sales/quotations" },
+          //     { title: t("sales.orders"), url: "/sales/orders" },
+          //     { title: t("sales.create"), url: "/sales/create" },
+          //     { title: t("sales.returns"), url: "/sales/returns" },
+          //     { title: t("sales.quotations"), url: "/sales/quotations" },
           //   ],
           // },
           // {
           //   title: t("nav.pos"),
           //   icon: IconCashRegister,
           //   children: [
-          //     { title: t("pos.posTerminal"), url: "/admin/pos" },
-          //     { title: t("pos.history"), url: "/admin/pos/history" },
-          //     { title: t("pos.register"), url: "/admin/pos/register" },
-          //     { title: t("pos.held"), url: "/admin/pos/held" },
+          //     { title: t("pos.posTerminal"), url: "/pos" },
+          //     { title: t("pos.history"), url: "/pos/history" },
+          //     { title: t("pos.register"), url: "/pos/register" },
+          //     { title: t("pos.held"), url: "/pos/held" },
           //   ],
           // },
           // {
           //   title: t("nav.crm"),
           //   icon: IconUsers,
           //   children: [
-          //     { title: t("crm.customers"), url: "/admin/crm/customers" },
-          //     { title: t("crm.leads"), url: "/admin/crm/leads" },
-          //     { title: t("crm.wallet"), url: "/admin/crm/wallet" },
-          //     { title: t("crm.loyalty"), url: "/admin/crm/loyalty" },
+          //     { title: t("crm.customers"), url: "/crm/customers" },
+          //     { title: t("crm.leads"), url: "/crm/leads" },
+          //     { title: t("crm.wallet"), url: "/crm/wallet" },
+          //     { title: t("crm.loyalty"), url: "/crm/loyalty" },
           //   ],
           // },
           {
             title: t("nav.hrm"),
             icon: IconUsersGroup,
             children: [
-              { title: t("hrm.employees"), url: "/admin/hrm/employees" },
-              { title: t("hrm.departments"), url: "/admin/hrm/departments" },
-              { title: t("hrm.leaves"), url: "/admin/hrm/leaves" },
-              { title: t("hrm.attendance"), url: "/admin/hrm/attendance" },
-              { title: t("hrm.payroll"), url: "/admin/hrm/payroll" },
-              { title: t("settings.roles"), url: "/admin/hrm/roles" },
+              { title: t("hrm.employees"), url: "/hrm/employees" },
+              { title: t("hrm.departments"), url: "/hrm/departments" },
+              { title: t("hrm.leaves"), url: "/hrm/leaves" },
+              { title: t("hrm.attendance"), url: "/hrm/attendance" },
+              { title: t("hrm.payroll"), url: "/hrm/payroll" },
+              { title: t("settings.roles"), url: "/hrm/roles" },
             ],
           },
         ],
@@ -222,39 +186,39 @@ export function AppSidebarMantine({
           //   title: t("nav.logistics"),
           //   icon: IconShip,
           //   children: [
-          //     { title: t("logistics.booking"), url: "/admin/logistics/booking" },
-          //     { title: t("logistics.tracking"), url: "/admin/logistics/tracking" },
-          //     { title: t("logistics.couriers"), url: "/admin/logistics/couriers" },
-          //     { title: t("logistics.zones"), url: "/admin/logistics/zones" },
+          //     { title: t("logistics.booking"), url: "/logistics/booking" },
+          //     { title: t("logistics.tracking"), url: "/logistics/tracking" },
+          //     { title: t("logistics.couriers"), url: "/logistics/couriers" },
+          //     { title: t("logistics.zones"), url: "/logistics/zones" },
           //   ],
           // },
           // {
           //   title: t("nav.marketing"),
           //   icon: IconChartBar,
           //   children: [
-          //     { title: t("marketing.campaigns"), url: "/admin/marketing/campaigns" },
-          //     { title: t("marketing.affiliates"), url: "/admin/marketing/affiliates" },
+          //     { title: t("marketing.campaigns"), url: "/marketing/campaigns" },
+          //     { title: t("marketing.affiliates"), url: "/marketing/affiliates" },
           //   ],
           // },
           // {
           //   title: t("nav.finance"),
           //   icon: IconCoin,
           //   children: [
-          //     { title: t("finance.transactions"), url: "/admin/finance/transactions" },
-          //     { title: t("finance.expenses"), url: "/admin/finance/expenses" },
-          //     { title: t("finance.accounts"), url: "/admin/finance/accounts" },
-          //     { title: t("finance.reports"), url: "/admin/finance/reports/pl" },
+          //     { title: t("finance.transactions"), url: "/finance/transactions" },
+          //     { title: t("finance.expenses"), url: "/finance/expenses" },
+          //     { title: t("finance.accounts"), url: "/finance/accounts" },
+          //     { title: t("finance.reports"), url: "/finance/reports/pl" },
           //   ],
           // },
           // {
           //   title: t("nav.reports"),
           //   icon: IconChartPie,
           //   children: [
-          //     { title: t("reports.sales"), url: "/admin/reports/sales" },
-          //     { title: t("reports.stock"), url: "/admin/reports/stock" },
-          //     { title: t("reports.products"), url: "/admin/reports/products" },
-          //     { title: t("reports.customers"), url: "/admin/reports/customers" },
-          //     { title: t("reports.tax"), url: "/admin/reports/tax" },
+          //     { title: t("reports.sales"), url: "/reports/sales" },
+          //     { title: t("reports.stock"), url: "/reports/stock" },
+          //     { title: t("reports.products"), url: "/reports/products" },
+          //     { title: t("reports.customers"), url: "/reports/customers" },
+          //     { title: t("reports.tax"), url: "/reports/tax" },
           //   ],
           // },
         ],
@@ -266,62 +230,57 @@ export function AppSidebarMantine({
           //   title: t("nav.support"),
           //   icon: IconShield,
           //   children: [
-          //     { title: t("support.tickets"), url: "/admin/support/tickets" },
-          //     { title: t("support.categories"), url: "/admin/support/categories" },
+          //     { title: t("support.tickets"), url: "/support/tickets" },
+          //     { title: t("support.categories"), url: "/support/categories" },
           //   ],
           // },
           // {
           //   title: t("nav.cms"),
           //   icon: IconBell,
           //   children: [
-          //     { title: t("cms.banners"), url: "/admin/cms/banners" },
-          //     { title: t("cms.menus"), url: "/admin/cms/menus" },
-          //     { title: t("cms.pages"), url: "/admin/cms/pages" },
-          //     { title: t("cms.blog"), url: "/admin/cms/blog" },
-          //     { title: t("cms.media"), url: "/admin/cms/media" },
+          //     { title: t("cms.banners"), url: "/cms/banners" },
+          //     { title: t("cms.menus"), url: "/cms/menus" },
+          //     { title: t("cms.pages"), url: "/cms/pages" },
+          //     { title: t("cms.blog"), url: "/cms/blog" },
+          //     { title: t("cms.media"), url: "/cms/media" },
           //   ],
           // },
           
           {
             title: t("settings.permissions"),
-            url: "/admin/settings/permissions",
+            url: "/settings/permissions",
             icon: IconShield,
           },
           // {
           //   title: t("settings.auditLogs"),
-          //   url: "/admin/audit-logs",
+          //   url: "/audit-logs",
           //   icon: IconShield,
           // },
           // {
           //   title: t("settings.general"),
-          //   url: "/admin/settings/general",
+          //   url: "/settings/general",
           //   icon: IconSettings,
           // },
           // {
           //   title: t("settings.payments"),
-          //   url: "/admin/settings/payments",
+          //   url: "/settings/payments",
           //   icon: IconSettings,
           // },
           // {
           //   title: t("settings.taxes"),
-          //   url: "/admin/settings/taxes",
+          //   url: "/settings/taxes",
           //   icon: IconSettings,
           // },
           // {
           //   title: t("settings.apiKeys"),
-          //   url: "/admin/settings/api",
+          //   url: "/settings/api",
           //   icon: IconSettings,
           // },
           // {
           //   title: t("settings.backup"),
-          //   url: "/admin/settings/backup",
+          //   url: "/settings/backup",
           //   icon: IconSettings,
           // },
-          {
-            title: t("settings.profile"),
-            url: "/admin/profile",
-            icon: IconUser,
-          },
         ],
       },
     ],
@@ -335,30 +294,30 @@ export function AppSidebarMantine({
     items = items
       .map((section) => {
         // Filter items within each section based on permissions
-        const permittedItems = section.items.filter((item) => {
+        const permittedItems = section.items.filter((item: NavItem) => {
           // Check if user has access to the item's URL
-          if (item.url && !canAccess(item.url)) {
+          if ('url' in item && item.url && !canAccessRoute(item.url)) {
             return false
           }
 
           // For items with children, filter children based on permissions
-          if (item.children) {
+          if ('children' in item && item.children) {
             const permittedChildren = item.children.filter((child) =>
-              child.url ? canAccess(child.url) : true
+              child.url ? canAccessRoute(child.url) : true
             )
             // Only show parent if it has accessible children or if the parent URL itself is accessible
-            return permittedChildren.length > 0 || (item.url && canAccess(item.url))
+            return permittedChildren.length > 0 || (('url' in item) && item.url && canAccessRoute(item.url))
           }
 
           return true
         })
 
         // For items with children, filter the children
-        const itemsWithPermittedChildren = permittedItems.map((item) => {
-          if (!item.children) return item
+        const itemsWithPermittedChildren = permittedItems.map((item: NavItem) => {
+          if (!('children' in item) || !item.children) return item
 
           const permittedChildren = item.children.filter((child) =>
-            child.url ? canAccess(child.url) : true
+            child.url ? canAccessRoute(child.url) : true
           )
 
           return { ...item, children: permittedChildren }
@@ -383,20 +342,20 @@ export function AppSidebarMantine({
     return items
       .map((section) => {
         // Filter items within each section
-        const filteredItems = section.items.filter((item) => {
+        const filteredItems = section.items.filter((item: NavItem) => {
           const matchesTitle = item.title.toLowerCase().includes(query)
 
           // Check if any children match
           const hasMatchingChildren =
-            item.children &&
+            ('children' in item && item.children) &&
             item.children.some((child) => child.title.toLowerCase().includes(query))
 
           return matchesTitle || hasMatchingChildren
         })
 
         // For matching items, also filter their children
-        const itemsWithFilteredChildren = filteredItems.map((item) => {
-          if (!item.children) return item
+        const itemsWithFilteredChildren = filteredItems.map((item: NavItem) => {
+          if (!('children' in item) || !item.children) return item
 
           const filteredChildren = item.children.filter((child) =>
             child.title.toLowerCase().includes(query)
@@ -413,30 +372,30 @@ export function AppSidebarMantine({
         return { ...section, items: itemsWithFilteredChildren }
       })
       .filter((section): section is (typeof data.navItems)[0] => section !== null)
-  }, [data.navItems, searchValue, canAccess])
+  }, [data.navItems, searchValue, canAccessRoute])
 
-  const renderNavLink = (item: any, index: number, allItems: any[]) => {
-    const hasChildren = item.children && item.children.length > 0
+  const renderNavLink = (item: NavItem, index: number, allItems: NavItem[]) => {
+    const hasChildren = 'children' in item && item.children && item.children.length > 0
     const isOpen = opened[item.title] || searchValue.trim() !== '' // Auto-expand when searching
 
     // Smart URL matching for active state (computed directly, no useMemo needed)
     const isActive = (() => {
-      if (!item.url) return false
+      if (!('url' in item) || !item.url) return false
 
       // Exact match
       if (location.pathname === item.url) return true
 
-      // Parent route match (e.g., /admin/users matches /admin/users/7 or /admin/users/7/edit)
+      // Parent route match (e.g., /users matches /users/7 or /users/7/edit)
       // But only if the current path starts with the item URL + '/'
       if (location.pathname.startsWith(item.url + '/')) {
         // Check if this is a sibling route by comparing with ALL items at the same level
         const siblingRoutes = allItems
-          .filter((sibling) => sibling.url && sibling.url !== item.url)
+          .filter((sibling) => 'url' in sibling && sibling.url && sibling.url !== item.url)
           .map((sibling) => sibling.url)
 
         // If current path starts with any sibling URL + '/', this is a sibling route, not a child
-        const isSibling = siblingRoutes.some((siblingUrl: string) =>
-          location.pathname.startsWith(siblingUrl + '/') || location.pathname === siblingUrl
+        const isSibling = siblingRoutes.some((siblingUrl) =>
+          siblingUrl && location.pathname.startsWith(siblingUrl + '/') || location.pathname === siblingUrl
         )
 
         return !isSibling
@@ -448,7 +407,7 @@ export function AppSidebarMantine({
     // Auto-expand if any child is active (computed directly, no useMemo needed)
     const hasActiveChild = (() => {
       if (!hasChildren) return false
-      return item.children.some((child: any) => {
+      return Array.isArray(item.children) && item.children.some((child: any) => {
         // Exact match
         if (location.pathname === child.url) return true
         // Child route match
@@ -475,14 +434,13 @@ export function AppSidebarMantine({
             />
           ) : null
         }
-        href={item.url || undefined}
-        component={item.url ? Link : undefined}
-        to={item.url || undefined}
+  to={('url' in item && item.url) || '/'}
+        component={('url' in item) ? Link : undefined}
         childrenOffset={28}
         defaultOpened={isActive || isOpen || hasActiveChild}
         onClick={hasChildren ? () => toggleSection(item.title) : undefined}
         active={isActive}
-        styles={(theme) => ({
+        styles={() => ({
           root: {
             backgroundColor: isActive
               ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
@@ -503,12 +461,12 @@ export function AppSidebarMantine({
         })}
       >
         {hasChildren &&
-          item.children.map((child: any, childIndex: number) => {
+          Array.isArray(item.children) && item.children.map((child: NavItem, childIndex: number) => {
             // Smart child matching (computed directly, no useMemo needed)
             const isChildActive = (() => {
               // Exact match
               if (location.pathname === child.url) return true
-              // Child route match (e.g., /admin/users/roles matches /admin/users/roles/create)
+              // Child route match (e.g., /users/roles matches /users/roles/create)
               if (location.pathname.startsWith(child.url + '/')) return true
               return false
             })()
@@ -517,11 +475,10 @@ export function AppSidebarMantine({
               <NavLink
                 key={childIndex}
                 label={child.title}
-                href={child.url}
+                to={child.url || '/'}
                 component={Link}
-                to={child.url}
                 active={isChildActive}
-                styles={(theme) => ({
+                styles={() => ({
                   root: {
                     backgroundColor: isChildActive
                       ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
@@ -558,7 +515,7 @@ export function AppSidebarMantine({
         style={{ borderBottom: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))' }}
       >
         <Group justify="space-between">
-          <Link to="/admin/dashboard" style={{ textDecoration: 'none' }}>
+          <Link to="/dashboard" style={{ textDecoration: 'none' }}>
             <Group gap="xs">
               <IconInnerShadowTop size={24} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Text fw={700} size="lg" c="light-dark(var(--mantine-color-dark-0), var(--mantine-color-dark-0))">

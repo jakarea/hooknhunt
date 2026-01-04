@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -12,12 +10,10 @@ import {
   Paper,
   Card,
   TextInput,
-  Select,
   ActionIcon,
   SimpleGrid,
   Table,
   Switch,
-  NumberInput,
   Tabs,
   Alert,
   Avatar,
@@ -31,12 +27,10 @@ import {
   IconCoin,
   IconGift,
   IconTrophy,
-  IconStar,
   IconSettings,
   IconUsers,
   IconReceipt,
   IconCheck,
-  IconX,
   IconInfoCircle,
 } from '@tabler/icons-react'
 import { modals } from '@mantine/modals'
@@ -206,7 +200,6 @@ const mockPointsTransactions = [
 ]
 
 export default function LoyaltyPage() {
-  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'rules' | 'tiers' | 'rewards' | 'transactions'>('rules')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -239,7 +232,7 @@ export default function LoyaltyPage() {
   }, [searchQuery])
 
   // Delete handler
-  const openDeleteModal = (type: string, id: number, name: string) => {
+  const openDeleteModal = (type: string, _id: number, name: string) => {
     modals.openConfirmModal({
       title: `Delete ${type}`,
       centered: true,
@@ -288,7 +281,7 @@ export default function LoyaltyPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Title order={1} className="text-lg md:text-xl lg:text-2xl">Loyalty Program</Title>
@@ -298,7 +291,7 @@ export default function LoyaltyPage() {
         {/* Stats */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconUsers size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Text size="xs" c="dimmed">Total Members</Text>
             </Group>
@@ -306,7 +299,7 @@ export default function LoyaltyPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconTrophy size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
               <Text size="xs" c="dimmed">Active Tiers</Text>
             </Group>
@@ -314,7 +307,7 @@ export default function LoyaltyPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconSettings size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
               <Text size="xs" c="dimmed">Active Rules</Text>
             </Group>
@@ -322,7 +315,7 @@ export default function LoyaltyPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconGift size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Text size="xs" c="dimmed">Active Rewards</Text>
             </Group>
@@ -349,7 +342,7 @@ export default function LoyaltyPage() {
 
           {/* Rules Tab */}
           <Tabs.Panel value="rules">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Group justify="space-between">
                 <TextInput
                   placeholder="Search rules..."
@@ -384,9 +377,9 @@ export default function LoyaltyPage() {
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 {filteredRules.map((rule) => (
                   <Card key={rule.id} withBorder p="md" radius="md">
-                    <Stack gap="sm">
+                    <Stack >
                       <Group justify="space-between">
-                        <Group gap="xs">
+                        <Group >
                           <Avatar color={rule.type === 'earning' ? 'green' : 'orange'} size="sm">
                             {rule.type === 'earning' ? <IconPlus size={14} /> : <IconCoin size={14} />}
                           </Avatar>
@@ -418,14 +411,14 @@ export default function LoyaltyPage() {
 
                       {rule.type === 'earning' && (
                         <>
-                          {rule.points_per_currency > 0 && (
-                            <Group gap="xs">
+                          {(rule.points_per_currency ?? 0) > 0 && (
+                            <Group >
                               <Text size="xs" c="dimmed">Points per 1 BDT:</Text>
                               <Text size="sm" fw={600}>{rule.points_per_currency}</Text>
                             </Group>
                           )}
-                          {rule.bonus_points > 0 && (
-                            <Group gap="xs">
+                          {(rule.bonus_points ?? 0) > 0 && (
+                            <Group >
                               <Text size="xs" c="dimmed">Bonus points:</Text>
                               <Text size="sm" fw={600}>{rule.bonus_points}</Text>
                             </Group>
@@ -434,13 +427,13 @@ export default function LoyaltyPage() {
                       )}
 
                       {rule.type === 'redemption' && (
-                        <Group gap="xs">
+                        <Group >
                           <Text size="xs" c="dimmed">Redemption rate:</Text>
                           <Text size="sm" fw={600}>{rule.points_value} points = ৳{rule.currency_value}</Text>
                         </Group>
                       )}
 
-                      <Group gap="xs" mt="xs">
+                      <Group  mt="xs">
                         <Button
                           variant="light"
                           size="xs"
@@ -467,7 +460,7 @@ export default function LoyaltyPage() {
 
           {/* Tiers Tab */}
           <Tabs.Panel value="tiers">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Alert variant="light" color="yellow" icon={<IconInfoCircle size={16} />}>
                 <Text size="sm">
                   Customer tiers are automatically assigned based on accumulated loyalty points. Higher tiers unlock exclusive benefits.
@@ -475,7 +468,7 @@ export default function LoyaltyPage() {
               </Alert>
 
               {/* Tiers Display */}
-              <Stack gap="md">
+              <Stack >
                 {mockTiers.map((tier, index) => (
                   <Card
                     key={tier.id}
@@ -487,13 +480,13 @@ export default function LoyaltyPage() {
                       background: index === 3 ? 'linear-gradient(135deg, #fff 0%, #f0f0f0 100%)' : 'white',
                     }}
                   >
-                    <Stack gap={{ base: 'sm', md: 'md' }}>
+                    <Stack >
                       {/* Header */}
                       <Group justify="space-between" wrap="wrap">
-                        <Group gap="md">
-                          <Text size={{ base: 'xl', md: '2xl' }}>{tier.icon}</Text>
+                        <Group >
+                          <Text size="xl">{tier.icon}</Text>
                           <Box>
-                            <Group gap="xs" mb="xs">
+                            <Group  mb="xs">
                               <Title order={4} className="text-base md:text-lg lg:text-xl">{tier.name}</Title>
                               {index === 3 && (
                                 <Badge color="yellow" variant="filled" size="sm">Premium</Badge>
@@ -504,7 +497,7 @@ export default function LoyaltyPage() {
                             </Text>
                           </Box>
                         </Group>
-                        <Group gap="xs">
+                        <Group >
                           <Button
                             variant="light"
                             size="sm"
@@ -518,9 +511,9 @@ export default function LoyaltyPage() {
                       {/* Benefits */}
                       <Box>
                         <Text size="sm" fw={600} mb="xs">Benefits:</Text>
-                        <SimpleGrid cols={{ base: 1, sm: 2 }} gap="xs">
+                        <SimpleGrid cols={{ base: 1, sm: 2 }}>
                           {tier.benefits.map((benefit, idx) => (
-                            <Group key={idx} gap="xs">
+                            <Group key={idx} >
                               <IconCheck size={14} color="green" />
                               <Text size="sm">{benefit}</Text>
                             </Group>
@@ -546,7 +539,7 @@ export default function LoyaltyPage() {
 
           {/* Rewards Tab */}
           <Tabs.Panel value="rewards">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Group justify="space-between">
                 <TextInput
                   placeholder="Search rewards..."
@@ -574,7 +567,7 @@ export default function LoyaltyPage() {
               <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
                 {filteredRewards.map((reward) => (
                   <Card key={reward.id} withBorder p="md" radius="md" shadow="sm">
-                    <Stack gap="sm">
+                    <Stack >
                       {/* Icon */}
                       <Box
                         p="md"
@@ -610,7 +603,7 @@ export default function LoyaltyPage() {
 
                       {/* Stock */}
                       {reward.stock !== null && (
-                        <Group justify="center" gap="xs">
+                        <Group justify="center" >
                           <Text size="xs" c="dimmed">Available:</Text>
                           <Text size="sm" fw={600}>{reward.stock - reward.redeemed}</Text>
                           <Text size="xs" c="dimmed">/ {reward.stock}</Text>
@@ -628,7 +621,7 @@ export default function LoyaltyPage() {
                       </Badge>
 
                       {/* Actions */}
-                      <Group gap="xs">
+                      <Group >
                         <Button
                           variant="light"
                           size="xs"
@@ -662,7 +655,7 @@ export default function LoyaltyPage() {
 
           {/* Transactions Tab */}
           <Tabs.Panel value="transactions">
-            <Stack gap="lg" mt="md">
+            <Stack  mt="md">
               <Group justify="space-between">
                 <TextInput
                   placeholder="Search transactions..."
@@ -675,7 +668,7 @@ export default function LoyaltyPage() {
               </Group>
 
               {/* Desktop Table */}
-              <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} overflow="hidden">
+              <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }}>
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
@@ -737,7 +730,7 @@ export default function LoyaltyPage() {
               </Paper>
 
               {/* Mobile Cards */}
-              <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+              <Stack  display={{ base: 'block', md: 'none' }}>
                 {filteredTransactions.length === 0 ? (
                   <Paper withBorder p="xl" ta="center">
                     <Text c="dimmed">No transactions found</Text>

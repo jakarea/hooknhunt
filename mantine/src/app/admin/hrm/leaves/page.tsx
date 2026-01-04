@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -16,7 +15,6 @@ import {
   Modal,
   TextInput,
   Textarea,
-  Pagination,
 } from '@mantine/core'
 import {
   IconPlus,
@@ -67,7 +65,6 @@ interface FormData {
 }
 
 export default function LeavesPage() {
-  const { t } = useTranslation()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [leaves, setLeaves] = useState<Leave[]>([])
@@ -86,7 +83,7 @@ export default function LeavesPage() {
 
   // Check if current user is admin (super_admin or admin)
   const isAdmin = useMemo(() => {
-    return user?.role === 'super_admin' || user?.role === 'admin'
+    return user?.role?.name === 'super_admin' || user?.role?.name === 'admin'
   }, [user])
 
   // Fetch leaves
@@ -344,7 +341,7 @@ export default function LeavesPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between">
@@ -356,7 +353,7 @@ export default function LeavesPage() {
                 {isAdmin ? 'Manage employee leave requests' : 'View and manage your leave requests'}
               </Text>
             </Box>
-            <Group gap="sm">
+            <Group >
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -376,10 +373,10 @@ export default function LeavesPage() {
         </Box>
 
         {/* Stats */}
-        <Stack gap="md" display={{ base: 'none', md: 'flex' }}>
-          <Group gap="sm">
+        <Stack  display={{ base: 'none', md: 'flex' }}>
+          <Group >
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                 <Text size="xs" c="dimmed">Total Requests</Text>
               </Group>
@@ -387,7 +384,7 @@ export default function LeavesPage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
                 <Text size="xs" c="dimmed">Pending</Text>
               </Group>
@@ -395,7 +392,7 @@ export default function LeavesPage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconCheck size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
                 <Text size="xs" c="dimmed">Approved</Text>
               </Group>
@@ -403,7 +400,7 @@ export default function LeavesPage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconX size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
                 <Text size="xs" c="dimmed">Rejected</Text>
               </Group>
@@ -414,7 +411,7 @@ export default function LeavesPage() {
 
         {/* Filters */}
         <Group justify="space-between">
-          <Group gap="sm">
+          <Group >
             <Select
               placeholder="Filter by status"
               leftSection={<IconFilter size={16} />}
@@ -528,7 +525,7 @@ export default function LeavesPage() {
                       </Table.Td>
                     )}
                     <Table.Td>
-                      <Group gap="xs">
+                      <Group >
                         {isAdmin && leave.status === 'pending' && (
                           <>
                             <ActionIcon
@@ -576,9 +573,9 @@ export default function LeavesPage() {
         title={isAdmin ? "Create Leave Request" : "Apply for Leave"}
         centered
       >
-        <Stack gap="md">
+        <Stack >
           {isAdmin ? (
-            <Stack gap="xs">
+            <Stack >
               <Text size="sm" fw={500}>Employee *</Text>
               <Select
                 placeholder="Select employee"
@@ -590,13 +587,13 @@ export default function LeavesPage() {
               />
             </Stack>
           ) : (
-            <Stack gap="xs">
+            <Stack >
               <Text size="sm" fw={500}>Employee</Text>
               <Text size="sm">{user?.name}</Text>
             </Stack>
           )}
 
-          <Stack gap="xs">
+          <Stack >
             <Text size="sm" fw={500}>Leave Type *</Text>
             <Select
               placeholder="Select leave type"
@@ -611,8 +608,8 @@ export default function LeavesPage() {
             />
           </Stack>
 
-          <Group gap="sm">
-            <Stack gap="xs" style={{ flex: 1 }}>
+          <Group >
+            <Stack  style={{ flex: 1 }}>
               <Text size="sm" fw={500}>Start Date *</Text>
               <TextInput
                 type="date"
@@ -623,7 +620,7 @@ export default function LeavesPage() {
               />
             </Stack>
 
-            <Stack gap="xs" style={{ flex: 1 }}>
+            <Stack  style={{ flex: 1 }}>
               <Text size="sm" fw={500}>End Date *</Text>
               <TextInput
                 type="date"
@@ -636,7 +633,7 @@ export default function LeavesPage() {
             </Stack>
           </Group>
 
-          <Stack gap="xs">
+          <Stack >
             <Text size="sm" fw={500}>Reason</Text>
             <Textarea
               placeholder="Enter reason (optional)"
@@ -647,7 +644,7 @@ export default function LeavesPage() {
             />
           </Stack>
 
-          <Group justify="flex-end" gap="sm">
+          <Group justify="flex-end" >
             <Button
               variant="default"
               onClick={() => setModalOpened(false)}

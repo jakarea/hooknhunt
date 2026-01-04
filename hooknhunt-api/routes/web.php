@@ -3,8 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
+/*
+|--------------------------------------------------------------------------
+| System Refresh (Optional – secure it later)
+|--------------------------------------------------------------------------
+*/
 Route::get('/system/refresh', function () {
-
     Artisan::call('storage:link');
     Artisan::call('cache:clear');
     Artisan::call('config:clear');
@@ -16,17 +20,15 @@ Route::get('/system/refresh', function () {
     return response()->json([
         'status' => 'success',
         'message' => 'System refreshed successfully',
-        'commands' => [
-            'storage:link',
-            'cache:clear',
-            'config:clear',
-            'config:cache',
-            'route:clear',
-            'view:clear',
-            'optimize:clear',
-        ]
     ]);
 });
-Route::get('/', function () {
-    return view('welcome');
-});
+
+/*
+|--------------------------------------------------------------------------
+| React SPA Catch-All
+|--------------------------------------------------------------------------
+| Root (/) সহ সব non-API request React index.html serve করবে
+*/
+Route::get('/{any}', function () {
+    return file_get_contents(public_path('build/index.html'));
+})->where('any', '.*');

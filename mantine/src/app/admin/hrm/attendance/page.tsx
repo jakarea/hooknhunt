@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -26,7 +25,6 @@ import {
   IconCheck,
   IconX,
 } from '@tabler/icons-react'
-import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -66,7 +64,6 @@ interface FormData {
 }
 
 export default function AttendancePage() {
-  const { t } = useTranslation()
   const { user } = useAuthStore()
   const [loading, setLoading] = useState(true)
   const [attendance, setAttendance] = useState<Attendance[]>([])
@@ -90,7 +87,7 @@ export default function AttendancePage() {
 
   // Check if current user is admin (super_admin or admin)
   const isAdmin = useMemo(() => {
-    return user?.role === 'super_admin' || user?.role === 'admin'
+    return user?.role?.name === 'super_admin' || user?.role?.name === 'admin'
   }, [user])
 
   // Fetch attendance records
@@ -364,7 +361,7 @@ export default function AttendancePage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between">
@@ -376,7 +373,7 @@ export default function AttendancePage() {
                 {isAdmin ? 'View and manage all employee attendance' : 'View your attendance records'}
               </Text>
             </Box>
-            <Group gap="sm">
+            <Group >
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -418,7 +415,7 @@ export default function AttendancePage() {
             <Group justify="space-between">
               <Box>
                 <Text size="sm" c="dimmed">Today's Status</Text>
-                <Group gap="xs" mt="xs">
+                <Group  mt="xs">
                   <Badge
                     color={
                       todayAttendance.status === 'present' ? 'green' :
@@ -453,10 +450,10 @@ export default function AttendancePage() {
         )}
 
         {/* Stats */}
-        <Stack gap="md" display={{ base: 'none', md: 'flex' }}>
-          <Group gap="sm">
+        <Stack  display={{ base: 'none', md: 'flex' }}>
+          <Group >
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconCheck size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
                 <Text size="xs" c="dimmed">Present Days</Text>
               </Group>
@@ -464,7 +461,7 @@ export default function AttendancePage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconClockHour3 size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
                 <Text size="xs" c="dimmed">Late Days</Text>
               </Group>
@@ -472,7 +469,7 @@ export default function AttendancePage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconX size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
                 <Text size="xs" c="dimmed">Absent Days</Text>
               </Group>
@@ -480,7 +477,7 @@ export default function AttendancePage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                 <Text size="xs" c="dimmed">Leave Days</Text>
               </Group>
@@ -491,7 +488,7 @@ export default function AttendancePage() {
 
         {/* Filters */}
         <Group justify="space-between">
-          <Group gap="sm">
+          <Group >
             <TextInput
               type="month"
               label="Select Month"
@@ -631,8 +628,8 @@ export default function AttendancePage() {
           title="Edit Attendance"
           centered
         >
-          <Stack gap="md">
-            <Stack gap="xs">
+          <Stack >
+            <Stack >
               <Text size="sm" fw={500}>Employee *</Text>
               <Select
                 placeholder="Select employee"
@@ -645,7 +642,7 @@ export default function AttendancePage() {
               />
             </Stack>
 
-            <Stack gap="xs">
+            <Stack >
               <Text size="sm" fw={500}>Date *</Text>
               <TextInput
                 type="date"
@@ -655,8 +652,8 @@ export default function AttendancePage() {
               />
             </Stack>
 
-            <Group gap="sm">
-              <Stack gap="xs" style={{ flex: 1 }}>
+            <Group >
+              <Stack  style={{ flex: 1 }}>
                 <Text size="sm" fw={500}>Clock In</Text>
                 <TextInput
                   type="time"
@@ -666,7 +663,7 @@ export default function AttendancePage() {
                 />
               </Stack>
 
-              <Stack gap="xs" style={{ flex: 1 }}>
+              <Stack  style={{ flex: 1 }}>
                 <Text size="sm" fw={500}>Clock Out</Text>
                 <TextInput
                   type="time"
@@ -677,7 +674,7 @@ export default function AttendancePage() {
               </Stack>
             </Group>
 
-            <Stack gap="xs">
+            <Stack >
               <Text size="sm" fw={500}>Status *</Text>
               <Select
                 placeholder="Select status"
@@ -694,7 +691,7 @@ export default function AttendancePage() {
               />
             </Stack>
 
-            <Stack gap="xs">
+            <Stack >
               <Text size="sm" fw={500}>Note</Text>
               <Textarea
                 placeholder="Enter note (optional)"
@@ -705,7 +702,7 @@ export default function AttendancePage() {
               />
             </Stack>
 
-            <Group justify="flex-end" gap="sm">
+            <Group justify="flex-end" >
               <Button
                 variant="default"
                 onClick={() => setModalOpened(false)}

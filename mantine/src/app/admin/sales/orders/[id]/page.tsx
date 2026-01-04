@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router-dom'
 import {
   Box,
   Stack,
@@ -182,9 +181,6 @@ const mockOrder = {
 }
 
 export default function OrderDetailsPage() {
-  const { t } = useTranslation()
-  const { id } = useParams()
-  const navigate = useNavigate()
   const order = mockOrder
 
   const [loading, setLoading] = useState(false)
@@ -220,7 +216,7 @@ export default function OrderDetailsPage() {
       title: 'Update Order Status',
       centered: true,
       children: (
-        <Stack gap="md">
+        <Stack >
           <Text size="sm">Update order status for {order.id}?</Text>
           {/* In real app, would show status dropdown here */}
         </Stack>
@@ -294,12 +290,12 @@ export default function OrderDetailsPage() {
   // Header section
   const orderHeader = useMemo(() => (
     <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Stack gap={{ base: 'sm', md: 'md' }}>
+      <Stack gap="md">
         {/* Top row: Order ID and status */}
-        <Group justify="space-between" align="flex-start" wrap="wrap">
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
           <Box>
-            <Group gap="xs" mb="xs">
-              <Title order={{ base: 3, md: 2 }}>{order.id}</Title>
+            <Group  mb="xs">
+              <Title order={2}>{order.id}</Title>
               <Badge
                 color={
                   order.status === 'delivered' ? 'green' :
@@ -326,12 +322,12 @@ export default function OrderDetailsPage() {
             </Text>
           </Box>
 
-          <Group gap="sm">
+          <Group >
             <Button
               variant="default"
               size="sm"
               component={Link}
-              to="/admin/sales/orders"
+              to="/sales/orders"
               leftSection={<IconArrowLeft size={16} />}
             >
               Back to Orders
@@ -389,7 +385,7 @@ export default function OrderDetailsPage() {
             opacity={step.completed ? 1 : 0.5}
           >
             <Stack gap={0}>
-              <Group gap="xs">
+              <Group >
                 <Text fw={600} size="sm">{step.title}</Text>
                 {step.completed && (
                   <Badge size="xs" color={step.color} variant="light">Completed</Badge>
@@ -400,13 +396,13 @@ export default function OrderDetailsPage() {
               </Group>
               <Text size="sm" c="dimmed">{step.description}</Text>
               {step.date && (
-                <Group gap="xs" mt="xs">
+                <Group  mt="xs">
                   <IconClock size={12} style={{ color: 'var(--mantine-color-gray-5)' }} />
                   <Text size="xs" c="dimmed">{formatDate(step.date)}</Text>
                 </Group>
               )}
               {step.tracking_number && (
-                <Group gap="xs" mt="xs">
+                <Group  mt="xs">
                   <Text size="xs" fw={600}>Tracking:</Text>
                   <Anchor
                     href={order.courier.tracking_url}
@@ -428,8 +424,8 @@ export default function OrderDetailsPage() {
   const customerInfo = useMemo(() => (
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
       <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Customer Information</Title>
-      <Stack gap="md">
-        <Group gap="md">
+      <Stack >
+        <Group >
           <Avatar
             src={null}
             alt={order.customer_name}
@@ -445,12 +441,12 @@ export default function OrderDetailsPage() {
           </Box>
         </Group>
 
-        <Stack gap="xs">
-          <Group gap="xs">
+        <Stack >
+          <Group >
             <IconMail size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
             <Text size="sm">{order.customer_email}</Text>
           </Group>
-          <Group gap="xs">
+          <Group >
             <IconPhone size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
             <Text size="sm">{order.customer_phone}</Text>
           </Group>
@@ -460,7 +456,7 @@ export default function OrderDetailsPage() {
           variant="light"
           size="sm"
           component={Link}
-          to={`/admin/crm/customers/${order.customer_id}`}
+          to={`/crm/customers/${order.customer_id}`}
           leftSection={<IconEdit size={14} />}
           fullWidth
         >
@@ -473,11 +469,11 @@ export default function OrderDetailsPage() {
   // Shipping address
   const shippingAddress = useMemo(() => (
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Group gap="xs" mb="md">
+      <Group  mb="md">
         <IconMapPin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
         <Title order={4} className="text-base md:text-lg lg:text-xl">Shipping Address</Title>
       </Group>
-      <Stack gap="xs">
+      <Stack >
         <Text fw={600} size="sm">{order.shipping_address.full_name}</Text>
         <Text size="sm">{order.shipping_address.phone}</Text>
         <Text size="sm">{order.shipping_address.address}</Text>
@@ -489,7 +485,7 @@ export default function OrderDetailsPage() {
 
       <Box>
         <Text size="xs" c="dimmed" mb="xs">Courier</Text>
-        <Group gap="xs">
+        <Group >
           <Text fw={600} size="sm">{order.courier.name}</Text>
           <Text size="sm" c="dimmed">•</Text>
           <Text size="sm">{order.courier.phone}</Text>
@@ -501,7 +497,7 @@ export default function OrderDetailsPage() {
   // Payment info
   const paymentInfo = useMemo(() => (
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Group gap="xs" mb="md">
+      <Group  mb="md">
         <IconCreditCard size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
         <Title order={4} className="text-base md:text-lg lg:text-xl">Payment Information</Title>
       </Group>
@@ -545,7 +541,7 @@ export default function OrderDetailsPage() {
             {order.items.map((item) => (
               <Table.Tr key={item.id}>
                 <Table.Td>
-                  <Group gap="sm">
+                  <Group >
                     <Avatar
                       src={item.image}
                       alt={item.product_name}
@@ -557,7 +553,7 @@ export default function OrderDetailsPage() {
                     </Avatar>
                     <Anchor
                       component={Link}
-                      to={`/admin/catalog/products/${item.product_id}`}
+                      to={`/catalog/products/${item.product_id}`}
                       size="sm"
                       fw={600}
                     >
@@ -587,11 +583,11 @@ export default function OrderDetailsPage() {
       </Box>
 
       {/* Mobile items list */}
-      <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+      <Stack  display={{ base: 'block', md: 'none' }}>
         {order.items.map((item) => (
           <Paper key={item.id} withBorder p="sm" radius="md">
             <Group justify="space-between" mb="xs">
-              <Group gap="xs">
+              <Group >
                 <Avatar
                   src={item.image}
                   alt={item.product_name}
@@ -620,7 +616,7 @@ export default function OrderDetailsPage() {
   const priceBreakdown = useMemo(() => (
     <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
       <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Price Breakdown</Title>
-      <Stack gap="sm">
+      <Stack >
         <Group justify="space-between">
           <Text size="sm">Subtotal</Text>
           <Text size="sm">{formatCurrency(order.subtotal)}</Text>
@@ -640,7 +636,7 @@ export default function OrderDetailsPage() {
           <Text fw={700} size="lg">Total</Text>
           <Text fw={700} size="lg" c="red">{formatCurrency(order.total)}</Text>
         </Group>
-        <Group gap="xs" mt="xs">
+        <Group  mt="xs">
           <IconCoin size={14} style={{ color: 'var(--mantine-color-red-filled)' }} />
           <Text size="xs" c="dimmed">Paid via {order.payment_method}</Text>
         </Group>
@@ -650,12 +646,12 @@ export default function OrderDetailsPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor component={Link} to="/admin/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor component={Link} to="/admin/sales" c="dimmed">Sales</Anchor>
-          <Anchor component={Link} to="/admin/sales/orders" c="dimmed">Orders</Anchor>
+          <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
+          <Anchor component={Link} to="/sales" c="dimmed">Sales</Anchor>
+          <Anchor component={Link} to="/sales/orders" c="dimmed">Orders</Anchor>
           <Text c="red">{order.id}</Text>
         </Breadcrumbs>
 
@@ -687,12 +683,12 @@ export default function OrderDetailsPage() {
 
         {/* Items and Pricing */}
         <SimpleGrid cols={{ base: 1, lg: 3 }} spacing="lg">
-          <Box span={{ base: 1, lg: 2 }}>{orderItems}</Box>
+          <div style={{ gridColumn: '1 / -1' }}>{orderItems}</div>
           {priceBreakdown}
         </SimpleGrid>
 
         {/* Actions */}
-        <Group justify="flex-end" gap="sm">
+        <Group justify="flex-end" >
           <Button
             variant="light"
             color="red"

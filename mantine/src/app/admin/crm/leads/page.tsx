@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -14,11 +13,9 @@ import {
   TextInput,
   Select,
   ActionIcon,
-  Grid,
   Avatar,
-  Progress,
   Menu,
-  Tooltip,
+  Progress,
   SimpleGrid,
 } from '@mantine/core'
 import {
@@ -27,14 +24,8 @@ import {
   IconDots,
   IconPhone,
   IconMail,
-  IconMapPin,
-  IconBuilding,
-  IconCalendar,
   IconClock,
   IconUser,
-  IconRefresh,
-  IconX,
-  IconCheck,
   IconEye,
   IconPencil,
   IconTrash,
@@ -152,11 +143,9 @@ const sourceConfig = [
 ]
 
 export default function LeadsPage() {
-  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [stageFilter, setStageFilter] = useState<string | null>('all')
   const [sourceFilter, setSourceFilter] = useState<string | null>('all')
-  const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban')
 
   // Filter leads
   const filteredLeads = useMemo(() => {
@@ -212,7 +201,7 @@ export default function LeadsPage() {
   }
 
   // Delete lead handler
-  const openDeleteModal = (id: number, name: string) => {
+  const openDeleteModal = (_id: number, name: string) => {
     modals.openConfirmModal({
       title: 'Delete Lead',
       centered: true,
@@ -260,10 +249,10 @@ export default function LeadsPage() {
         e.currentTarget.style.borderColor = ''
       }}
     >
-      <Stack gap="sm">
+      <Stack >
         {/* Header */}
         <Group justify="space-between" wrap="nowrap">
-          <Group gap="xs" style={{ flex: 1, minWidth: 0 }}>
+          <Group  style={{ flex: 1, minWidth: 0 }}>
             <Avatar
               size="sm"
               radius="xl"
@@ -288,14 +277,14 @@ export default function LeadsPage() {
               <Menu.Item
                 leftSection={<IconEye size={14} />}
                 component={Link}
-                to={`/admin/crm/leads/${lead.id}`}
+                to={`/crm/leads/${lead.id}`}
               >
                 View Details
               </Menu.Item>
               <Menu.Item
                 leftSection={<IconPencil size={14} />}
                 component={Link}
-                to={`/admin/crm/leads/${lead.id}/edit`}
+                to={`/crm/leads/${lead.id}/edit`}
               >
                 Edit
               </Menu.Item>
@@ -360,14 +349,14 @@ export default function LeadsPage() {
 
         {/* Assigned to */}
         {lead.assigned_to && (
-          <Group gap="xs">
+          <Group >
             <IconUser size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
             <Text size="xs" c="dimmed">Assigned to {lead.assigned_to}</Text>
           </Group>
         )}
 
         {/* Last contact */}
-        <Group gap="xs">
+        <Group >
           <IconClock size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
           <Text size="xs" c="dimmed">
             Last contact: {formatDate(lead.last_contact)}
@@ -388,7 +377,7 @@ export default function LeadsPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between" wrap="wrap">
@@ -398,7 +387,7 @@ export default function LeadsPage() {
             </Box>
             <Button
               component={Link}
-              to="/admin/crm/leads/create"
+              to="/crm/leads/create"
               leftSection={<IconPlus size={16} />}
             >
               Add Lead
@@ -432,7 +421,7 @@ export default function LeadsPage() {
 
         {/* Filters */}
         <Group justify="space-between" wrap="wrap">
-          <Group gap="sm" style={{ flex: 1, maxWidth: '100%' }}>
+          <Group  style={{ flex: 1, maxWidth: '100%' }}>
             <TextInput
               placeholder="Search leads..."
               leftSection={<IconSearch size={16} />}
@@ -472,7 +461,7 @@ export default function LeadsPage() {
 
         {/* Kanban Board - Desktop */}
         <Box display={{ base: 'none', lg: 'block' }}>
-          <Group gap="md" style={{ alignItems: 'flex-start' }} wrap="nowrap">
+          <Group  style={{ alignItems: 'flex-start' }} wrap="nowrap">
             {leadsByStage.map((stageData) => (
               <Paper
                 key={stageData.stage}
@@ -488,7 +477,7 @@ export default function LeadsPage() {
                                    'var(--mantine-color-gray-0)',
                 }}
               >
-                <Stack gap="sm">
+                <Stack >
                   {/* Stage header */}
                   <Group justify="space-between">
                     <Badge
@@ -510,7 +499,7 @@ export default function LeadsPage() {
 
                   {/* Leads in this stage */}
                   {stageData.leads.length > 0 ? (
-                    <Stack gap="sm">
+                    <Stack >
                       {stageData.leads.map((lead) => (
                         <LeadCard key={lead.id} lead={lead} />
                       ))}
@@ -527,7 +516,7 @@ export default function LeadsPage() {
         </Box>
 
         {/* Mobile: List View */}
-        <Stack gap="sm" display={{ base: 'block', lg: 'none' }}>
+        <Stack  display={{ base: 'block', lg: 'none' }}>
           {filteredLeads.length === 0 ? (
             <Paper withBorder p="xl" ta="center">
               <Text c="dimmed">No leads found</Text>

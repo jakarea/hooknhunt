@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -17,25 +16,18 @@ import {
   SimpleGrid,
   Avatar,
   Table,
-  Menu,
 } from '@mantine/core'
 import {
   IconPlus,
   IconSearch,
-  IconDots,
-  IconPhone,
   IconWallet,
   IconCoin,
   IconTrendingUp,
   IconTrendingDown,
-  IconRefresh,
   IconEye,
-  IconPencil,
-  IconCreditCard,
   IconCalendar,
   IconReceipt,
 } from '@tabler/icons-react'
-import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 
 // Mock wallet data
@@ -162,7 +154,6 @@ const mockTransactions = [
 ]
 
 export default function WalletPage() {
-  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [balanceFilter, setBalanceFilter] = useState<string | null>('all')
   const [activeTab, setActiveTab] = useState<'wallets' | 'transactions'>('wallets')
@@ -246,14 +237,6 @@ export default function WalletPage() {
     return filteredWallets.reduce((sum, w) => sum + w.total_debits, 0)
   }, [filteredWallets])
 
-  const positiveWallets = useMemo(() => {
-    return filteredWallets.filter((w) => w.balance > 0).length
-  }, [filteredWallets])
-
-  const negativeWallets = useMemo(() => {
-    return filteredWallets.filter((w) => w.balance < 0).length
-  }, [filteredWallets])
-
   // Reset page when filters change
   useMemo(() => {
     setCurrentPage(1)
@@ -261,7 +244,7 @@ export default function WalletPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Title order={1} className="text-lg md:text-xl lg:text-2xl">Customer Wallets</Title>
@@ -271,7 +254,7 @@ export default function WalletPage() {
         {/* Stats */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Text size="xs" c="dimmed">Total Balance</Text>
             </Group>
@@ -279,7 +262,7 @@ export default function WalletPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
               <Text size="xs" c="dimmed">Total Credits</Text>
             </Group>
@@ -287,7 +270,7 @@ export default function WalletPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconTrendingDown size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Text size="xs" c="dimmed">Total Debits</Text>
             </Group>
@@ -295,7 +278,7 @@ export default function WalletPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconCoin size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
               <Text size="xs" c="dimmed">Active Wallets</Text>
             </Group>
@@ -305,7 +288,7 @@ export default function WalletPage() {
 
         {/* Tabs */}
         <Box>
-          <Group gap="sm">
+          <Group >
             <Button
               variant={activeTab === 'wallets' ? 'filled' : 'light'}
               onClick={() => setActiveTab('wallets')}
@@ -323,7 +306,7 @@ export default function WalletPage() {
 
         {/* Filters */}
         <Group justify="space-between" wrap="wrap">
-          <Group gap="sm" style={{ flex: 1, maxWidth: '100%' }}>
+          <Group  style={{ flex: 1, maxWidth: '100%' }}>
             <TextInput
               placeholder="Search by customer name..."
               leftSection={<IconSearch size={16} />}
@@ -365,7 +348,7 @@ export default function WalletPage() {
         {activeTab === 'wallets' && (
           <>
             {/* Mobile: Card View */}
-            <Stack gap="md" display={{ base: 'block', md: 'none' }}>
+            <Stack  display={{ base: 'block', md: 'none' }}>
               {paginatedWallets.length === 0 ? (
                 <Paper withBorder p="xl" ta="center">
                   <Text c="dimmed">No wallets found</Text>
@@ -373,10 +356,10 @@ export default function WalletPage() {
               ) : (
                 paginatedWallets.map((wallet) => (
                   <Card key={wallet.id} shadow="sm" p="md" radius="md" withBorder>
-                    <Stack gap="sm">
+                    <Stack >
                       {/* Header */}
                       <Group justify="space-between">
-                        <Group gap="xs">
+                        <Group >
                           <Avatar
                             src={null}
                             alt={wallet.customer_name}
@@ -430,7 +413,7 @@ export default function WalletPage() {
                       </SimpleGrid>
 
                       {/* Last transaction */}
-                      <Group gap="xs">
+                      <Group >
                         <IconCalendar size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
                         <Text size="xs" c="dimmed">
                           Last: {formatDateTime(wallet.last_transaction)}
@@ -438,12 +421,12 @@ export default function WalletPage() {
                       </Group>
 
                       {/* Actions */}
-                      <Group gap="xs">
+                      <Group >
                         <Button
                           variant="light"
                           size="xs"
                           component={Link}
-                          to={`/admin/crm/customers/${wallet.customer_id}`}
+                          to={`/crm/customers/${wallet.customer_id}`}
                           leftSection={<IconEye size={14} />}
                           style={{ flex: 1 }}
                         >
@@ -473,7 +456,7 @@ export default function WalletPage() {
             </Stack>
 
             {/* Desktop: Table View */}
-            <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} overflow="hidden">
+            <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} >
               <Table.ScrollContainer minWidth={1000}>
                 <Table striped highlightOnHover>
                   <Table.Thead>
@@ -500,7 +483,7 @@ export default function WalletPage() {
                       paginatedWallets.map((wallet) => (
                         <Table.Tr key={wallet.id}>
                           <Table.Td>
-                            <Group gap="xs">
+                            <Group >
                               <Avatar
                                 src={null}
                                 alt={wallet.customer_name}
@@ -547,12 +530,12 @@ export default function WalletPage() {
                             </Badge>
                           </Table.Td>
                           <Table.Td>
-                            <Group gap="xs">
+                            <Group >
                               <ActionIcon
                                 variant="subtle"
                                 color="gray"
                                 component={Link}
-                                to={`/admin/crm/customers/${wallet.customer_id}`}
+                                to={`/crm/customers/${wallet.customer_id}`}
                                 size="sm"
                               >
                                 <IconEye size={16} />
@@ -583,7 +566,7 @@ export default function WalletPage() {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <Group justify="flex-end" gap="xs">
+              <Group justify="flex-end" >
                 <Button
                   variant="light"
                   size="sm"
@@ -612,7 +595,7 @@ export default function WalletPage() {
         {activeTab === 'transactions' && (
           <>
             {/* Mobile: Card View */}
-            <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+            <Stack  display={{ base: 'block', md: 'none' }}>
               {filteredTransactions.length === 0 ? (
                 <Paper withBorder p="xl" ta="center">
                   <Text c="dimmed">No transactions found</Text>
@@ -621,7 +604,7 @@ export default function WalletPage() {
                 filteredTransactions.map((txn) => (
                   <Card key={txn.id} shadow="sm" p="sm" radius="md" withBorder>
                     <Group justify="space-between" mb="xs">
-                      <Group gap="xs">
+                      <Group >
                         <IconReceipt size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />
                         <Text fw={600} size="sm">{txn.customer_name}</Text>
                       </Group>
@@ -654,7 +637,7 @@ export default function WalletPage() {
             </Stack>
 
             {/* Desktop: Table View */}
-            <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} overflow="hidden">
+            <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} >
               <Table.ScrollContainer minWidth={1000}>
                 <Table striped highlightOnHover>
                   <Table.Thead>

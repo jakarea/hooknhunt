@@ -9,19 +9,24 @@ import {
   Button,
   Paper,
   TextInput,
+  PasswordInput,
   Select,
   NumberInput,
   LoadingOverlay,
   SimpleGrid,
   Anchor,
+  Avatar,
 } from '@mantine/core'
 import {
   IconChevronRight,
   IconArrowLeft,
   IconCheck,
+  IconLock,
+  IconUser,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Role {
   id: number
@@ -76,6 +81,55 @@ interface FieldErrors {
 
 export default function CreateEmployeePage() {
   const navigate = useNavigate()
+  const { hasPermission } = usePermissions()
+
+  // Permission check: Need employee.create permission
+  if (!hasPermission('employee.create')) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack >
+          <Paper withBorder p="xl" radius="lg">
+            <Stack align="center" >
+              <Avatar size={80} radius="xl" color="red">
+                <IconLock size={40} />
+              </Avatar>
+
+              <Stack gap={0} ta="center">
+                <Title order={3} c="red.6">
+                  Access Denied
+                </Title>
+                <Text size="lg" c="dimmed">
+                  You don't have permission to create employees.
+                </Text>
+                <Text size="sm" c="dimmed" mt="xs">
+                  Please contact your administrator if you believe this is an error.
+                </Text>
+              </Stack>
+
+              <Group  mt="md">
+                <Button
+                  variant="light"
+                  color="gray"
+                  leftSection={<IconArrowLeft size={16} />}
+                  onClick={() => navigate('/hrm/employees')}
+                >
+                  Back to Employees
+                </Button>
+                <Button
+                  variant="filled"
+                  leftSection={<IconUser size={16} />}
+                  onClick={() => navigate('/profile')}
+                >
+                  View My Profile
+                </Button>
+              </Group>
+            </Stack>
+          </Paper>
+        </Stack>
+      </Box>
+    )
+  }
+
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [formData, setFormData] = useState<FormData>(initialFormData)
@@ -194,7 +248,7 @@ export default function CreateEmployeePage() {
       })
 
       // Navigate to employees list
-      navigate('/admin/hrm/employees')
+      navigate('/hrm/employees')
     } catch (error: any) {
       console.error('Failed to create employee:', error)
 
@@ -246,18 +300,18 @@ export default function CreateEmployeePage() {
       <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
 
       {!loading && (
-        <Stack gap="lg">
+        <Stack >
           {/* Breadcrumbs */}
-          <Group gap="xs">
-            <Anchor component={Link} to="/admin/dashboard" c="dimmed">
+          <Group >
+            <Anchor component={Link} to="/dashboard" c="dimmed">
               Dashboard
             </Anchor>
             <IconChevronRight size={14} />
-            <Anchor component={Link} to="/admin/hrm/employees" c="dimmed">
+            <Anchor component={Link} to="/hrm/employees" c="dimmed">
               HRM
             </Anchor>
             <IconChevronRight size={14} />
-            <Anchor component={Link} to="/admin/hrm/employees" c="dimmed">
+            <Anchor component={Link} to="/hrm/employees" c="dimmed">
               Employees
             </Anchor>
             <IconChevronRight size={14} />
@@ -274,7 +328,7 @@ export default function CreateEmployeePage() {
             </Box>
             <Button
               component={Link}
-              to="/admin/hrm/employees"
+              to="/hrm/employees"
               variant="light"
               leftSection={<IconArrowLeft size={16} />}
             >
@@ -284,7 +338,7 @@ export default function CreateEmployeePage() {
 
           {/* Form */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" component="form" onSubmit={handleSubmit}>
-            <Stack gap="xl">
+            <Stack >
               {/* Personal Information */}
               <Box>
                 <Title order={4} mb="md">
@@ -322,9 +376,8 @@ export default function CreateEmployeePage() {
                     error={fieldErrors.email}
                   />
 
-                  <TextInput
+                  <PasswordInput
                     label="Password"
-                    type="password"
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
@@ -433,7 +486,7 @@ export default function CreateEmployeePage() {
                   <NumberInput
                     label="Base Salary (BDT)"
                     placeholder="15000"
-                    value={formData.base_salary}
+                    value={formData.base_salary ?? ''}
                     onChange={(value) => handleInputChange('base_salary', value)}
                     required
                     withAsterisk
@@ -446,11 +499,11 @@ export default function CreateEmployeePage() {
               </Box>
 
               {/* Submit Buttons */}
-              <Group justify="flex-end" gap="sm">
+              <Group justify="flex-end" >
                 <Button
                   type="button"
                   variant="default"
-                  onClick={() => navigate('/admin/hrm/employees')}
+                  onClick={() => navigate('/hrm/employees')}
                   disabled={submitting}
                 >
                   Cancel

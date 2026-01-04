@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
       mah="100vh"
     >
       <Box p={{ base: 'md', md: 'xl' }}>
-        <Group justify="center" md="flex-start" mb="xl">
+        <Group justify="center" mb="xl">
           <Anchor href="/" inherit>
             <img
               src="https://hooknhunt.xyz/wp-content/uploads/2024/04/hook-and-hunt-transparent-png-1-3.svg"

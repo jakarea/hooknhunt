@@ -5,9 +5,12 @@ import {
   IconSearch,
   IconBell,
   IconLogout,
+  IconUser,
+  IconRefresh,
 } from '@tabler/icons-react'
 import { ThemeToggleMantine } from '@/components/theme-toggle-mantine'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 import { Link } from 'react-router-dom'
 
 interface HeaderProps {
@@ -22,6 +25,7 @@ export function SiteHeaderMantine({
   toggleDesktop,
 }: HeaderProps) {
   const { user, logout } = useAuthStore()
+  const { refreshPermissions } = usePermissions()
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -35,6 +39,10 @@ export function SiteHeaderMantine({
 
   const handleLogout = () => {
     logout()
+  }
+
+  const handleRefreshPermissions = async () => {
+    await refreshPermissions()
   }
   return (
     <Box
@@ -89,7 +97,7 @@ export function SiteHeaderMantine({
               },
             }}
             component={Link}
-            to="/admin/search"
+            to="/search"
           >
             <IconSearch
               style={{ width: rem(20), height: rem(20) }}
@@ -109,7 +117,7 @@ export function SiteHeaderMantine({
               },
             }}
             component={Link}
-            to="/admin/notifications"
+            to="/notifications"
           >
             <IconBell
               style={{ width: rem(20), height: rem(20) }}
@@ -163,16 +171,30 @@ export function SiteHeaderMantine({
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Label>Settings</Menu.Label>
+              <Menu.Label>Account</Menu.Label>
+              <Menu.Item
+                leftSection={<IconUser style={{ width: rem(16), height: rem(16) }} />}
+                component={Link}
+                to="/profile"
+              >
+                My Profile
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconRefresh style={{ width: rem(16), height: rem(16) }} />}
+                onClick={handleRefreshPermissions}
+              >
+                Refresh Permissions
+              </Menu.Item>
+
+              <Menu.Divider />
+
+              <Menu.Label>System</Menu.Label>
               <Menu.Item
                 leftSection={<IconSettings style={{ width: rem(16), height: rem(16) }} />}
                 component={Link}
-                to="/admin/profile"
+                to="/settings/general"
               >
-                Account settings
-              </Menu.Item>
-              <Menu.Item leftSection={<IconSettings style={{ width: rem(16), height: rem(16) }} />}>
-                Preferences
+                Settings
               </Menu.Item>
 
               <Menu.Divider />

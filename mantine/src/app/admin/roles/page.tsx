@@ -92,12 +92,12 @@ export default function RolesPage() {
           </Badge>
         </Table.Td>
         <Table.Td>
-          <Group gap="xs">
+          <Group >
             <ActionIcon
               variant="subtle"
               color="blue"
               component={Link}
-              to={`/admin/roles/${role.id}/edit`}
+              to={`/roles/${role.id}/edit`}
               aria-label={t('roles.editRoleAction')}
             >
               <IconPencil size={16} />
@@ -105,7 +105,7 @@ export default function RolesPage() {
             <ActionIcon
               variant="subtle"
               color="red"
-              onClick={() => openDeleteModal(role.id, role.name)}
+              onClick={() => openDeleteModal(role.name)}
               aria-label={t('roles.deleteRoleAction')}
             >
               <IconTrash size={16} />
@@ -120,18 +120,18 @@ export default function RolesPage() {
   const mobileCards = useMemo(() => {
     return roles.map((role) => (
       <Card key={role.id} shadow="sm" p={{ base: 'lg', md: 'md' }} radius="md" withBorder mb="md">
-        <Stack gap="md">
+        <Stack >
           {/* Header with name and actions */}
           <Group justify="space-between">
             <Text fw={700} size="lg">
               {role.name}
             </Text>
-            <Group gap="xs">
+            <Group >
               <ActionIcon
                 variant="subtle"
                 color="blue"
                 component={Link}
-                to={`/admin/roles/${role.id}/edit`}
+                to={`/roles/${role.id}/edit`}
                 aria-label={t('roles.editRoleAction')}
               >
                 <IconPencil size={16} />
@@ -139,7 +139,7 @@ export default function RolesPage() {
               <ActionIcon
                 variant="subtle"
                 color="red"
-                onClick={() => openDeleteModal(role.id, role.name)}
+                onClick={() => openDeleteModal(role.name)}
                 aria-label={t('roles.deleteRoleAction')}
               >
                 <IconTrash size={16} />
@@ -184,7 +184,7 @@ export default function RolesPage() {
     ))
   }, [roles, t])
 
-  const openDeleteModal = (id: number, name: string) => {
+  const openDeleteModal = (name: string) => {
     modals.openConfirmModal({
       title: t('roles.deleteRole'),
       centered: true,
@@ -220,7 +220,7 @@ export default function RolesPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Title order={1}>{t('roles.manageRoles')}</Title>
@@ -231,7 +231,7 @@ export default function RolesPage() {
         <Group justify="flex-end">
           <Button
             component={Link}
-            to="/admin/roles/create"
+            to="/roles/create"
             leftSection={<IconPlus size={16} />}
           >
             {t('roles.createRole')}
@@ -239,12 +239,12 @@ export default function RolesPage() {
         </Group>
 
         {/* Mobile: Card View */}
-        <Stack gap="xl" display={{ base: 'block', md: 'none' }}>
+        <Stack  display={{ base: 'block', md: 'none' }}>
           {mobileCards}
         </Stack>
 
         {/* Desktop: Table View */}
-        <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} overflow="hidden">
+        <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} style={{ overflow: 'hidden' }}>
           <Table.ScrollContainer minWidth={800}>
             <Table striped highlightOnHover>
               <Table.Thead>

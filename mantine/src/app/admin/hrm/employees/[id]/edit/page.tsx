@@ -1,6 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -23,30 +22,14 @@ import {
   Tabs,
   Alert,
   ActionIcon,
+  Avatar,
 } from '@mantine/core'
-import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh } from '@tabler/icons-react'
+import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
+import { usePermissions } from '@/hooks/usePermissions'
 
-interface User {
-  id: number
-  name: string
-  phone: string
-  email?: string
-  role_id: number
-  is_active: boolean
-  profile?: {
-    department_id?: number
-    designation?: string
-    joining_date?: string
-    base_salary?: number
-    address?: string
-    city?: string
-    dob?: string
-    gender?: string
-  }
-}
-
+  
 interface Permission {
   id: number
   name: string
@@ -70,11 +53,58 @@ interface ValidationErrors {
 }
 
 export default function EditEmployeePage() {
-  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
+  const { canEditProfile } = usePermissions()
 
-  const [loading, setLoading] = useState(false)
+  // Check permission - user can edit own profile OR needs employee.edit permission
+  const employeeId = parseInt(id || '0')
+  if (!canEditProfile(employeeId)) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack >
+          <Paper withBorder p="xl" radius="lg">
+            <Stack align="center" >
+              <Avatar size={80} radius="xl" color="red">
+                <IconLock size={40} />
+              </Avatar>
+
+              <Stack gap={0} ta="center">
+                <Title order={3} c="red.6">
+                  Access Denied
+                </Title>
+                <Text size="lg" c="dimmed">
+                  You don't have permission to edit this employee profile.
+                </Text>
+                <Text size="sm" c="dimmed" mt="xs">
+                  Please contact your administrator if you believe this is an error.
+                </Text>
+              </Stack>
+
+              <Group  mt="md">
+                <Button
+                  variant="light"
+                  color="gray"
+                  leftSection={<IconArrowLeft size={16} />}
+                  onClick={() => navigate('/hrm/employees')}
+                >
+                  Back to Employees
+                </Button>
+                <Button
+                  variant="filled"
+                  leftSection={<IconUser size={16} />}
+                  onClick={() => navigate('/profile')}
+                >
+                  View My Profile
+                </Button>
+              </Group>
+            </Stack>
+          </Paper>
+        </Stack>
+      </Box>
+    )
+  }
+
   const [saving, setSaving] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
 
@@ -206,7 +236,7 @@ export default function EditEmployeePage() {
           message: 'Failed to load user data. Please try again.',
           color: 'red',
         })
-        navigate('/admin/hrm/employees')
+        navigate('/hrm/employees')
       } finally {
         setInitialLoading(false)
       }
@@ -347,7 +377,7 @@ export default function EditEmployeePage() {
         message: `${name} has been updated successfully${grantedPermissions.length > 0 || blockedPermissions.length > 0 ? ` with ${grantedPermissions.length} granted and ${blockedPermissions.length} blocked permissions` : ''}`,
         color: 'green',
       })
-      navigate(`/admin/hrm/employees/${id}`)
+      navigate(`/hrm/employees/${id}`)
     } catch (error) {
       console.error('Failed to update user:', error)
       notifications.show({
@@ -409,7 +439,7 @@ export default function EditEmployeePage() {
 
   // Handle cancel
   const handleCancel = () => {
-    navigate(`/admin/hrm/employees/${id}`)
+    navigate(`/hrm/employees/${id}`)
   }
 
   if (initialLoading) {
@@ -422,23 +452,23 @@ export default function EditEmployeePage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor href="/admin/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor href="/admin/hrm/employees" c="dimmed">Users</Anchor>
-          <Anchor href={`/admin/hrm/employees/${id}`} c="dimmed">Profile</Anchor>
+          <Anchor href="/dashboard" c="dimmed">Dashboard</Anchor>
+          <Anchor href="/hrm/employees" c="dimmed">Users</Anchor>
+          <Anchor href={`/hrm/employees/${id}`} c="dimmed">Profile</Anchor>
           <Text c="red">Edit Employee</Text>
         </Breadcrumbs>
 
         {/* Header */}
         <Box>
-          <Group gap="md">
+          <Group >
             <Button
               variant="subtle"
               size="sm"
               component={Link}
-              to={`/admin/hrm/employees/${id}`}
+              to={`/hrm/employees/${id}`}
               leftSection={<IconArrowLeft size={16} />}
             >
               Back to Profile
@@ -449,11 +479,11 @@ export default function EditEmployeePage() {
         </Box>
 
         {/* Form Sections */}
-        <Stack gap="lg">
+        <Stack >
           {/* Basic Information */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3} className="text-base md:text-lg lg:text-xl">Basic Information</Title>
 
               <Grid>
@@ -521,7 +551,7 @@ export default function EditEmployeePage() {
           {/* Professional Information */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3} className="text-base md:text-lg lg:text-xl">Professional Information</Title>
 
               <Grid>
@@ -574,7 +604,7 @@ export default function EditEmployeePage() {
           {/* Personal Information */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3} className="text-base md:text-lg lg:text-xl">Personal Information</Title>
 
               <Grid>
@@ -627,7 +657,7 @@ export default function EditEmployeePage() {
           {/* Change Password */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3} className="text-base md:text-lg lg:text-xl">Change Password</Title>
               <Text size="sm" c="dimmed">Leave blank to keep current password</Text>
 
@@ -649,10 +679,10 @@ export default function EditEmployeePage() {
           {/* Permissions Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Group justify="space-between">
                 <Title order={3} className="text-base md:text-lg lg:text-xl">User-Level Permissions</Title>
-                <Group gap="md">
+                <Group >
                   <Badge color="green" size="lg">{grantedPermissions.length} granted</Badge>
                   <Badge color="red" size="lg">{blockedPermissions.length} blocked</Badge>
                 </Group>
@@ -687,7 +717,7 @@ export default function EditEmployeePage() {
                     w="100%"
                     style={{ zIndex: 1000, maxHeight: '300px', overflowY: 'auto' }}
                   >
-                    <Stack gap="xs">
+                    <Stack >
                       {searchResults.map((group) => (
                         <Box key={group.module}>
                           <Text size="xs" fw={700} c="dimmed" mb="xs" px="sm">
@@ -697,7 +727,7 @@ export default function EditEmployeePage() {
                             {group.permissions.map((permission) => (
                               <Group
                                 key={permission.id}
-                                gap="xs"
+                                
                                 p="4px 8px"
                                 style={{
                                   borderRadius: '4px',
@@ -755,7 +785,7 @@ export default function EditEmployeePage() {
 
                 {/* Granted Permissions Tab */}
                 <Tabs.Panel value="granted">
-                  <Stack gap="md" mt="md">
+                  <Stack  mt="md">
                     {grantedPermissions.length > 0 ? (
                       <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }}>
                         {grantedPermissions.map((permId) => {
@@ -764,7 +794,7 @@ export default function EditEmployeePage() {
                           return (
                             <Paper key={permId} withBorder p="sm" radius="md">
                               <Group justify="space-between" align="center">
-                                <Group gap="xs" style={{ flex: 1 }}>
+                                <Group  style={{ flex: 1 }}>
                                   <Checkbox
                                     checked={true}
                                     onChange={() => setGrantedPermissions(grantedPermissions.filter(id => id !== permId))}
@@ -802,7 +832,7 @@ export default function EditEmployeePage() {
 
                 {/* Blocked Permissions Tab */}
                 <Tabs.Panel value="blocked">
-                  <Stack gap="md" mt="md">
+                  <Stack  mt="md">
                     {blockedPermissions.length > 0 ? (
                       <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }}>
                         {blockedPermissions.map((permId) => {
@@ -811,7 +841,7 @@ export default function EditEmployeePage() {
                           return (
                             <Paper key={permId} withBorder p="sm" radius="md">
                               <Group justify="space-between" align="center">
-                                <Group gap="xs" style={{ flex: 1 }}>
+                                <Group  style={{ flex: 1 }}>
                                   <Checkbox
                                     checked={true}
                                     onChange={() => setBlockedPermissions(blockedPermissions.filter(id => id !== permId))}
@@ -849,7 +879,7 @@ export default function EditEmployeePage() {
               </Tabs>
 
               {/* Quick Actions */}
-              <Group gap="xs">
+              <Group >
                 <Button
                   variant="light"
                   size="xs"

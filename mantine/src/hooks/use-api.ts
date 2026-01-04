@@ -56,7 +56,7 @@ export function useApi<T = any>(
 export function useApiMutation<T = any, D = any>() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { showToast, hideToast } = useUIStore()
+  const { showToast } = useUIStore()
 
   const mutate = useCallback(
     async (

@@ -139,10 +139,10 @@ export default function ProfilePage() {
       <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
 
       {!loading && user && (
-        <Stack gap="lg">
+        <Stack >
           {/* Breadcrumbs */}
-          <Group gap="xs">
-            <Anchor component={Link} to="/admin/dashboard" c="dimmed">Dashboard</Anchor>
+          <Group >
+            <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
             <IconChevronRight size={14} />
             <Text c="red">My Profile</Text>
           </Group>
@@ -156,19 +156,19 @@ export default function ProfilePage() {
           {/* Profile Header Card */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
             <Group justify="space-between" align="flex-start">
-              <Group gap={{ base: 'md', md: 'xl' }}>
+              <Group gap="xl">
                 <Avatar
                   src={null}
                   alt={user.name}
                   radius="xl"
-                  size={{ base: 'md', md: 'xl' }}
+                  size="xl"
                   color="red"
                 >
                   {user.name.charAt(0).toUpperCase()}
                 </Avatar>
                 <Box>
-                  <Group gap="xs" mb="xs">
-                    <Title order={{ base: 3, md: 2 }}>{user.name}</Title>
+                  <Group  mb="xs">
+                    <Title order={2}>{user.name}</Title>
                     <Badge
                       color={user.is_active ? 'green' : 'gray'}
                       variant="light"
@@ -177,15 +177,15 @@ export default function ProfilePage() {
                       {user.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </Group>
-                  <Text size={{ base: 'md', md: 'lg' }} c="dimmed" mb="xs">{user.profile?.designation || 'N/A'}</Text>
-                  <Group gap="md">
+                  <Text size="lg" c="dimmed" mb="xs">{user.profile?.designation || 'N/A'}</Text>
+                  <Group >
                     {user.email && (
-                      <Group gap="xs">
+                      <Group >
                         <IconMail size={16} />
                         <Text size="sm">{user.email}</Text>
                       </Group>
                     )}
-                    <Group gap="xs">
+                    <Group >
                       <IconPhone size={16} />
                       <Text size="sm">{user.phone}</Text>
                     </Group>
@@ -194,7 +194,7 @@ export default function ProfilePage() {
               </Group>
               <Button
                 component={Link}
-                to={`/admin/hrm/employees/${user.id}/edit`}
+                to={`/hrm/employees/${user.id}/edit`}
                 leftSection={<IconEdit size={16} />}
                 variant="light"
               >
@@ -208,43 +208,43 @@ export default function ProfilePage() {
             {/* Personal Information */}
             <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
               <Title order={4} mb="md">Personal Information</Title>
-              <Stack gap="md">
-                <Group gap="xs">
+              <Stack >
+                <Group >
                   <IconUser size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Full Name</Text>
                     <Text fw={500}>{user.name}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">User ID</Text>
                     <Text fw={500}>#{user.id}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Phone</Text>
                     <Text fw={500}>{user.phone}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Email</Text>
                     <Text fw={500}>{user.email || 'N/A'}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Date of Birth</Text>
                     <Text fw={500}>{formatDate(user.profile?.dob || null)}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Gender</Text>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
                     </Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Address</Text>
@@ -272,47 +272,47 @@ export default function ProfilePage() {
             {/* Professional Information */}
             <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
               <Title order={4} mb="md">Professional Information</Title>
-              <Stack gap="md">
-                <Group gap="xs">
+              <Stack >
+                <Group >
                   <IconShield size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Role</Text>
                     <Badge variant="light" color="red">{user.role?.name || 'N/A'}</Badge>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Department</Text>
                     <Text fw={500}>{user.profile?.department_name || 'N/A'}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Designation</Text>
                     <Text fw={500}>{user.profile?.designation || 'N/A'}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Joining Date</Text>
                     <Text fw={500}>{formatDate(user.profile?.joining_date || null)}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconCoin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Base Salary</Text>
                     <Text fw={500}>
                       {user.profile?.base_salary
-                        ? `${parseFloat(user.profile.base_salary).toLocaleString()} BDT`
+                        ? `${parseFloat(String(user.profile.base_salary)).toLocaleString()} BDT`
                         : 'N/A'}
                     </Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Account Created</Text>
@@ -328,8 +328,8 @@ export default function ProfilePage() {
             {/* Account Security */}
             <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
               <Title order={4} mb="md">Account Security</Title>
-              <Stack gap="md">
-                <Group gap="xs">
+              <Stack >
+                <Group >
                   <IconShield size={18} style={{ color: user.is_active ? 'green' : 'gray' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Account Status</Text>
@@ -338,7 +338,7 @@ export default function ProfilePage() {
                     </Badge>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconPhone size={18} style={{ color: user.phone_verified_at ? 'green' : 'orange' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Phone Verification</Text>
@@ -347,14 +347,14 @@ export default function ProfilePage() {
                     </Badge>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Last Login</Text>
-                    <Text fw={500} size="sm">{formatDateTime(user.last_login_at)}</Text>
+                    <Text fw={500} size="sm">{formatDateTime(user.last_login_at ?? '')}</Text>
                   </Box>
                 </Group>
-                <Group gap="xs">
+                <Group >
                   <IconCalendar size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Last Updated</Text>
@@ -371,7 +371,7 @@ export default function ProfilePage() {
                 <SimpleGrid cols={1}>
                   {permissions.map((permission) => (
                     <Paper key={permission.id} withBorder p="sm" radius="md">
-                      <Group gap="xs">
+                      <Group >
                         <IconShield size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
                         <Box>
                           <Text fw={500} size="sm">{permission.name}</Text>

@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -38,8 +37,11 @@ import {
   IconCheck,
   IconX,
   IconHistory,
+  IconLock,
+  IconArrowLeft,
 } from '@tabler/icons-react'
 import api from '@/lib/api'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface User {
   id: number
@@ -146,23 +148,60 @@ const mockLoginHistory = [
   },
 ]
 
-// Mock activity log
-const mockActivityLog = [
-  {
-    id: 1,
-    action: 'Created',
-    entity_type: 'Product',
-    entity_name: 'iPhone 15 Pro Case',
-    description: 'Created new product with 3 variants',
-    ip_address: '192.168.1.100',
-    created_at: '2025-12-30 10:30:00',
-  },
-]
 
 export default function EmployeeProfilePage() {
-  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
+  const { canViewProfile } = usePermissions()
+
+  // Check permission - user can view own profile OR needs employee.view/index permission
+  const employeeId = parseInt(id || '0')
+  if (!canViewProfile(employeeId)) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack >
+          <Paper withBorder p="xl" radius="lg">
+            <Stack align="center" >
+              <Avatar size={80} radius="xl" color="red">
+                <IconLock size={40} />
+              </Avatar>
+
+              <Stack gap={0} ta="center">
+                <Title order={3} c="red.6">
+                  Access Denied
+                </Title>
+                <Text size="lg" c="dimmed">
+                  You don't have permission to view this employee profile.
+                </Text>
+                <Text size="sm" c="dimmed" mt="xs">
+                  Please contact your administrator if you believe this is an error.
+                </Text>
+              </Stack>
+
+              <Group  mt="md">
+                <Button
+                  variant="light"
+                  color="gray"
+                  leftSection={<IconArrowLeft size={16} />}
+                  onClick={() => navigate('/hrm/employees')}
+                >
+                  Back to Employees
+                </Button>
+                <Button
+                  variant="filled"
+                  leftSection={<IconUser size={16} />}
+                  onClick={() => navigate('/profile')}
+                >
+                  View My Profile
+                </Button>
+              </Group>
+            </Stack>
+          </Paper>
+        </Stack>
+      </Box>
+    )
+  }
+
   const [user, setUser] = useState<User | null>(null)
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [leaves, setLeaves] = useState<Leave[]>([])
@@ -203,7 +242,7 @@ export default function EmployeeProfilePage() {
           message: 'Failed to load employee data. Please try again.',
           color: 'red',
         })
-        navigate('/admin/hrm/employees')
+        navigate('/hrm/employees')
       } finally {
         setLoading(false)
       }
@@ -303,19 +342,19 @@ export default function EmployeeProfilePage() {
     return (
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" align="flex-start">
-          <Group gap="xl">
+          <Group >
             <Avatar
               src={null}
               alt={user.name}
               radius="xl"
-              size={{ base: 'md', md: 'xl' }}
+              size="xl"
               color="red"
             >
               {user.name.charAt(0).toUpperCase()}
             </Avatar>
             <Box>
-              <Group gap="xs" mb="xs">
-                <Title order={{ base: 3, md: 2 }}>{user.name}</Title>
+              <Group  mb="xs">
+                <Title order={2}>{user.name}</Title>
                 <Badge
                   color={user.is_active ? 'green' : 'gray'}
                   variant="light"
@@ -325,14 +364,14 @@ export default function EmployeeProfilePage() {
                 </Badge>
               </Group>
               <Text size="lg" c="dimmed" mb="xs">{user.profile?.designation || 'N/A'}</Text>
-              <Group gap="md">
+              <Group >
                 {user.email && (
-                  <Group gap="xs">
+                  <Group >
                     <IconMail size={16} />
                     <Text size="sm">{user.email}</Text>
                   </Group>
                 )}
-                <Group gap="xs">
+                <Group >
                   <IconPhone size={16} />
                   <Text size="sm">{user.phone}</Text>
                 </Group>
@@ -341,7 +380,7 @@ export default function EmployeeProfilePage() {
           </Group>
           <Button
             component={Link}
-            to={`/admin/hrm/employees/${user.id}/edit`}
+            to={`/hrm/employees/${user.id}/edit`}
             leftSection={<IconEdit size={16} />}
             variant="light"
           >
@@ -359,7 +398,7 @@ export default function EmployeeProfilePage() {
     return (
       <UnstyledButton
         component={Link}
-        to={`/admin/hrm/employees/${user.id}/edit`}
+        to={`/hrm/employees/${user.id}/edit`}
         style={{ width: '100%', display: 'block' }}
       >
         <Paper
@@ -375,49 +414,49 @@ export default function EmployeeProfilePage() {
             </ActionIcon>
           </Group>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <Group gap="xs">
+            <Group >
               <IconUser size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Full Name</Text>
                 <Text fw={500}>{user.name}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Employee ID</Text>
                 <Text fw={500}>#{user.id}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Phone</Text>
                 <Text fw={500}>{user.phone}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Email</Text>
                 <Text fw={500}>{user.email || 'N/A'}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Date of Birth</Text>
                 <Text fw={500}>{formatDate(user.profile?.dob || null)}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Gender</Text>
                 <Text fw={500}>{user.profile?.gender ? user.profile.gender.charAt(0).toUpperCase() + user.profile.gender.slice(1) : 'N/A'}</Text>
               </Box>
             </Group>
-            <Group gap="xs" style={{ gridColumn: '1 / -1' }}>
+            <Group  style={{ gridColumn: '1 / -1' }}>
               <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Address</Text>
@@ -439,7 +478,7 @@ export default function EmployeeProfilePage() {
     return (
       <UnstyledButton
         component={Link}
-        to={`/admin/hrm/employees/${user.id}/edit`}
+        to={`/hrm/employees/${user.id}/edit`}
         style={{ width: '100%', display: 'block' }}
       >
         <Paper
@@ -455,44 +494,44 @@ export default function EmployeeProfilePage() {
             </ActionIcon>
           </Group>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <Group gap="xs">
+            <Group >
               <IconShield size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Role</Text>
                 <Badge variant="light" color="red">{user.role?.name || 'N/A'}</Badge>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Department</Text>
                 <Text fw={500}>{user.profile?.department_name || 'N/A'}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Designation</Text>
                 <Text fw={500}>{user.profile?.designation || 'N/A'}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Joining Date</Text>
                 <Text fw={500}>{formatDate(user.profile?.joining_date || null)}</Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconCoin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Base Salary</Text>
                 <Text fw={500}>
-                  {user.profile?.base_salary ? `${parseFloat(user.profile.base_salary).toLocaleString()} BDT` : 'N/A'}
+                  {user.profile?.base_salary ? `${parseFloat(user.profile.base_salary.toString()).toLocaleString()} BDT` : 'N/A'}
                 </Text>
               </Box>
             </Group>
-            <Group gap="xs">
+            <Group >
               <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Account Created</Text>
@@ -513,11 +552,11 @@ export default function EmployeeProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Title order={4} mb="md">Account Security</Title>
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <Group gap="xs">
+          <Group >
             <IconShield size={18} style={{ color: user.is_active ? 'green' : 'gray' }} />
             <Box style={{ flex: 1 }}>
               <Text size="xs" c="dimmed">Account Status</Text>
-              <Group gap="xs">
+              <Group >
                 <Badge color={user.is_active ? 'green' : 'gray'} variant="light">
                   {user.is_active ? 'Active' : 'Inactive'}
                 </Badge>
@@ -532,11 +571,11 @@ export default function EmployeeProfilePage() {
               </Group>
             </Box>
           </Group>
-          <Group gap="xs">
+          <Group >
             <IconPhone size={18} style={{ color: user.phone_verified_at ? 'green' : 'orange' }} />
             <Box style={{ flex: 1 }}>
               <Text size="xs" c="dimmed">Phone Verification</Text>
-              <Group gap="xs">
+              <Group >
                 <Badge color={user.phone_verified_at ? 'green' : 'orange'} variant="light">
                   {user.phone_verified_at ? 'Verified' : 'Not Verified'}
                 </Badge>
@@ -551,14 +590,14 @@ export default function EmployeeProfilePage() {
               </Group>
             </Box>
           </Group>
-          <Group gap="xs">
+          <Group >
             <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
             <Box>
               <Text size="xs" c="dimmed">Last Login</Text>
-              <Text fw={500} size="sm">{formatDateTime(user.last_login_at)}</Text>
+              <Text fw={500} size="sm">{formatDateTime(user.last_login_at || null)}</Text>
             </Box>
           </Group>
-          <Group gap="xs">
+          <Group >
             <IconCalendar size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
             <Box>
               <Text size="xs" c="dimmed">Last Updated</Text>
@@ -589,7 +628,7 @@ export default function EmployeeProfilePage() {
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
               {displayedPermissions.map((permission) => (
                 <Paper key={permission.id} withBorder p="sm" radius="md">
-                  <Group gap="xs">
+                  <Group >
                     <IconShield size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
                     <Box>
                       <Text fw={500} size="sm">{permission.name}</Text>
@@ -877,7 +916,7 @@ export default function EmployeeProfilePage() {
 
   // Other history sections (simplified)
   const historySections = useMemo(() => (
-    <Stack gap="lg">
+    <Stack >
       {leaveHistorySection}
       {attendanceHistorySection}
       {payrollHistorySection}
@@ -896,14 +935,14 @@ export default function EmployeeProfilePage() {
       <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
 
       {!loading && user && (
-        <Stack gap="lg">
+        <Stack >
           {/* Breadcrumbs */}
-          <Group gap="xs">
-            <Anchor component={Link} to="/admin/dashboard" c="dimmed">Dashboard</Anchor>
+          <Group >
+            <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
             <IconChevronRight size={14} />
-            <Anchor component={Link} to="/admin/hrm/employees" c="dimmed">HRM</Anchor>
+            <Anchor component={Link} to="/hrm/employees" c="dimmed">HRM</Anchor>
             <IconChevronRight size={14} />
-            <Anchor component={Link} to="/admin/hrm/employees" c="dimmed">Employees</Anchor>
+            <Anchor component={Link} to="/hrm/employees" c="dimmed">Employees</Anchor>
             <IconChevronRight size={14} />
             <Text c="red">Profile: {user.name}</Text>
           </Group>
@@ -932,7 +971,7 @@ export default function EmployeeProfilePage() {
           {/* Activity & History Section */}
           <Box>
             <Title order={2} className="text-base md:text-lg lg:text-xl" mb="md">
-              <Group gap="xs">
+              <Group >
                 <IconHistory size={24} />
                 Activity & History
               </Group>
@@ -949,7 +988,7 @@ export default function EmployeeProfilePage() {
         title={<Text className="text-base md:text-lg font-semibold">Confirm Status Change</Text>}
         centered
       >
-        <Stack gap="md">
+        <Stack >
           <Text className="text-sm md:text-base">
             Are you sure you want to {user?.is_active ? 'block' : 'unblock'} this user?
           </Text>
@@ -960,7 +999,7 @@ export default function EmployeeProfilePage() {
               </Text>
             </Alert>
           )}
-          <Group justify="flex-end" gap="sm">
+          <Group justify="flex-end" >
             <Button
               variant="default"
               onClick={() => setBlockConfirmOpened(false)}
@@ -994,11 +1033,11 @@ export default function EmployeeProfilePage() {
         title={<Text className="text-base md:text-lg font-semibold">Confirm Verification Change</Text>}
         centered
       >
-        <Stack gap="md">
+        <Stack >
           <Text className="text-sm md:text-base">
             Are you sure you want to {user?.phone_verified_at ? 'remove verification for' : 'verify'} this user's phone number?
           </Text>
-          <Group justify="flex-end" gap="sm">
+          <Group justify="flex-end" >
             <Button
               variant="default"
               onClick={() => setVerifyConfirmOpened(false)}

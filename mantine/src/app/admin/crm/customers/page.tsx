@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -91,7 +90,6 @@ const mockCustomers = [
 ]
 
 export default function CustomersPage() {
-  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState<string | null>('all')
   const [currentPage, setCurrentPage] = useState(1)
@@ -167,7 +165,7 @@ export default function CustomersPage() {
             </Badge>
           </Table.Td>
           <Table.Td>
-            <Group gap="xs">
+            <Group >
               <Text size="sm" fw={500}>{formatCurrency(customer.wallet_balance)}</Text>
               {customer.wallet_balance < 0 && (
                 <Badge size="xs" color="red" variant="light">Due</Badge>
@@ -175,7 +173,7 @@ export default function CustomersPage() {
             </Group>
           </Table.Td>
           <Table.Td>
-            <Group gap="xs">
+            <Group >
               <Text size="sm">{customer.total_orders}</Text>
               <Text size="xs" c="dimmed">orders</Text>
             </Group>
@@ -195,12 +193,12 @@ export default function CustomersPage() {
             <Text size="sm">{formattedDate}</Text>
           </Table.Td>
           <Table.Td>
-            <Group gap="xs">
+            <Group >
               <ActionIcon
                 variant="subtle"
                 color="gray"
                 component={Link}
-                to={`/admin/crm/customers/${customer.id}`}
+                to={`/crm/customers/${customer.id}`}
                 aria-label="View Profile"
               >
                 <IconEye size={16} />
@@ -209,7 +207,7 @@ export default function CustomersPage() {
                 variant="subtle"
                 color="blue"
                 component={Link}
-                to={`/admin/crm/customers/${customer.id}/edit`}
+                to={`/crm/customers/${customer.id}/edit`}
                 aria-label="Edit Customer"
               >
                 <IconPencil size={16} />
@@ -240,7 +238,7 @@ export default function CustomersPage() {
 
       return (
         <Card key={customer.id} shadow="sm" p={{ base: 'lg', md: 'md' }} radius="md" withBorder mb="md">
-          <Stack gap="md">
+          <Stack >
             {/* Header with name and actions */}
             <Group justify="space-between">
               <Box style={{ flex: 1 }}>
@@ -248,12 +246,12 @@ export default function CustomersPage() {
                 <Text size="sm" c="dimmed">{customer.email}</Text>
                 <Text size="xs" c="dimmed" mt={2}>{customer.phone}</Text>
               </Box>
-              <Group gap="xs">
+              <Group >
                 <ActionIcon
                   variant="subtle"
                   color="gray"
                   component={Link}
-                  to={`/admin/crm/customers/${customer.id}`}
+                  to={`/crm/customers/${customer.id}`}
                   aria-label="View Profile"
                 >
                   <IconEye size={16} />
@@ -262,7 +260,7 @@ export default function CustomersPage() {
                   variant="subtle"
                   color="blue"
                   component={Link}
-                  to={`/admin/crm/customers/${customer.id}/edit`}
+                  to={`/crm/customers/${customer.id}/edit`}
                   aria-label="Edit Customer"
                 >
                   <IconPencil size={16} />
@@ -279,7 +277,7 @@ export default function CustomersPage() {
             </Group>
 
             {/* Customer Type & Status */}
-            <Group gap="xs">
+            <Group >
               <Badge
                 color={customer.type === 'wholesale' ? 'blue' : 'gray'}
                 variant="light"
@@ -297,7 +295,7 @@ export default function CustomersPage() {
             {/* Details */}
             <Grid>
               <Grid.Col span={6}>
-                <Group gap="xs">
+                <Group >
                   <IconWallet size={16} />
                   <Box>
                     <Text size="xs" c="dimmed">Wallet</Text>
@@ -306,7 +304,7 @@ export default function CustomersPage() {
                 </Group>
               </Grid.Col>
               <Grid.Col span={6}>
-                <Group gap="xs">
+                <Group >
                   <IconShoppingBag size={16} />
                   <Box>
                     <Text size="xs" c="dimmed">Orders</Text>
@@ -329,7 +327,7 @@ export default function CustomersPage() {
     })
   }, [customers])
 
-  const openDeleteModal = (id: number, name: string) => {
+  const openDeleteModal = (_id: number, name: string) => {
     modals.openConfirmModal({
       title: 'Delete Customer',
       centered: true,
@@ -365,7 +363,7 @@ export default function CustomersPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Title order={1} className="text-lg md:text-xl lg:text-2xl">Customers</Title>
@@ -374,7 +372,7 @@ export default function CustomersPage() {
 
         {/* Search and Filters */}
         <Group justify="space-between">
-          <Group gap="sm" style={{ flex: 1, maxWidth: '100%' }}>
+          <Group  style={{ flex: 1, maxWidth: '100%' }}>
             <TextInput
               placeholder="Search by name, email, or phone..."
               leftSection={<IconSearch size={16} />}
@@ -399,7 +397,7 @@ export default function CustomersPage() {
           </Group>
           <Button
             component={Link}
-            to="/admin/crm/customers/create"
+            to="/crm/customers/create"
             leftSection={<IconPlus size={16} />}
           >
             Add Customer
@@ -407,7 +405,7 @@ export default function CustomersPage() {
         </Group>
 
         {/* Mobile: Card View */}
-        <Stack gap="xl" display={{ base: 'block', md: 'none' }}>
+        <Stack  display={{ base: 'block', md: 'none' }}>
           {customers.length === 0 ? (
             <Paper withBorder p="xl" ta="center">
               <Text c="dimmed">No customers found</Text>
@@ -418,7 +416,7 @@ export default function CustomersPage() {
         </Stack>
 
         {/* Desktop: Table View */}
-        <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} overflow="hidden">
+        <Paper withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }}>
           <Table.ScrollContainer minWidth={1200}>
             <Table striped highlightOnHover>
               <Table.Thead>
@@ -453,7 +451,7 @@ export default function CustomersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <Group justify="flex-end" gap="xs">
+          <Group justify="flex-end" >
             <Button
               variant="light"
               size="sm"

@@ -1,6 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -11,7 +10,6 @@ import {
   Badge,
   Card,
   TextInput,
-  Select,
   ActionIcon,
   SimpleGrid,
   Table,
@@ -23,12 +21,8 @@ import {
 import {
   IconPlus,
   IconSearch,
-  IconDots,
-  IconPhone,
   IconMail,
   IconBuilding,
-  IconMapPin,
-  IconCalendar,
   IconRefresh,
   IconEye,
   IconPencil,
@@ -38,10 +32,11 @@ import {
   IconClock,
   IconBan,
 } from '@tabler/icons-react'
-import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
+import { modals } from '@mantine/modals'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Employee {
   id: number
@@ -79,13 +74,12 @@ interface PaginatedResponse {
 }
 
 export default function EmployeesPage() {
-  const { t } = useTranslation()
   const { user: currentUser } = useAuthStore()
+  const { hasPermission } = usePermissions()
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [employeesData, setEmployeesData] = useState<PaginatedResponse | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null)
   const [deletingEmployeeId, setDeletingEmployeeId] = useState<number | null>(null)
 
   // Fetch employees from API
@@ -96,7 +90,6 @@ export default function EmployeesPage() {
         page,
       }
       if (search) params.search = search
-      if (selectedDepartment) params.department_id = parseInt(selectedDepartment)
 
       const response = await api.get('/hrm/employees', { params })
 
@@ -123,8 +116,7 @@ export default function EmployeesPage() {
   // Initial load
   useEffect(() => {
     fetchEmployees(1, '')
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDepartment])
+  }, [])
 
   // Handle search with debounce
   useEffect(() => {
@@ -175,7 +167,7 @@ export default function EmployeesPage() {
       onConfirm: async () => {
         try {
           setDeletingEmployeeId(id)
-          await api.delete(`/user-management/users/${id}`)
+          await api.delete(`/hrm/employees/${id}`)
           notifications.show({
             title: 'Employee Deleted',
             message: `${name} has been deleted successfully`,
@@ -234,7 +226,7 @@ export default function EmployeesPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between">
@@ -242,7 +234,7 @@ export default function EmployeesPage() {
               <Title order={1} className="text-lg md:text-xl lg:text-2xl">Employees</Title>
               <Text c="dimmed" className="text-sm md:text-base">Manage your team members</Text>
             </Box>
-            <Group gap="sm">
+            <Group >
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -251,13 +243,15 @@ export default function EmployeesPage() {
               >
                 <IconRefresh size={18} />
               </ActionIcon>
-              <Button
-                component={Link}
-                to="/admin/hrm/employees/create"
-                leftSection={<IconPlus size={16} />}
-              >
-                Add Employee
-              </Button>
+              {hasPermission('employee.create') && (
+                <Button
+                  component={Link}
+                  to="/hrm/employees/create"
+                  leftSection={<IconPlus size={16} />}
+                >
+                  Add Employee
+                </Button>
+              )}
             </Group>
           </Group>
         </Box>
@@ -265,7 +259,7 @@ export default function EmployeesPage() {
         {/* Stats */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconUsers size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Text size="xs" c="dimmed">Total Employees</Text>
             </Group>
@@ -273,7 +267,7 @@ export default function EmployeesPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconBriefcase size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
               <Text size="xs" c="dimmed">Active</Text>
             </Group>
@@ -281,7 +275,7 @@ export default function EmployeesPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconClock size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
               <Text size="xs" c="dimmed">On Leave</Text>
             </Group>
@@ -289,7 +283,7 @@ export default function EmployeesPage() {
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <IconBuilding size={20} style={{ color: 'var(--mantine-color-purple-filled)' }} />
               <Text size="xs" c="dimmed">Departments</Text>
             </Group>
@@ -299,7 +293,7 @@ export default function EmployeesPage() {
 
         {/* Filters */}
         <Group justify="space-between">
-          <Group gap="sm" style={{ flex: 1, maxWidth: '100%' }}>
+          <Group  style={{ flex: 1, maxWidth: '100%' }}>
             <TextInput
               placeholder="Search employees..."
               leftSection={<IconSearch size={16} />}
@@ -340,7 +334,7 @@ export default function EmployeesPage() {
                   employees.map((employee) => (
                     <Table.Tr key={employee.id}>
                       <Table.Td>
-                        <Group gap="sm">
+                        <Group >
                           <Avatar
                             alt={employee.name}
                             radius="xl"
@@ -382,12 +376,12 @@ export default function EmployeesPage() {
                         <Text fw={600} size="sm">{formatCurrency(employee.profile?.base_salary)}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Group gap="xs">
+                        <Group >
                           <ActionIcon
                             variant="subtle"
                             color="blue"
                             component={Link}
-                            to={`/admin/hrm/employees/${employee.id}`}
+                            to={`/hrm/employees/${employee.id}`}
                             size="sm"
                           >
                             <IconEye size={16} />
@@ -396,7 +390,7 @@ export default function EmployeesPage() {
                             variant="subtle"
                             color="gray"
                             component={Link}
-                            to={`/admin/hrm/employees/${employee.id}/edit`}
+                            to={`/hrm/employees/${employee.id}/edit`}
                             size="sm"
                           >
                             <IconPencil size={16} />
@@ -426,7 +420,7 @@ export default function EmployeesPage() {
         </Card>
 
         {/* Mobile Card View */}
-        <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+        <Stack  display={{ base: 'block', md: 'none' }}>
           {employees.length === 0 ? (
             <Card withBorder p="xl" ta="center" shadow="sm">
               <Text c="dimmed">No employees found</Text>
@@ -435,7 +429,7 @@ export default function EmployeesPage() {
             employees.map((employee) => (
               <Card key={employee.id} shadow="sm" p="sm" radius="md" withBorder>
                 <Group justify="space-between" mb="xs">
-                  <Group gap="xs">
+                  <Group >
                     <Avatar
                       alt={employee.name}
                       radius="xl"
@@ -465,7 +459,7 @@ export default function EmployeesPage() {
                   </Group>
                 )}
 
-                <SimpleGrid cols={2} gap="xs" mb="xs">
+                <SimpleGrid cols={2}  mb="xs">
                   <Box>
                     <Text size="xs" c="dimmed">Department</Text>
                     {employee.profile?.department ? (
@@ -480,7 +474,7 @@ export default function EmployeesPage() {
                   </Box>
                 </SimpleGrid>
 
-                <SimpleGrid cols={2} gap="xs">
+                <SimpleGrid cols={2} >
                   <Box>
                     <Text size="xs" c="dimmed">Joined</Text>
                     <Text size="xs">{formatDate(employee.profile?.joining_date)}</Text>
@@ -491,12 +485,12 @@ export default function EmployeesPage() {
                   </Box>
                 </SimpleGrid>
 
-                <Group gap="xs" mt="xs">
+                <Group  mt="xs">
                   <Button
                     variant="light"
                     size="xs"
                     component={Link}
-                    to={`/admin/hrm/employees/${employee.id}`}
+                    to={`/hrm/employees/${employee.id}`}
                     leftSection={<IconEye size={14} />}
                     style={{ flex: 1 }}
                   >
@@ -506,7 +500,7 @@ export default function EmployeesPage() {
                     variant="subtle"
                     color="gray"
                     component={Link}
-                    to={`/admin/hrm/employees/${employee.id}/edit`}
+                    to={`/hrm/employees/${employee.id}/edit`}
                     size="sm"
                   >
                     <IconPencil size={16} />

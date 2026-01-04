@@ -58,7 +58,7 @@ export function FormWrapper({
                 variant="default"
                 onClick={onCancel}
                 disabled={loading || disabled}
-                fullWidth={{ base: true, sm: false }}
+                fullWidth
               >
                 {cancelLabel}
               </Button>
@@ -67,7 +67,7 @@ export function FormWrapper({
               type="submit"
               loading={loading}
               disabled={disabled}
-              fullWidth={{ base: true, sm: false }}
+              fullWidth
             >
               {submitLabel}
             </Button>

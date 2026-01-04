@@ -239,7 +239,7 @@ export default function EditRolePage() {
         color: 'green',
       })
 
-      navigate('/admin/hrm/roles')
+      navigate('/hrm/roles')
     } catch (error: any) {
       console.error('Failed to update role:', error)
 
@@ -260,7 +260,7 @@ export default function EditRolePage() {
 
   // Handle cancel
   const handleCancel = () => {
-    navigate('/admin/hrm/roles')
+    navigate('/hrm/roles')
   }
 
   if (initialLoading) {
@@ -277,7 +277,7 @@ export default function EditRolePage() {
       <Box p={{ base: 'md', md: 'xl' }}>
         <Alert variant="light" color="red" title="Error loading role">
           <Text size="sm">{error}</Text>
-          <Button mt="md" onClick={() => navigate('/admin/hrm/roles')}>
+          <Button mt="md" onClick={() => navigate('/hrm/roles')}>
             Back to Roles
           </Button>
         </Alert>
@@ -293,7 +293,7 @@ export default function EditRolePage() {
           <Text size="sm">
             Super Admin role cannot be modified. This role has full system access by design.
           </Text>
-          <Button mt="md" onClick={() => navigate('/admin/hrm/roles')}>
+          <Button mt="md" onClick={() => navigate('/hrm/roles')}>
             Back to Roles
           </Button>
         </Alert>
@@ -303,11 +303,11 @@ export default function EditRolePage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor href="/admin/dashboard" c="dimmed">{t('nav.dashboard')}</Anchor>
-          <Anchor href="/admin/hrm/roles" c="dimmed">{t('settings.roles')}</Anchor>
+          <Anchor href="/dashboard" c="dimmed">{t('nav.dashboard')}</Anchor>
+          <Anchor href="/hrm/roles" c="dimmed">{t('settings.roles')}</Anchor>
           <Text>Edit Role: {roleName}</Text>
         </Breadcrumbs>
 
@@ -326,11 +326,11 @@ export default function EditRolePage() {
           </Alert>
         )}
 
-        <Stack gap="lg">
+        <Stack >
           {/* Role Information Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
-            <Stack gap="lg">
+            <Stack >
               <Title order={3}>Role Information</Title>
 
               <Grid>
@@ -381,13 +381,13 @@ export default function EditRolePage() {
 
           {/* Permissions Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-            <Stack gap="lg">
+            <Stack >
               <Group justify="space-between">
                 <div>
-                  <Title order={{ base: 4, md: 3 }}>Role Permissions</Title>
+                  <Title order={3}>Role Permissions</Title>
                   <Text size="sm" c="dimmed">Select which permissions this role should have</Text>
                 </div>
-                <Group gap="xs">
+                <Group >
                   <Button variant="light" size="sm" onClick={handleSelectAll}>
                     Select All
                   </Button>
@@ -428,7 +428,7 @@ export default function EditRolePage() {
                         bd={hasAny ? '2px solid var(--mantine-color-blue-4)' : undefined}
                         bg={hasAny ? 'light-dark(var(--mantine-color-blue-0), rgba(66, 153, 225, 0.1))' : undefined}
                       >
-                        <Stack gap="sm">
+                        <Stack >
                           {/* Group Header */}
                           <Group justify="space-between">
                             <Text fw={600} size="sm">{group.groupName}</Text>
@@ -442,9 +442,9 @@ export default function EditRolePage() {
                           </Group>
 
                           {/* Permission List */}
-                          <Stack gap="xs">
+                          <Stack >
                             {group.permissions.map((permission) => (
-                              <Group key={permission.id} gap="sm">
+                              <Group key={permission.id} >
                                 <Checkbox
                                   checked={selectedPermissionIds.includes(permission.id)}
                                   onChange={() => handlePermissionToggle(permission.id)}

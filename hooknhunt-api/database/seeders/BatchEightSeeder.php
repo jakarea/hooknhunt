@@ -12,9 +12,13 @@ class BatchEightSeeder extends Seeder
         // 1. Create Loyalty Rule
         DB::table('loyalty_rules')->insert([
             'name' => 'Standard Reward',
+            'channel' => 'retail_web',
             'min_order_amount' => 500.00,
-            'points_per_100_taka' => 1, // 1% equivalent
+            'reward_points' => 5, // 5 points for every 100 taka spent
+            'spend_amount' => 100.00,
+            'is_active' => true,
             'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         // 2. Give Points to Customer (Simulating Order Completion)

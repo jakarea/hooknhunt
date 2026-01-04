@@ -40,9 +40,21 @@ class User extends Authenticatable
         return $this->belongsToMany(Permission::class, 'permission_user');
     }
 
+    /**
+     * Check if user is Super Admin
+     */
+    public function isSuperAdmin(): bool
+    {
+        return $this->role && $this->role->slug === 'super_admin';
+    }
 
     public function hasPermissionTo($slug): bool
     {
+        // Super admins have all permissions
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
         // ১. প্রথমেই চেক করুন এই ইউজারের জন্য এই পারমিশনটি 'Block' করা কি না
         $isBlocked = $this->directPermissions()
                         ->where('slug', $slug)

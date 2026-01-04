@@ -1,25 +1,16 @@
 import { useState, useEffect } from 'react'
 import { Box, Text, Stack, Paper, ThemeIcon } from '@mantine/core'
 import { IconQuote } from '@tabler/icons-react'
+import { QUOTES } from '@/config/quotes'
 
 export function LoginQuotes() {
   const [quote, setQuote] = useState('')
 
   useEffect(() => {
-    // Load quotes from JSON file
-    fetch('/quotes.json')
-      .then((res) => res.json())
-      .then((data) => {
-        // Get a random quote from LOGIN_QUOTES array
-        const quotes = data.LOGIN_QUOTES || []
-        const randomQuote = quotes[Math.floor(Math.random() * quotes.length)]
-        setQuote(randomQuote)
-      })
-      .catch((err) => {
-        console.error('Failed to load quotes:', err)
-        // Fallback quote
-        setQuote('ডিসিপ্লিন না থাকলে ট্যালেন্ট কোনো কাজে আসে না।')
-      })
+    // Get a random quote from LOGIN_QUOTES array
+    const quotes = QUOTES.LOGIN_QUOTES
+    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)]
+    setQuote(randomQuote)
   }, [])
 
   return (

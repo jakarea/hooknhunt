@@ -1,6 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -9,15 +8,12 @@ import {
   Text,
   Button,
   Paper,
-  Card,
   TextInput,
   Select,
   NumberInput,
-  Switch,
   SimpleGrid,
   Alert,
   Breadcrumbs,
-  Avatar,
   Anchor,
   LoadingOverlay,
 } from '@mantine/core'
@@ -25,10 +21,6 @@ import {
   IconChevronRight,
   IconArrowLeft,
   IconDeviceFloppy,
-  IconUser,
-  IconMail,
-  IconPhone,
-  IconMapPin,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 
@@ -71,7 +63,6 @@ const mockCustomer = {
 }
 
 export default function EditCustomerPage() {
-  const { t } = useTranslation()
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -83,17 +74,6 @@ export default function EditCustomerPage() {
     type: mockCustomer.type,
     status: mockCustomer.status,
     notes: mockCustomer.notes,
-  })
-
-  const [addressForm, setAddressForm] = useState({
-    label: '',
-    full_name: '',
-    phone: '',
-    address: '',
-    area: '',
-    city: '',
-    zip: '',
-    is_default: false,
   })
 
   const handleChange = (field: string, value: string) => {
@@ -132,7 +112,7 @@ export default function EditCustomerPage() {
         color: 'green',
       })
 
-      navigate(`/admin/crm/customers/${id}`)
+      navigate(`/crm/customers/${id}`)
     } catch (error) {
       setLoading(false)
       notifications.show({
@@ -143,57 +123,15 @@ export default function EditCustomerPage() {
     }
   }
 
-  const handleAddAddress = async () => {
-    if (!addressForm.label || !addressForm.address || !addressForm.city) {
-      notifications.show({
-        title: 'Validation Error',
-        message: 'Please fill in all required address fields',
-        color: 'red',
-      })
-      return
-    }
-
-    try {
-      setLoading(true)
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      notifications.show({
-        title: 'Address Added',
-        message: 'New address has been added successfully',
-        color: 'green',
-      })
-
-      setAddressForm({
-        label: '',
-        full_name: '',
-        phone: '',
-        address: '',
-        area: '',
-        city: '',
-        zip: '',
-        is_default: false,
-      })
-      setLoading(false)
-    } catch (error) {
-      setLoading(false)
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to add address',
-        color: 'red',
-      })
-    }
-  }
-
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor component={Link} to="/admin/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor component={Link} to="/admin/crm" c="dimmed">CRM</Anchor>
-          <Anchor component={Link} to="/admin/crm/customers" c="dimmed">Customers</Anchor>
-          <Anchor component={Link} to={`/admin/crm/customers/${id}`} c="dimmed">{mockCustomer.name}</Anchor>
+          <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
+          <Anchor component={Link} to="/crm" c="dimmed">CRM</Anchor>
+          <Anchor component={Link} to="/crm/customers" c="dimmed">Customers</Anchor>
+          <Anchor component={Link} to={`/crm/customers/${id}`} c="dimmed">{mockCustomer.name}</Anchor>
           <Text c="red">Edit</Text>
         </Breadcrumbs>
 
@@ -208,7 +146,7 @@ export default function EditCustomerPage() {
               variant="default"
               size="sm"
               component={Link}
-              to={`/admin/crm/customers/${id}`}
+              to={`/crm/customers/${id}`}
               leftSection={<IconArrowLeft size={16} />}
             >
               Back
@@ -220,7 +158,7 @@ export default function EditCustomerPage() {
           <LoadingOverlay visible={loading} />
 
           <form onSubmit={handleSubmit}>
-            <Stack gap="lg">
+            <Stack >
               {/* Customer Info */}
               <Box>
                 <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">
@@ -358,11 +296,11 @@ export default function EditCustomerPage() {
               </Alert>
 
               {/* Actions */}
-              <Group justify="flex-end" gap="sm">
+              <Group justify="flex-end" >
                 <Button
                   variant="default"
                   component={Link}
-                  to={`/admin/crm/customers/${id}`}
+                  to={`/crm/customers/${id}`}
                   size="md"
                 >
                   Cancel

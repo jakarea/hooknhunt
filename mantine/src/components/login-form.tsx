@@ -10,7 +10,6 @@ import {
   Checkbox,
   Paper,
 } from '@mantine/core'
-import { IconEye, IconEyeOff } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
@@ -86,28 +85,11 @@ export function LoginForm() {
       // Store token immediately
       localStorage.setItem('token', access_token)
 
-      // Fetch user permissions after successful login
-      let permissions: string[] = []
-      try {
-        const userResponse = await api.get(`/user-management/users/${user.id}`)
-        if (userResponse.data?.data) {
-          const userData = userResponse.data.data
+      // Extract permissions from login response (user.role.permissions is already included)
+      const rolePermissions = user?.role?.permissions || []
+      const permissions = rolePermissions.map((p: any) => p.slug)
 
-          // Extract permissions from role permissions
-          const rolePermissions = userData.role?.permissions || []
-          const rolePermissionSlugs = rolePermissions.map((p: any) => p.slug)
-
-          // Extract granted direct permissions (not blocked)
-          const grantedPermissions = userData.granted_permissions || []
-          const grantedPermissionSlugs = grantedPermissions.map((p: any) => p.slug)
-
-          // Combine role permissions and granted permissions
-          permissions = [...new Set([...rolePermissionSlugs, ...grantedPermissionSlugs])]
-        }
-      } catch (permError) {
-        console.error('Failed to fetch permissions:', permError)
-        // Continue without permissions if fetch fails
-      }
+      console.log('User permissions:', permissions.length)
 
       login(access_token, user, permissions)
       notifications.show({
@@ -115,7 +97,7 @@ export function LoginForm() {
         message: t('auth.login.success'),
         color: 'green',
       })
-      navigate('/admin/dashboard')
+      navigate('/dashboard')
     } catch (error: unknown) {
       console.error('Login error:', error)
       const apiError = error as { response?: { data?: any }, message?: string }
@@ -169,14 +151,14 @@ export function LoginForm() {
         {/* Header */}
         <Stack align="center" gap="xs">
           <Text
-            size={{ base: 'xl', md: '2xl' }}
+            size="2xl"
             fw="bold"
             ta="center"
           >
             {t('auth.login.title')}
           </Text>
           <Text
-            size={{ base: 'sm', md: 'md' }}
+            size="md"
             c="dimmed"
             ta="center"
             maw={350}
@@ -220,13 +202,6 @@ export function LoginForm() {
             }}
             size="md"
             error={errors.password}
-            visibilityToggleIcon={({ reveal, onClick }) =>
-              reveal ? (
-                <IconEyeOff onClick={onClick} stroke={1.5} />
-              ) : (
-                <IconEye onClick={onClick} stroke={1.5} />
-              )
-            }
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault()
@@ -260,7 +235,7 @@ export function LoginForm() {
         </Stack>
 
         {/* Footer */}
-        <Text size={{ base: 'xs', md: 'sm' }} ta="center" c="dimmed">
+        <Text size="sm" ta="center" c="dimmed">
           {t('auth.login.havingTrouble')}{' '}
           <Text
             component="a"

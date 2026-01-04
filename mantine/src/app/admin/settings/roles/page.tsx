@@ -106,7 +106,7 @@ export default function RolesListPage() {
   // Mobile Card Component
   const RoleCard = ({ role }: { role: Role }) => (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack gap="md">
+      <Stack >
         <Group justify="space-between">
           <Box>
             <Text className="text-base font-semibold md:text-lg">{role.name}</Text>
@@ -121,20 +121,20 @@ export default function RolesListPage() {
           </Badge>
         </Group>
 
-        <Group gap="xs">
+        <Group >
           <IconUsers size={16} className="text-gray-500" />
           <Text className="text-sm">
             {role.users_count} {role.users_count === 1 ? 'user' : 'users'}
           </Text>
         </Group>
 
-        <Group gap="xs">
+        <Group >
           {hasPermission('role.edit') && role.slug !== 'super_admin' && (
             <ActionIcon
               variant="light"
               color="blue"
               size="md"
-              onClick={() => navigate(`/admin/roles/${role.id}/edit`)}
+              onClick={() => navigate(`/roles/${role.id}/edit`)}
             >
               <IconEdit size={16} />
             </ActionIcon>
@@ -169,7 +169,7 @@ export default function RolesListPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Header */}
         <Box>
           <Title className="text-xl md:text-2xl lg:text-3xl font-semibold">Roles</Title>
@@ -192,7 +192,7 @@ export default function RolesListPage() {
           {hasPermission('role.create') && (
             <Button
               leftSection={<IconPlus size={16} />}
-              onClick={() => navigate('/admin/roles/create')}
+              onClick={() => navigate('/roles/create')}
               className="text-sm md:text-base"
               size="md"
             >
@@ -246,19 +246,19 @@ export default function RolesListPage() {
                         <Text className="text-sm">{role.description || '—'}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Group gap="xs">
+                        <Group >
                           <IconUsers size={14} className="text-gray-500" />
                           <Text className="text-sm">{role.users_count}</Text>
                         </Group>
                       </Table.Td>
                       <Table.Td>
-                        <Group gap="xs" justify="flex-end">
+                        <Group  justify="flex-end">
                           {hasPermission('role.edit') && role.slug !== 'super_admin' && (
                             <ActionIcon
                               variant="subtle"
                               color="blue"
                               size="sm"
-                              onClick={() => navigate(`/admin/roles/${role.id}/edit`)}
+                              onClick={() => navigate(`/roles/${role.id}/edit`)}
                             >
                               <IconEdit size={14} />
                             </ActionIcon>
@@ -313,20 +313,20 @@ export default function RolesListPage() {
           }
           centered
         >
-          <Stack gap="md">
+          <Stack >
             <Text className="text-sm md:text-base">
               Are you sure you want to delete role <strong>{selectedRole?.name}</strong>? This action cannot be undone.
             </Text>
 
-            {selectedRole?.users_count > 0 && (
+            {(selectedRole?.users_count ?? 0) > 0 && (
               <Paper withBorder p="sm" bg="yellow.0">
                 <Text className="text-xs md:text-sm text-yellow.800">
-                  ⚠️ This role has {selectedRole.users_count} assigned user(s). Please reassign them before deleting.
+                  ⚠️ This role has {(selectedRole?.users_count ?? 0)} assigned user(s). Please reassign them before deleting.
                 </Text>
               </Paper>
             )}
 
-            <Group justify="flex-end" gap="sm">
+            <Group justify="flex-end" >
               <Button
                 variant="default"
                 onClick={() => setDeleteConfirmOpened(false)}
@@ -337,7 +337,7 @@ export default function RolesListPage() {
               <Button
                 color="red"
                 onClick={handleDelete}
-                disabled={selectedRole?.users_count > 0}
+                disabled={(selectedRole?.users_count ?? 0) > 0}
                 className="text-sm md:text-base"
               >
                 Delete Role

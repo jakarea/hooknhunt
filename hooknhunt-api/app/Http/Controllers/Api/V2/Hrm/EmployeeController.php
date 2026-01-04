@@ -20,10 +20,15 @@ class EmployeeController extends Controller
      */
     public function index(Request $request)
     {
-        // আমরা ধরে নিচ্ছি role_id = 5 হলো 'Retail Customer'। 
+        // Permission check: Need employee.index permission
+        if (!auth()->user()->hasPermissionTo('employee.index')) {
+            return $this->sendError('You do not have permission to view employees.', null, 403);
+        }
+
+        // আমরা ধরে নিচ্ছি role_id = 5 হলো 'Retail Customer'।
         // তাই ৫ বাদে বাকি সব রোল (Admin, Manager, Staff) লোড করব।
         // আপনার সিস্টেমে রোলের ID ভিন্ন হতে পারে, সেটা চেক করে নেবেন।
-        
+
         $query = User::with(['profile.department', 'role'])
             ->whereHas('role', function($q) {
                 $q->where('slug', '!=', 'retail_customer')
@@ -42,13 +47,18 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check: Need employee.create permission
+        if (!auth()->user()->hasPermissionTo('employee.create')) {
+            return $this->sendError('You do not have permission to create employees.', null, 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'required|string|unique:users,phone',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|min:6',
             'role_id' => 'required|exists:roles,id', // Must assign a role (e.g. Manager)
-            
+
             // Profile / HRM Fields
             'department_id' => 'required|exists:departments,id',
             'designation' => 'required|string',
@@ -97,6 +107,15 @@ class EmployeeController extends Controller
             $q->latest()->take(30); // Last 30 days attendance
         }])->findOrFail($id);
 
+        // Permission check: Users can view their own profile OR need employee.view/employee.index permission
+        $currentUser = auth()->user();
+        if ($currentUser->id != $id) {
+            // Viewing someone else's profile - check permission
+            if (!$currentUser->hasPermissionTo('employee.view') && !$currentUser->hasPermissionTo('employee.index')) {
+                return $this->sendError('You do not have permission to view employee profiles.', null, 403);
+            }
+        }
+
         return $this->sendSuccess($employee);
     }
 
@@ -106,7 +125,16 @@ class EmployeeController extends Controller
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        
+
+        // Permission check: Users can edit their own profile OR need employee.edit permission
+        $currentUser = auth()->user();
+        if ($currentUser->id != $id) {
+            // Editing someone else's profile - check permission
+            if (!$currentUser->hasPermissionTo('employee.edit')) {
+                return $this->sendError('You do not have permission to edit employee profiles.', null, 403);
+            }
+        }
+
         $request->validate([
             'name' => 'required|string',
             'phone' => ['required', Rule::unique('users')->ignore($user->id)],
@@ -145,9 +173,20 @@ class EmployeeController extends Controller
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+
+        // Permission check: Need employee.delete permission
+        if (!auth()->user()->hasPermissionTo('employee.delete')) {
+            return $this->sendError('You do not have permission to delete employees.', null, 403);
+        }
+
+        // Prevent users from deleting themselves
+        if ($user->id === auth()->id()) {
+            return $this->sendError('You cannot delete your own account.', null, 400);
+        }
+
         // Soft Delete (History will remain)
         $user->delete();
-        
+
         return $this->sendSuccess(null, 'Employee terminated successfully');
     }
 }

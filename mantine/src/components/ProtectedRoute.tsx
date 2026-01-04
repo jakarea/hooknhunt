@@ -16,11 +16,9 @@ const ProtectedRoute = ({
 }: ProtectedRouteProps) => {
   const token = useAuthStore((state) => state.token)
   const hydrated = useAuthStore((state) => state.hydrated)
-  const hasPermission = useAuthStore((state) => state.hasPermission)
   const hasAnyPermission = useAuthStore((state) => state.hasAnyPermission)
   const hasAllPermissions = useAuthStore((state) => state.hasAllPermissions)
   const hasRole = useAuthStore((state) => state.hasRole)
-  const user = useAuthStore((state) => state.user)
 
   // Wait for hydration before making auth decision
   if (!hydrated) {

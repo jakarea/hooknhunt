@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import {
   Box,
   Stack,
@@ -13,9 +12,7 @@ import {
   ActionIcon,
   Table,
   LoadingOverlay,
-  Pagination,
   Modal,
-  NumberInput,
   Switch,
 } from '@mantine/core'
 import {
@@ -27,8 +24,8 @@ import {
   IconBuilding,
   IconUsers,
 } from '@tabler/icons-react'
-import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
+import { modals } from '@mantine/modals'
 import api from '@/lib/api'
 
 interface Department {
@@ -46,7 +43,6 @@ interface FormData {
 }
 
 export default function DepartmentsPage() {
-  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [departments, setDepartments] = useState<Department[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -232,7 +228,7 @@ export default function DepartmentsPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between">
@@ -240,7 +236,7 @@ export default function DepartmentsPage() {
               <Title order={1} className="text-lg md:text-xl lg:text-2xl">Departments</Title>
               <Text c="dimmed" className="text-sm md:text-base">Manage organization departments</Text>
             </Box>
-            <Group gap="sm">
+            <Group >
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -260,10 +256,10 @@ export default function DepartmentsPage() {
         </Box>
 
         {/* Stats */}
-        <Stack gap="md" display={{ base: 'none', md: 'flex' }}>
-          <Group gap="sm">
+        <Stack  display={{ base: 'none', md: 'flex' }}>
+          <Group >
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconBuilding size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                 <Text size="xs" c="dimmed">Total Departments</Text>
               </Group>
@@ -271,7 +267,7 @@ export default function DepartmentsPage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconBuilding size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
                 <Text size="xs" c="dimmed">Active</Text>
               </Group>
@@ -279,7 +275,7 @@ export default function DepartmentsPage() {
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-              <Group gap="xs">
+              <Group >
                 <IconUsers size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
                 <Text size="xs" c="dimmed">Total Employees</Text>
               </Group>
@@ -328,7 +324,7 @@ export default function DepartmentsPage() {
                 filteredDepartments.map((department) => (
                   <Table.Tr key={department.id}>
                     <Table.Td>
-                      <Group gap="sm">
+                      <Group >
                         <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                         <Text fw={500} size="sm">{department.name}</Text>
                       </Group>
@@ -357,7 +353,7 @@ export default function DepartmentsPage() {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
+                      <Group >
                         <ActionIcon
                           variant="subtle"
                           color="gray"
@@ -385,7 +381,7 @@ export default function DepartmentsPage() {
         </Card>
 
         {/* Mobile Card View */}
-        <Stack gap="sm" display={{ base: 'block', md: 'none' }}>
+        <Stack  display={{ base: 'block', md: 'none' }}>
           <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
           {filteredDepartments.length === 0 ? (
             <Card withBorder p="xl" ta="center" shadow="sm">
@@ -397,7 +393,7 @@ export default function DepartmentsPage() {
             filteredDepartments.map((department) => (
               <Card key={department.id} shadow="sm" p="sm" radius="md" withBorder>
                 <Group justify="space-between" mb="xs">
-                  <Group gap="xs">
+                  <Group >
                     <IconBuilding size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
                     <Text fw={600} size="sm">{department.name}</Text>
                   </Group>
@@ -410,12 +406,12 @@ export default function DepartmentsPage() {
                   </Badge>
                 </Group>
 
-                <Group gap="md" mt="xs">
-                  <Group gap="xs">
+                <Group  mt="xs">
+                  <Group >
                     <IconUsers size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />
                     <Text size="xs">{department.employees_count} employee{department.employees_count !== 1 ? 's' : ''}</Text>
                   </Group>
-                  <Group gap="xs">
+                  <Group >
                     <Text size="xs" c="dimmed">
                       Created {new Date(department.created_at).toLocaleDateString('en-US', {
                         month: 'short',
@@ -426,7 +422,7 @@ export default function DepartmentsPage() {
                   </Group>
                 </Group>
 
-                <Group gap="xs" mt="xs">
+                <Group  mt="xs">
                   <Button
                     variant="light"
                     size="xs"
@@ -459,8 +455,8 @@ export default function DepartmentsPage() {
         title={editingDepartment ? 'Edit Department' : 'Create New Department'}
         centered
       >
-        <Stack gap="md">
-          <Stack gap="xs">
+        <Stack >
+          <Stack >
             <Text size="sm" fw={500}>Department Name *</Text>
             <TextInput
               placeholder="Enter department name"
@@ -472,7 +468,7 @@ export default function DepartmentsPage() {
             />
           </Stack>
 
-          <Group gap="sm">
+          <Group >
             <Switch
               label="Active"
               checked={formData.is_active}
@@ -483,7 +479,7 @@ export default function DepartmentsPage() {
             </Text>
           </Group>
 
-          <Group justify="flex-end" gap="sm">
+          <Group justify="flex-end" >
             <Button
               variant="default"
               onClick={() => setModalOpened(false)}

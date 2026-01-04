@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build && cp .htaccess.dist dist/.htaccess && chmod 644 dist/.htaccess",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -42,6 +42,7 @@
     "react-i18next": "^16.5.0",
     "react-router-dom": "^7.11.0",
     "recharts": "^2.15.4",
+    "tailwind-merge": "^3.4.0",
     "vite-plugin-pwa": "^1.2.0",
     "zod": "^4.3.2",
     "zustand": "^5.0.9"

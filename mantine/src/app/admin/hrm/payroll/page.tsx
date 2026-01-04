@@ -19,6 +19,7 @@ import {
   Card,
   SimpleGrid,
   Alert,
+  Paper,
 } from '@mantine/core';
 import { IconEdit, IconCheck, IconRefresh, IconCurrencyTaka } from '@tabler/icons-react';
 import { useAuthStore } from '@/stores/authStore';
@@ -243,7 +244,7 @@ export default function PayrollPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="lg">
+      <Stack >
         {/* Header */}
         <Box>
           <Group justify="space-between">
@@ -251,7 +252,7 @@ export default function PayrollPage() {
               <Title order={1} className="text-lg md:text-xl lg:text-2xl">Payroll Management</Title>
               <Text c="dimmed" className="text-sm md:text-base">Manage employee salaries and payments</Text>
             </Box>
-            <Group gap="sm">
+            <Group >
               <ActionIcon
                 variant="light"
                 size="lg"
@@ -276,28 +277,28 @@ export default function PayrollPage() {
         {/* Stats Dashboard */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <Text size="xs" c="dimmed">Total Records</Text>
             </Group>
             <Text size="xl" fw={700}>{stats.totalRecords}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <Text size="xs" c="dimmed">Total Net Payable</Text>
             </Group>
             <Text size="xl" fw={700}>{formatCurrency(stats.totalNetPayable)}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <Text size="xs" c="dimmed">Paid</Text>
             </Group>
             <Text size="xl" fw={700} c="green">{stats.paidCount}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
-            <Group gap="xs" mb="xs">
+            <Group  mb="xs">
               <Text size="xs" c="dimmed">Pending</Text>
             </Group>
             <Text size="xl" fw={700} c="orange">{stats.pendingCount}</Text>
@@ -428,7 +429,7 @@ export default function PayrollPage() {
           title="Generate Payroll"
           centered
         >
-          <Stack gap="md">
+          <Stack >
             <Alert color="blue">
               <Text size="sm">
                 This will generate payroll records for all active employees for{' '}
@@ -453,7 +454,7 @@ export default function PayrollPage() {
           title="Adjust Payroll"
           centered
         >
-          <Stack gap="md">
+          <Stack >
             {selectedPayroll && (
               <>
                 <Text size="sm">
@@ -510,7 +511,7 @@ export default function PayrollPage() {
           title="Process Payment"
           centered
         >
-          <Stack gap="md">
+          <Stack >
             {selectedPayroll && (
               <>
                 <Alert color="green">
@@ -520,7 +521,7 @@ export default function PayrollPage() {
                 </Alert>
 
                 <Paper withBorder p="md">
-                  <Stack gap="xs">
+                  <Stack >
                     <Group justify="space-between">
                       <Text size="sm">Employee:</Text>
                       <Text fw={500}>{selectedPayroll.user?.name || 'Unknown'}</Text>

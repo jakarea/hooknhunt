@@ -12,8 +12,9 @@ import {
   PinInput,
   Alert,
   Progress,
+  Group,
 } from '@mantine/core'
-import { IconEye, IconEyeOff, IconCheck, IconPhone } from '@tabler/icons-react'
+import { IconCheck, IconPhone } from '@tabler/icons-react'
 import { useUIStore } from '@/stores/uiStore'
 import api from '@/lib/api'
 
@@ -233,14 +234,14 @@ export function RegisterForm() {
           {/* Header */}
           <Stack align="center" gap="xs">
             <Text
-              size={{ base: 'xl', md: '2xl' }}
+              size="2xl"
               fw="bold"
               ta="center"
             >
               {t('auth.register.otp.title')}
             </Text>
             <Text
-              size={{ base: 'sm', md: 'md' }}
+              size="md"
               c="dimmed"
               ta="center"
             >
@@ -265,13 +266,17 @@ export function RegisterForm() {
                 type={/^[0-9]*$/.test(otp) ? 'number' : 'alphanumeric'}
                 placeholder={t('auth.register.otp.placeholder')}
                 disabled={otpLoading}
-                error={errors.otp}
+                error={!!errors.otp}
               />
               {otp.length === 6 && !errors.otp && (
-                <Text size="xs" c="green" display="flex" alignItems="center" gap={4}>
-                  <IconCheck size={14} />
-                  {t('auth.register.otp.otpEntered')}
-                </Text>
+                <Group gap={4}>
+                  <Text size="xs" c="green">
+                    <IconCheck size={14} />
+                  </Text>
+                  <Text size="xs" c="green">
+                    {t('auth.register.otp.otpEntered')}
+                  </Text>
+                </Group>
               )}
             </Stack>
 
@@ -285,7 +290,7 @@ export function RegisterForm() {
             </Button>
 
             <Stack gap="xs">
-              <Text size={{ base: 'xs', md: 'sm' }} ta="center" c="dimmed">
+              <Text size="sm" ta="center" c="dimmed">
                 {t('auth.register.otp.didntReceive')}
               </Text>
               <Button
@@ -304,7 +309,7 @@ export function RegisterForm() {
           </Stack>
 
           {/* Back to Register */}
-          <Text size={{ base: 'xs', md: 'sm' }} ta="center" c="dimmed">
+          <Text size="sm" ta="center" c="dimmed">
             {t('auth.register.otp.wrongNumber')}{' '}
             <Anchor
               onClick={() => {
@@ -335,8 +340,8 @@ export function RegisterForm() {
       >
         <Stack gap="lg" align="center">
           <Alert variant="light" color="green" title={t('auth.register.success.title')} w="100%">
-            <Text size={{ base: 'sm', md: 'md' }}>{t('auth.register.success.message')}</Text>
-            <Text size={{ base: 'sm', md: 'md' }}>{t('auth.register.success.redirecting')}</Text>
+            <Text size="md">{t('auth.register.success.message')}</Text>
+            <Text size="md">{t('auth.register.success.redirecting')}</Text>
           </Alert>
         </Stack>
       </Paper>
@@ -356,14 +361,14 @@ export function RegisterForm() {
         {/* Header */}
         <Stack align="center" gap="xs">
           <Text
-            size={{ base: 'xl', md: '2xl' }}
+            size="2xl"
             fw="bold"
             ta="center"
           >
             {t('auth.register.title')}
           </Text>
           <Text
-            size={{ base: 'sm', md: 'md' }}
+            size="md"
             c="dimmed"
             ta="center"
           >
@@ -425,13 +430,6 @@ export function RegisterForm() {
             }}
             size="md"
             error={errors.password}
-            visibilityToggleIcon={({ reveal, onClick }) =>
-              reveal ? (
-                <IconEyeOff onClick={onClick} stroke={1.5} />
-              ) : (
-                <IconEye onClick={onClick} stroke={1.5} />
-              )
-            }
           />
 
           {password && (
@@ -441,7 +439,7 @@ export function RegisterForm() {
                 color={passwordColor}
                 size="xs"
               />
-              <Text size={{ base: 'xs', md: 'sm' }} c="dimmed">
+              <Text size="sm" c="dimmed">
                 {t('auth.register.passwordStrength')}:{' '}
                 <Text
                   span
@@ -470,13 +468,6 @@ export function RegisterForm() {
             }}
             error={errors.confirmPassword}
             size="md"
-            visibilityToggleIcon={({ reveal, onClick }) =>
-              reveal ? (
-                <IconEyeOff onClick={onClick} stroke={1.5} />
-              ) : (
-                <IconEye onClick={onClick} stroke={1.5} />
-              )
-            }
           />
 
           <Button
@@ -489,7 +480,7 @@ export function RegisterForm() {
             {loading ? t('auth.register.submittingButton') : t('auth.register.submitButton')}
           </Button>
 
-          <Text size={{ base: 'xs', md: 'sm' }} ta="center" c="dimmed">
+          <Text size="sm" ta="center" c="dimmed">
             {t('auth.register.alreadyHaveAccount')}{' '}
             <Anchor href="/login" inherit style={{ textDecoration: 'underline' }}>
               {t('auth.register.signInLink')}

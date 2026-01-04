@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -16,7 +16,6 @@ import {
   Modal,
   Card,
   SimpleGrid,
-  Select,
 } from '@mantine/core'
 import {
   IconSearch,
@@ -25,7 +24,6 @@ import {
   IconTrash,
   IconBan,
   IconCheck,
-  IconDots,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -160,7 +158,7 @@ export default function UsersListPage() {
   // Mobile Card Component
   const UserCard = ({ user }: { user: User }) => (
     <Card shadow="sm" padding="lg" radius="md" withBorder>
-      <Stack gap="md">
+      <Stack >
         <Group justify="space-between">
           <Box>
             <Text className="text-base font-semibold md:text-lg">{user.name}</Text>
@@ -186,13 +184,13 @@ export default function UsersListPage() {
           </Box>
         </SimpleGrid>
 
-        <Group gap="xs">
+        <Group >
           {hasPermission('user.edit') && (
             <ActionIcon
               variant="light"
               color="blue"
               size="md"
-              onClick={() => navigate(`/admin/hrm/employees/${user.id}/edit`)}
+              onClick={() => navigate(`/hrm/employees/${user.id}/edit`)}
             >
               <IconEdit size={16} />
             </ActionIcon>
@@ -241,7 +239,7 @@ export default function UsersListPage() {
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack gap="xl">
+      <Stack >
         {/* Header */}
         <Box>
           <Title className="text-xl md:text-2xl lg:text-3xl font-semibold">Users</Title>
@@ -264,7 +262,7 @@ export default function UsersListPage() {
           {hasPermission('user.create') && (
             <Button
               leftSection={<IconPlus size={16} />}
-              onClick={() => navigate('/admin/hrm/employees/create')}
+              onClick={() => navigate('/hrm/employees/create')}
               className="text-sm md:text-base"
               size="md"
             >
@@ -331,13 +329,13 @@ export default function UsersListPage() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Group gap="xs" justify="flex-end">
+                        <Group  justify="flex-end">
                           {hasPermission('user.edit') && (
                             <ActionIcon
                               variant="subtle"
                               color="blue"
                               size="sm"
-                              onClick={() => navigate(`/admin/hrm/employees/${user.id}/edit`)}
+                              onClick={() => navigate(`/hrm/employees/${user.id}/edit`)}
                             >
                               <IconEdit size={14} />
                             </ActionIcon>
@@ -433,12 +431,12 @@ export default function UsersListPage() {
           }
           centered
         >
-          <Stack gap="md">
+          <Stack >
             <Text className="text-sm md:text-base">
               Are you sure you want to delete <strong>{selectedUser?.name}</strong>? This action cannot be undone.
             </Text>
 
-            <Group justify="flex-end" gap="sm">
+            <Group justify="flex-end" >
               <Button
                 variant="default"
                 onClick={() => setDeleteConfirmOpened(false)}
@@ -468,7 +466,7 @@ export default function UsersListPage() {
           }
           centered
         >
-          <Stack gap="md">
+          <Stack >
             <Text className="text-sm md:text-base">
               Are you sure you want to {selectedUser?.is_active ? 'block' : 'unblock'}{' '}
               <strong>{selectedUser?.name}</strong>?
@@ -482,7 +480,7 @@ export default function UsersListPage() {
               </Paper>
             )}
 
-            <Group justify="flex-end" gap="sm">
+            <Group justify="flex-end" >
               <Button
                 variant="default"
                 onClick={() => setStatusConfirmOpened(false)}

@@ -71,8 +71,8 @@ export default function LoginPage() {
             right={-100}
             w={400}
             h={400}
-            radius={400}
             style={{
+              borderRadius: '400px',
               background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
             }}
           />
@@ -82,8 +82,8 @@ export default function LoginPage() {
             left={-150}
             w={500}
             h={500}
-            radius={500}
             style={{
+              borderRadius: '500px',
               background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
             }}
           />
