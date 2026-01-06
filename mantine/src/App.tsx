@@ -56,10 +56,10 @@ import Wallet from "@/app/admin/crm/wallet/page"
 import Campaigns from "@/app/admin/marketing/campaigns/page"
 import Affiliates from "@/app/admin/marketing/affiliates/page"
 import LoyaltyRules from "@/app/admin/crm/loyalty/page"
-import Employees from "@/app/admin/hrm/employees/page"
-import EmployeeProfile from "@/app/admin/hrm/employees/[id]/page"
-import EditEmployee from "@/app/admin/hrm/employees/[id]/edit/page"
-import CreateEmployeePage from "@/app/admin/hrm/employees/create/page"
+import Staff from "@/app/admin/hrm/staff/page"
+import StaffProfile from "@/app/admin/hrm/staff/[id]/page"
+import EditStaff from "@/app/admin/hrm/staff/[id]/edit/page"
+import CreateStaffPage from "@/app/admin/hrm/staff/create/page"
 import Departments from "@/app/admin/hrm/departments/page"
 import Leaves from "@/app/admin/hrm/leaves/page"
 import Attendance from "@/app/admin/hrm/attendance/page"
@@ -168,10 +168,10 @@ function App() {
               <Route path="marketing/campaigns" element={<Campaigns />} />
               <Route path="marketing/affiliates" element={<Affiliates />} />
               <Route path="crm/loyalty" element={<LoyaltyRules />} />
-              <Route path="hrm/employees" element={<Employees />} />
-              <Route path="hrm/employees/create" element={<CreateEmployeePage />} />
-              <Route path="hrm/employees/:id" element={<EmployeeProfile />} />
-              <Route path="hrm/employees/:id/edit" element={<EditEmployee />} />
+              <Route path="hrm/staff" element={<Staff />} />
+              <Route path="hrm/staff/create" element={<CreateStaffPage />} />
+              <Route path="hrm/staff/:id" element={<StaffProfile />} />
+              <Route path="hrm/staff/:id/edit" element={<EditStaff />} />
               <Route path="hrm/departments" element={<Departments />} />
               <Route path="hrm/leaves" element={<Leaves />} />
               <Route path="hrm/attendance" element={<Attendance />} />

@@ -186,14 +186,15 @@ export default function WalletPage() {
     )
   }, [searchQuery, balanceFilter])
 
-  // Pagination
+  // Pagination - reset to page 1 when filters change by using currentPage as derived state
+  const totalPages = Math.ceil(filteredWallets.length / itemsPerPage)
+  const safeCurrentPage = currentPage > totalPages ? 1 : currentPage
+
   const paginatedWallets = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
+    const startIndex = (safeCurrentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return filteredWallets.slice(startIndex, endIndex)
-  }, [filteredWallets, currentPage])
-
-  const totalPages = Math.ceil(filteredWallets.length / itemsPerPage)
+  }, [filteredWallets, safeCurrentPage, itemsPerPage])
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
@@ -236,11 +237,6 @@ export default function WalletPage() {
   const totalDebits = useMemo(() => {
     return filteredWallets.reduce((sum, w) => sum + w.total_debits, 0)
   }, [filteredWallets])
-
-  // Reset page when filters change
-  useMemo(() => {
-    setCurrentPage(1)
-  }, [searchQuery, balanceFilter])
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
@@ -570,18 +566,18 @@ export default function WalletPage() {
                 <Button
                   variant="light"
                   size="sm"
-                  disabled={currentPage === 1}
+                  disabled={safeCurrentPage === 1}
                   onClick={() => setCurrentPage((prev) => prev - 1)}
                 >
                   Previous
                 </Button>
                 <Text size="sm" c="dimmed">
-                  Page {currentPage} of {totalPages}
+                  Page {safeCurrentPage} of {totalPages}
                 </Text>
                 <Button
                   variant="light"
                   size="sm"
-                  disabled={currentPage === totalPages}
+                  disabled={safeCurrentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => prev + 1)}
                 >
                   Next

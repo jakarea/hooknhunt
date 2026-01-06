@@ -41,49 +41,32 @@ Route::group([
     Route::post('notifications/read', 'NotificationController@markAsRead');
 
     // --- Module: SYSTEM & ACCESS CONTROL ---
-    Route::group(['prefix' => 'system', 'middleware' => ['permission:system.manage']], function () {
-        
+    Route::group(['prefix' => 'system'], function () {
         Route::apiResource('units', 'UnitController');
         Route::get('helpers/units', 'UnitController@dropdown');
         Route::apiResource('settings', 'SettingController');
         Route::post('settings/update', 'SettingController@update');
     });
 
-    Route::group(['prefix' => 'user-management', 'middleware' => ['auth:sanctum']], function () {
-
-        // শুধু ইউজার দেখার জন্য
-        Route::get('users', 'UserController@index')->middleware('permission:user.index');
-
-        Route::post('users', 'UserController@store')->middleware('permission:user.create');
-        Route::get('users/{id}', 'UserController@show')->middleware('permission:user.index');
-
-        // ইউজার ব্যান বা অ্যাকশন করার জন্য আলাদা পারমিশন
-        Route::post('users/{id}/ban', 'UserController@banUser')->middleware('permission:user.ban');
-        Route::post('users/{id}/restore', 'UserController@restore')->middleware('permission:user.ban');
-
-        // ডাইরেক্ট পারমিশন দেওয়ার জন্য হাই-লেভেল এক্সেস
-        Route::post('users/{id}/direct-permissions', 'UserController@giveDirectPermission')->middleware('permission:user.direct-access');
-        // ইউজার ডিলিট করার জন্য DELETE রাউট
-        Route::delete('users/{id}', 'UserController@destroy')->middleware('permission:user.delete');
-        // ইউজার আপডেট করার জন্য PUT রাউট
-        Route::put('users/{id}', 'UserController@update')->middleware('permission:user.edit');
-        Route::post('users/{id}/block-permission', 'UserController@blockPermission')->middleware('permission:user.direct-access');
-
-        // Sync granted/blocked permissions
-        Route::put('users/{id}/permissions/granted', 'UserController@syncGrantedPermissions')->middleware('permission:user.direct-access');
-        Route::put('users/{id}/permissions/blocked', 'UserController@syncBlockedPermissions')->middleware('permission:user.direct-access');
-
-        // Dropdown data for user management
-        Route::get('roles', 'UserController@roleList')->middleware('permission:user.edit');
-        Route::get('permissions', 'PermissionController@list')->middleware('permission:user.edit');
-        // Note: departments dropdown is available at /hrm/departments with hrm.manage permission
-
-        // Supplier management
-        Route::apiResource('suppliers', 'SupplierController')->middleware('permission:supplier.manage');
+    Route::group(['prefix' => 'user-management'], function () {
+        Route::get('users', 'UserController@index');
+        Route::post('users', 'UserController@store');
+        Route::get('users/{id}', 'UserController@show');
+        Route::post('users/{id}/ban', 'UserController@banUser');
+        Route::post('users/{id}/restore', 'UserController@restore');
+        Route::post('users/{id}/direct-permissions', 'UserController@giveDirectPermission');
+        Route::delete('users/{id}', 'UserController@destroy');
+        Route::put('users/{id}', 'UserController@update');
+        Route::post('users/{id}/block-permission', 'UserController@blockPermission');
+        Route::put('users/{id}/permissions/granted', 'UserController@syncGrantedPermissions');
+        Route::put('users/{id}/permissions/blocked', 'UserController@syncBlockedPermissions');
+        Route::get('roles', 'UserController@roleList');
+        Route::get('permissions', 'PermissionController@list');
+        Route::apiResource('suppliers', 'SupplierController');
     });
 
     // --- Module: MEDIA ASSETS ---
-    Route::group(['prefix' => 'media', 'middleware' => ['permission:media.manage']], function () {
+    Route::group(['prefix' => 'media'], function () {
         Route::get('folders', 'MediaController@getFolders');
         Route::post('folders', 'MediaController@createFolder');
         Route::get('files', 'MediaController@getFiles');
@@ -92,7 +75,7 @@ Route::group([
     });
 
     // --- Module: PRODUCT CATALOG ---
-    Route::group(['prefix' => 'catalog', 'middleware' => ['permission:product.manage']], function () {
+    Route::group(['prefix' => 'catalog'], function () {
         Route::apiResource('categories', 'CategoryController');
         Route::get('helpers/categories/tree', 'CategoryController@treeStructure');
         Route::apiResource('brands', 'BrandController');
@@ -106,7 +89,7 @@ Route::group([
     });
 
     // --- Module: INVENTORY ---
-    Route::group(['prefix' => 'inventory', 'middleware' => ['permission:inventory.manage']], function () {
+    Route::group(['prefix' => 'inventory'], function () {
         Route::apiResource('warehouses', 'WarehouseController');
         Route::get('current-stock', 'InventoryController@index');
         Route::get('low-stock', 'InventoryController@lowStockReport');
@@ -117,7 +100,7 @@ Route::group([
     });
 
     // --- Module: SALES & POS ---
-    Route::group(['prefix' => 'sales', 'middleware' => ['permission:sales.manage']], function () {
+    Route::group(['prefix' => 'sales'], function () {
         Route::apiResource('customers', 'CustomerController');
         Route::get('customers/{id}/orders', 'CustomerController@orderHistory');
         Route::group(['prefix' => 'pos'], function() {
@@ -133,7 +116,7 @@ Route::group([
     });
 
     // --- Module: LOGISTICS ---
-    Route::group(['prefix' => 'logistics', 'middleware' => ['permission:shipment.manage']], function () {
+    Route::group(['prefix' => 'logistics'], function () {
         Route::apiResource('shipments', 'ShipmentController');
         Route::group(['prefix' => 'workflow'], function() {
             Route::post('draft', 'ShipmentWorkflowController@createDraft');
@@ -145,11 +128,11 @@ Route::group([
     });
 
     // --- Module: HRM & PAYROLL ---
-    Route::group(['prefix' => 'hrm', 'middleware' => ['permission:hrm.manage']], function() {
+    Route::group(['prefix' => 'hrm'], function() {
         // HRM Controllers
         Route::group(['namespace' => 'Hrm'], function() {
             Route::apiResource('departments', 'DepartmentController');
-            Route::apiResource('employees', 'EmployeeController');
+            Route::apiResource('staff', 'StaffController');
             Route::apiResource('leaves', 'LeaveController');
             // Attendance routes
             Route::get('attendance', 'AttendanceController@index');
@@ -168,10 +151,11 @@ Route::group([
         Route::post('roles/{id}/sync-permissions', 'RoleController@syncPermissions');
         Route::post('permissions', 'PermissionController@store');
         Route::get('permissions', 'PermissionController@list');
-    }); 
+        Route::get('permissions/grouped', 'PermissionController@grouped');
+    });
 
     // --- Module: CRM ---
-    Route::group(['prefix' => 'crm', 'namespace' => 'Crm', 'middleware' => ['permission:crm.manage']], function() {
+    Route::group(['prefix' => 'crm', 'namespace' => 'Crm'], function() {
         Route::apiResource('leads', 'LeadController');
         Route::post('activities', 'ActivityController@store');
         Route::post('activities/{id}/done', 'ActivityController@markAsDone');
@@ -181,16 +165,14 @@ Route::group([
     });
 
     // --- Module: FINANCE ---
-    Route::group(['prefix' => 'finance', 'middleware' => ['permission:account.manage']], function () {
+    Route::group(['prefix' => 'finance'], function () {
         Route::apiResource('accounts', 'AccountController');
         Route::apiResource('expenses', 'ExpenseController');
-        // TODO: JournalEntryController not implemented yet
-        // Route::apiResource('journals', 'JournalEntryController');
         Route::get('reports/profit-loss', 'ReportController@profitLoss');
     });
 
     // --- Module: CMS & SUPPORT ---
-    Route::group(['prefix' => 'cms', 'middleware' => ['permission:support.manage']], function () {
+    Route::group(['prefix' => 'cms'], function () {
         Route::apiResource('support-tickets', 'TicketController');
         Route::apiResource('landing-pages', 'LandingPageController');
         Route::apiResource('menus', 'MenuController');
@@ -212,10 +194,10 @@ Route::group([
     'namespace' => 'App\Http\Controllers\Api\V2',
     'middleware' => ['auth:sanctum']
 ], function () {
-    Route::get('audit-logs', 'AuditController@index')->middleware('permission:audit.view');
-    Route::get('audit-logs/{fileName}/preview', 'AuditController@preview')->middleware('permission:audit.view');
-    Route::get('audit-logs/{fileName}/download', 'AuditController@download')->middleware('permission:audit.download');
-    Route::delete('audit-logs/{fileName}', 'AuditController@destroy')->middleware('permission:audit.delete');
+    Route::get('audit-logs', 'AuditController@index');
+    Route::get('audit-logs/{fileName}/preview', 'AuditController@preview');
+    Route::get('audit-logs/{fileName}/download', 'AuditController@download');
+    Route::delete('audit-logs/{fileName}', 'AuditController@destroy');
 });
 
 // ====================================================

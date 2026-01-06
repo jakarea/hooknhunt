@@ -368,7 +368,7 @@ This document provides a comprehensive guide for testing the Hook & Hunt API (v2
 *Employee management.*
 
 ### 8.1 Create Employee
-**Endpoint:** `POST /hrm/employees`
+**Endpoint:** `POST /hrm/staff`
 
 **Input:**
 ```json

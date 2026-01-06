@@ -22,9 +22,9 @@ import {
   Paper,
 } from '@mantine/core';
 import { IconEdit, IconCheck, IconRefresh, IconCurrencyTaka } from '@tabler/icons-react';
-import { useAuthStore } from '@/stores/authStore';
 import { notifications } from '@mantine/notifications';
 import api from '@/lib/api';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface Payroll {
   id: number;
@@ -51,8 +51,7 @@ interface Payroll {
 }
 
 export default function PayrollPage() {
-  const { user } = useAuthStore();
-  const isAdmin = user?.role_id === 1 || user?.role_id === 2;
+  const { hasPermission } = usePermissions();
 
   const [payroll, setPayroll] = useState<Payroll[]>([]);
   const [loading, setLoading] = useState(false);
@@ -112,11 +111,12 @@ export default function PayrollPage() {
           color: 'blue',
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Payroll fetch error:', error);
+      const errorObj = error as { response?: { data?: { message?: string } }; message?: string };
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || error.message || 'Failed to load payroll data',
+        message: errorObj.response?.data?.message || errorObj.message || 'Failed to load payroll data',
         color: 'red',
       });
       setPayroll([]); // Ensure payroll is always an array on error
@@ -130,7 +130,7 @@ export default function PayrollPage() {
   }, [monthYear, statusFilter]);
 
   const handleGeneratePayroll = async () => {
-    if (!isAdmin) return;
+    if (!hasPermission('hrm.payroll.process')) return;
 
     try {
       await api.post(`/hrm/payrolls/generate`, { month_year: monthYear });
@@ -143,17 +143,18 @@ export default function PayrollPage() {
 
       setGenerateModalOpened(false);
       fetchPayroll();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { data?: { message?: string } } };
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to generate payroll',
+        message: errorObj.response?.data?.message || 'Failed to generate payroll',
         color: 'red',
       });
     }
   };
 
   const openEditModal = (record: Payroll) => {
-    if (!isAdmin) return;
+    if (!hasPermission('hrm.payroll.edit')) return;
 
     console.log('Opening edit modal for record:', record);
 
@@ -171,7 +172,7 @@ export default function PayrollPage() {
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedPayroll || !isAdmin) return;
+    if (!selectedPayroll || !hasPermission('hrm.payroll.edit')) return;
 
     try {
       await api.put(`/hrm/payrolls/${selectedPayroll.id}`, {
@@ -187,23 +188,24 @@ export default function PayrollPage() {
 
       setEditModalOpened(false);
       fetchPayroll();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { data?: { message?: string } } };
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to update payroll',
+        message: errorObj.response?.data?.message || 'Failed to update payroll',
         color: 'red',
       });
     }
   };
 
   const openPayModal = (record: Payroll) => {
-    if (!isAdmin) return;
+    if (!hasPermission('hrm.payroll.pay')) return;
     setSelectedPayroll(record);
     setPayModalOpened(true);
   };
 
   const handlePay = async () => {
-    if (!selectedPayroll || !isAdmin) return;
+    if (!selectedPayroll || !hasPermission('hrm.payroll.pay')) return;
 
     try {
       await api.post(`/hrm/payrolls/${selectedPayroll.id}/pay`, {});
@@ -216,10 +218,11 @@ export default function PayrollPage() {
 
       setPayModalOpened(false);
       fetchPayroll();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { data?: { message?: string } } };
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to process payment',
+        message: errorObj.response?.data?.message || 'Failed to process payment',
         color: 'red',
       });
     }
@@ -261,7 +264,7 @@ export default function PayrollPage() {
               >
                 <IconRefresh size={18} />
               </ActionIcon>
-              {isAdmin && (
+              {hasPermission('hrm.payroll.process') && (
                 <Button
                   leftSection={<IconCurrencyTaka size={16} />}
                   onClick={() => setGenerateModalOpened(true)}
@@ -345,7 +348,7 @@ export default function PayrollPage() {
                   <Table.Th>Net Payable</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th>Payment Date</Table.Th>
-                  {isAdmin && <Table.Th>Actions</Table.Th>}
+                  {(hasPermission('hrm.payroll.edit') || hasPermission('hrm.payroll.pay') || hasPermission('hrm.payroll.approve')) && <Table.Th>Actions</Table.Th>}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -388,27 +391,31 @@ export default function PayrollPage() {
                           ? new Date(record.payment_date).toLocaleDateString()
                           : '-'}
                       </Table.Td>
-                      {isAdmin && (
+                      {(hasPermission('hrm.payroll.edit') || hasPermission('hrm.payroll.pay') || hasPermission('hrm.payroll.approve')) && (
                         <Table.Td>
                           <Group gap={4}>
                             {record.status === 'generated' && (
                               <>
-                                <ActionIcon
-                                  size="sm"
-                                  color="blue"
-                                  onClick={() => openEditModal(record)}
-                                  variant="subtle"
-                                >
-                                  <IconEdit size={16} />
-                                </ActionIcon>
-                                <ActionIcon
-                                  size="sm"
-                                  color="green"
-                                  onClick={() => openPayModal(record)}
-                                  variant="subtle"
-                                >
-                                  <IconCheck size={16} />
-                                </ActionIcon>
+                                {hasPermission('hrm.payroll.edit') && (
+                                  <ActionIcon
+                                    size="sm"
+                                    color="blue"
+                                    onClick={() => openEditModal(record)}
+                                    variant="subtle"
+                                  >
+                                    <IconEdit size={16} />
+                                  </ActionIcon>
+                                )}
+                                {(hasPermission('hrm.payroll.pay') || hasPermission('hrm.payroll.approve')) && (
+                                  <ActionIcon
+                                    size="sm"
+                                    color="green"
+                                    onClick={() => openPayModal(record)}
+                                    variant="subtle"
+                                  >
+                                    <IconCheck size={16} />
+                                  </ActionIcon>
+                                )}
                               </>
                             )}
                           </Group>

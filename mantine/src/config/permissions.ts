@@ -178,8 +178,8 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
   '/hrm/permissions': PERMISSION_CONFIG.roles.viewPermissions,
 
   // HRM
-  '/hrm/employees': PERMISSION_CONFIG.employees.index,
-  '/hrm/employees/create': PERMISSION_CONFIG.employees.create,
+  '/hrm/staff': PERMISSION_CONFIG.employees.index,
+  '/hrm/staff/create': PERMISSION_CONFIG.employees.create,
   '/hrm/departments': PERMISSION_CONFIG.departments.index,
   '/hrm/leaves': PERMISSION_CONFIG.leaves.index,
   '/hrm/attendance': PERMISSION_CONFIG.attendance.index,
@@ -212,7 +212,7 @@ export function getRoutePermission(route: string): string | null {
     return ROUTE_PERMISSIONS[route]
   }
 
-  // Pattern matching for dynamic routes (e.g., /hrm/employees/123/edit)
+  // Pattern matching for dynamic routes (e.g., /hrm/staff/123/edit)
   const patterns = [
     { pattern: /\/hrm\/employees\/\d+\/edit/, permission: PERMISSION_CONFIG.employees.edit },
     { pattern: /\/hrm\/employees\/\d+/, permission: PERMISSION_CONFIG.employees.view },

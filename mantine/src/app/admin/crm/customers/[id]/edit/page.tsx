@@ -113,7 +113,7 @@ export default function EditCustomerPage() {
       })
 
       navigate(`/crm/customers/${id}`)
-    } catch (error) {
+    } catch {
       setLoading(false)
       notifications.show({
         title: 'Error',

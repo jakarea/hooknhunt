@@ -41,8 +41,9 @@ class PermissionController extends Controller
     public function list()
     {
         try {
-            $permissions = Permission::select('id', 'name', 'slug', 'group_name')
+            $permissions = Permission::select('id', 'name', 'slug', 'key', 'group_name', 'module_name')
                 ->orderBy('group_name')
+                ->orderBy('module_name')
                 ->get();
 
             return response()->json([
@@ -51,7 +52,49 @@ class PermissionController extends Controller
                 'data' => $permissions,
                 'errors' => null
             ], 200);
-            
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => false,
+                'message' => 'পারমিশন লিস্ট পাওয়া যায়নি।',
+                'errors' => $e->getMessage(),
+                'data' => null
+            ], 500);
+        }
+    }
+
+    /**
+     * Get permissions grouped by group and module
+     * Used for frontend permission selection UI
+     */
+    public function grouped()
+    {
+        try {
+            $permissions = Permission::select('id', 'name', 'slug', 'key', 'group_name', 'module_name')
+                ->orderBy('group_name')
+                ->orderBy('module_name')
+                ->orderBy('name')
+                ->get();
+
+            // Group by group_name and then by module_name
+            $grouped = [];
+            foreach ($permissions as $permission) {
+                if (!isset($grouped[$permission->group_name])) {
+                    $grouped[$permission->group_name] = [];
+                }
+                if (!isset($grouped[$permission->group_name][$permission->module_name])) {
+                    $grouped[$permission->group_name][$permission->module_name] = [];
+                }
+                $grouped[$permission->group_name][$permission->module_name][] = $permission;
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Permissions grouped by module.',
+                'data' => $grouped,
+                'errors' => null
+            ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,

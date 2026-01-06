@@ -220,7 +220,7 @@ export default function LeadsPage() {
             message: `${name} has been deleted successfully`,
             color: 'green',
           })
-        } catch (error) {
+        } catch {
           notifications.show({
             title: 'Error',
             message: 'Failed to delete lead. Please try again.',

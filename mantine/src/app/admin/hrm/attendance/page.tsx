@@ -94,7 +94,7 @@ export default function AttendancePage() {
   const fetchAttendance = async () => {
     try {
       setLoading(true)
-      const params: any = {
+      const params: Record<string, string> = {
         start_date: monthFilter ? `${monthFilter}-01` : new Date().toISOString().slice(0, 7) + '-01',
         end_date: monthFilter ? `${monthFilter}-31` : new Date().toISOString().slice(0, 7) + '-31',
       }
@@ -131,7 +131,7 @@ export default function AttendancePage() {
 
       console.log('Final today record:', todayRecord)
       setTodayAttendance(todayRecord || null)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to fetch attendance:', error)
       notifications.show({
         title: 'Error',
@@ -151,7 +151,7 @@ export default function AttendancePage() {
       const response = await api.get('/user-management/users')
       const employeesData = response.data.data || []
       setEmployees(employeesData)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to fetch employees:', error)
     }
   }
@@ -197,12 +197,13 @@ export default function AttendancePage() {
       setTimeout(() => {
         fetchAttendance()
       }, 500)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to clock in:', error)
-      console.error('Error response:', error.response?.data)
+      const errorObj = error as { response?: { data?: { message?: string } } }
+      console.error('Error response:', errorObj.response?.data)
 
       // If already clocked in, fetch the existing record
-      if (error.response?.data?.message?.includes('Already clocked in')) {
+      if (errorObj.response?.data?.message?.includes('Already clocked in')) {
         notifications.show({
           title: 'Already Clocked In',
           message: 'You have already clocked in today. Ready to clock out!',
@@ -215,7 +216,7 @@ export default function AttendancePage() {
 
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || error.response?.data?.errors || 'Failed to clock in. Please try again.',
+        message: errorObj.response?.data?.message || 'Failed to clock in. Please try again.',
         color: 'red',
       })
     } finally {
@@ -250,11 +251,12 @@ export default function AttendancePage() {
       setTimeout(() => {
         fetchAttendance()
       }, 500)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to clock out:', error)
+      const errorObj = error as { response?: { data?: { message?: string } } }
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to clock out. Please try again.',
+        message: errorObj.response?.data?.message || 'Failed to clock out. Please try again.',
         color: 'red',
       })
     } finally {
@@ -324,11 +326,12 @@ export default function AttendancePage() {
 
       setModalOpened(false)
       fetchAttendance()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save attendance:', error)
+      const errorObj = error as { response?: { data?: { message?: string } } }
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to save attendance. Please try again.',
+        message: errorObj.response?.data?.message || 'Failed to save attendance. Please try again.',
         color: 'red',
       })
     } finally {

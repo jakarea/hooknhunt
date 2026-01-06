@@ -11,7 +11,7 @@ import {
 export interface Column<T> {
   key: keyof T | string
   label: string
-  render?: (value: any, row: T) => ReactNode
+  render?: (value: unknown, row: T) => ReactNode
   sortable?: boolean
 }
 
@@ -25,7 +25,7 @@ interface ResponsiveDataViewProps<T> {
   emptyMessage?: string
 }
 
-export function ResponsiveDataView<T extends Record<string, any>>({
+export function ResponsiveDataView<T extends Record<string, unknown>>({
   data,
   columns,
   loading = false,

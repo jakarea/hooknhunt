@@ -1,30 +1,17 @@
-import { useState, useEffect } from 'react'
 import { Paper, Text, Stack, ThemeIcon } from '@mantine/core'
 import { IconQuote } from '@tabler/icons-react'
 import { QUOTES } from '@/config/quotes'
 
 export function DashboardQuote() {
-  const [quote, setQuote] = useState('')
-  const [loading, setLoading] = useState(true)
+  // Get a quote based on the day of the month (1-31)
+  const quotes = QUOTES.DASHBOARD_QUOTES
+  const dayOfMonth = new Date().getDate() // Returns 1-31
 
-  useEffect(() => {
-    // Get a quote based on the day of the month (1-31)
-    const quotes = QUOTES.DASHBOARD_QUOTES
-    const dayOfMonth = new Date().getDate() // Returns 1-31
+  // Use day of month as index (subtract 1 for 0-based array)
+  const quoteIndex = Math.min(dayOfMonth - 1, quotes.length - 1)
+  const quote = quotes[quoteIndex]
 
-    // Use day of month as index (subtract 1 for 0-based array)
-    const quoteIndex = Math.min(dayOfMonth - 1, quotes.length - 1)
-    const quoteForToday = quotes[quoteIndex]
-
-    setQuote(quoteForToday)
-    setLoading(false)
-
-    console.log(`📅 Day ${dayOfMonth}: Showing quote ${quoteIndex + 1} of ${quotes.length}`)
-  }, [])
-
-  if (loading) {
-    return null
-  }
+  console.log(`📅 Day ${dayOfMonth}: Showing quote ${quoteIndex + 1} of ${quotes.length}`)
 
   return (
     <Paper

@@ -537,7 +537,7 @@ export default function CustomerDetailsPage() {
         {statsCards}
 
         {/* Tabs */}
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as 'overview' | 'orders' | 'wallet' | 'activity')}>
           <Tabs.List>
             <Tabs.Tab value="overview" leftSection={<IconPackage size={14} />}>
               Overview

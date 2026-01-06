@@ -232,7 +232,7 @@ export default function OrderDetailsPage() {
             color: 'green',
           })
           setLoading(false)
-        } catch (error) {
+        } catch {
           setLoading(false)
           notifications.show({
             title: 'Error',
@@ -266,7 +266,7 @@ export default function OrderDetailsPage() {
             color: 'green',
           })
           setLoading(false)
-        } catch (error) {
+        } catch {
           setLoading(false)
           notifications.show({
             title: 'Error',

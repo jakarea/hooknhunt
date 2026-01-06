@@ -4,12 +4,12 @@ import { useUIStore } from '@/stores/uiStore'
 
 interface UseApiOptions<T> {
   initialData?: T[]
-  onError?: (error: any) => void
+  onError?: (error: unknown) => void
   onSuccess?: (data: T[]) => void
   refetchInterval?: number
 }
 
-export function useApi<T = any>(
+export function useApi<T = unknown>(
   endpoint: string,
   options: UseApiOptions<T> = {}
 ) {
@@ -26,8 +26,8 @@ export function useApi<T = any>(
       const response = await apiMethods.get<T[]>(endpoint)
       setData(response)
       onSuccess?.(response)
-    } catch (err: any) {
-      const errorMessage = err?.response?.data?.message || 'Failed to fetch data'
+    } catch (err: unknown) {
+      const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to fetch data'
       setError(errorMessage)
       onError?.(err)
     } finally {
@@ -53,7 +53,7 @@ export function useApi<T = any>(
 }
 
 // Hook for mutations (POST, PUT, DELETE)
-export function useApiMutation<T = any, D = any>() {
+export function useApiMutation<T = unknown, D = unknown>() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { showToast } = useUIStore()
@@ -65,7 +65,7 @@ export function useApiMutation<T = any, D = any>() {
       data?: D,
       options?: {
         onSuccess?: (response: T) => void
-        onError?: (error: any) => void
+        onError?: (error: unknown) => void
         successMessage?: string
       }
     ) => {
@@ -82,8 +82,8 @@ export function useApiMutation<T = any, D = any>() {
         }
 
         return response
-      } catch (err: any) {
-        const errorMessage = err?.response?.data?.message || 'Operation failed'
+      } catch (err: unknown) {
+        const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Operation failed'
         setError(errorMessage)
         options?.onError?.(err)
         throw err
@@ -95,25 +95,25 @@ export function useApiMutation<T = any, D = any>() {
   )
 
   const post = useCallback(
-    (endpoint: string, data?: D, options?: any) =>
+    (endpoint: string, data?: D, options?: { onSuccess?: (response: T) => void; onError?: (error: unknown) => void; successMessage?: string }) =>
       mutate('post', endpoint, data, options),
     [mutate]
   )
 
   const put = useCallback(
-    (endpoint: string, data?: D, options?: any) =>
+    (endpoint: string, data?: D, options?: { onSuccess?: (response: T) => void; onError?: (error: unknown) => void; successMessage?: string }) =>
       mutate('put', endpoint, data, options),
     [mutate]
   )
 
   const patch = useCallback(
-    (endpoint: string, data?: D, options?: any) =>
+    (endpoint: string, data?: D, options?: { onSuccess?: (response: T) => void; onError?: (error: unknown) => void; successMessage?: string }) =>
       mutate('patch', endpoint, data, options),
     [mutate]
   )
 
   const del = useCallback(
-    (endpoint: string, options?: any) =>
+    (endpoint: string, options?: { onSuccess?: (response: T) => void; onError?: (error: unknown) => void; successMessage?: string }) =>
       mutate('delete', endpoint, undefined, options),
     [mutate]
   )

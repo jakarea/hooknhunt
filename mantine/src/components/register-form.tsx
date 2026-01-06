@@ -62,6 +62,22 @@ export function RegisterForm() {
   // Current step
   const [step, setStep] = useState<RegisterStep['type']>('details')
 
+  // Countdown timer
+  const startCountdown = useCallback(() => {
+    setCountdown(60)
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
   // Password strength
   const getPasswordStrength = useCallback((pwd: string) => {
     if (!pwd) return 0
@@ -137,8 +153,8 @@ export function RegisterForm() {
       setStep('otp')
       showToast(t('auth.register.success.registrationSuccess'), 'success')
       startCountdown()
-    } catch (error: unknown) {
-      const apiError = error as ApiErrorResponse
+    } catch (error) {
+      const apiError = error as unknown as ApiErrorResponse
       const message = apiError?.response?.data?.message || t('auth.register.errors.registerFailed')
       showToast(message, 'error')
     } finally {
@@ -168,8 +184,8 @@ export function RegisterForm() {
       setTimeout(() => {
         navigate('/login')
       }, 2000)
-    } catch (error: unknown) {
-      const apiError = error as ApiErrorResponse
+    } catch (error) {
+      const apiError = error as unknown as ApiErrorResponse
       const message = apiError?.response?.data?.message || t('auth.register.otp.errors.verifyFailed')
       showToast(message, 'error')
     } finally {
@@ -187,31 +203,26 @@ export function RegisterForm() {
       })
 
       showToast(t('auth.register.otp.resendButton'), 'success')
-      startCountdown()
-    } catch (error: unknown) {
-      const apiError = error as ApiErrorResponse
+      setCountdown(60)
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(timer)
+    } catch (error) {
+      const apiError = error as unknown as ApiErrorResponse
       const message = apiError?.response?.data?.message || t('auth.register.otp.errors.resendFailed')
       showToast(message, 'error')
     } finally {
       setResendLoading(false)
     }
   }, [registeredPhone, showToast, t])
-
-  // Countdown timer
-  const startCountdown = useCallback(() => {
-    setCountdown(60)
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
 
   // Cleanup on unmount
   useEffect(() => {

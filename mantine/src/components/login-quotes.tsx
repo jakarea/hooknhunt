@@ -1,17 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Box, Text, Stack, Paper, ThemeIcon } from '@mantine/core'
 import { IconQuote } from '@tabler/icons-react'
 import { QUOTES } from '@/config/quotes'
 
 export function LoginQuotes() {
-  const [quote, setQuote] = useState('')
-
-  useEffect(() => {
+  const [quote] = useState(() => {
     // Get a random quote from LOGIN_QUOTES array
     const quotes = QUOTES.LOGIN_QUOTES
-    const randomQuote = quotes[Math.floor(Math.random() * quotes.length)]
-    setQuote(randomQuote)
-  }, [])
+    return quotes[Math.floor(Math.random() * quotes.length)]
+  })
 
   return (
     <Stack

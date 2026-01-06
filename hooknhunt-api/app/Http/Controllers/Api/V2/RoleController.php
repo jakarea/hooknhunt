@@ -40,7 +40,7 @@ class RoleController extends Controller
             'name' => 'required|unique:roles,name',
             'description' => 'nullable|string',
             'permissions' => 'nullable|array',
-            'permissions.*' => 'exists:permissions,id'
+            'permissions.*' => 'exists:permissions,slug'
         ]);
 
         $role = Role::create([
@@ -51,7 +51,9 @@ class RoleController extends Controller
 
         // রোল তৈরির সময় সরাসরি পারমিশন সিঙ্ক করা (ডাইনামিক)
         if ($request->has('permissions')) {
-            $role->permissions()->sync($request->permissions);
+            // Convert permission slugs to IDs
+            $permissionIds = Permission::whereIn('slug', $request->permissions)->pluck('id');
+            $role->permissions()->sync($permissionIds);
         }
 
         return $this->sendSuccess($role->load('permissions'), 'Role created successfully.', 201);
@@ -63,7 +65,7 @@ class RoleController extends Controller
      */
     public function getAllPermissions()
     {
-        $permissions = Permission::all()->groupBy('module');
+        $permissions = Permission::all()->groupBy('module_name');
         return $this->sendSuccess($permissions, 'Permissions grouped by module.');
     }
 
@@ -91,12 +93,21 @@ class RoleController extends Controller
         $request->validate([
             'name' => 'required|unique:roles,name,' . $id,
             'description' => 'nullable|string',
+            'permissions' => 'nullable|array',
+            'permissions.*' => 'exists:permissions,slug'
         ]);
 
         $role->update([
             'name' => $request->name,
             'description' => $request->description,
         ]);
+
+        // Sync permissions if provided
+        if ($request->has('permissions')) {
+            // Convert permission slugs to IDs
+            $permissionIds = Permission::whereIn('slug', $request->permissions)->pluck('id');
+            $role->permissions()->sync($permissionIds);
+        }
 
         return $this->sendSuccess($role->load('permissions'), 'Role updated successfully.');
     }
@@ -113,9 +124,10 @@ class RoleController extends Controller
             return $this->sendError('Super Admin role cannot be deleted.', null, 403);
         }
 
-        // Check if role has users
-        if ($role->users()->count() > 0) {
-            return $this->sendError('Cannot delete role with assigned users.', null, 400);
+        // Check if role has users (including soft-deleted)
+        $userCount = \App\Models\User::withTrashed()->where('role_id', $role->id)->count();
+        if ($userCount > 0) {
+            return $this->sendError('Cannot delete role with assigned users (including deleted users).', null, 400);
         }
 
         $role->delete();
@@ -124,6 +136,7 @@ class RoleController extends Controller
 
     /**
      * ডাইনামিক পারমিশন সিঙ্কিং
+     * Accepts permission slugs from frontend and converts to IDs
      */
     public function syncPermissions(Request $request, $id)
     {
@@ -135,10 +148,14 @@ class RoleController extends Controller
 
         $request->validate([
             'permissions' => 'required|array',
-            'permissions.*' => 'exists:permissions,id'
+            'permissions.*' => 'exists:permissions,slug'
         ]);
 
-        $role->permissions()->sync($request->permissions);
+        // Convert permission slugs to IDs
+        $permissionIds = Permission::whereIn('slug', $request->permissions)->pluck('id');
+
+        // Sync using permission IDs
+        $role->permissions()->sync($permissionIds);
 
         return $this->sendSuccess($role->load('permissions'), 'Permissions synced successfully.');
     }

@@ -165,11 +165,11 @@ export default function DepartmentsPage() {
 
       setModalOpened(false)
       fetchDepartments()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save department:', error)
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to save department. Please try again.',
+        message: (error as any).response?.data?.message || 'Failed to save department. Please try again.',
         color: 'red',
       })
     } finally {
@@ -206,11 +206,11 @@ export default function DepartmentsPage() {
             color: 'green',
           })
           fetchDepartments()
-        } catch (error: any) {
+        } catch (error) {
           console.error('Failed to delete department:', error)
           notifications.show({
             title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete department. Please try again.',
+            message: (error as any).response?.data?.message || 'Failed to delete department. Please try again.',
             color: 'red',
           })
         }

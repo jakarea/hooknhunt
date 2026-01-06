@@ -40,7 +40,7 @@ api.interceptors.response.use(
     }
 
     const status = error.response.status
-    const data: any = error.response.data
+    const data: unknown = error.response.data
 
     // Handle specific error status codes
     switch (status) {
@@ -52,11 +52,11 @@ api.interceptors.response.use(
         break
 
       case 403:
-        showErrorToast(data?.message || 'access_denied')
+        showErrorToast((data as any)?.message || 'access_denied')
         break
 
       case 404:
-        showErrorToast(data?.message || 'resource_not_found')
+        showErrorToast((data as any)?.message || 'resource_not_found')
         break
 
       case 422:
@@ -75,7 +75,7 @@ api.interceptors.response.use(
         break
 
       default:
-        showErrorToast(data?.message || 'something_went_wrong')
+        showErrorToast((data as any)?.message || 'something_went_wrong')
     }
 
     return Promise.reject(error)
@@ -100,16 +100,16 @@ const errorHandlers = {
 
 // Type-safe API methods
 export const apiMethods = {
-  get: <T>(url: string, params?: any) =>
+  get: <T>(url: string, params?: Record<string, unknown>) =>
     api.get<T>(url, { params }).then((res) => res.data),
 
-  post: <T>(url: string, data?: any) =>
+  post: <T>(url: string, data?: unknown) =>
     api.post<T>(url, data).then((res) => res.data),
 
-  put: <T>(url: string, data?: any) =>
+  put: <T>(url: string, data?: unknown) =>
     api.put<T>(url, data).then((res) => res.data),
 
-  patch: <T>(url: string, data?: any) =>
+  patch: <T>(url: string, data?: unknown) =>
     api.patch<T>(url, data).then((res) => res.data),
 
   delete: <T>(url: string) =>

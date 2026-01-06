@@ -134,7 +134,7 @@
 
 | Page | Route | Description | API |
 |----|------|-------------|----|
-| Employees | `/admin/hrm/employees` | Profiles | `GET /hrm/employees` |
+| Employees | `/admin/hrm/staff` | Profiles | `GET /hrm/staff` |
 | Departments | `/admin/hrm/departments` | Org | `GET /hrm/departments` |
 | Attendance | `/admin/hrm/attendance` | Clock In | `POST /hrm/clock-in` |
 | Payroll | `/admin/hrm/payroll` | Salary | `POST /hrm/payrolls/generate`<br>`GET /hrm/payrolls` |

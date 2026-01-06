@@ -91,7 +91,7 @@
   },
   "hrm": {
     "title": "HRM",
-    "employees": "Employees",
+    "staff": "Staff",
     "departments": "Departments",
     "leaves": "Leaves",
     "attendance": "Attendance",

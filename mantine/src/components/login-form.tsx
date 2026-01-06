@@ -87,20 +87,20 @@ export function LoginForm() {
 
       // Extract permissions from login response (user.role.permissions is already included)
       const rolePermissions = user?.role?.permissions || []
-      const permissions = rolePermissions.map((p: any) => p.slug)
+      const permissions = rolePermissions.map((p: { slug: string }) => p.slug)
 
       console.log('User permissions:', permissions.length)
 
-      login(access_token, user, permissions)
+      login(access_token, user, permissions, rolePermissions)
       notifications.show({
         title: 'Success',
         message: t('auth.login.success'),
         color: 'green',
       })
       navigate('/dashboard')
-    } catch (error: unknown) {
+    } catch (error) {
       console.error('Login error:', error)
-      const apiError = error as { response?: { data?: any }, message?: string }
+      const apiError = error as { response?: { data?: { message?: string; errors?: string | { action?: string }; error?: string } }, message?: string }
 
       // Handle different response structures
       let errorMessage = t('auth.login.errors.loginFailed')
@@ -131,7 +131,7 @@ export function LoginForm() {
       })
 
       // Also show inline validation error if phone verification is needed
-      if (apiError?.response?.data?.errors?.action === 'verify_otp') {
+      if (apiError?.response?.data?.errors && typeof apiError.response.data.errors === 'object' && 'action' in apiError.response.data.errors && apiError.response.data.errors.action === 'verify_otp') {
         setErrors({ phone: errorMessage })
       }
     } finally {

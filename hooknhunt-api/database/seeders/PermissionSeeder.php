@@ -12,451 +12,934 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $modules = [
-            // Dashboard & Analytics
-            'Dashboard' => [
-                'dashboard.view' => 'View Dashboard',
-                'dashboard.analytics' => 'View Analytics',
+        // Clear existing permissions
+        Permission::query()->delete();
+
+        // Define all permissions by group and module
+        $permissions = [
+            // ====================================================
+            // GROUP: DASHBOARD
+            // ====================================================
+            [
+                'name' => 'View Dashboard',
+                'slug' => 'dashboard.view',
+                'key' => 'dashboard_view',
+                'group_name' => 'Dashboard',
+                'module_name' => 'Dashboard',
+            ],
+            // [
+            //     'name' => 'View Analytics',
+            //     'slug' => 'dashboard.analytics',
+            //     'key' => 'dashboard_analytics',
+            //     'group_name' => 'Dashboard',
+            //     'module_name' => 'Dashboard',
+            // ],
+            // [
+            //     'name' => 'View Notifications',
+            //     'slug' => 'dashboard.notifications',
+            //     'key' => 'dashboard_notifications',
+            //     'group_name' => 'Dashboard',
+            //     'module_name' => 'Dashboard',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - Products
+            // // ====================================================
+            // [
+            //     'name' => 'View Products',
+            //     'slug' => 'catalog.products.index',
+            //     'key' => 'catalog_products_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Create Product',
+            //     'slug' => 'catalog.products.create',
+            //     'key' => 'catalog_products_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Edit Product',
+            //     'slug' => 'catalog.products.edit',
+            //     'key' => 'catalog_products_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Delete Product',
+            //     'slug' => 'catalog.products.delete',
+            //     'key' => 'catalog_products_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'View Categories',
+            //     'slug' => 'catalog.categories.index',
+            //     'key' => 'catalog_categories_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Create Category',
+            //     'slug' => 'catalog.categories.create',
+            //     'key' => 'catalog_categories_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Edit Category',
+            //     'slug' => 'catalog.categories.edit',
+            //     'key' => 'catalog_categories_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Delete Category',
+            //     'slug' => 'catalog.categories.delete',
+            //     'key' => 'catalog_categories_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'View Brands',
+            //     'slug' => 'catalog.brands.index',
+            //     'key' => 'catalog_brands_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Create Brand',
+            //     'slug' => 'catalog.brands.create',
+            //     'key' => 'catalog_brands_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Edit Brand',
+            //     'slug' => 'catalog.brands.edit',
+            //     'key' => 'catalog_brands_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Delete Brand',
+            //     'slug' => 'catalog.brands.delete',
+            //     'key' => 'catalog_brands_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'View Variants',
+            //     'slug' => 'catalog.variants.index',
+            //     'key' => 'catalog_variants_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Create Variant',
+            //     'slug' => 'catalog.variants.create',
+            //     'key' => 'catalog_variants_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Manage Attributes',
+            //     'slug' => 'catalog.attributes.manage',
+            //     'key' => 'catalog_attributes_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+            // [
+            //     'name' => 'Manage Discounts',
+            //     'slug' => 'catalog.discounts.manage',
+            //     'key' => 'catalog_discounts_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Products',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - Inventory
+            // // ====================================================
+            // [
+            //     'name' => 'View Current Stock',
+            //     'slug' => 'inventory.stock.index',
+            //     'key' => 'inventory_stock_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+            // [
+            //     'name' => 'Manage Warehouses',
+            //     'slug' => 'inventory.warehouses.manage',
+            //     'key' => 'inventory_warehouses_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+            // [
+            //     'name' => 'Manage Stock Adjustments',
+            //     'slug' => 'inventory.adjustments.manage',
+            //     'key' => 'inventory_adjustments_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+            // [
+            //     'name' => 'Manage Stock Transfers',
+            //     'slug' => 'inventory.transfers.manage',
+            //     'key' => 'inventory_transfers_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+            // [
+            //     'name' => 'View Stock History',
+            //     'slug' => 'inventory.history.view',
+            //     'key' => 'inventory_history_view',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+            // [
+            //     'name' => 'Manage Stock Sorting',
+            //     'slug' => 'inventory.sorting.manage',
+            //     'key' => 'inventory_sorting_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Inventory',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - Procurement
+            // // ====================================================
+            // [
+            //     'name' => 'View Purchase Orders',
+            //     'slug' => 'procurement.orders.index',
+            //     'key' => 'procurement_orders_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+            // [
+            //     'name' => 'Create Purchase Order',
+            //     'slug' => 'procurement.orders.create',
+            //     'key' => 'procurement_orders_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+            // [
+            //     'name' => 'Edit Purchase Order',
+            //     'slug' => 'procurement.orders.edit',
+            //     'key' => 'procurement_orders_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+            // [
+            //     'name' => 'Delete Purchase Order',
+            //     'slug' => 'procurement.orders.delete',
+            //     'key' => 'procurement_orders_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+            // [
+            //     'name' => 'Manage Suppliers',
+            //     'slug' => 'procurement.suppliers.manage',
+            //     'key' => 'procurement_suppliers_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+            // [
+            //     'name' => 'Manage Returns',
+            //     'slug' => 'procurement.returns.manage',
+            //     'key' => 'procurement_returns_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Procurement',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - Shipments
+            // // ====================================================
+            // [
+            //     'name' => 'View Shipments',
+            //     'slug' => 'shipments.index',
+            //     'key' => 'shipments_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+            // [
+            //     'name' => 'Create Shipment',
+            //     'slug' => 'shipments.create',
+            //     'key' => 'shipments_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+            // [
+            //     'name' => 'Edit Shipment',
+            //     'slug' => 'shipments.edit',
+            //     'key' => 'shipments_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+            // [
+            //     'name' => 'Delete Shipment',
+            //     'slug' => 'shipments.delete',
+            //     'key' => 'shipments_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+            // [
+            //     'name' => 'Manage Couriers',
+            //     'slug' => 'shipments.couriers.manage',
+            //     'key' => 'shipments_couriers_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+            // [
+            //     'name' => 'View Shipment Costing',
+            //     'slug' => 'shipments.costing.view',
+            //     'key' => 'shipments_costing_view',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Shipments',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - Sales
+            // // ====================================================
+            // [
+            //     'name' => 'View Sales Orders',
+            //     'slug' => 'sales.orders.index',
+            //     'key' => 'sales_orders_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Create Sales Order',
+            //     'slug' => 'sales.orders.create',
+            //     'key' => 'sales_orders_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Edit Sales Order',
+            //     'slug' => 'sales.orders.edit',
+            //     'key' => 'sales_orders_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Delete Sales Order',
+            //     'slug' => 'sales.orders.delete',
+            //     'key' => 'sales_orders_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Manage Returns',
+            //     'slug' => 'sales.returns.manage',
+            //     'key' => 'sales_returns_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Manage Quotations',
+            //     'slug' => 'sales.quotations.manage',
+            //     'key' => 'sales_quotations_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+            // [
+            //     'name' => 'Manage Customers',
+            //     'slug' => 'sales.customers.manage',
+            //     'key' => 'sales_customers_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'Sales',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - POS
+            // // ====================================================
+            // [
+            //     'name' => 'Access POS Terminal',
+            //     'slug' => 'pos.terminal.access',
+            //     'key' => 'pos_terminal_access',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'POS',
+            // ],
+            // [
+            //     'name' => 'View POS History',
+            //     'slug' => 'pos.history.view',
+            //     'key' => 'pos_history_view',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'POS',
+            // ],
+            // [
+            //     'name' => 'Manage POS Register',
+            //     'slug' => 'pos.register.manage',
+            //     'key' => 'pos_register_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'POS',
+            // ],
+            // [
+            //     'name' => 'Manage Held Orders',
+            //     'slug' => 'pos.held.manage',
+            //     'key' => 'pos_held_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'POS',
+            // ],
+
+            // // ====================================================
+            // // GROUP: OPERATIONS - CRM
+            // // ====================================================
+            // [
+            //     'name' => 'View Leads',
+            //     'slug' => 'crm.leads.index',
+            //     'key' => 'crm_leads_index',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Create Lead',
+            //     'slug' => 'crm.leads.create',
+            //     'key' => 'crm_leads_create',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Edit Lead',
+            //     'slug' => 'crm.leads.edit',
+            //     'key' => 'crm_leads_edit',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Delete Lead',
+            //     'slug' => 'crm.leads.delete',
+            //     'key' => 'crm_leads_delete',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Manage Activities',
+            //     'slug' => 'crm.activities.manage',
+            //     'key' => 'crm_activities_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Manage Campaigns',
+            //     'slug' => 'crm.campaigns.manage',
+            //     'key' => 'crm_campaigns_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Manage Customer Wallet',
+            //     'slug' => 'crm.wallet.manage',
+            //     'key' => 'crm_wallet_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+            // [
+            //     'name' => 'Manage Loyalty Program',
+            //     'slug' => 'crm.loyalty.manage',
+            //     'key' => 'crm_loyalty_manage',
+            //     'group_name' => 'Operations',
+            //     'module_name' => 'CRM',
+            // ],
+
+            // ====================================================
+            // GROUP: HRM - Staff
+            // ====================================================
+            [
+                'name' => 'View Staff',
+                'slug' => 'hrm.staff.index',
+                'key' => 'hrm_staff_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Staff',
+            ],
+            [
+                'name' => 'Create Staff',
+                'slug' => 'hrm.staff.create',
+                'key' => 'hrm_staff_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Staff',
+            ],
+            [
+                'name' => 'Edit Staff',
+                'slug' => 'hrm.staff.edit',
+                'key' => 'hrm_staff_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Staff',
+            ],
+            [
+                'name' => 'Delete Staff',
+                'slug' => 'hrm.staff.delete',
+                'key' => 'hrm_staff_delete',
+                'group_name' => 'HRM',
+                'module_name' => 'Staff',
+            ],
+            [
+                'name' => 'Manage Staff Salaries',
+                'slug' => 'hrm.staff.salary',
+                'key' => 'hrm_staff_salary',
+                'group_name' => 'HRM',
+                'module_name' => 'Staff',
             ],
 
-            // Products & Catalog
-            'Products' => [
-                'product.index' => 'View Products',
-                'product.create' => 'Create Product',
-                'product.edit' => 'Edit Product',
-                'product.delete' => 'Delete Product',
-                'product.import' => 'Import Products',
-                'product.export' => 'Export Products',
+            // ====================================================
+            // GROUP: HRM - Departments
+            // ====================================================
+            [
+                'name' => 'View Departments',
+                'slug' => 'hrm.departments.index',
+                'key' => 'hrm_departments_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Departments',
             ],
-            'Product Variants' => [
-                'variant.index' => 'View Variants',
-                'variant.create' => 'Create Variant',
-                'variant.edit' => 'Edit Variant',
-                'variant.delete' => 'Delete Variant',
+            [
+                'name' => 'Create Department',
+                'slug' => 'hrm.departments.create',
+                'key' => 'hrm_departments_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Departments',
             ],
-            'Categories' => [
-                'category.index' => 'View Categories',
-                'category.create' => 'Create Category',
-                'category.edit' => 'Edit Category',
-                'category.delete' => 'Delete Category',
+            [
+                'name' => 'Edit Department',
+                'slug' => 'hrm.departments.edit',
+                'key' => 'hrm_departments_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Departments',
             ],
-            'Brands' => [
-                'brand.index' => 'View Brands',
-                'brand.create' => 'Create Brand',
-                'brand.edit' => 'Edit Brand',
-                'brand.delete' => 'Delete Brand',
-            ],
-            'Attributes' => [
-                'attribute.index' => 'View Attributes',
-                'attribute.create' => 'Create Attribute',
-                'attribute.edit' => 'Edit Attribute',
-                'attribute.delete' => 'Delete Attribute',
-            ],
-            'Units' => [
-                'unit.index' => 'View Units',
-                'unit.create' => 'Create Unit',
-                'unit.edit' => 'Edit Unit',
-                'unit.delete' => 'Delete Unit',
-            ],
-            'Print Labels' => [
-                'label.print' => 'Print Labels',
+            [
+                'name' => 'Delete Department',
+                'slug' => 'hrm.departments.delete',
+                'key' => 'hrm_departments_delete',
+                'group_name' => 'HRM',
+                'module_name' => 'Departments',
             ],
 
-            // Procurement
-            'Purchase Orders' => [
-                'purchase_order.index' => 'View Purchase Orders',
-                'purchase_order.create' => 'Create Purchase Order',
-                'purchase_order.edit' => 'Edit Purchase Order',
-                'purchase_order.delete' => 'Delete Purchase Order',
-                'purchase_order.approve' => 'Approve Purchase Order',
-                'purchase_order.receive' => 'Receive Purchase Order',
+            // ====================================================
+            // GROUP: HRM - Leaves
+            // ====================================================
+            [
+                'name' => 'View Leaves',
+                'slug' => 'hrm.leaves.index',
+                'key' => 'hrm_leaves_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-            'Suppliers' => [
-                'supplier.index' => 'View Suppliers',
-                'supplier.create' => 'Create Supplier',
-                'supplier.edit' => 'Edit Supplier',
-                'supplier.delete' => 'Delete Supplier',
+            [
+                'name' => 'Create Leave',
+                'slug' => 'hrm.leaves.create',
+                'key' => 'hrm_leaves_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-            'Purchase Returns' => [
-                'purchase_return.index' => 'View Purchase Returns',
-                'purchase_return.create' => 'Create Purchase Return',
-                'purchase_return.edit' => 'Edit Purchase Return',
-                'purchase_return.delete' => 'Delete Purchase Return',
+            [
+                'name' => 'Edit Leave',
+                'slug' => 'hrm.leaves.edit',
+                'key' => 'hrm_leaves_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-
-            // Shipments
-            'Shipments' => [
-                'shipment.index' => 'View Shipments',
-                'shipment.create' => 'Create Shipment',
-                'shipment.edit' => 'Edit Shipment',
-                'shipment.delete' => 'Delete Shipment',
-                'shipment.view' => 'View Shipment Details',
-                'shipment.costing' => 'View Shipment Costing',
-                'shipment.receive' => 'Receive Shipment Stock',
+            [
+                'name' => 'Delete Leave',
+                'slug' => 'hrm.leaves.delete',
+                'key' => 'hrm_leaves_delete',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-
-            // Inventory
-            'Stock Management' => [
-                'stock.index' => 'View Current Stock',
-                'stock.adjust' => 'Adjust Stock',
-                'stock.transfer' => 'Transfer Stock',
+            [
+                'name' => 'Approve Leave',
+                'slug' => 'hrm.leaves.approve',
+                'key' => 'hrm_leaves_approve',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-            'Stock History' => [
-                'stock_history.index' => 'View Stock History',
-                'stock_history.export' => 'Export Stock History',
+            [
+                'name' => 'Reject Leave',
+                'slug' => 'hrm.leaves.reject',
+                'key' => 'hrm_leaves_reject',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
-            'Warehouses' => [
-                'warehouse.index' => 'View Warehouses',
-                'warehouse.create' => 'Create Warehouse',
-                'warehouse.edit' => 'Edit Warehouse',
-                'warehouse.delete' => 'Delete Warehouse',
-            ],
-            'Stock Transfers' => [
-                'transfer.index' => 'View Transfers',
-                'transfer.create' => 'Create Transfer',
-                'transfer.approve' => 'Approve Transfer',
-            ],
-            'Stock Adjustments' => [
-                'adjustment.index' => 'View Adjustments',
-                'adjustment.create' => 'Create Adjustment',
-                'adjustment.approve' => 'Approve Adjustment',
-            ],
-            'Stock Take' => [
-                'stock_take.index' => 'View Stock Takes',
-                'stock_take.create' => 'Create Stock Take',
-                'stock_take.approve' => 'Approve Stock Take',
-            ],
-            'Unsorted Stock' => [
-                'unsorted_stock.index' => 'View Unsorted Stock',
-                'unsorted_stock.process' => 'Process Unsorted Stock',
+            [
+                'name' => 'Cancel Leave',
+                'slug' => 'hrm.leaves.cancel',
+                'key' => 'hrm_leaves_cancel',
+                'group_name' => 'HRM',
+                'module_name' => 'Leaves',
             ],
 
-            // Sales
-            'Sales Orders' => [
-                'order.index' => 'View Orders',
-                'order.create' => 'Create Order',
-                'order.edit' => 'Edit Order',
-                'order.delete' => 'Delete Order',
-                'order.view' => 'View Order Details',
-                'order.cancel' => 'Cancel Order',
-                'order.refund' => 'Process Refund',
+            // ====================================================
+            // GROUP: HRM - Attendance
+            // ====================================================
+            [
+                'name' => 'View Attendance',
+                'slug' => 'hrm.attendance.index',
+                'key' => 'hrm_attendance_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
-            'Sales Returns' => [
-                'sales_return.index' => 'View Sales Returns',
-                'sales_return.create' => 'Create Sales Return',
-                'sales_return.approve' => 'Approve Sales Return',
+            [
+                'name' => 'Create Attendance',
+                'slug' => 'hrm.attendance.create',
+                'key' => 'hrm_attendance_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
-            'Quotations' => [
-                'quotation.index' => 'View Quotations',
-                'quotation.create' => 'Create Quotation',
-                'quotation.edit' => 'Edit Quotation',
-                'quotation.convert' => 'Convert to Order',
-                'quotation.delete' => 'Delete Quotation',
+            [
+                'name' => 'Edit Attendance',
+                'slug' => 'hrm.attendance.edit',
+                'key' => 'hrm_attendance_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
-
-            // POS
-            'POS Terminal' => [
-                'pos.access' => 'Access POS Terminal',
-                'pos.sell' => 'Make Sale',
-                'pos.hold' => 'Hold Order',
-                'pos.resume' => 'Resume Held Order',
+            [
+                'name' => 'Approve Attendance',
+                'slug' => 'hrm.attendance.approve',
+                'key' => 'hrm_attendance_approve',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
-            'POS Management' => [
-                'pos_history.index' => 'View POS History',
-                'pos_register.view' => 'View POS Register',
-                'pos_register.close' => 'Close POS Register',
-                'held_orders.index' => 'View Held Orders',
-                'held_orders.delete' => 'Delete Held Order',
+            [
+                'name' => 'Clock In',
+                'slug' => 'hrm.attendance.clock-in',
+                'key' => 'hrm_attendance_clock_in',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
-
-            // Logistics
-            'Courier Booking' => [
-                'booking.index' => 'View Bookings',
-                'booking.create' => 'Create Booking',
-                'booking.edit' => 'Edit Booking',
-                'booking.cancel' => 'Cancel Booking',
-            ],
-            'Tracking' => [
-                'tracking.view' => 'View Tracking',
-                'tracking.update' => 'Update Tracking Status',
-            ],
-            'Couriers' => [
-                'courier.index' => 'View Couriers',
-                'courier.create' => 'Create Courier',
-                'courier.edit' => 'Edit Courier',
-                'courier.delete' => 'Delete Courier',
-            ],
-            'Zones' => [
-                'zone.index' => 'View Zones',
-                'zone.create' => 'Create Zone',
-                'zone.edit' => 'Edit Zone',
-                'zone.delete' => 'Delete Zone',
+            [
+                'name' => 'Clock Out',
+                'slug' => 'hrm.attendance.clock-out',
+                'key' => 'hrm_attendance_clock_out',
+                'group_name' => 'HRM',
+                'module_name' => 'Attendance',
             ],
 
-            // CRM
-            'Customers' => [
-                'customer.index' => 'View Customers',
-                'customer.create' => 'Create Customer',
-                'customer.edit' => 'Edit Customer',
-                'customer.delete' => 'Delete Customer',
-                'customer.view' => 'View Customer Details',
-                'customer.export' => 'Export Customers',
+            // ====================================================
+            // GROUP: HRM - Payroll
+            // ====================================================
+            [
+                'name' => 'View Payroll',
+                'slug' => 'hrm.payroll.index',
+                'key' => 'hrm_payroll_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
-            'Leads' => [
-                'lead.index' => 'View Leads',
-                'lead.create' => 'Create Lead',
-                'lead.edit' => 'Edit Lead',
-                'lead.convert' => 'Convert to Customer',
-                'lead.delete' => 'Delete Lead',
+            [
+                'name' => 'Create Payroll',
+                'slug' => 'hrm.payroll.create',
+                'key' => 'hrm_payroll_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
-            'Wallet' => [
-                'wallet.view' => 'View Wallet',
-                'wallet.add' => 'Add Funds',
-                'wallet.deduct' => 'Deduct Funds',
+            [
+                'name' => 'Edit Payroll',
+                'slug' => 'hrm.payroll.edit',
+                'key' => 'hrm_payroll_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
-            'Loyalty' => [
-                'loyalty.view' => 'View Loyalty Programs',
-                'loyalty.manage' => 'Manage Loyalty Points',
-                'loyalty_rules.index' => 'View Loyalty Rules',
-                'loyalty_rules.create' => 'Create Loyalty Rule',
-                'loyalty_rules.edit' => 'Edit Loyalty Rule',
+            [
+                'name' => 'Process Payroll',
+                'slug' => 'hrm.payroll.process',
+                'key' => 'hrm_payroll_process',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
-
-            // Marketing
-            'Campaigns' => [
-                'campaign.index' => 'View Campaigns',
-                'campaign.create' => 'Create Campaign',
-                'campaign.edit' => 'Edit Campaign',
-                'campaign.delete' => 'Delete Campaign',
-                'campaign.send' => 'Send Campaign',
+            [
+                'name' => 'Approve Payroll',
+                'slug' => 'hrm.payroll.approve',
+                'key' => 'hrm_payroll_approve',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
-            'Affiliates' => [
-                'affiliate.index' => 'View Affiliates',
-                'affiliate.create' => 'Create Affiliate',
-                'affiliate.edit' => 'Edit Affiliate',
-                'affiliate.delete' => 'Delete Affiliate',
-            ],
-
-            // HRM
-            'Employees' => [
-                'employee.index' => 'View Employees',
-                'employee.create' => 'Create Employee',
-                'employee.edit' => 'Edit Employee',
-                'employee.delete' => 'Delete Employee',
-                'employee.view' => 'View Employee Details',
-            ],
-            'Departments' => [
-                'department.index' => 'View Departments',
-                'department.create' => 'Create Department',
-                'department.edit' => 'Edit Department',
-                'department.delete' => 'Delete Department',
-            ],
-            'Attendance' => [
-                'attendance.index' => 'View Attendance',
-                'attendance.create' => 'Mark Attendance',
-                'attendance.edit' => 'Edit Attendance',
-                'attendance.approve' => 'Approve Attendance',
-            ],
-            'Leave Management' => [
-                'leave.index' => 'View Leave Requests',
-                'leave.create' => 'Request Leave',
-                'leave.approve' => 'Approve Leave',
-                'leave.reject' => 'Reject Leave',
-                'leave.cancel' => 'Cancel Leave',
-            ],
-            'Payroll' => [
-                'payroll.index' => 'View Payroll',
-                'payroll.create' => 'Generate Payroll',
-                'payroll.edit' => 'Edit Payroll',
-                'payroll.process' => 'Process Payment',
-                'payroll.approve' => 'Approve Payroll',
+            [
+                'name' => 'Pay Payroll',
+                'slug' => 'hrm.payroll.pay',
+                'key' => 'hrm_payroll_pay',
+                'group_name' => 'HRM',
+                'module_name' => 'Payroll',
             ],
 
-            // Finance
-            'Transactions' => [
-                'transaction.index' => 'View Transactions',
-                'transaction.create' => 'Create Transaction',
-                'transaction.edit' => 'Edit Transaction',
-                'transaction.delete' => 'Delete Transaction',
+            // ====================================================
+            // GROUP: HRM - Roles
+            // ====================================================
+            [
+                'name' => 'View Roles',
+                'slug' => 'hrm.roles.index',
+                'key' => 'hrm_roles_index',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
-            'Expenses' => [
-                'expense.index' => 'View Expenses',
-                'expense.create' => 'Create Expense',
-                'expense.edit' => 'Edit Expense',
-                'expense.delete' => 'Delete Expense',
-                'expense.approve' => 'Approve Expense',
+            [
+                'name' => 'Create Role',
+                'slug' => 'hrm.roles.create',
+                'key' => 'hrm_roles_create',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
-            'Accounts' => [
-                'account.index' => 'View Accounts',
-                'account.create' => 'Create Account',
-                'account.edit' => 'Edit Account',
+            [
+                'name' => 'Edit Role',
+                'slug' => 'hrm.roles.edit',
+                'key' => 'hrm_roles_edit',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
-            'Financial Reports' => [
-                'report.profit_loss' => 'View Profit & Loss',
-                'report.balance_sheet' => 'View Balance Sheet',
-                'report.cash_flow' => 'View Cash Flow',
+            [
+                'name' => 'Delete Role',
+                'slug' => 'hrm.roles.delete',
+                'key' => 'hrm_roles_delete',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
-
-            // Support
-            'Support Tickets' => [
-                'ticket.index' => 'View Tickets',
-                'ticket.create' => 'Create Ticket',
-                'ticket.edit' => 'Edit Ticket',
-                'ticket.delete' => 'Delete Ticket',
-                'ticket.close' => 'Close Ticket',
-                'ticket.assign' => 'Assign Ticket',
+            [
+                'name' => 'Assign Role to User',
+                'slug' => 'hrm.roles.assign',
+                'key' => 'hrm_roles_assign',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
-            'Support Categories' => [
-                'support_category.index' => 'View Support Categories',
-                'support_category.create' => 'Create Support Category',
-                'support_category.edit' => 'Edit Support Category',
-                'support_category.delete' => 'Delete Support Category',
-            ],
-
-            // CMS
-            'Banners' => [
-                'banner.index' => 'View Banners',
-                'banner.create' => 'Create Banner',
-                'banner.edit' => 'Edit Banner',
-                'banner.delete' => 'Delete Banner',
-            ],
-            'Menus' => [
-                'menu.index' => 'View Menus',
-                'menu.create' => 'Create Menu',
-                'menu.edit' => 'Edit Menu',
-                'menu.delete' => 'Delete Menu',
-            ],
-            'Pages' => [
-                'page.index' => 'View Pages',
-                'page.create' => 'Create Page',
-                'page.edit' => 'Edit Page',
-                'page.delete' => 'Delete Page',
-                'page.publish' => 'Publish Page',
-            ],
-            'Blog' => [
-                'blog.index' => 'View Blog Posts',
-                'blog.create' => 'Create Blog Post',
-                'blog.edit' => 'Edit Blog Post',
-                'blog.delete' => 'Delete Blog Post',
-                'blog.publish' => 'Publish Blog Post',
-            ],
-            'Media' => [
-                'media.index' => 'View Media Library',
-                'media.upload' => 'Upload Media',
-                'media.delete' => 'Delete Media',
-                'media.organize' => 'Organize Media',
+            [
+                'name' => 'Sync Role Permissions',
+                'slug' => 'hrm.roles.sync-permissions',
+                'key' => 'hrm_roles_sync_permissions',
+                'group_name' => 'HRM',
+                'module_name' => 'Roles',
             ],
 
-            // Reports
-            'Sales Reports' => [
-                'report.sales.index' => 'View Sales Report',
-                'report.sales.export' => 'Export Sales Report',
-            ],
-            'Stock Reports' => [
-                'report.stock.index' => 'View Stock Report',
-                'report.stock.export' => 'Export Stock Report',
-            ],
-            'Product Reports' => [
-                'report.product.index' => 'View Product Report',
-                'report.product.export' => 'Export Product Report',
-            ],
-            'Customer Reports' => [
-                'report.customer.index' => 'View Customer Report',
-                'report.customer.export' => 'Export Customer Report',
-            ],
-            'Tax Reports' => [
-                'report.tax.index' => 'View Tax Report',
-                'report.tax.export' => 'Export Tax Report',
-            ],
+            // ====================================================
+            // GROUP: FINANCE - Finance
+            // ====================================================
+            // [
+            //     'name' => 'View Transactions',
+            //     'slug' => 'finance.transactions.index',
+            //     'key' => 'finance_transactions_index',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Finance',
+            // ],
+            // [
+            //     'name' => 'Manage Accounts',
+            //     'slug' => 'finance.accounts.manage',
+            //     'key' => 'finance_accounts_manage',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Finance',
+            // ],
+            // [
+            //     'name' => 'Manage Expenses',
+            //     'slug' => 'finance.expenses.manage',
+            //     'key' => 'finance_expenses_manage',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Finance',
+            // ],
+            // [
+            //     'name' => 'View Financial Reports',
+            //     'slug' => 'finance.reports.view',
+            //     'key' => 'finance_reports_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Finance',
+            // ],
 
-            // User & Access Management
-            'Users' => [
-                'user.index' => 'View Users',
-                'user.create' => 'Create User',
-                'user.edit' => 'Edit User',
-                'user.delete' => 'Delete User',
-                'user.ban' => 'Ban/Deactivate User',
-                'user.impersonate' => 'Impersonate User',
-            ],
-            'Roles' => [
-                'role.index' => 'View Roles',
-                'role.create' => 'Create Role',
-                'role.edit' => 'Edit Role',
-                'role.delete' => 'Delete Role',
-                'role.assign' => 'Assign Role to User',
-            ],
-            'Permissions' => [
-                'permission.index' => 'View Permissions',
-                'permission.assign' => 'Assign Permissions',
-            ],
-            'Direct Permissions' => [
-                'direct_permission.grant' => 'Grant Direct Permission',
-                'direct_permission.revoke' => 'Revoke Direct Permission',
-                'direct_permission.block' => 'Block Permission',
-            ],
+            // // ====================================================
+            // // GROUP: FINANCE - Reports
+            // // ====================================================
+            // [
+            //     'name' => 'View Sales Reports',
+            //     'slug' => 'reports.sales.view',
+            //     'key' => 'reports_sales_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
+            // [
+            //     'name' => 'View Stock Reports',
+            //     'slug' => 'reports.stock.view',
+            //     'key' => 'reports_stock_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
+            // [
+            //     'name' => 'View Product Reports',
+            //     'slug' => 'reports.products.view',
+            //     'key' => 'reports_products_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
+            // [
+            //     'name' => 'View Customer Reports',
+            //     'slug' => 'reports.customers.view',
+            //     'key' => 'reports_customers_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
+            // [
+            //     'name' => 'View Tax Reports',
+            //     'slug' => 'reports.tax.view',
+            //     'key' => 'reports_tax_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
+            // [
+            //     'name' => 'View Profit Loss',
+            //     'slug' => 'reports.profit-loss.view',
+            //     'key' => 'reports_profit_loss_view',
+            //     'group_name' => 'Finance',
+            //     'module_name' => 'Reports',
+            // ],
 
-            // Settings
-            'General Settings' => [
-                'settings.general.view' => 'View General Settings',
-                'settings.general.edit' => 'Edit General Settings',
-            ],
-            'Payment Settings' => [
-                'settings.payment.view' => 'View Payment Settings',
-                'settings.payment.edit' => 'Edit Payment Settings',
-            ],
-            'Tax Settings' => [
-                'settings.tax.view' => 'View Tax Settings',
-                'settings.tax.edit' => 'Edit Tax Settings',
-            ],
-            'API Settings' => [
-                'settings.api.view' => 'View API Settings',
-                'settings.api.edit' => 'Edit API Settings',
-                'settings.api.keys' => 'Manage API Keys',
-            ],
-            'Backup' => [
-                'backup.create' => 'Create Backup',
-                'backup.download' => 'Download Backup',
-                'backup.restore' => 'Restore Backup',
-            ],
-            'Audit Logs' => [
-                'audit_log.index' => 'View Audit Logs',
-                'audit_log.export' => 'Export Audit Logs',
-            ],
+            // // ====================================================
+            // // GROUP: SETTINGS - System
+            // // ====================================================
+            // [
+            //     'name' => 'Manage System Settings',
+            //     'slug' => 'system.manage',
+            //     'key' => 'system_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'System',
+            // ],
+            // [
+            //     'name' => 'View Permissions',
+            //     'slug' => 'permissions.view',
+            //     'key' => 'permissions_view',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'System',
+            // ],
+            // [
+            //     'name' => 'Create Permission',
+            //     'slug' => 'permissions.create',
+            //     'key' => 'permissions_create',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'System',
+            // ],
 
-            // System
-            'System' => [
-                'system.manage' => 'System Management',
-                'notification.view' => 'View Notifications',
-                'notification.send' => 'Send Notifications',
-            ],
+            // // ====================================================
+            // // GROUP: SETTINGS - User Management
+            // // ====================================================
+            // [
+            //     'name' => 'View Users',
+            //     'slug' => 'user.index',
+            //     'key' => 'user_index',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
+            // [
+            //     'name' => 'Create User',
+            //     'slug' => 'user.create',
+            //     'key' => 'user_create',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
+            // [
+            //     'name' => 'Edit User',
+            //     'slug' => 'user.edit',
+            //     'key' => 'user_edit',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
+            // [
+            //     'name' => 'Delete User',
+            //     'slug' => 'user.delete',
+            //     'key' => 'user_delete',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
+            // [
+            //     'name' => 'Ban User',
+            //     'slug' => 'user.ban',
+            //     'key' => 'user_ban',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
+            // [
+            //     'name' => 'Give Direct Permissions',
+            //     'slug' => 'user.direct-access',
+            //     'key' => 'user_direct_access',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'User Management',
+            // ],
 
-            // Module Management (High-level access for entire modules)
-            'Module Management' => [
-                'product.manage' => 'Product Catalog Management',
-                'inventory.manage' => 'Inventory Management',
-                'sales.manage' => 'Sales Management',
-                'shipment.manage' => 'Shipment & Logistics Management',
-                'supplier.manage' => 'Supplier Management',
-                'hrm.manage' => 'HRM & Payroll Management',
-                'crm.manage' => 'CRM & Customer Management',
-                'account.manage' => 'Accounting & Finance Management',
-                'support.manage' => 'Support & Ticket Management',
-                'media.manage' => 'Media Library Management',
-            ],
+            // // ====================================================
+            // // GROUP: SETTINGS - Media
+            // // ====================================================
+            // [
+            //     'name' => 'Manage Media',
+            //     'slug' => 'media.manage',
+            //     'key' => 'media_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Media',
+            // ],
+            // [
+            //     'name' => 'Upload Files',
+            //     'slug' => 'media.upload',
+            //     'key' => 'media_upload',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Media',
+            // ],
+            // [
+            //     'name' => 'Delete Files',
+            //     'slug' => 'media.delete',
+            //     'key' => 'media_delete',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Media',
+            // ],
+
+            // // ====================================================
+            // // GROUP: SETTINGS - Support
+            // // ====================================================
+            // [
+            //     'name' => 'Manage Support Tickets',
+            //     'slug' => 'support.manage',
+            //     'key' => 'support_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Support',
+            // ],
+            // [
+            //     'name' => 'Manage Landing Pages',
+            //     'slug' => 'support.landing-pages.manage',
+            //     'key' => 'support_landing_pages_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Support',
+            // ],
+            // [
+            //     'name' => 'Manage Menus',
+            //     'slug' => 'support.menus.manage',
+            //     'key' => 'support_menus_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Support',
+            // ],
+            // [
+            //     'name' => 'Manage Banners',
+            //     'slug' => 'support.banners.manage',
+            //     'key' => 'support_banners_manage',
+            //     'group_name' => 'Settings',
+            //     'module_name' => 'Support',
+            // ],
+
+            // // ====================================================
+            // // GROUP: ADMIN - Audit Logs
+            // // ====================================================
+            // [
+            //     'name' => 'View Audit Logs',
+            //     'slug' => 'audit.view',
+            //     'key' => 'audit_view',
+            //     'group_name' => 'Admin',
+            //     'module_name' => 'Audit Logs',
+            // ],
+            // [
+            //     'name' => 'Download Audit Logs',
+            //     'slug' => 'audit.download',
+            //     'key' => 'audit_download',
+            //     'group_name' => 'Admin',
+            //     'module_name' => 'Audit Logs',
+            // ],
+            // [
+            //     'name' => 'Delete Audit Logs',
+            //     'slug' => 'audit.delete',
+            //     'key' => 'audit_delete',
+            //     'group_name' => 'Admin',
+            //     'module_name' => 'Audit Logs',
+            // ],
         ];
 
-        foreach ($modules as $groupName => $permissions) {
-            foreach ($permissions as $slug => $name) {
-                Permission::updateOrCreate(
-                    ['slug' => $slug],
-                    [
-                        'name' => $name,
-                        'group_name' => $groupName,
-                    ]
-                );
-            }
+        // Insert permissions in batches
+        foreach ($permissions as $permission) {
+            Permission::create($permission);
         }
 
-        $this->command->info('Seeded ' . count($modules, COUNT_RECURSIVE) . ' permissions across ' . count($modules) . ' modules.');
+        $this->command->info('✅ Successfully seeded ' . count($permissions) . ' permissions.');
     }
 }

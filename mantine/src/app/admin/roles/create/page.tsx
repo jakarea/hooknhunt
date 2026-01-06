@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -24,11 +24,18 @@ interface Permission {
   id: number
   name: string
   slug: string
+  key: string | null
   group_name: string
+  module_name: string
 }
 
 interface PermissionGroup {
   groupName: string
+  modules: ModulePermissions[]
+}
+
+interface ModulePermissions {
+  module_name: string
   permissions: Permission[]
 }
 
@@ -43,33 +50,41 @@ export default function CreateRolePage() {
   const [roleName, setRoleName] = useState('')
   const [roleDescription, setRoleDescription] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedPermissionIds, setSelectedPermissionIds] = useState<number[]>([])
-  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([])
-  const [loadingPermissions, setLoadingPermissions] = useState(true)
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [permissionGroups, setPermissionGroups] = useState<PermissionGroup[]>([])
 
-  // Fetch permissions on mount
+  // Fetch permissions from API
   useEffect(() => {
     const fetchPermissions = async () => {
       try {
-        const response = await api.get('/hrm/permissions')
-        if (response.data.status) {
-          const permissions = response.data.data
+        setLoading(true)
+        const response = await api.get('/hrm/permissions/grouped')
 
-          // Group permissions by group_name
-          const grouped = permissions.reduce((acc: Record<string, Permission[]>, perm: Permission) => {
-            if (!acc[perm.group_name]) {
-              acc[perm.group_name] = []
-            }
-            acc[perm.group_name].push(perm)
-            return acc
-          }, {} as Record<string, Permission[]>)
+        if (response.data?.data) {
+          // Transform API response into PermissionGroup format
+          const groups: PermissionGroup[] = []
 
-          const groups = Object.entries(grouped).map(([groupName, perms]) => ({
-            groupName,
-            permissions: perms as Permission[],
-          }))
+          Object.keys(response.data.data).forEach((groupName) => {
+            const modules: ModulePermissions[] = response.data.data[groupName].map((module: { module_name: string; permissions: Array<{ id: number; name: string; slug: string; key: string | null; group_name: string; module_name: string }> }) => ({
+              module_name: module.module_name,
+              permissions: module.permissions.map((perm) => ({
+                id: perm.id,
+                name: perm.name,
+                slug: perm.slug,
+                key: perm.key,
+                group_name: perm.group_name,
+                module_name: perm.module_name,
+              })),
+            }))
+
+            groups.push({
+              groupName,
+              modules,
+            })
+          })
 
           setPermissionGroups(groups)
         }
@@ -77,11 +92,11 @@ export default function CreateRolePage() {
         console.error('Failed to fetch permissions:', error)
         notifications.show({
           title: 'Error',
-          message: 'Failed to load permissions. Please refresh the page.',
+          message: 'Failed to load permissions',
           color: 'red',
         })
       } finally {
-        setLoadingPermissions(false)
+        setLoading(false)
       }
     }
 
@@ -96,19 +111,29 @@ export default function CreateRolePage() {
     return permissionGroups
       .map((group) => ({
         ...group,
-        permissions: group.permissions.filter(
-          (perm) =>
-            perm.name.toLowerCase().includes(query) ||
-            perm.slug.toLowerCase().includes(query) ||
-            group.groupName.toLowerCase().includes(query)
-        ),
+        modules: group.modules
+          .map((module) => ({
+            ...module,
+            permissions: module.permissions.filter(
+              (perm) =>
+                perm.name.toLowerCase().includes(query) ||
+                perm.slug.toLowerCase().includes(query) ||
+                group.groupName.toLowerCase().includes(query) ||
+                module.module_name.toLowerCase().includes(query)
+            ),
+          }))
+          .filter((module) => module.permissions.length > 0),
       }))
-      .filter((group) => group.permissions.length > 0)
+      .filter((group) => group.modules.length > 0)
   }, [searchQuery, permissionGroups])
 
   // Memoized total permissions count
-  const totalSelectedPermissions = useMemo(() => selectedPermissionIds.length, [selectedPermissionIds])
-  const totalPermissions = useMemo(() => permissionGroups.reduce((sum, group) => sum + group.permissions.length, 0), [permissionGroups])
+  const totalSelectedPermissions = useMemo(() => selectedPermissions.length, [selectedPermissions])
+  const totalPermissions = useMemo(() =>
+    permissionGroups.reduce((sum, group) =>
+      sum + group.modules.reduce((moduleSum, module) => moduleSum + module.permissions.length, 0), 0),
+    [permissionGroups]
+  )
 
   // Validate form
   const validateForm = useCallback((): boolean => {
@@ -132,52 +157,54 @@ export default function CreateRolePage() {
 
   // Handle select all permissions
   const handleSelectAll = useCallback(() => {
-    const allIds = permissionGroups.flatMap((group) =>
-      group.permissions.map((perm) => perm.id)
+    const allSlugs = permissionGroups.flatMap((group) =>
+      group.modules.flatMap((module) =>
+        module.permissions.map((perm) => perm.slug)
+      )
     )
-    setSelectedPermissionIds(allIds)
+    setSelectedPermissions(allSlugs)
   }, [permissionGroups])
 
   // Handle deselect all permissions
   const handleDeselectAll = useCallback(() => {
-    setSelectedPermissionIds([])
+    setSelectedPermissions([])
   }, [])
 
-  // Handle group select all
-  const handleGroupSelectAll = useCallback((group: PermissionGroup) => {
-    const groupIds = group.permissions.map((perm) => perm.id)
-    const allSelected = groupIds.every((id) => selectedPermissionIds.includes(id))
+  // Handle module select all
+  const handleModuleSelectAll = useCallback((module: ModulePermissions) => {
+    const moduleSlugs = module.permissions.map((perm) => perm.slug)
+    const allSelected = moduleSlugs.every((slug) => selectedPermissions.includes(slug))
 
     if (allSelected) {
-      // Deselect all in group
-      setSelectedPermissionIds((prev) => prev.filter((id) => !groupIds.includes(id)))
+      // Deselect all in module
+      setSelectedPermissions((prev) => prev.filter((slug) => !moduleSlugs.includes(slug)))
     } else {
-      // Select all in group
-      setSelectedPermissionIds((prev) => [
-        ...prev.filter((id) => !groupIds.includes(id)),
-        ...groupIds,
+      // Select all in module
+      setSelectedPermissions((prev) => [
+        ...prev.filter((slug) => !moduleSlugs.includes(slug)),
+        ...moduleSlugs,
       ])
     }
-  }, [selectedPermissionIds])
+  }, [selectedPermissions])
 
   // Handle permission toggle
-  const handlePermissionToggle = useCallback((permissionId: number) => {
-    setSelectedPermissionIds((prev) =>
-      prev.includes(permissionId)
-        ? prev.filter((id) => id !== permissionId)
-        : [...prev, permissionId]
+  const handlePermissionToggle = useCallback((permissionSlug: string) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(permissionSlug)
+        ? prev.filter((slug) => slug !== permissionSlug)
+        : [...prev, permissionSlug]
     )
   }, [])
 
-  // Check if group has any permissions selected
-  const hasAnyPermissionInGroup = useCallback((group: PermissionGroup) => {
-    return group.permissions.some((perm) => selectedPermissionIds.includes(perm.id))
-  }, [selectedPermissionIds])
+  // Check if module has any permissions selected
+  const hasAnyPermissionInModule = useCallback((module: ModulePermissions) => {
+    return module.permissions.some((perm) => selectedPermissions.includes(perm.slug))
+  }, [selectedPermissions])
 
-  // Check if group has all permissions selected
-  const hasAllPermissionsInGroup = useCallback((group: PermissionGroup) => {
-    return group.permissions.every((perm) => selectedPermissionIds.includes(perm.id))
-  }, [selectedPermissionIds])
+  // Check if module has all permissions selected
+  const hasAllPermissionsInModule = useCallback((module: ModulePermissions) => {
+    return module.permissions.every((perm) => selectedPermissions.includes(perm.slug))
+  }, [selectedPermissions])
 
   // Handle save
   const handleSave = async () => {
@@ -191,7 +218,7 @@ export default function CreateRolePage() {
       const response = await api.post('/hrm/roles', {
         name: roleName.trim(),
         description: roleDescription.trim() || null,
-        permissions: selectedPermissionIds,
+        permissions: selectedPermissions, // Send slugs instead of IDs
       })
 
       if (response.data.status) {
@@ -204,11 +231,11 @@ export default function CreateRolePage() {
       } else {
         throw new Error(response.data.message || 'Failed to create role')
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to create role:', error)
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || error.message || 'Failed to create role. Please try again.',
+        message: (error as any).response?.data?.message || (error as any).message || 'Failed to create role. Please try again.',
         color: 'red',
       })
     } finally {
@@ -239,8 +266,7 @@ export default function CreateRolePage() {
 
         <Stack >
           {/* Role Information Section */}
-          <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
-            <LoadingOverlay visible={loadingPermissions} overlayProps={{ blur: 2 }} />
+          <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
             <Stack >
               <Title order={3}>Role Information</Title>
 
@@ -285,7 +311,7 @@ export default function CreateRolePage() {
                   <Button
                     onClick={handleSave}
                     leftSection={<IconDeviceFloppy size={16} />}
-                    disabled={!roleName.trim() || saving || loadingPermissions}
+                    disabled={!roleName.trim() || saving}
                     loading={saving}
                     size="md"
                   >
@@ -305,10 +331,10 @@ export default function CreateRolePage() {
                   <Text size="sm" c="dimmed">Select permissions for this role</Text>
                 </div>
                 <Group >
-                  <Button variant="light" size="sm" onClick={handleSelectAll} disabled={loadingPermissions}>
+                  <Button variant="light" size="sm" onClick={handleSelectAll}>
                     Select All
                   </Button>
-                  <Button variant="light" size="sm" onClick={handleDeselectAll} disabled={loadingPermissions}>
+                  <Button variant="light" size="sm" onClick={handleDeselectAll}>
                     Deselect All
                   </Button>
                 </Group>
@@ -320,68 +346,70 @@ export default function CreateRolePage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.currentTarget.value)}
                 size="md"
-                disabled={loadingPermissions}
               />
 
-              {loadingPermissions ? (
-                <Box py="xl" ta="center">
-                  <Text c="dimmed">Loading permissions...</Text>
-                </Box>
-              ) : filteredGroups.length === 0 ? (
-                <Box py="xl" ta="center">
-                  <Text c="dimmed">No permissions found matching "{searchQuery}"</Text>
-                </Box>
-              ) : (
-                <Stack >
-                  {filteredGroups.map((group) => {
-                    const hasAny = hasAnyPermissionInGroup(group)
-                    const hasAll = hasAllPermissionsInGroup(group)
+              <Box pos="relative">
+                <LoadingOverlay visible={loading} />
+                {filteredGroups.length === 0 && !loading ? (
+                  <Box py="xl" ta="center">
+                    <Text c="dimmed">No permissions found matching "{searchQuery}"</Text>
+                  </Box>
+                ) : (
+                  <Stack gap="lg">
+                    {filteredGroups.map((group) => (
+                      <Box key={group.groupName}>
+                        <Group mb="md">
+                          <Text fw={700} size="lg">{group.groupName}</Text>
+                        </Group>
+                        <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
+                          {group.modules.map((module) => {
+                            const hasAny = hasAnyPermissionInModule(module)
+                            const hasAll = hasAllPermissionsInModule(module)
 
-                    return (
-                      <Paper
-                        key={group.groupName}
-                        withBorder
-                        p="md"
-                        radius="md"
-                        bd={hasAny ? '1px solid var(--mantine-color-blue-4)' : undefined}
-                        bg={hasAny ? 'light-dark(var(--mantine-color-blue-0), var(--mantine-color-dark-6))' : undefined}
-                      >
-                        <Stack >
-                          {/* Group Header */}
-                          <Group justify="space-between">
-                            <Box>
-                              <Text fw={600} size="sm">{group.groupName}</Text>
-                              <Text size="xs" c="dimmed">
-                                {group.permissions.filter(p => selectedPermissionIds.includes(p.id)).length} of {group.permissions.length} selected
-                              </Text>
-                            </Box>
-                            <Button
-                              variant="light"
-                              size="xs"
-                              onClick={() => handleGroupSelectAll(group)}
-                            >
-                              {hasAll ? 'Deselect All' : 'Select All'}
-                            </Button>
-                          </Group>
+                            return (
+                              <Paper
+                                key={`${group.groupName}-${module.module_name}`}
+                                withBorder
+                                p="md"
+                                radius="md"
+                                bd={hasAny ? '2px solid var(--mantine-color-blue-4)' : undefined}
+                                bg={hasAny ? 'light-dark(var(--mantine-color-blue-0), rgba(66, 153, 225, 0.1))' : undefined}
+                              >
+                                <Stack >
+                                  {/* Module Header */}
+                                  <Group justify="space-between">
+                                    <Text fw={600} size="sm">{module.module_name}</Text>
+                                    <Button
+                                      variant="light"
+                                      size="compact-xs"
+                                      onClick={() => handleModuleSelectAll(module)}
+                                    >
+                                      {hasAll ? 'Deselect All' : 'Select All'}
+                                    </Button>
+                                  </Group>
 
-                          {/* Permissions List */}
-                          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
-                            {group.permissions.map((permission) => (
-                              <Checkbox
-                                key={permission.id}
-                                label={permission.name}
-                                checked={selectedPermissionIds.includes(permission.id)}
-                                onChange={() => handlePermissionToggle(permission.id)}
-                                size="sm"
-                              />
-                            ))}
-                          </SimpleGrid>
-                        </Stack>
-                      </Paper>
-                    )
-                  })}
-                </Stack>
-              )}
+                                  {/* Permissions List */}
+                                  <Stack gap={4}>
+                                    {module.permissions.map((permission) => (
+                                      <Checkbox
+                                        key={permission.id}
+                                        label={permission.name}
+                                        checked={selectedPermissions.includes(permission.slug)}
+                                        onChange={() => handlePermissionToggle(permission.slug)}
+                                        size="sm"
+                                      />
+                                    ))}
+                                  </Stack>
+                                </Stack>
+                              </Paper>
+                            )
+                          })}
+                        </SimpleGrid>
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+              </Box>
             </Stack>
           </Paper>
         </Stack>

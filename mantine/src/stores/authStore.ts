@@ -33,6 +33,7 @@ interface AuthState {
   user: User | null
   token: string | null
   permissions: string[] // Array of permission slugs
+  permissionObjects: Permission[] // Array of full permission objects with group_name
   hydrated: boolean // Track if we've loaded from localStorage
   isAuthenticated: () => boolean
   hasPermission: (permission: string) => boolean
@@ -40,8 +41,10 @@ interface AuthState {
   hasAllPermissions: (permissions: string[]) => boolean
   hasRole: (roleSlug: string) => boolean
   isSuperAdmin: () => boolean
-  login: (token: string, user: User, permissions?: string[]) => void
-  setPermissions: (permissions: string[]) => void
+  hasAccessToGroup: (groupName: string) => boolean
+  getPermissionGroups: () => string[]
+  login: (token: string, user: User, permissions?: string[], permissionObjects?: Permission[]) => void
+  setPermissions: (permissions: string[], permissionObjects?: Permission[]) => void
   logout: () => void
   loadUserFromStorage: () => void
   setUser: (user: User) => void
@@ -51,6 +54,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   permissions: [],
+  permissionObjects: [],
   hydrated: false,
   isAuthenticated: () => !!get().token, // Check for both null and undefined
 
@@ -86,19 +90,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return user?.role?.slug === 'super_admin'
   },
 
-  login: (token, user, permissions = []) => {
+  // Check if user has access to any permission in a group
+  hasAccessToGroup: (groupName: string) => {
+    const { permissionObjects, user } = get()
+    // Super admin has access to all groups
+    if (user?.role?.slug === 'super_admin') return true
+    return permissionObjects.some(p => p.group_name === groupName)
+  },
+
+  // Get all unique permission groups the user has access to
+  getPermissionGroups: () => {
+    const { permissionObjects, user } = get()
+    // Super admin has access to all groups
+    if (user?.role?.slug === 'super_admin') return ['Dashboard', 'HRM', 'Operations', 'Finance', 'Settings']
+    const groups = new Set(permissionObjects.map(p => p.group_name).filter((g): g is string => Boolean(g)))
+    return Array.from(groups)
+  },
+
+  login: (token, user, permissions = [], permissionObjects = []) => {
     // Save to localStorage
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
     localStorage.setItem('permissions', JSON.stringify(permissions))
+    localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
 
     // Set state
-    set({ user, token, permissions, hydrated: true })
+    set({ user, token, permissions, permissionObjects, hydrated: true })
   },
 
-  setPermissions: (permissions: string[]) => {
+  setPermissions: (permissions: string[], permissionObjects = []) => {
     localStorage.setItem('permissions', JSON.stringify(permissions))
-    set({ permissions })
+    localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
+    set({ permissions, permissionObjects })
   },
 
   logout: () => {
@@ -106,9 +129,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('permissions')
+    localStorage.removeItem('permissionObjects')
 
     // Clear state
-    set({ user: null, token: null, permissions: [], hydrated: true })
+    set({ user: null, token: null, permissions: [], permissionObjects: [], hydrated: true })
 
     // Redirect to login
     window.location.href = '/login'
@@ -118,13 +142,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const token = localStorage.getItem('token')
     const userString = localStorage.getItem('user')
     const permissionsString = localStorage.getItem('permissions')
+    const permissionObjectsString = localStorage.getItem('permissionObjects')
 
     if (token && userString) {
       try {
         const user = JSON.parse(userString) as User
         const permissions = permissionsString ? JSON.parse(permissionsString) : []
-        set({ user, token, permissions, hydrated: true })
-      } catch (error) {
+        const permissionObjects = permissionObjectsString ? JSON.parse(permissionObjectsString) : []
+        set({ user, token, permissions, permissionObjects, hydrated: true })
+      } catch {
         // Clear corrupted storage
         set({ hydrated: true })
         get().logout()

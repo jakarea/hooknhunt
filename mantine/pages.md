@@ -259,13 +259,13 @@ Base API URL: http://localhost:8000/api/v2
 
 #### • Employees
 - Page Title: Employees
-- Frontend URL: `/admin/hrm/employees`
-- API: GET `/hrm/employees`
+- Frontend URL: `/admin/hrm/staff`
+- API: GET `/hrm/staff`
 
 #### • Employee Profile
 - Page Title: Employee Profile
-- Frontend URL: `/admin/hrm/employees/{employeeId}`
-- API: GET `/hrm/employees/{id}`
+- Frontend URL: `/admin/hrm/staff/{employeeId}`
+- API: GET `/hrm/staff/{id}`
 
 ---
 

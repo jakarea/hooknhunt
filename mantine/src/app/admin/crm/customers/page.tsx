@@ -117,19 +117,16 @@ export default function CustomersPage() {
     )
   }, [searchQuery, typeFilter])
 
-  // Reset page when filters change
-  useMemo(() => {
-    setCurrentPage(1)
-  }, [searchQuery, typeFilter])
+  // Pagination - reset to page 1 when filters change by using currentPage as derived state
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
+  const safeCurrentPage = currentPage > totalPages ? 1 : currentPage
 
   // Pagination
   const paginatedCustomers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage
+    const startIndex = (safeCurrentPage - 1) * itemsPerPage
     const endIndex = startIndex + itemsPerPage
     return filteredCustomers.slice(startIndex, endIndex)
-  }, [filteredCustomers, currentPage])
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage)
+  }, [filteredCustomers, safeCurrentPage, itemsPerPage])
 
   const customers = paginatedCustomers
 
@@ -350,7 +347,7 @@ export default function CustomersPage() {
             message: `${name} has been deleted successfully`,
             color: 'green',
           })
-        } catch (error) {
+        } catch {
           notifications.show({
             title: 'Error',
             message: 'Failed to delete customer. Please try again.',
@@ -455,18 +452,18 @@ export default function CustomersPage() {
             <Button
               variant="light"
               size="sm"
-              disabled={currentPage === 1}
+              disabled={safeCurrentPage === 1}
               onClick={() => setCurrentPage((prev) => prev - 1)}
             >
               Previous
             </Button>
             <Text size="sm" c="dimmed">
-              Page {currentPage} of {totalPages}
+              Page {safeCurrentPage} of {totalPages}
             </Text>
             <Button
               variant="light"
               size="sm"
-              disabled={currentPage === totalPages}
+              disabled={safeCurrentPage === totalPages}
               onClick={() => setCurrentPage((prev) => prev + 1)}
             >
               Next

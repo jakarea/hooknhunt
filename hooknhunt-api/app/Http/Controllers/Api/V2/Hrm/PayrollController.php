@@ -46,6 +46,7 @@ class PayrollController extends Controller
 
     /**
      * 2. Generate Salary Sheet for a Month (Admin Only)
+     * Rule: 1 staff can have only 1 payroll record per month
      */
     public function generate(Request $request)
     {
@@ -54,11 +55,6 @@ class PayrollController extends Controller
         ]);
 
         $month = $request->month_year;
-
-        // Check if already generated
-        if (Payroll::where('month_year', $month)->exists()) {
-            return $this->sendError("Payroll for {$month} is already generated.");
-        }
 
         // Get All Active Staff (Excluding Customers)
         $staffs = User::with('profile')
@@ -73,10 +69,21 @@ class PayrollController extends Controller
         DB::beginTransaction();
         try {
             $count = 0;
+            $skipped = 0;
+
             foreach ($staffs as $staff) {
                 // Skip if no profile or salary set
                 $baseSalary = $staff->profile->base_salary ?? 0;
-                if ($baseSalary <= 0) continue;
+                if ($baseSalary <= 0) {
+                    $skipped++;
+                    continue;
+                }
+
+                // Skip if this staff already has payroll for this month (1 staff = 1 time per month)
+                if (Payroll::where('user_id', $staff->id)->where('month_year', $month)->exists()) {
+                    $skipped++;
+                    continue;
+                }
 
                 Payroll::create([
                     'user_id' => $staff->id,
@@ -91,7 +98,13 @@ class PayrollController extends Controller
             }
 
             DB::commit();
-            return $this->sendSuccess(null, "Payroll generated for {$count} employees for month {$month}");
+
+            $message = "Payroll generated for {$count} employees for month {$month}";
+            if ($skipped > 0) {
+                $message .= " ({$skipped} skipped - already have payroll or no salary)";
+            }
+
+            return $this->sendSuccess(null, $message);
 
         } catch (\Exception $e) {
             DB::rollBack();

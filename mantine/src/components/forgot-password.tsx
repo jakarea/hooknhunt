@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Stack, TextInput, Text, Button, Anchor } from '@mantine/core'
 
-interface ForgotPasswordFormProps extends React.ComponentProps<'form'> {}
+type ForgotPasswordFormProps = React.ComponentProps<'form'>
 
 export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormProps) {
   const [phone, setPhone] = useState('')

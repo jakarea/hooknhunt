@@ -26,7 +26,7 @@ export default function PermissionExamples() {
       <Paper p="md" withBorder>
         <Title order={3}>1. Basic Permission Check</Title>
         {hasPermission('employee.create') ? (
-          <Button onClick={() => alert('Creating employee!')}>
+          <Button onClick={() => { alert('Creating employee!'); }}>
             Create Employee
           </Button>
         ) : (
@@ -39,8 +39,8 @@ export default function PermissionExamples() {
         <Title order={3}>2. Multiple Permissions (Any)</Title>
         {hasPermission(['employee.edit', 'employee.delete']) ? (
           <Group>
-            <Button>Edit Employee</Button>
-            <Button color="red">Delete Employee</Button>
+            <Button onClick={() => { alert('Edit'); }}>Edit Employee</Button>
+            <Button color="red" onClick={() => { alert('Delete'); }}>Delete Employee</Button>
           </Group>
         ) : (
           <Text c="red">You need edit or delete permission</Text>
@@ -61,7 +61,7 @@ export default function PermissionExamples() {
       <Paper p="md" withBorder>
         <Title order={3}>4. PermissionGuard Component</Title>
         <PermissionGuard permission="employee.create">
-          <Button>Create Employee</Button>
+          <Button onClick={() => { alert('Create'); }}>Create Employee</Button>
         </PermissionGuard>
 
         <PermissionGuard
@@ -69,8 +69,8 @@ export default function PermissionExamples() {
           fallback={<Text c="red">No edit/delete access</Text>}
         >
           <Group>
-            <Button>Edit</Button>
-            <Button color="red">Delete</Button>
+            <Button onClick={() => { alert('Edit'); }}>Edit</Button>
+            <Button color="red" onClick={() => { alert('Delete'); }}>Delete</Button>
           </Group>
         </PermissionGuard>
       </Paper>
@@ -79,11 +79,11 @@ export default function PermissionExamples() {
       <Paper p="md" withBorder>
         <Title order={3}>5. Pre-built Helper Components</Title>
         <CanCreateEmployee>
-          <Button>Create Employee</Button>
+          <Button onClick={() => { alert('Create'); }}>Create Employee</Button>
         </CanCreateEmployee>
 
         <CanEditEmployee>
-          <Button>Edit Employee</Button>
+          <Button onClick={() => { alert('Edit'); }}>Edit Employee</Button>
         </CanEditEmployee>
       </Paper>
 
@@ -91,22 +91,21 @@ export default function PermissionExamples() {
       <Paper p="md" withBorder>
         <Title order={3}>6. ProtectedButton Component</Title>
         <Group>
-          <ProtectedButton {...({} as any)}
+          <ProtectedButton
             permission="employee.create"
             onClick={() => alert('Create')}
-            {...({} as any)}
           >
             Create
           </ProtectedButton>
 
-          <ProtectedButton {...({} as any)}
+          <ProtectedButton
             permissions={['employee.edit', 'hrm.manage']}
             onClick={() => alert('Edit')}
           >
             Edit
           </ProtectedButton>
 
-          <ProtectedButton {...({} as any)}
+          <ProtectedButton
             permission="employee.delete"
             color="red"
             onClick={() => alert('Delete')}
@@ -134,7 +133,7 @@ export default function PermissionExamples() {
           permission="employee.create"
           debug={true}
         >
-          <Button>Check Console for Debug Info</Button>
+          <Button onClick={() => { console.log('Debug info'); }}>Check Console for Debug Info</Button>
         </PermissionGuard>
       </Paper>
     </Stack>

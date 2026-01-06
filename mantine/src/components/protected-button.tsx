@@ -29,6 +29,7 @@ interface ProtectedButtonProps extends Omit<ButtonProps, 'children'> {
   requireAll?: boolean
   /** Fallback when no permission (default: null) */
   fallback?: React.ReactNode
+  onClick?: () => void
 }
 
 export function ProtectedButton({
@@ -39,15 +40,6 @@ export function ProtectedButton({
   children,
   ...buttonProps
 }: ProtectedButtonProps) {
-  // Extract permission-related props from buttonProps to avoid passing them to Button
-  const {
-    permission: _permission,
-    permissions: _permissions,
-    requireAll: _requireAll,
-    fallback: _fallback,
-    ...cleanButtonProps
-  } = buttonProps as any
-
   return (
     <PermissionGuard
       permission={permission}
@@ -55,7 +47,7 @@ export function ProtectedButton({
       requireAll={requireAll}
       fallback={fallback}
     >
-      <Button {...cleanButtonProps}>{children}</Button>
+      <Button {...buttonProps}>{children}</Button>
     </PermissionGuard>
   )
 }

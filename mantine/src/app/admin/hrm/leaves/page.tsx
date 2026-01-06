@@ -90,7 +90,7 @@ export default function LeavesPage() {
   const fetchLeaves = async () => {
     try {
       setLoading(true)
-      const params: any = {}
+      const params: Record<string, string> = {}
       if (statusFilter && statusFilter !== 'all') {
         params.status = statusFilter
       }
@@ -101,7 +101,7 @@ export default function LeavesPage() {
       const response = await api.get('/hrm/leaves', { params })
       const leavesData = response.data.data?.data || response.data.data || []
       setLeaves(Array.isArray(leavesData) ? leavesData : [])
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to fetch leaves:', error)
       notifications.show({
         title: 'Error',
@@ -121,7 +121,7 @@ export default function LeavesPage() {
       const response = await api.get('/user-management/users')
       const employeesData = response.data.data || []
       setEmployees(employeesData)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to fetch employees:', error)
     }
   }
@@ -207,11 +207,12 @@ export default function LeavesPage() {
 
       setModalOpened(false)
       fetchLeaves()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save leave:', error)
+      const errorObj = error as { response?: { data?: { message?: string } } }
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to save leave. Please try again.',
+        message: errorObj.response?.data?.message || 'Failed to save leave. Please try again.',
         color: 'red',
       })
     } finally {
@@ -246,11 +247,12 @@ export default function LeavesPage() {
             color: 'green',
           })
           fetchLeaves()
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to approve leave:', error)
+          const errorObj = error as { response?: { data?: { message?: string } } }
           notifications.show({
             title: 'Error',
-            message: error.response?.data?.message || 'Failed to approve leave. Please try again.',
+            message: errorObj.response?.data?.message || 'Failed to approve leave. Please try again.',
             color: 'red',
           })
         }
@@ -285,11 +287,12 @@ export default function LeavesPage() {
             color: 'green',
           })
           fetchLeaves()
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to reject leave:', error)
+          const errorObj = error as { response?: { data?: { message?: string } } }
           notifications.show({
             title: 'Error',
-            message: error.response?.data?.message || 'Failed to reject leave. Please try again.',
+            message: errorObj.response?.data?.message || 'Failed to reject leave. Please try again.',
             color: 'red',
           })
         }
@@ -321,11 +324,12 @@ export default function LeavesPage() {
             color: 'green',
           })
           fetchLeaves()
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error('Failed to delete leave:', error)
+          const errorObj = error as { response?: { data?: { message?: string } } }
           notifications.show({
             title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete leave. Please try again.',
+            message: errorObj.response?.data?.message || 'Failed to delete leave. Please try again.',
             color: 'red',
           })
         }

@@ -69,9 +69,9 @@ export const useRolesStore = create<RolesState>((set, get) => ({
         },
         loading: false,
       })
-    } catch (error: any) {
+    } catch {
       set({
-        error: error.response?.data?.message || 'Failed to fetch roles',
+        error: 'Failed to fetch roles',
         loading: false,
       })
     }
@@ -85,9 +85,9 @@ export const useRolesStore = create<RolesState>((set, get) => ({
         currentRole: response.data,
         loading: false,
       })
-    } catch (error: any) {
+    } catch {
       set({
-        error: error.response?.data?.message || 'Failed to load role data',
+        error: 'Failed to load role data',
         loading: false,
       })
     }
@@ -103,12 +103,12 @@ export const useRolesStore = create<RolesState>((set, get) => ({
         roles: [...roles, response.data],
         loading: false,
       })
-    } catch (error: any) {
+    } catch (err) {
       set({
-        error: error.response?.data?.message || 'Failed to create role',
+        error: 'Failed to create role',
         loading: false,
       })
-      throw error
+      throw err
     }
   },
 
@@ -125,12 +125,12 @@ export const useRolesStore = create<RolesState>((set, get) => ({
         currentRole: currentRole?.id === id ? response.data : currentRole,
         loading: false,
       })
-    } catch (error: any) {
+    } catch (err) {
       set({
-        error: error.response?.data?.message || 'Failed to update role',
+        error: 'Failed to update role',
         loading: false,
       })
-      throw error
+      throw err
     }
   },
 
@@ -144,12 +144,12 @@ export const useRolesStore = create<RolesState>((set, get) => ({
         roles: roles.filter((role) => role.id !== id),
         loading: false,
       })
-    } catch (error: any) {
+    } catch (err) {
       set({
-        error: error.response?.data?.message || 'Failed to delete role',
+        error: 'Failed to delete role',
         loading: false,
       })
-      throw error
+      throw err
     }
   },
 

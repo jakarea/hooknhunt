@@ -171,7 +171,7 @@ class AuthController extends Controller
             'status' => true,
             'message' => 'Profile retrieved successfully',
             'data' => [
-                'user' => $request->user()->load('role')
+                'user' => $request->user()->load('role.permissions')
             ]
         ]);
     }

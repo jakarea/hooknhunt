@@ -244,7 +244,7 @@ if (hasPermission('employee.create')) {
 ```typescript
 const { canAccessRoute } = usePermissions()
 
-console.log(canAccessRoute('/admin/hrm/employees'))
+console.log(canAccessRoute('/admin/hrm/staff'))
 // Output: true or false
 ```
 
@@ -298,7 +298,7 @@ const navItems = [
   {
     label: 'HRM',
     items: [
-      { title: 'Employees', url: '/admin/hrm/employees' },
+      { title: 'Employees', url: '/admin/hrm/staff' },
       { title: 'Payroll', url: '/admin/hrm/payroll' },
     ]
   }
@@ -432,7 +432,7 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
 
 This means:
 - ✅ Any employee can visit `/admin/profile` to see their own profile
-- ✅ Any employee can edit their own profile at `/admin/hrm/employees/{their_id}/edit`
+- ✅ Any employee can edit their own profile at `/admin/hrm/staff/{their_id}/edit`
 - ❌ Employees still need `employee.view` permission to see OTHER employees' profiles
 - ❌ Employees still need `employee.edit` permission to edit OTHER employees' profiles
 
@@ -455,13 +455,13 @@ function EmployeeList() {
           <Table.Td>
             <Group>
               {/* Always allow viewing own profile */}
-              <Link to={`/admin/hrm/employees/${employee.id}`}>
+              <Link to={`/admin/hrm/staff/${employee.id}`}>
                 View
               </Link>
 
               {/* Allow edit if own profile OR has permission */}
               {canEditProfile(employee.id) && (
-                <Link to={`/admin/hrm/employees/${employee.id}/edit`}>
+                <Link to={`/admin/hrm/staff/${employee.id}/edit`}>
                   Edit
                 </Link>
               )}

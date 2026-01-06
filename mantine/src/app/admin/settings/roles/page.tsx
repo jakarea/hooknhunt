@@ -57,10 +57,10 @@ export default function RolesListPage() {
 
       const response = await api.get(`/hrm/roles?${params}`)
       setRoles(response.data.data)
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to load roles',
+        message: (error as any).response?.data?.message || 'Failed to load roles',
         color: 'red',
       })
     } finally {
@@ -94,10 +94,10 @@ export default function RolesListPage() {
       })
       setDeleteConfirmOpened(false)
       fetchRoles(searchQuery)
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to delete role',
+        message: (error as any).response?.data?.message || 'Failed to delete role',
         color: 'red',
       })
     }

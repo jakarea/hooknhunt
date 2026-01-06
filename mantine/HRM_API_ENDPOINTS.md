@@ -12,11 +12,11 @@ GET    /api/v2/hrm/departments/{id}  → DepartmentController@show
 PUT    /api/v2/hrm/departments/{id}  → DepartmentController@update
 DELETE /api/v2/hrm/departments/{id}  → DepartmentController@destroy
 
-GET    /api/v2/hrm/employees         → EmployeeController@index
-POST   /api/v2/hrm/employees         → EmployeeController@store
-GET    /api/v2/hrm/employees/{id}    → EmployeeController@show
-PUT    /api/v2/hrm/employees/{id}    → EmployeeController@update
-DELETE /api/v2/hrm/employees/{id}    → EmployeeController@destroy
+GET    /api/v2/hrm/staff         → EmployeeController@index
+POST   /api/v2/hrm/staff         → EmployeeController@store
+GET    /api/v2/hrm/staff/{id}    → EmployeeController@show
+PUT    /api/v2/hrm/staff/{id}    → EmployeeController@update
+DELETE /api/v2/hrm/staff/{id}    → EmployeeController@destroy
 
 GET    /api/v2/hrm/leaves            → LeaveController@index
 POST   /api/v2/hrm/leaves            → LeaveController@store
@@ -58,16 +58,16 @@ GET    /api/v2/hrm/permissions              → PermissionController@list
 - `POST /hrm/departments` → ✅ Matches backend
 - `DELETE /hrm/departments/{id}` → ✅ Matches backend
 
-### ✅ Employees Page (`/admin/hrm/employees`)
-- `GET /hrm/employees` → ✅ Matches backend
+### ✅ Employees Page (`/admin/hrm/staff`)
+- `GET /hrm/staff` → ✅ Matches backend
 - `DELETE /user-management/users/{id}` → ✅ Correct (users managed separately)
 
-### ✅ Employees Create Page (`/admin/hrm/employees/create`)
+### ✅ Employees Create Page (`/admin/hrm/staff/create`)
 - `GET /hrm/roles` → ✅ **FIXED** (was `/user-management/roles`)
 - `GET /hrm/departments` → ✅ Matches backend
 - `POST /user-management/users` → ✅ Correct (creating users)
 
-### ✅ Employees Edit Page (`/admin/hrm/employees/{id}/edit`)
+### ✅ Employees Edit Page (`/admin/hrm/staff/{id}/edit`)
 - `GET /hrm/roles?type=staff` → ✅ **FIXED** (was `/user-management/roles`)
 - `GET /hrm/departments` → ✅ Matches backend
 - `GET /hrm/permissions` → ✅ **FIXED** (was `/user-management/permissions`)
@@ -96,7 +96,7 @@ GET    /api/v2/hrm/permissions              → PermissionController@list
 - `PUT /hrm/payrolls/{id}` → ✅ Matches backend
 - `POST /hrm/payrolls/{id}/pay` → ✅ Matches backend
 
-### ✅ Employees Detail Page (`/admin/hrm/employees/{id}`)
+### ✅ Employees Detail Page (`/admin/hrm/staff/{id}`)
 - `GET /user-management/users/{id}` → ✅ Correct (user details)
 - `GET /hrm/leaves` → ✅ Matches backend
 - `GET /hrm/attendance` → ✅ Matches backend

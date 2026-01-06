@@ -251,7 +251,7 @@ export default function LoyaltyPage() {
             message: `${name} has been deleted successfully`,
             color: 'green',
           })
-        } catch (error) {
+        } catch {
           notifications.show({
             title: 'Error',
             message: `Failed to delete ${type.toLowerCase()}. Please try again.`,
@@ -324,7 +324,7 @@ export default function LoyaltyPage() {
         </SimpleGrid>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as any)}>
+        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as 'rules' | 'tiers' | 'rewards' | 'transactions')}>
           <Tabs.List>
             <Tabs.Tab value="rules" leftSection={<IconSettings size={14} />}>
               Rules

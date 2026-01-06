@@ -13,6 +13,7 @@ export function usePermissions() {
   const {
     user,
     permissions,
+    permissionObjects,
     token,
     setPermissions,
     hasPermission: storeHasPermission,
@@ -20,6 +21,8 @@ export function usePermissions() {
     hasAllPermissions: storeHasAllPermissions,
     hasRole,
     isSuperAdmin,
+    hasAccessToGroup,
+    getPermissionGroups,
   } = useAuthStore()
 
   /**
@@ -39,10 +42,10 @@ export function usePermissions() {
       if (response.data?.data?.user) {
         const userData = response.data.data.user
         const rolePermissions = userData.role?.permissions || []
-        const newPermissions = rolePermissions.map((p: any) => p.slug)
+        const newPermissions = rolePermissions.map((p: { slug: string }) => p.slug)
 
-        // Update store
-        setPermissions(newPermissions)
+        // Update store with both slugs and full objects
+        setPermissions(newPermissions, rolePermissions)
 
         console.log('✅ Permissions refreshed:', {
           total: newPermissions.length,
@@ -51,8 +54,8 @@ export function usePermissions() {
 
         return true
       }
-    } catch (error) {
-      console.error('Failed to refresh permissions:', error)
+    } catch (err) {
+      console.error('Failed to refresh permissions:', err)
       notifications.show({
         title: 'Error',
         message: 'Failed to refresh permissions',
@@ -106,7 +109,7 @@ export function usePermissions() {
   )
 
   /**
-   * Check if user can EDIT a specific employee's profile
+   * Check if user can EDIT a specific staff's profile
    * Super admins can edit any profile
    * Users can always edit their own profile, otherwise need permission
    */
@@ -126,14 +129,14 @@ export function usePermissions() {
         return true
       }
 
-      // Otherwise, check for employee.edit permission
-      return hasPermission('employee.edit')
+      // Otherwise, check for hrm.staff.edit permission
+      return hasPermission('hrm.staff.edit')
     },
     [user?.id, hasPermission, isSuperAdmin]
   )
 
   /**
-   * Check if user can VIEW a specific employee's profile
+   * Check if user can VIEW a specific staff's profile
    * Super admins can view any profile
    * Users can always view their own profile, otherwise need permission
    */
@@ -153,8 +156,8 @@ export function usePermissions() {
         return true
       }
 
-      // Otherwise, check for employee.view permission (or employee.index)
-      return hasPermission('employee.view') || hasPermission('employee.index')
+      // Otherwise, check for hrm.staff.view permission (or hrm.staff.index)
+      return hasPermission('hrm.staff.view') || hasPermission('hrm.staff.index')
     },
     [user?.id, hasPermission, isSuperAdmin]
   )
@@ -193,11 +196,14 @@ export function usePermissions() {
 
   return {
     permissions,
+    permissionObjects,
     hasPermission,
     hasAnyPermission,
     hasAllPermissions,
     hasRole,
     isSuperAdmin,
+    hasAccessToGroup,
+    getPermissionGroups,
     canAccessRoute,
     canEditProfile,
     canViewProfile,

@@ -83,10 +83,10 @@ export default function UsersListPage() {
         per_page: 10,
         total: response.data.data.total || 0,
       })
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to load users',
+        message: (error as any).response?.data?.message || 'Failed to load users',
         color: 'red',
       })
     } finally {
@@ -120,10 +120,10 @@ export default function UsersListPage() {
       })
       setDeleteConfirmOpened(false)
       fetchUsers(pagination?.current_page || 1, searchQuery)
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to delete user',
+        message: (error as any).response?.data?.message || 'Failed to delete user',
         color: 'red',
       })
     }
@@ -146,10 +146,10 @@ export default function UsersListPage() {
 
       setStatusConfirmOpened(false)
       fetchUsers(pagination?.current_page || 1, searchQuery)
-    } catch (error: any) {
+    } catch (error) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.message || 'Failed to update user status',
+        message: (error as any).response?.data?.message || 'Failed to update user status',
         color: 'red',
       })
     }
@@ -190,7 +190,7 @@ export default function UsersListPage() {
               variant="light"
               color="blue"
               size="md"
-              onClick={() => navigate(`/hrm/employees/${user.id}/edit`)}
+              onClick={() => navigate(`/hrm/staff/${user.id}/edit`)}
             >
               <IconEdit size={16} />
             </ActionIcon>
@@ -262,7 +262,7 @@ export default function UsersListPage() {
           {hasPermission('user.create') && (
             <Button
               leftSection={<IconPlus size={16} />}
-              onClick={() => navigate('/hrm/employees/create')}
+              onClick={() => navigate('/hrm/staff/create')}
               className="text-sm md:text-base"
               size="md"
             >
@@ -335,7 +335,7 @@ export default function UsersListPage() {
                               variant="subtle"
                               color="blue"
                               size="sm"
-                              onClick={() => navigate(`/hrm/employees/${user.id}/edit`)}
+                              onClick={() => navigate(`/hrm/staff/${user.id}/edit`)}
                             >
                               <IconEdit size={14} />
                             </ActionIcon>

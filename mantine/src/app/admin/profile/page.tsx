@@ -194,7 +194,7 @@ export default function ProfilePage() {
               </Group>
               <Button
                 component={Link}
-                to={`/hrm/employees/${user.id}/edit`}
+                to={`/hrm/staff/${user.id}/edit`}
                 leftSection={<IconEdit size={16} />}
                 variant="light"
               >

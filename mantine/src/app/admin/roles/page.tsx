@@ -207,7 +207,7 @@ export default function RolesPage() {
             message: `${name} ${t('roles.roleDeleted')}`,
             color: 'green',
           })
-        } catch (error) {
+        } catch {
           notifications.show({
             title: 'Error',
             message: 'Failed to delete role. Please try again.',
