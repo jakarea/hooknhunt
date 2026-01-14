@@ -2,12 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Probesh</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Hook & Hunt - ERP</title>
 
     @viteReactRefresh
-    @vite('resources/js/app.jsx')
+    @vite(['resources/js/main.tsx'])
 </head>
 <body>
-    <div id="app"></div>
+    <div id="root"></div>
 </body>
 </html>

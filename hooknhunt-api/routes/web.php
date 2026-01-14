@@ -29,9 +29,7 @@ Route::get('/system/refresh', function () {
 |--------------------------------------------------------------------------
 | Root (/) সহ সব non-API request React index.html serve করবে
 */
-
-
 Route::get('/{any}', function () {
     return View::make('app');
-})->where('any', '.*');
+})->where('any', '^(?!api|sanctum).*$');
 
