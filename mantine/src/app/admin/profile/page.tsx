@@ -43,21 +43,31 @@ interface User {
   last_login_at?: string
   created_at: string
   updated_at: string
+  whatsapp_number?: string
   role?: {
     id: number
     name: string
     slug: string
   }
-  profile?: {
-    department_id?: number
+  staffProfile?: {
+    user_id?: number
     designation?: string
+    department_id?: number
+    department_name?: string
     joining_date?: string
     base_salary?: number
+    house_rent?: number
+    medical_allowance?: number
+    conveyance_allowance?: number
+    overtime_hourly_rate?: number
     address?: string
-    city?: string
+    division?: string
+    district?: string
+    thana?: string
     dob?: string
     gender?: string
-    department_name?: string
+    office_email?: string
+    office_email_password?: string
   }
 }
 
@@ -90,7 +100,44 @@ export default function ProfilePage() {
         const granted = response.data.data.granted_permissions || []
         const blocked = response.data.data.blocked_permissions || []
 
-        setUser(userData)
+        // Normalize data - handle both camelCase and snake_case
+        const profileData = userData.staffProfile || userData.staff_profile
+        const normalizedProfile = profileData ? {
+          ...profileData,
+          departmentId: profileData.departmentId || profileData.department_id,
+          departmentName: profileData.departmentName || profileData.department_name,
+          designation: profileData.designation,
+          joiningDate: profileData.joiningDate || profileData.joining_date,
+          baseSalary: profileData.baseSalary || profileData.base_salary,
+          houseRent: profileData.houseRent || profileData.house_rent,
+          medicalAllowance: profileData.medicalAllowance || profileData.medical_allowance,
+          conveyanceAllowance: profileData.conveyanceAllowance || profileData.conveyance_allowance,
+          overtimeHourlyRate: profileData.overtimeHourlyRate || profileData.overtime_hourly_rate,
+          address: profileData.address,
+          division: profileData.division,
+          district: profileData.district,
+          thana: profileData.thana,
+          dob: profileData.dob,
+          gender: profileData.gender,
+          officeEmail: profileData.officeEmail || profileData.office_email,
+          whatsappNumber: profileData.whatsappNumber || profileData.whatsapp_number,
+        } : null
+
+        const normalizedUser = {
+          ...userData,
+          staffProfile: normalizedProfile,
+          whatsappNumber: userData.whatsapp_number || userData.whatsappNumber,
+          roleId: userData.roleId || userData.role_id,
+          isActive: userData.isActive || userData.is_active,
+          phoneVerifiedAt: userData.phoneVerifiedAt || userData.phone_verified_at,
+          lastLoginAt: userData.lastLoginAt || userData.last_login_at,
+          createdAt: userData.createdAt || userData.created_at,
+          updatedAt: userData.updatedAt || userData.updated_at,
+          deletedAt: userData.deletedAt || userData.deleted_at,
+        }
+
+        console.log('Normalized user data:', normalizedUser)
+        setUser(normalizedUser)
 
         // Combine role permissions with granted permissions, exclude blocked
         const allPermissions = [...rolePerms, ...granted]
@@ -177,7 +224,7 @@ export default function ProfilePage() {
                       {user.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </Group>
-                  <Text size="lg" c="dimmed" mb="xs">{user.profile?.designation || 'N/A'}</Text>
+                  <Text size="lg" c="dimmed" mb="xs">{user.staffProfile?.designation || 'N/A'}</Text>
                   <Group >
                     {user.email && (
                       <Group >
@@ -189,6 +236,12 @@ export default function ProfilePage() {
                       <IconPhone size={16} />
                       <Text size="sm">{user.phone}</Text>
                     </Group>
+                    {user.whatsapp_number && (
+                      <Group >
+                        <IconPhone size={16} />
+                        <Text size="sm" c="green">WhatsApp: {user.whatsapp_number}</Text>
+                      </Group>
+                    )}
                   </Group>
                 </Box>
               </Group>
@@ -230,6 +283,15 @@ export default function ProfilePage() {
                     <Text fw={500}>{user.phone}</Text>
                   </Box>
                 </Group>
+                {user.whatsapp_number && (
+                  <Group >
+                    <IconPhone size={18} style={{ color: 'green' }} />
+                    <Box style={{ flex: 1 }}>
+                      <Text size="xs" c="dimmed">WhatsApp Number</Text>
+                      <Text fw={500}>{user.whatsapp_number}</Text>
+                    </Box>
+                  </Group>
+                )}
                 <Group >
                   <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
@@ -237,11 +299,20 @@ export default function ProfilePage() {
                     <Text fw={500}>{user.email || 'N/A'}</Text>
                   </Box>
                 </Group>
+                {user.staffProfile?.office_email && (
+                  <Group >
+                    <IconMail size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                    <Box style={{ flex: 1 }}>
+                      <Text size="xs" c="dimmed">Office Email</Text>
+                      <Text fw={500}>{user.staffProfile.office_email}</Text>
+                    </Box>
+                  </Group>
+                )}
                 <Group >
                   <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Date of Birth</Text>
-                    <Text fw={500}>{formatDate(user.profile?.dob || null)}</Text>
+                    <Text fw={500}>{formatDate(user.staffProfile?.dob || null)}</Text>
                   </Box>
                 </Group>
                 <Group >
@@ -249,23 +320,25 @@ export default function ProfilePage() {
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Gender</Text>
                     <Text fw={500}>
-                      {user.profile?.gender
-                        ? user.profile.gender.charAt(0).toUpperCase() + user.profile.gender.slice(1)
+                      {user.staffProfile?.gender
+                        ? user.staffProfile.gender.charAt(0).toUpperCase() + user.staffProfile.gender.slice(1)
                         : 'N/A'}
                     </Text>
                   </Box>
                 </Group>
-                <Group >
-                  <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                  <Box style={{ flex: 1 }}>
-                    <Text size="xs" c="dimmed">Address</Text>
-                    <Text fw={500}>
-                      {user.profile?.address
-                        ? `${user.profile.address}, ${user.profile.city || ''}`.trim()
-                        : 'N/A'}
-                    </Text>
-                  </Box>
-                </Group>
+                {user.staffProfile?.address && (
+                  <Group >
+                    <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                    <Box style={{ flex: 1 }}>
+                      <Text size="xs" c="dimmed">Address</Text>
+                      <Text fw={500}>
+                        {[user.staffProfile.address, user.staffProfile.thana, user.staffProfile.district, user.staffProfile.division]
+                          .filter(Boolean)
+                          .join(', ') || 'N/A'}
+                      </Text>
+                    </Box>
+                  </Group>
+                )}
               </Stack>
             </Paper>
 
@@ -284,21 +357,21 @@ export default function ProfilePage() {
                   <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Department</Text>
-                    <Text fw={500}>{user.profile?.department_name || 'N/A'}</Text>
+                    <Text fw={500}>{user.staffProfile?.department_name || 'N/A'}</Text>
                   </Box>
                 </Group>
                 <Group >
                   <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Designation</Text>
-                    <Text fw={500}>{user.profile?.designation || 'N/A'}</Text>
+                    <Text fw={500}>{user.staffProfile?.designation || 'N/A'}</Text>
                   </Box>
                 </Group>
                 <Group >
                   <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Joining Date</Text>
-                    <Text fw={500}>{formatDate(user.profile?.joining_date || null)}</Text>
+                    <Text fw={500}>{formatDate(user.staffProfile?.joining_date || null)}</Text>
                   </Box>
                 </Group>
                 <Group >
@@ -306,12 +379,40 @@ export default function ProfilePage() {
                   <Box style={{ flex: 1 }}>
                     <Text size="xs" c="dimmed">Base Salary</Text>
                     <Text fw={500}>
-                      {user.profile?.base_salary
-                        ? `${parseFloat(String(user.profile.base_salary)).toLocaleString()} BDT`
+                      {user.staffProfile?.base_salary
+                        ? `${parseFloat(String(user.staffProfile.base_salary)).toLocaleString()} BDT`
                         : 'N/A'}
                     </Text>
                   </Box>
                 </Group>
+                {(user.staffProfile?.house_rent || user.staffProfile?.medical_allowance || user.staffProfile?.conveyance_allowance) && (
+                  <Group >
+                    <IconCoin size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                    <Box style={{ flex: 1 }}>
+                      <Text size="xs" c="dimmed">Allowances</Text>
+                      <Stack gap={0}>
+                        {(user.staffProfile.house_rent ?? 0) > 0 && (
+                          <Text size="sm">House Rent: {(user.staffProfile.house_rent ?? 0).toLocaleString()} BDT</Text>
+                        )}
+                        {(user.staffProfile.medical_allowance ?? 0) > 0 && (
+                          <Text size="sm">Medical: {(user.staffProfile.medical_allowance ?? 0).toLocaleString()} BDT</Text>
+                        )}
+                        {(user.staffProfile.conveyance_allowance ?? 0) > 0 && (
+                          <Text size="sm">Conveyance: {(user.staffProfile.conveyance_allowance ?? 0).toLocaleString()} BDT</Text>
+                        )}
+                      </Stack>
+                    </Box>
+                  </Group>
+                )}
+                {user.staffProfile?.overtime_hourly_rate && user.staffProfile.overtime_hourly_rate > 0 && (
+                  <Group >
+                    <IconCoin size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                    <Box style={{ flex: 1 }}>
+                      <Text size="xs" c="dimmed">Overtime Hourly Rate</Text>
+                      <Text fw={500}>{user.staffProfile.overtime_hourly_rate.toLocaleString()} BDT/hour</Text>
+                    </Box>
+                  </Group>
+                )}
                 <Group >
                   <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                   <Box style={{ flex: 1 }}>

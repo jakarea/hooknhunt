@@ -20,13 +20,28 @@ class ActivityController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check: Need crm.activities.create permission
+        if (!auth()->user()->hasPermissionTo('crm.activities.create')) {
+            return $this->sendError('You do not have permission to create activities.', null, 403);
+        }
+
         $request->validate([
             'type' => 'required|in:call,meeting,note,email,whatsapp',
             'summary' => 'required|string|max:255',
-            'schedule_at' => 'nullable|date', // Next Follow-up Date
+            'schedule_at' => 'nullable|date', // Laravel's 'date' rule accepts ISO 8601
             'lead_id' => 'required_without:customer_id',
             'customer_id' => 'required_without:lead_id',
         ]);
+
+        // Convert ISO datetime to MySQL format if needed
+        $scheduleAt = $request->schedule_at;
+        if ($scheduleAt && !is_null($scheduleAt)) {
+            try {
+                $scheduleAt = \Carbon\Carbon::parse($scheduleAt)->format('Y-m-d H:i:s');
+            } catch (\Exception $e) {
+                return $this->sendError('Invalid date format for schedule_at', [], 422);
+            }
+        }
 
         $activity = CrmActivity::create([
             'user_id' => Auth::id(), // কে নোট নিল
@@ -35,8 +50,8 @@ class ActivityController extends Controller
             'type' => $request->type,
             'summary' => $request->summary,
             'description' => $request->description,
-            'schedule_at' => $request->schedule_at,
-            'is_done' => $request->schedule_at ? false : true, // শিডিউল থাকলে কাজ বাকি (pending)
+            'schedule_at' => $scheduleAt,
+            'is_done' => $scheduleAt ? false : true, // শিডিউল থাকলে কাজ বাকি (pending)
         ]);
 
         // লিডের স্ট্যাটাস অটোমেটিক আপডেট করা (অপশনাল লজিক)
@@ -54,6 +69,11 @@ class ActivityController extends Controller
      */
     public function myTasks(Request $request)
     {
+        // Permission check: Need crm.activities.my_tasks permission
+        if (!auth()->user()->hasPermissionTo('crm.activities.my_tasks')) {
+            return $this->sendError('You do not have permission to view tasks.', null, 403);
+        }
+
         $userId = Auth::id();
         
         $tasks = CrmActivity::with(['lead', 'customer'])
@@ -78,6 +98,11 @@ class ActivityController extends Controller
      */
     public function markAsDone($id)
     {
+        // Permission check: Need crm.activities.complete permission
+        if (!auth()->user()->hasPermissionTo('crm.activities.complete')) {
+            return $this->sendError('You do not have permission to complete activities.', null, 403);
+        }
+
         $activity = CrmActivity::where('user_id', Auth::id())->findOrFail($id);
         
         $activity->update(['is_done' => true]);

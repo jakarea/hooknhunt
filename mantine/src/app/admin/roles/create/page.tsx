@@ -68,9 +68,12 @@ export default function CreateRolePage() {
           const groups: PermissionGroup[] = []
 
           Object.keys(response.data.data).forEach((groupName) => {
-            const modules: ModulePermissions[] = response.data.data[groupName].map((module: { module_name: string; permissions: Array<{ id: number; name: string; slug: string; key: string | null; group_name: string; module_name: string }> }) => ({
-              module_name: module.module_name,
-              permissions: module.permissions.map((perm) => ({
+            const modulesData = response.data.data[groupName]
+
+            // Convert object to array format
+            const modules: ModulePermissions[] = Object.keys(modulesData).map((moduleName) => ({
+              module_name: moduleName,
+              permissions: modulesData[moduleName].map((perm: any) => ({
                 id: perm.id,
                 name: perm.name,
                 slug: perm.slug,
@@ -204,6 +207,61 @@ export default function CreateRolePage() {
   // Check if module has all permissions selected
   const hasAllPermissionsInModule = useCallback((module: ModulePermissions) => {
     return module.permissions.every((perm) => selectedPermissions.includes(perm.slug))
+  }, [selectedPermissions])
+
+  // Handle bulk select by permission type at GROUP level
+  const handleGroupBulkSelectByType = useCallback((group: PermissionGroup, permissionType: string) => {
+    const typePatterns: Record<string, string[]> = {
+      'View': ['index', 'view'],
+      'Show': ['index', 'view'],
+      'Create': ['create'],
+      'Edit': ['edit', 'update'],
+      'Delete': ['delete', 'destroy'],
+    }
+
+    const patterns = typePatterns[permissionType] || []
+    const matchingPermissions = group.modules.flatMap((module) =>
+      module.permissions.filter((perm) =>
+        patterns.some((pattern) => perm.slug.toLowerCase().includes(pattern))
+      )
+    )
+
+    const matchingSlugs = matchingPermissions.map((perm) => perm.slug)
+
+    // Check if all matching permissions are already selected
+    const allSelected = matchingSlugs.length > 0 && matchingSlugs.every((slug) => selectedPermissions.includes(slug))
+
+    if (allSelected) {
+      // Deselect matching permissions
+      setSelectedPermissions((prev) => prev.filter((slug) => !matchingSlugs.includes(slug)))
+    } else {
+      // Select matching permissions
+      setSelectedPermissions((prev) => [
+        ...prev.filter((slug) => !matchingSlugs.includes(slug)),
+        ...matchingSlugs,
+      ])
+    }
+  }, [selectedPermissions])
+
+  // Check if all permissions of a specific type in group are selected
+  const hasAllPermissionsOfTypeInGroup = useCallback((group: PermissionGroup, permissionType: string) => {
+    const typePatterns: Record<string, string[]> = {
+      'View': ['index', 'view'],
+      'Show': ['index', 'view'],
+      'Create': ['create'],
+      'Edit': ['edit', 'update'],
+      'Delete': ['delete', 'destroy'],
+    }
+
+    const patterns = typePatterns[permissionType] || []
+    const matchingPermissions = group.modules.flatMap((module) =>
+      module.permissions.filter((perm) =>
+        patterns.some((pattern) => perm.slug.toLowerCase().includes(pattern))
+      )
+    )
+
+    const matchingSlugs = matchingPermissions.map((perm) => perm.slug)
+    return matchingSlugs.length > 0 && matchingSlugs.every((slug) => selectedPermissions.includes(slug))
   }, [selectedPermissions])
 
   // Handle save
@@ -358,8 +416,38 @@ export default function CreateRolePage() {
                   <Stack gap="lg">
                     {filteredGroups.map((group) => (
                       <Box key={group.groupName}>
-                        <Group mb="md">
+                        <Group justify="space-between" mb="md">
                           <Text fw={700} size="lg">{group.groupName}</Text>
+                          <Group gap="xs">
+                            <Checkbox
+                              label="Show"
+                              size="sm"
+                              checked={hasAllPermissionsOfTypeInGroup(group, 'Show')}
+                              onChange={() => handleGroupBulkSelectByType(group, 'Show')}
+                              styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                            />
+                            <Checkbox
+                              label="Create"
+                              size="sm"
+                              checked={hasAllPermissionsOfTypeInGroup(group, 'Create')}
+                              onChange={() => handleGroupBulkSelectByType(group, 'Create')}
+                              styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                            />
+                            <Checkbox
+                              label="Edit"
+                              size="sm"
+                              checked={hasAllPermissionsOfTypeInGroup(group, 'Edit')}
+                              onChange={() => handleGroupBulkSelectByType(group, 'Edit')}
+                              styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                            />
+                            <Checkbox
+                              label="Delete"
+                              size="sm"
+                              checked={hasAllPermissionsOfTypeInGroup(group, 'Delete')}
+                              onChange={() => handleGroupBulkSelectByType(group, 'Delete')}
+                              styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                            />
+                          </Group>
                         </Group>
                         <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
                           {group.modules.map((module) => {
@@ -377,7 +465,7 @@ export default function CreateRolePage() {
                               >
                                 <Stack >
                                   {/* Module Header */}
-                                  <Group justify="space-between">
+                                  <Group justify="space-between" wrap="nowrap">
                                     <Text fw={600} size="sm">{module.module_name}</Text>
                                     <Button
                                       variant="light"

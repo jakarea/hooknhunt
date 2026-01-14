@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState, useEffect } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import {
   Box,
   Stack,
@@ -11,13 +11,13 @@ import {
   Paper,
   SimpleGrid,
   Card,
-  Table,
-  ActionIcon,
   Avatar,
   Anchor,
   Breadcrumbs,
   Tabs,
   Timeline,
+  LoadingOverlay,
+  Alert,
 } from '@mantine/core'
 import {
   IconChevronRight,
@@ -31,137 +31,129 @@ import {
   IconCoin,
   IconArrowLeft,
   IconPackage,
-  IconTruck,
   IconClock,
   IconCheck,
-  IconEye,
   IconTrendingUp,
+  IconAlertCircle,
+  IconInfoCircle,
 } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
+import api from '@/lib/api'
 
-// Mock customer data
-const mockCustomer = {
-  id: 1,
-  name: 'John Doe',
-  email: 'john@example.com',
-  phone: '+880 1712-345678',
-  type: 'retail',
-  status: 'active',
-  wallet_balance: 1500.00,
-  loyalty_points: 450,
-  tier: 'silver',
-  total_orders: 15,
-  total_spent: 45000.00,
-  avg_order_value: 3000.00,
-  last_order_date: '2024-12-28',
-  created_at: '2024-01-15',
-  verified_at: '2024-01-16',
-  addresses: [
-    {
-      id: 1,
-      label: 'Home',
-      full_name: 'John Doe',
-      phone: '+880 1712-345678',
-      address: 'House 12, Road 5',
-      area: 'Dhanmondi',
-      city: 'Dhaka',
-      zip: '1209',
-      is_default: true,
-    },
-    {
-      id: 2,
-      label: 'Office',
-      full_name: 'John Doe',
-      phone: '+880 1712-345678',
-      address: 'Plot 45, Gulshan Avenue',
-      area: 'Gulshan',
-      city: 'Dhaka',
-      zip: '1213',
-      is_default: false,
-    },
-  ],
-  recent_orders: [
-    {
-      id: 'INV-2024-1234',
-      date: '2024-12-28',
-      status: 'delivered',
-      total: 4500.00,
-      items: 3,
-    },
-    {
-      id: 'INV-2024-1198',
-      date: '2024-12-20',
-      status: 'shipped',
-      total: 3200.00,
-      items: 2,
-    },
-    {
-      id: 'INV-2024-1156',
-      date: '2024-12-15',
-      status: 'delivered',
-      total: 5800.00,
-      items: 4,
-    },
-  ],
-  wallet_transactions: [
-    {
-      id: 1,
-      type: 'credit',
-      amount: 500.00,
-      description: 'Order refund - INV-2024-1100',
-      balance: 1500.00,
-      date: '2024-12-25 14:30',
-    },
-    {
-      id: 2,
-      type: 'debit',
-      amount: 800.00,
-      description: 'Order payment - INV-2024-1234',
-      balance: 1000.00,
-      date: '2024-12-28 10:15',
-    },
-    {
-      id: 3,
-      type: 'credit',
-      amount: 500.00,
-      description: 'Loyalty points redemption',
-      balance: 1500.00,
-      date: '2024-12-29 16:45',
-    },
-  ],
-  activity_log: [
-    {
-      id: 1,
-      action: 'Order Placed',
-      description: 'Placed order INV-2024-1234',
-      date: '2024-12-28 10:15',
-    },
-    {
-      id: 2,
-      action: 'Profile Updated',
-      description: 'Updated phone number',
-      date: '2024-12-25 14:20',
-    },
-    {
-      id: 3,
-      action: 'Address Added',
-      description: 'Added new office address',
-      date: '2024-12-20 09:30',
-    },
-  ],
+// Types based on backend API response
+interface User {
+  id: number
+  name: string
+  email: string | null
+  phone: string
+  roleId?: number | null
+  isActive: boolean
+  phoneVerifiedAt?: string | null
+  lastLoginAt?: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string | null
+  role?: {
+    id: number
+    name: string
+    slug: string
+    description?: string | null
+  }
+  profile?: {
+    id: number
+    userId: number
+    departmentId?: number | null
+    designation?: string | null
+    joiningDate?: string | null
+    baseSalary?: number | null
+    address?: string | null
+    city?: string | null
+    dob?: string | null
+    gender?: string | null
+  }
+  customerProfile?: {
+    id: number
+    userId: number
+    type?: string
+    source?: string
+    preferredLanguage?: string
+    preferred_language?: string
+    marketingConsent?: boolean
+    marketing_consent?: boolean
+    loyaltyTier?: string
+    loyalty_tier?: string
+    loyaltyPoints?: number
+    loyalty_points?: number
+    totalOrders?: number
+    total_orders?: number
+    totalSpent?: number
+    total_spent?: number
+    notes?: string
+    dob?: string | null
+    gender?: string | null
+    address?: string | null
+    division?: string | null
+    district?: string | null
+    thana?: string | null
+    trade_license_no?: string | null
+    tax_id?: string | null
+  }
+}
+
+interface ApiResponse {
+  status: boolean
+  message: string
+  data: User | { user: User; role_permissions?: any; granted_permissions?: any; blocked_permissions?: any }
 }
 
 export default function CustomerDetailsPage() {
-  const customer = mockCustomer
-
+  const { id } = useParams<{ id: string }>()
+  const [loading, setLoading] = useState(true)
+  const [customer, setCustomer] = useState<User | null>(null)
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'wallet' | 'activity'>('overview')
 
+  // Fetch customer data
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      if (!id) return
+
+      setLoading(true)
+      try {
+        const response = await api.get<ApiResponse>(`/user-management/users/${id}`)
+
+        // Backend returns { data: { user: {...}, ... } }
+        const data = response.data?.data
+        const userData = data && typeof data === 'object' && 'user' in data ? (data as { user: User }).user : data as User
+
+        if (response.data?.status && userData) {
+          setCustomer(userData)
+        } else {
+          throw new Error('Failed to fetch customer')
+        }
+      } catch (error) {
+        console.error('Error fetching customer:', error)
+        notifications.show({
+          title: 'Error',
+          message: 'Failed to load customer details. Please try again.',
+          color: 'red',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCustomer()
+  }, [id])
+
   // Format currency
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | null | undefined) => {
+    if (amount === null || amount === undefined) return '৳0.00'
     return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   // Format date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -169,7 +161,8 @@ export default function CustomerDetailsPage() {
     })
   }
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -179,365 +172,211 @@ export default function CustomerDetailsPage() {
     })
   }
 
-  // Profile header
-  const profileHeader = useMemo(() => (
-    <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Group justify="space-between" align="flex-start" wrap="nowrap">
-        <Group  wrap="wrap">
-          <Avatar
-            src={null}
-            alt={customer.name}
-            radius="xl"
-            size="xl"
-            color="red"
-          >
-            {customer.name.charAt(0).toUpperCase()}
-          </Avatar>
-          <Box>
-            <Group  mb="xs">
-              <Title order={2}>{customer.name}</Title>
-              <Badge
-                color={customer.status === 'active' ? 'green' : 'gray'}
-                variant="light"
-                size="lg"
-              >
-                {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
-              </Badge>
-              <Badge
-                color={customer.type === 'wholesale' ? 'blue' : 'gray'}
-                variant="light"
-              >
-                {customer.type.charAt(0).toUpperCase() + customer.type.slice(1)}
-              </Badge>
-            </Group>
-            <Group  mb="sm">
-              {customer.email && (
-                <Group >
-                  <IconMail size={16} />
-                  <Text size="sm">{customer.email}</Text>
-                </Group>
-              )}
-              <Group >
-                <IconPhone size={16} />
-                <Text size="sm">{customer.phone}</Text>
-              </Group>
-            </Group>
-            <Group >
-              <Text size="sm" c="dimmed">Member since {formatDate(customer.created_at)}</Text>
-            </Group>
-          </Box>
-        </Group>
-        <Group >
-          <Button
-            variant="default"
-            size="sm"
-            component={Link}
-            to="/crm/customers"
-            leftSection={<IconArrowLeft size={16} />}
-          >
-            Back
-          </Button>
-          <Button
-            component={Link}
-            to={`/crm/customers/${customer.id}/edit`}
-            leftSection={<IconEdit size={16} />}
-          >
-            Edit Customer
-          </Button>
-        </Group>
-      </Group>
-    </Paper>
-  ), [customer])
+  // Determine customer type based on role
+  const customerType = useMemo(() => {
+    if (!customer?.role) return 'Unknown'
+    if (customer.role.slug === 'wholesale_customer') return 'Wholesale'
+    if (customer.role.slug === 'retail_customer') return 'Retail'
+    return customer.role.name
+  }, [customer])
 
-  // Stats cards
-  const statsCards = useMemo(() => (
-    <SimpleGrid cols={{ base: 2, md: 3, lg: 6 }} spacing="md">
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-          <Text size="xs" c="dimmed">Wallet Balance</Text>
-        </Group>
-        <Text size="xl" fw={700}>{formatCurrency(customer.wallet_balance)}</Text>
-      </Card>
-
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconShoppingBag size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-          <Text size="xs" c="dimmed">Total Orders</Text>
-        </Group>
-        <Text size="xl" fw={700}>{customer.total_orders}</Text>
-      </Card>
-
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconCoin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-          <Text size="xs" c="dimmed">Total Spent</Text>
-        </Group>
-        <Text size="xl" fw={700}>{formatCurrency(customer.total_spent)}</Text>
-      </Card>
-
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconPackage size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-          <Text size="xs" c="dimmed">Loyalty Points</Text>
-        </Group>
-        <Text size="xl" fw={700}>{customer.loyalty_points}</Text>
-      </Card>
-
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-cyan-filled)' }} />
-          <Text size="xs" c="dimmed">Avg Order Value</Text>
-        </Group>
-        <Text size="xl" fw={700}>{formatCurrency(customer.avg_order_value)}</Text>
-      </Card>
-
-      <Card withBorder p="md" radius="md">
-        <Group  mb="xs">
-          <IconCalendar size={20} style={{ color: 'var(--mantine-color-violet-filled)' }} />
-          <Text size="xs" c="dimmed">Last Order</Text>
-        </Group>
-        <Text size="sm" fw={700} lineClamp={1}>{formatDate(customer.last_order_date)}</Text>
-      </Card>
-    </SimpleGrid>
-  ), [customer])
-
-  // Personal information
-  const personalInfo = useMemo(() => (
-    <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Personal Information</Title>
-      <SimpleGrid cols={{ base: 1, sm: 2 }}>
-        <Group >
-          <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-          <Box>
-            <Text size="xs" c="dimmed">Email</Text>
-            <Text fw={500} size="sm">{customer.email || 'N/A'}</Text>
-          </Box>
-        </Group>
-        <Group >
-          <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-          <Box>
-            <Text size="xs" c="dimmed">Phone</Text>
-            <Text fw={500} size="sm">{customer.phone}</Text>
-          </Box>
-        </Group>
-        <Group >
-          <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-          <Box>
-            <Text size="xs" c="dimmed">Member Since</Text>
-            <Text fw={500} size="sm">{formatDate(customer.created_at)}</Text>
-          </Box>
-        </Group>
-        <Group >
-          <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-          <Box>
-            <Text size="xs" c="dimmed">Account Status</Text>
-            <Badge
-              color={customer.status === 'active' ? 'green' : 'gray'}
-              variant="light"
-              size="sm"
-            >
-              {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
-            </Badge>
-          </Box>
-        </Group>
-      </SimpleGrid>
-    </Card>
-  ), [customer])
-
-  // Addresses
-  const addressesSection = useMemo(() => (
-    <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Addresses</Title>
-      <Stack >
-        {customer.addresses.map((address) => (
-          <Paper key={address.id} withBorder p="md" radius="md">
-            <Group justify="space-between" mb="xs">
-              <Group >
-                <IconMapPin size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                <Text fw={600} size="sm">{address.label}</Text>
-                {address.is_default && (
-                  <Badge size="xs" color="blue" variant="light">Default</Badge>
-                )}
-              </Group>
-            </Group>
-            <Text size="sm">{address.full_name}</Text>
-            <Text size="sm" c="dimmed">{address.phone}</Text>
-            <Text size="sm">{address.address}, {address.area}</Text>
-            <Text size="sm">{address.city} - {address.zip}</Text>
-          </Paper>
-        ))}
-      </Stack>
-    </Card>
-  ), [customer])
-
-  // Recent orders table (desktop)
-  const recentOrdersTable = useMemo(() => (
-    <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-      <Group justify="space-between" mb="md">
-        <Title order={4} className="text-base md:text-lg lg:text-xl">Recent Orders</Title>
-        <Button
-          variant="subtle"
-          size="sm"
-          component={Link}
-          to="/sales/orders"
-        >
-          View All Orders
-        </Button>
-      </Group>
-
-      <Box display={{ base: 'none', md: 'block' }}>
-        <Table.ScrollContainer minWidth={1100}>
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Order ID</Table.Th>
-                <Table.Th>Date</Table.Th>
-                <Table.Th>Items</Table.Th>
-                <Table.Th>Total</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Payment</Table.Th>
-                <Table.Th>Delivery</Table.Th>
-                <Table.Th>Action</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {customer.recent_orders.map((order) => (
-                <Table.Tr key={order.id}>
-                  <Table.Td>
-                    <Anchor
-                      component={Link}
-                      to={`/sales/orders/${order.id}`}
-                      size="sm"
-                      fw={600}
-                    >
-                      {order.id}
-                    </Anchor>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{formatDate(order.date)}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text size="sm">{order.items} items</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Text fw={600} size="sm">{formatCurrency(order.total)}</Text>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge
-                      color={
-                        order.status === 'delivered' ? 'green' :
-                        order.status === 'shipped' ? 'blue' :
-                        order.status === 'processing' ? 'yellow' :
-                        order.status === 'cancelled' ? 'red' : 'gray'
-                      }
-                      variant="light"
-                      size="sm"
-                    >
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge size="xs" variant="light" color="green">Paid</Badge>
-                  </Table.Td>
-                  <Table.Td>
-                    <Group >
-                      <IconTruck size={14} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                      <Text size="xs">Home Delivery</Text>
-                    </Group>
-                  </Table.Td>
-                  <Table.Td>
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      component={Link}
-                      to={`/sales/orders/${order.id}`}
-                      size="sm"
-                    >
-                      <IconEye size={16} />
-                    </ActionIcon>
-                  </Table.Td>
-                </Table.Tr>
-              ))}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
+  // Loading state - return early
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Paper withBorder p="xl" radius="lg">
+          <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
+          <Box h={300} />
+        </Paper>
       </Box>
+    )
+  }
 
-      {/* Mobile: Card view for orders */}
-      <Stack  display={{ base: 'block', md: 'none' }}>
-        {customer.recent_orders.map((order) => (
-          <Card key={order.id} shadow="sm" p="sm" radius="md" withBorder>
-            <Group justify="space-between" mb="xs">
-              <Anchor
-                component={Link}
-                to={`/sales/orders/${order.id}`}
-                size="sm"
-                fw={600}
-              >
-                {order.id}
-              </Anchor>
-              <Badge
-                color={
-                  order.status === 'delivered' ? 'green' :
-                  order.status === 'shipped' ? 'blue' :
-                  'gray'
-                }
-                variant="light"
-                size="sm"
-              >
-                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-              </Badge>
-            </Group>
-            <Text size="sm" mb="xs" c="dimmed">{formatDate(order.date)}</Text>
-            <Group  mb="xs">
-              <Box>
-                <Text size="xs" c="dimmed">Items</Text>
-                <Text size="sm">{order.items} items</Text>
-              </Box>
-              <Box>
-                <Text size="xs" c="dimmed">Total</Text>
-                <Text fw={600} size="sm">{formatCurrency(order.total)}</Text>
-              </Box>
-            </Group>
-            <Group >
-              <Badge size="xs" variant="light" color="green">Paid</Badge>
-              <Group >
-                <IconTruck size={14} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                <Text size="xs">Home Delivery</Text>
-              </Group>
-            </Group>
-          </Card>
-        ))}
-      </Stack>
-    </Card>
-  ), [customer])
+  // Error state - return early
+  if (!customer) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Alert icon={<IconAlertCircle size={16} />} color="red" title="Customer Not Found">
+          The requested customer could not be found.{' '}
+          <Anchor component={Link} to="/crm/customers">
+            Return to customers list
+          </Anchor>
+        </Alert>
+      </Box>
+    )
+  }
+
+  // Now we know customer exists, safely destructure
+  const { name, email, phone, isActive, phoneVerifiedAt, lastLoginAt, createdAt, profile } = customer
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack >
+      <Stack>
         {/* Breadcrumbs */}
         <Breadcrumbs separator={<IconChevronRight size={14} />}>
-          <Anchor component={Link} to="/dashboard" c="dimmed">Dashboard</Anchor>
-          <Anchor component={Link} to="/crm" c="dimmed">CRM</Anchor>
-          <Anchor component={Link} to="/crm/customers" c="dimmed">Customers</Anchor>
-          <Text c="red">{customer.name}</Text>
+          <Anchor component={Link} to="/dashboard" c="dimmed">
+            Dashboard
+          </Anchor>
+          <Anchor component={Link} to="/crm" c="dimmed">
+            CRM
+          </Anchor>
+          <Anchor component={Link} to="/crm/customers" c="dimmed">
+            Customers
+          </Anchor>
+          <Text c="red">{name}</Text>
         </Breadcrumbs>
 
         {/* Header */}
         <Box>
-          <Title order={1} className="text-lg md:text-xl lg:text-2xl">Customer Profile</Title>
-          <Text c="dimmed" className="text-sm md:text-base">View and manage customer information</Text>
+          <Title order={1} className="text-lg md:text-xl lg:text-2xl">
+            Customer Profile
+          </Title>
+          <Text c="dimmed" className="text-sm md:text-base">
+            View and manage customer information
+          </Text>
         </Box>
 
         {/* Profile Header */}
-        {profileHeader}
+        <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+          <Group justify="space-between" align="flex-start" wrap="nowrap">
+            <Group wrap="wrap">
+              <Avatar
+                src={null}
+                alt={name}
+                radius="xl"
+                size="xl"
+                color="red"
+              >
+                {name.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box>
+                <Group mb="xs">
+                  <Title order={2}>{name}</Title>
+                  <Badge
+                    color={isActive ? 'green' : 'gray'}
+                    variant="light"
+                    size="lg"
+                  >
+                    {isActive ? 'Active' : 'Inactive'}
+                  </Badge>
+                  <Badge color={customerType === 'Wholesale' ? 'blue' : 'gray'} variant="light">
+                    {customerType}
+                  </Badge>
+                </Group>
+                <Group mb="sm">
+                  {email && (
+                    <Group>
+                      <IconMail size={16} />
+                      <Text size="sm">{email}</Text>
+                    </Group>
+                  )}
+                  <Group>
+                    <IconPhone size={16} />
+                    <Text size="sm">{phone}</Text>
+                  </Group>
+                </Group>
+                <Group>
+                  <Text size="sm" c="dimmed">
+                    Member since {formatDate(createdAt)}
+                  </Text>
+                  {phoneVerifiedAt && (
+                    <Badge size="xs" color="green" variant="light">
+                      <IconCheck size={10} style={{ marginRight: 4 }} />
+                      Verified
+                    </Badge>
+                  )}
+                </Group>
+              </Box>
+            </Group>
+            <Group>
+              <Button
+                variant="default"
+                size="sm"
+                component={Link}
+                to="/crm/customers"
+                leftSection={<IconArrowLeft size={16} />}
+              >
+                Back
+              </Button>
+              <Button
+                component={Link}
+                to={`/crm/customers/${customer.id}/edit`}
+                leftSection={<IconEdit size={16} />}
+              >
+                Edit Customer
+              </Button>
+            </Group>
+          </Group>
+        </Paper>
 
         {/* Stats Cards */}
-        {statsCards}
+        <SimpleGrid cols={{ base: 2, md: 3, lg: 6 }} spacing="md">
+          <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
+            <Group mb="xs">
+              <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+              <Text size="xs" c="dimmed">Wallet Balance</Text>
+            </Group>
+            <Text size="xl" fw={700}>৳0.00</Text>
+            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md">
+            <Group mb="xs">
+              <IconShoppingBag size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
+              <Text size="xs" c="dimmed">Total Orders</Text>
+            </Group>
+            <Text size="xl" fw={700}>{customer.customerProfile?.total_orders || customer.customerProfile?.totalOrders || 0}</Text>
+            <Text size="xs" c="dimmed" mt={2}>All time</Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md">
+            <Group mb="xs">
+              <IconCoin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+              <Text size="xs" c="dimmed">Total Spent</Text>
+            </Group>
+            <Text size="md" fw={700}>{formatCurrency(customer.customerProfile?.total_spent || customer.customerProfile?.totalSpent || 0)}</Text>
+            <Text size="xs" c="dimmed" mt={2}>All time</Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md">
+            <Group mb="xs">
+              <IconPackage size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
+              <Text size="xs" c="dimmed">Loyalty Points</Text>
+            </Group>
+            <Text size="xl" fw={700}>{customer.customerProfile?.loyalty_points || customer.customerProfile?.loyaltyPoints || 0}</Text>
+            <Badge size="xs" color="grape" variant="light" mt={2}>
+              {customer.customerProfile?.loyalty_tier || customer.customerProfile?.loyaltyTier || 'Bronze'}
+            </Badge>
+          </Card>
+
+          <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
+            <Group mb="xs">
+              <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-cyan-filled)' }} />
+              <Text size="xs" c="dimmed">Avg Order Value</Text>
+            </Group>
+            <Text size="xl" fw={700}>৳0.00</Text>
+            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
+            <Group mb="xs">
+              <IconCalendar size={20} style={{ color: 'var(--mantine-color-violet-filled)' }} />
+              <Text size="xs" c="dimmed">Last Order</Text>
+            </Group>
+            <Text size="sm" fw={700} lineClamp={1}>
+              Never
+            </Text>
+            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+          </Card>
+        </SimpleGrid>
 
         {/* Tabs */}
-        <Tabs value={activeTab} onChange={(value) => setActiveTab(value as 'overview' | 'orders' | 'wallet' | 'activity')}>
+        <Tabs
+          value={activeTab}
+          onChange={(value) =>
+            setActiveTab(value as 'overview' | 'orders' | 'wallet' | 'activity')
+          }
+        >
           <Tabs.List>
             <Tabs.Tab value="overview" leftSection={<IconPackage size={14} />}>
               Overview
@@ -552,114 +391,317 @@ export default function CustomerDetailsPage() {
 
           {/* Overview Tab */}
           <Tabs.Panel value="overview">
-            <Stack  mt="md">
+            <Stack mt="md">
               <SimpleGrid cols={{ base: 1, md: 2 }}>
-                {personalInfo}
-                {addressesSection}
-              </SimpleGrid>
-              {recentOrdersTable}
-            </Stack>
-          </Tabs.Panel>
-
-
-          {/* Wallet Tab */}
-          <Tabs.Panel value="wallet">
-            <Stack  mt="md">
-              <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-                <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Wallet Transactions</Title>
-                <Box display={{ base: 'none', md: 'block' }}>
-                  <Table striped highlightOnHover>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>Date</Table.Th>
-                        <Table.Th>Type</Table.Th>
-                        <Table.Th>Description</Table.Th>
-                        <Table.Th>Amount</Table.Th>
-                        <Table.Th>Balance</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {customer.wallet_transactions.map((txn) => (
-                        <Table.Tr key={txn.id}>
-                          <Table.Td>
-                            <Text size="sm">{formatDateTime(txn.date)}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Badge
-                              color={txn.type === 'credit' ? 'green' : 'red'}
-                              variant="light"
-                              size="sm"
-                            >
-                              {txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}
-                            </Badge>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm">{txn.description}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text
-                              fw={600}
-                              size="sm"
-                              c={txn.type === 'credit' ? 'green' : 'red'}
-                            >
-                              {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text fw={600} size="sm">{formatCurrency(txn.balance)}</Text>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </Box>
-
-                {/* Mobile wallet transactions */}
-                <Stack  display={{ base: 'block', md: 'none' }}>
-                  {customer.wallet_transactions.map((txn) => (
-                    <Paper key={txn.id} withBorder p="sm" radius="md">
-                      <Group justify="space-between" mb="xs">
+                {/* Personal Information */}
+                <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+                  <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">
+                    Personal Information
+                  </Title>
+                  <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                    <Group>
+                      <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Email</Text>
+                        <Text fw={500} size="sm">
+                          {email || 'Not provided'}
+                        </Text>
+                      </Box>
+                    </Group>
+                    <Group>
+                      <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Phone</Text>
+                        <Text fw={500} size="sm">{phone}</Text>
+                      </Box>
+                    </Group>
+                    <Group>
+                      <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Member Since</Text>
+                        <Text fw={500} size="sm">{formatDate(createdAt)}</Text>
+                      </Box>
+                    </Group>
+                    <Group>
+                      <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Account Status</Text>
                         <Badge
-                          color={txn.type === 'credit' ? 'green' : 'red'}
+                          color={isActive ? 'green' : 'gray'}
                           variant="light"
                           size="sm"
                         >
-                          {txn.type.charAt(0).toUpperCase() + txn.type.slice(1)}
+                          {isActive ? 'Active' : 'Inactive'}
                         </Badge>
-                        <Text fw={600} size="sm" c={txn.type === 'credit' ? 'green' : 'red'}>
-                          {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
-                        </Text>
-                      </Group>
-                      <Text size="sm">{txn.description}</Text>
-                      <Text size="xs" c="dimmed">{formatDateTime(txn.date)}</Text>
-                      <Group  mt="xs">
-                        <Text size="xs" c="dimmed">Balance:</Text>
-                        <Text fw={600} size="xs">{formatCurrency(txn.balance)}</Text>
-                      </Group>
-                    </Paper>
-                  ))}
-                </Stack>
+                      </Box>
+                    </Group>
+                    <Group>
+                      <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Last Login</Text>
+                        <Text fw={500} size="sm">{formatDateTime(lastLoginAt)}</Text>
+                      </Box>
+                    </Group>
+                    <Group>
+                      <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                      <Box>
+                        <Text size="xs" c="dimmed">Phone Verified</Text>
+                        <Text fw={500} size="sm">{formatDate(phoneVerifiedAt)}</Text>
+                      </Box>
+                    </Group>
+                  </SimpleGrid>
+
+                  {/* Customer Profile fields */}
+                  {customer.customerProfile && (
+                    <>
+                      <Title order={5} mt="md" mb="sm">
+                        Customer Details
+                      </Title>
+                      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                        {(customer.customerProfile.dob || customer.customerProfile.gender) && (
+                          <>
+                            {customer.customerProfile.dob && (
+                              <Group>
+                                <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Date of Birth</Text>
+                                  <Text fw={500} size="sm">{formatDate(customer.customerProfile.dob)}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                            {customer.customerProfile.gender && (
+                              <Group>
+                                <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Gender</Text>
+                                  <Text fw={500} size="sm" style={{ textTransform: 'capitalize' }}>
+                                    {customer.customerProfile.gender}
+                                  </Text>
+                                </Box>
+                              </Group>
+                            )}
+                          </>
+                        )}
+
+                        {customer.customerProfile.address && (
+                          <Group style={{ gridColumn: '1 / -1' }}>
+                            <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Address</Text>
+                              <Text fw={500} size="sm">{customer.customerProfile.address}</Text>
+                            </Box>
+                          </Group>
+                        )}
+
+                        {(customer.customerProfile.division || customer.customerProfile.district || customer.customerProfile.thana) && (
+                          <>
+                            {customer.customerProfile.division && (
+                              <Group>
+                                <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Division</Text>
+                                  <Text fw={500} size="sm">{customer.customerProfile.division}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                            {customer.customerProfile.district && (
+                              <Group>
+                                <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">District</Text>
+                                  <Text fw={500} size="sm">{customer.customerProfile.district}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                            {customer.customerProfile.thana && (
+                              <Group>
+                                <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Thana</Text>
+                                  <Text fw={500} size="sm">{customer.customerProfile.thana}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                          </>
+                        )}
+
+                        {(customer.customerProfile.trade_license_no || customer.customerProfile.tax_id) && (
+                          <>
+                            {customer.customerProfile.trade_license_no && (
+                              <Group>
+                                <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Trade License No.</Text>
+                                  <Text fw={500} size="sm">{customer.customerProfile.trade_license_no}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                            {customer.customerProfile.tax_id && (
+                              <Group>
+                                <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                                <Box>
+                                  <Text size="xs" c="dimmed">Tax ID</Text>
+                                  <Text fw={500} size="sm">{customer.customerProfile.tax_id}</Text>
+                                </Box>
+                              </Group>
+                            )}
+                          </>
+                        )}
+
+                        {customer.customerProfile.preferred_language && (
+                          <Group>
+                            <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Preferred Language</Text>
+                              <Text fw={500} size="sm">
+                                {customer.customerProfile.preferred_language === 'en' ? 'English' : 'বাংলা (Bengali)'}
+                              </Text>
+                            </Box>
+                          </Group>
+                        )}
+
+                        {customer.customerProfile.marketing_consent !== undefined && (
+                          <Group>
+                            <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Marketing Consent</Text>
+                              <Badge
+                                color={customer.customerProfile.marketing_consent ? 'green' : 'gray'}
+                                variant="light"
+                                size="sm"
+                              >
+                                {customer.customerProfile.marketing_consent ? 'Accepted' : 'Declined'}
+                              </Badge>
+                            </Box>
+                          </Group>
+                        )}
+                      </SimpleGrid>
+                    </>
+                  )}
+
+                  {/* Staff Profile fields (if exists) */}
+                  {profile && (
+                    <>
+                      <Title order={5} mt="md" mb="sm">
+                        Staff Information
+                      </Title>
+                      <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                        {profile.designation && (
+                          <Group>
+                            <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Designation</Text>
+                              <Text fw={500} size="sm">{profile.designation}</Text>
+                            </Box>
+                          </Group>
+                        )}
+                        {profile.city && (
+                          <Group>
+                            <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">City</Text>
+                              <Text fw={500} size="sm">{profile.city}</Text>
+                            </Box>
+                          </Group>
+                        )}
+                        {profile.address && (
+                          <Group>
+                            <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Address</Text>
+                              <Text fw={500} size="sm">{profile.address}</Text>
+                            </Box>
+                          </Group>
+                        )}
+                        {profile.baseSalary && (
+                          <Group>
+                            <IconCoin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                            <Box>
+                              <Text size="xs" c="dimmed">Base Salary</Text>
+                              <Text fw={500} size="sm">{formatCurrency(profile.baseSalary)}</Text>
+                            </Box>
+                          </Group>
+                        )}
+                      </SimpleGrid>
+                    </>
+                  )}
+                </Card>
+
+                {/* Addresses */}
+                <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+                  <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">
+                    Notes
+                  </Title>
+                  {customer.customerProfile?.notes ? (
+                    <Text size="sm">{customer.customerProfile.notes}</Text>
+                  ) : (
+                    <Alert icon={<IconInfoCircle size={16} />} color="blue">
+                      <Text size="sm">No notes added for this customer.</Text>
+                    </Alert>
+                  )}
+                </Card>
+              </SimpleGrid>
+
+              {/* Recent Orders */}
+              <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+                <Group justify="space-between" mb="md">
+                  <Title order={4} className="text-base md:text-lg lg:text-xl">
+                    Recent Orders
+                  </Title>
+                </Group>
+                <Alert icon={<IconInfoCircle size={16} />} color="blue">
+                  <Text size="sm">
+                    Order history will be displayed here once the sales module is fully integrated.
+                  </Text>
+                </Alert>
+              </Card>
+            </Stack>
+          </Tabs.Panel>
+
+          {/* Wallet Tab */}
+          <Tabs.Panel value="wallet">
+            <Stack mt="md">
+              <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+                <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">
+                  Wallet Transactions
+                </Title>
+                <Alert icon={<IconInfoCircle size={16} />} color="blue">
+                  <Text size="sm">
+                    The wallet system is coming soon. Customers will be able to maintain a balance
+                    and use it for purchases.
+                  </Text>
+                </Alert>
               </Card>
             </Stack>
           </Tabs.Panel>
 
           {/* Activity Tab */}
           <Tabs.Panel value="activity">
-            <Stack  mt="md">
+            <Stack mt="md">
               <Card withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
-                <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">Activity Log</Title>
+                <Title order={4} className="text-base md:text-lg lg:text-xl" mb="md">
+                  Activity Log
+                </Title>
                 <Timeline bulletSize={24}>
-                  {customer.activity_log.map((activity) => (
-                    <Timeline.Item
-                      key={activity.id}
-                      bullet={<IconClock size={12} />}
-                      color="red"
-                    >
-                      <Text fw={600} size="sm">{activity.action}</Text>
-                      <Text size="sm" c="dimmed">{activity.description}</Text>
-                      <Text size="xs" c="dimmed">{formatDateTime(activity.date)}</Text>
+                  <Timeline.Item bullet={<IconClock size={12} />} color="red">
+                    <Text fw={600} size="sm">Account Created</Text>
+                    <Text size="sm" c="dimmed">Customer account was created</Text>
+                    <Text size="xs" c="dimmed">{formatDateTime(createdAt)}</Text>
+                  </Timeline.Item>
+                  {phoneVerifiedAt && (
+                    <Timeline.Item bullet={<IconCheck size={12} />} color="green">
+                      <Text fw={600} size="sm">Phone Verified</Text>
+                      <Text size="sm" c="dimmed">Phone number was verified</Text>
+                      <Text size="xs" c="dimmed">{formatDateTime(phoneVerifiedAt)}</Text>
                     </Timeline.Item>
-                  ))}
+                  )}
+                  {lastLoginAt && (
+                    <Timeline.Item bullet={<IconCalendar size={12} />} color="blue">
+                      <Text fw={600} size="sm">Last Login</Text>
+                      <Text size="sm" c="dimmed">Last logged into the system</Text>
+                      <Text size="xs" c="dimmed">{formatDateTime(lastLoginAt)}</Text>
+                    </Timeline.Item>
+                  )}
                 </Timeline>
               </Card>
             </Stack>

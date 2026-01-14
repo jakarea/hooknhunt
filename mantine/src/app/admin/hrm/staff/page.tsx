@@ -36,6 +36,7 @@ import { notifications } from '@mantine/notifications'
 import { modals } from '@mantine/modals'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Staff {
   id: number
@@ -47,13 +48,24 @@ interface Staff {
     name: string
     slug: string
   }
-  profile?: {
+  staffProfile?: {
     department_id?: number
     designation?: string
     joining_date?: string
     base_salary?: number
+    house_rent?: number
+    medical_allowance?: number
+    conveyance_allowance?: number
+    overtime_hourly_rate?: number
     address?: string
-    city?: string
+    division?: string
+    district?: string
+    thana?: string
+    dob?: string
+    gender?: string
+    whatsapp_number?: string
+    office_email?: string
+    office_email_password?: string
     department?: {
       id: number
       name: string
@@ -74,6 +86,8 @@ interface PaginatedResponse {
 
 export default function StaffPage() {
   const { user: currentUser } = useAuthStore()
+  const { hasPermission } = usePermissions()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
   const [staffData, setStaffData] = useState<PaginatedResponse | null>(null)
@@ -193,7 +207,7 @@ export default function StaffPage() {
   const activeStaff = useMemo(() => staff.filter(s => s.is_active).length, [staff])
   const onLeaveStaff = 0 // No leave status in current data structure
   const departmentsCount = useMemo(
-    () => new Set(staff.map(s => s.profile?.department_id)).size,
+    () => new Set(staff.map(s => s.staffProfile?.department_id)).size,
     [staff]
   )
 
@@ -204,12 +218,6 @@ export default function StaffPage() {
       return `${parts[0][0]}${parts[1][0]}`.toUpperCase()
     }
     return name[0].toUpperCase()
-  }
-
-  // Format currency
-  const formatCurrency = (amount?: number) => {
-    if (!amount) return 'N/A'
-    return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
   }
 
   // Format date
@@ -241,13 +249,15 @@ export default function StaffPage() {
               >
                 <IconRefresh size={18} />
               </ActionIcon>
-              <Button
-                component={Link}
-                to="/hrm/staff/create"
-                leftSection={<IconPlus size={16} />}
-              >
-                Add Staff
-              </Button>
+              {hasPermission('hrm.staff.create') && (
+                <Button
+                  component={Link}
+                  to="/hrm/staff/create"
+                  leftSection={<IconPlus size={16} />}
+                >
+                  Add Staff
+                </Button>
+              )}
             </Group>
           </Group>
         </Box>
@@ -311,9 +321,9 @@ export default function StaffPage() {
                   <Table.Th>Staff</Table.Th>
                   <Table.Th>Department</Table.Th>
                   <Table.Th>Position</Table.Th>
+                  <Table.Th>Role</Table.Th>
                   <Table.Th>Status</Table.Th>
                   <Table.Th>Joined</Table.Th>
-                  <Table.Th>Salary</Table.Th>
                   <Table.Th>Actions</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -347,14 +357,21 @@ export default function StaffPage() {
                         </Group>
                       </Table.Td>
                       <Table.Td>
-                        {staffMember.profile?.department ? (
-                          <Badge size="sm" variant="light">{staffMember.profile.department.name}</Badge>
+                        {staffMember.staffProfile?.department ? (
+                          <Badge size="sm" variant="light">{staffMember.staffProfile.department.name}</Badge>
                         ) : (
                           <Text size="sm" c="dimmed">N/A</Text>
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{staffMember.profile?.designation || 'N/A'}</Text>
+                        <Text size="sm">{staffMember.staffProfile?.designation || 'N/A'}</Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {staffMember.role ? (
+                          <Badge size="sm" color="blue" variant="light">{staffMember.role.name}</Badge>
+                        ) : (
+                          <Text size="sm" c="dimmed">N/A</Text>
+                        )}
                       </Table.Td>
                       <Table.Td>
                         <Badge
@@ -366,50 +383,53 @@ export default function StaffPage() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{formatDate(staffMember.profile?.joining_date)}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text fw={600} size="sm">{formatCurrency(staffMember.profile?.base_salary)}</Text>
+                        <Text size="sm">{formatDate(staffMember.staffProfile?.joining_date)}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Group >
                           {/* View Button */}
-                          <ActionIcon
-                            variant="subtle"
-                            color="blue"
-                            component={Link}
-                            to={`/hrm/staff/${staffMember.id}`}
-                            size="sm"
-                          >
-                            <IconEye size={16} />
-                          </ActionIcon>
-
-                          {/* Edit Button */}
-                          <ActionIcon
-                            variant="subtle"
-                            color="gray"
-                            component={Link}
-                            to={`/hrm/staff/${staffMember.id}/edit`}
-                            size="sm"
-                          >
-                            <IconPencil size={16} />
-                          </ActionIcon>
-
-                          {/* Delete Button */}
-                          <Tooltip
-                            label={staffMember.id === currentUser?.id ? "You cannot delete your own account" : "Delete staff"}
-                          >
+                          {hasPermission('hrm.staff.index') && (
                             <ActionIcon
                               variant="subtle"
-                              color="red"
+                              color="blue"
+                              component={Link}
+                              to={`/hrm/staff/${staffMember.id}`}
                               size="sm"
-                              loading={deletingStaffId === staffMember.id}
-                              disabled={staffMember.id === currentUser?.id}
-                              onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
                             >
-                              {staffMember.id === currentUser?.id ? <IconBan size={16} /> : <IconTrash size={16} />}
+                              <IconEye size={16} />
                             </ActionIcon>
-                          </Tooltip>
+                          )}
+
+                          {/* Edit Button */}
+                          {hasPermission('hrm.staff.edit') && (
+                            <ActionIcon
+                              variant="subtle"
+                              color="gray"
+                              component={Link}
+                              to={`/hrm/staff/${staffMember.id}/edit`}
+                              size="sm"
+                            >
+                              <IconPencil size={16} />
+                            </ActionIcon>
+                          )}
+
+                          {/* Delete Button */}
+                          {hasPermission('hrm.staff.delete') && (
+                            <Tooltip
+                              label={staffMember.id === currentUser?.id ? "You cannot delete your own account" : "Delete staff"}
+                            >
+                              <ActionIcon
+                                variant="subtle"
+                                color="red"
+                                size="sm"
+                                loading={deletingStaffId === staffMember.id}
+                                disabled={staffMember.id === currentUser?.id}
+                                onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
+                              >
+                                {staffMember.id === currentUser?.id ? <IconBan size={16} /> : <IconTrash size={16} />}
+                              </ActionIcon>
+                            </Tooltip>
+                          )}
                         </Group>
                       </Table.Td>
                     </Table.Tr>
@@ -463,68 +483,78 @@ export default function StaffPage() {
                 <SimpleGrid cols={2}  mb="xs">
                   <Box>
                     <Text size="xs" c="dimmed">Department</Text>
-                    {staffMember.profile?.department ? (
-                      <Badge size="xs" variant="light">{staffMember.profile.department.name}</Badge>
+                    {staffMember.staffProfile?.department ? (
+                      <Badge size="xs" variant="light">{staffMember.staffProfile.department.name}</Badge>
                     ) : (
                       <Text size="xs">N/A</Text>
                     )}
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Position</Text>
-                    <Text size="xs">{staffMember.profile?.designation || 'N/A'}</Text>
+                    <Text size="xs">{staffMember.staffProfile?.designation || 'N/A'}</Text>
                   </Box>
                 </SimpleGrid>
 
                 <SimpleGrid cols={2} >
                   <Box>
-                    <Text size="xs" c="dimmed">Joined</Text>
-                    <Text size="xs">{formatDate(staffMember.profile?.joining_date)}</Text>
+                    <Text size="xs" c="dimmed">Role</Text>
+                    {staffMember.role ? (
+                      <Badge size="xs" color="blue" variant="light">{staffMember.role.name}</Badge>
+                    ) : (
+                      <Text size="xs">N/A</Text>
+                    )}
                   </Box>
                   <Box>
-                    <Text size="xs" c="dimmed">Salary</Text>
-                    <Text fw={600} size="xs">{formatCurrency(staffMember.profile?.base_salary)}</Text>
+                    <Text size="xs" c="dimmed">Joined</Text>
+                    <Text size="xs">{formatDate(staffMember.staffProfile?.joining_date)}</Text>
                   </Box>
                 </SimpleGrid>
 
                 <Group  mt="xs">
                   {/* View Button */}
-                  <Button
-                    variant="light"
-                    size="xs"
-                    component={Link}
-                    to={`/hrm/staff/${staffMember.id}`}
-                    leftSection={<IconEye size={14} />}
-                    style={{ flex: 1 }}
-                  >
-                    View
-                  </Button>
+                  {hasPermission('hrm.staff.index') && (
+                    <Button
+                      variant="light"
+                      size="xs"
+                      component={Link}
+                      to={`/hrm/staff/${staffMember.id}`}
+                      leftSection={<IconEye size={14} />}
+                      style={{ flex: 1 }}
+                    >
+                      View
+                    </Button>
+                  )}
 
                   {/* Edit Button */}
-                  <ActionIcon
-                    variant="subtle"
-                    color="gray"
-                    component={Link}
-                    to={`/hrm/staff/${staffMember.id}/edit`}
-                    size="sm"
-                  >
-                    <IconPencil size={16} />
-                  </ActionIcon>
-
-                  {/* Delete Button */}
-                  <Tooltip
-                    label={staffMember.id === currentUser?.id ? "You cannot delete your own account" : "Delete staff"}
-                  >
+                  {hasPermission('hrm.staff.edit') && (
                     <ActionIcon
                       variant="subtle"
-                      color="red"
+                      color="gray"
+                      component={Link}
+                      to={`/hrm/staff/${staffMember.id}/edit`}
                       size="sm"
-                      loading={deletingStaffId === staffMember.id}
-                      disabled={staffMember.id === currentUser?.id}
-                      onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
                     >
-                      {staffMember.id === currentUser?.id ? <IconBan size={16} /> : <IconTrash size={16} />}
+                      <IconPencil size={16} />
                     </ActionIcon>
-                  </Tooltip>
+                  )}
+
+                  {/* Delete Button */}
+                  {hasPermission('hrm.staff.delete') && (
+                    <Tooltip
+                      label={staffMember.id === currentUser?.id ? "You cannot delete your own account" : "Delete staff"}
+                    >
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        size="sm"
+                        loading={deletingStaffId === staffMember.id}
+                        disabled={staffMember.id === currentUser?.id}
+                        onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
+                      >
+                        {staffMember.id === currentUser?.id ? <IconBan size={16} /> : <IconTrash size={16} />}
+                      </ActionIcon>
+                    </Tooltip>
+                  )}
                 </Group>
               </Card>
             ))

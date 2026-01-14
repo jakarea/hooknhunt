@@ -1,8 +1,32 @@
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Box, Image, SimpleGrid, Group } from '@mantine/core'
 import { LoginForm } from '@/components/login-form'
 import { LoginQuotes } from '@/components/login-quotes'
+import { useAuthStore } from '@/stores/authStore'
 
 export default function LoginPage() {
+  const token = useAuthStore((state) => state.token)
+  const hydrated = useAuthStore((state) => state.hydrated)
+  const navigate = useNavigate()
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (hydrated && token) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [hydrated, token, navigate])
+
+  // Show loading while hydrating
+  if (!hydrated) {
+    return null
+  }
+
+  // Don't render login form if already authenticated
+  if (token) {
+    return null
+  }
+
   return (
     <Box
       mih="100vh"

@@ -11,7 +11,8 @@ class Attendance extends Model
     // টাইম কলামগুলো কার্বন ইনস্ট্যান্সে কনভার্ট করার জন্য
     protected $casts = [
         'date' => 'date',
-        // time কলামগুলো সাধারণত string হিসেবে আসে, তবে চাইলে format করা যায়
+        'break_in' => 'array', // JSON array of break times
+        'break_out' => 'array', // JSON array of break times
     ];
 
     public function user()
@@ -22,5 +23,57 @@ class Attendance extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Check if user is currently on break
+     * Returns true if break_in has more entries than break_out
+     */
+    public function isOnBreak(): bool
+    {
+        $breakInCount = is_array($this->break_in) ? count($this->break_in) : 0;
+        $breakOutCount = is_array($this->break_out) ? count($this->break_out) : 0;
+
+        return $breakInCount > $breakOutCount;
+    }
+
+    /**
+     * Get current status of attendance flow
+     * Returns: 'not_started', 'clocked_in', 'on_break', 'clocked_out'
+     */
+    public function getCurrentStatus(): string
+    {
+        if (!$this->clock_in) {
+            return 'not_started';
+        }
+
+        if ($this->clock_out) {
+            return 'clocked_out';
+        }
+
+        if ($this->isOnBreak()) {
+            return 'on_break';
+        }
+
+        return 'clocked_in';
+    }
+
+    /**
+     * Check if attendance has incomplete state from previous day
+     * Returns array with issues found
+     */
+    public function getIncompleteState(): array
+    {
+        $issues = [];
+
+        if ($this->clock_in && !$this->clock_out) {
+            $issues[] = 'clocked_in_without_out';
+        }
+
+        if ($this->isOnBreak()) {
+            $issues[] = 'on_break_without_out';
+        }
+
+        return $issues;
     }
 }

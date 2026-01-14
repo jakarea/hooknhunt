@@ -18,15 +18,16 @@ export interface User {
   id: number
   name: string
   email: string
-  phone_number: string
-  whatsapp_number?: string
-  otp_code?: string
-  otp_expires_at?: string
-  phone_verified_at?: string
-  created_at: string
-  updated_at: string
+  phone: string  // Changed from phone_number
+  whatsappNumber?: string  // Changed from whatsapp_number
+  roleId?: number  // Changed from role_id
+  isActive?: boolean  // Changed from is_active
+  phoneVerifiedAt?: string  // Changed from phone_verified_at
+  lastLoginAt?: string  // Changed from last_login_at
+  createdAt: string  // Changed from created_at
+  updatedAt: string  // Changed from updated_at
+  deletedAt?: string  // Changed from deleted_at
   role?: Role
-  role_id?: number
 }
 
 interface AuthState {
@@ -108,14 +109,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: (token, user, permissions = [], permissionObjects = []) => {
+    console.log('[authStore.login] Starting login process...')
+    console.log('[authStore.login] Token:', token)
+    console.log('[authStore.login] User:', user)
+
     // Save to localStorage
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
     localStorage.setItem('permissions', JSON.stringify(permissions))
     localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
 
+    console.log('[authStore.login] localStorage.setItem completed')
+    console.log('[authStore.login] Verification - Token in localStorage:', localStorage.getItem('token'))
+
     // Set state
     set({ user, token, permissions, permissionObjects, hydrated: true })
+    console.log('[authStore.login] State updated. Hydrated:', true)
   },
 
   setPermissions: (permissions: string[], permissionObjects = []) => {
@@ -139,23 +148,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadUserFromStorage: () => {
+    console.log('[authStore.loadUserFromStorage] Loading from localStorage...')
     const token = localStorage.getItem('token')
     const userString = localStorage.getItem('user')
     const permissionsString = localStorage.getItem('permissions')
     const permissionObjectsString = localStorage.getItem('permissionObjects')
+
+    console.log('[authStore.loadUserFromStorage] Token found:', token ? 'YES' : 'NO')
+    console.log('[authStore.loadUserFromStorage] User found:', userString ? 'YES' : 'NO')
 
     if (token && userString) {
       try {
         const user = JSON.parse(userString) as User
         const permissions = permissionsString ? JSON.parse(permissionsString) : []
         const permissionObjects = permissionObjectsString ? JSON.parse(permissionObjectsString) : []
+        console.log('[authStore.loadUserFromStorage] Parsed user:', user.name)
         set({ user, token, permissions, permissionObjects, hydrated: true })
-      } catch {
+        console.log('[authStore.loadUserFromStorage] State set successfully')
+      } catch (error) {
+        console.error('[authStore.loadUserFromStorage] Error parsing:', error)
         // Clear corrupted storage
         set({ hydrated: true })
         get().logout()
       }
     } else {
+      console.log('[authStore.loadUserFromStorage] No token/user found in localStorage')
       set({ hydrated: true })
     }
   },

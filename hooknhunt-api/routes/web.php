@@ -2,7 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
-
+use Illuminate\Support\Facades\View;
 /*
 |--------------------------------------------------------------------------
 | System Refresh (Optional – secure it later)
@@ -29,6 +29,9 @@ Route::get('/system/refresh', function () {
 |--------------------------------------------------------------------------
 | Root (/) সহ সব non-API request React index.html serve করবে
 */
+
+
 Route::get('/{any}', function () {
-    return file_get_contents(public_path('build/index.html'));
+    return View::make('app');
 })->where('any', '.*');
+

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Box,
@@ -9,14 +9,16 @@ import {
   Button,
   Badge,
   Paper,
-  Card,
+  Table,
   TextInput,
   Select,
   ActionIcon,
   Avatar,
   Menu,
-  Progress,
+  LoadingOverlay,
+  Modal,
   SimpleGrid,
+  Card,
 } from '@mantine/core'
 import {
   IconPlus,
@@ -24,175 +26,165 @@ import {
   IconDots,
   IconPhone,
   IconMail,
-  IconClock,
   IconUser,
-  IconEye,
   IconPencil,
   IconTrash,
+  IconRefresh,
+  IconCalendar,
 } from '@tabler/icons-react'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
+import { DateInput } from '@mantine/dates'
+import { useTranslation } from 'react-i18next'
+import api from '@/lib/api'
 
-// Mock leads data
-const mockLeads = [
-  {
-    id: 1,
-    name: 'Sarah Ahmed',
-    email: 'sarah@example.com',
-    phone: '+880 1712-345678',
-    company: 'Tech Solutions Ltd',
-    position: 'Procurement Manager',
-    source: 'website',
-    status: 'new',
-    stage: 'lead',
-    value: 50000,
-    probability: 20,
-    assigned_to: 'John Doe',
-    created_at: '2024-12-28',
-    last_contact: '2024-12-29',
-    notes: 'Interested in bulk order for office supplies',
-  },
-  {
-    id: 2,
-    name: 'Michael Rahman',
-    email: 'michael@example.com',
-    phone: '+880 1812-345678',
-    company: 'Retail Hub',
-    position: 'Owner',
-    source: 'referral',
-    status: 'contacted',
-    stage: 'qualified',
-    value: 120000,
-    probability: 50,
-    assigned_to: 'Jane Smith',
-    created_at: '2024-12-25',
-    last_contact: '2024-12-28',
-    notes: 'Referred by existing customer',
-  },
-  {
-    id: 3,
-    name: 'Fatima Khan',
-    email: 'fatima@example.com',
-    phone: '+880 1912-345678',
-    company: 'Fashion House',
-    position: 'Buying Manager',
-    source: 'trade_show',
-    status: 'contacted',
-    stage: 'proposal',
-    value: 200000,
-    probability: 70,
-    assigned_to: 'John Doe',
-    created_at: '2024-12-20',
-    last_contact: '2024-12-27',
-    notes: 'Requested custom catalog',
-  },
-  {
-    id: 4,
-    name: 'David Hossain',
-    email: 'david@example.com',
-    phone: '+880 1612-345678',
-    company: 'Super Mart',
-    position: 'Director',
-    source: 'cold_call',
-    status: 'new',
-    stage: 'lead',
-    value: 80000,
-    probability: 15,
-    assigned_to: 'Jane Smith',
-    created_at: '2024-12-29',
-    last_contact: null,
-    notes: 'Initial contact made',
-  },
-  {
-    id: 5,
-    name: 'Riya Islam',
-    email: 'riya@example.com',
-    phone: '+880 1312-345678',
-    company: 'Boutique Style',
-    position: 'Owner',
-    source: 'website',
-    status: 'negotiation',
-    stage: 'negotiation',
-    value: 150000,
-    probability: 85,
-    assigned_to: 'John Doe',
-    created_at: '2024-12-15',
-    last_contact: '2024-12-29',
-    notes: 'Price negotiation in progress',
-  },
-]
-
-type Stage = 'lead' | 'qualified' | 'proposal' | 'negotiation' | 'closed_won' | 'closed_lost'
-
-const stageConfig: Record<Stage, { label: string; color: string; order: number }> = {
-  lead: { label: 'Lead', color: 'gray', order: 1 },
-  qualified: { label: 'Qualified', color: 'blue', order: 2 },
-  proposal: { label: 'Proposal', color: 'yellow', order: 3 },
-  negotiation: { label: 'Negotiation', color: 'orange', order: 4 },
-  closed_won: { label: 'Won', color: 'green', order: 5 },
-  closed_lost: { label: 'Lost', color: 'red', order: 6 },
+interface Lead {
+  id: number
+  name: string
+  email: string | null
+  phone: string
+  source: string
+  status: string
+  assigned_to: number | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  assignedAgent?: {
+    id: number
+    name: string
+  }
+  scheduledActivities?: Array<{
+    id: number
+    summary: string
+    schedule_at: string
+  }>
 }
 
-const sourceConfig = [
-  { value: 'website', label: 'Website' },
-  { value: 'referral', label: 'Referral' },
-  { value: 'trade_show', label: 'Trade Show' },
-  { value: 'cold_call', label: 'Cold Call' },
-  { value: 'social_media', label: 'Social Media' },
-  { value: 'other', label: 'Other' },
-]
-
 export default function LeadsPage() {
+  const { t } = useTranslation()
+
+  const statusConfig = useMemo(() => [
+    { value: 'all', label: t('crm.leads.filterByStatus') },
+    { value: 'new', label: t('crm.leads.status.new') },
+    { value: 'contacted', label: t('crm.leads.status.contacted') },
+    { value: 'qualified', label: t('crm.leads.status.qualified') },
+    { value: 'proposal', label: t('crm.leads.status.proposal') },
+    { value: 'negotiation', label: t('crm.leads.status.negotiation') },
+    { value: 'converted', label: t('crm.leads.status.converted') },
+    { value: 'lost', label: t('crm.leads.status.lost') },
+  ], [t])
+
+  const sourceConfig = useMemo(() => [
+    { value: 'all', label: t('crm.leads.filterBySource') },
+    { value: 'manual', label: t('crm.leads.source.manual') },
+    { value: 'website', label: t('crm.leads.source.website') },
+    { value: 'referral', label: t('crm.leads.source.referral') },
+    { value: 'trade_show', label: t('crm.leads.source.tradeShow') },
+    { value: 'cold_call', label: t('crm.leads.source.coldCall') },
+    { value: 'social_media', label: t('crm.leads.source.socialMedia') },
+    { value: 'advertisement', label: t('crm.leads.source.advertisement') },
+    { value: 'other', label: t('crm.leads.source.other') },
+  ], [t])
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [leads, setLeads] = useState<Lead[]>([])
   const [searchQuery, setSearchQuery] = useState('')
-  const [stageFilter, setStageFilter] = useState<string | null>('all')
+  const [statusFilter, setStatusFilter] = useState<string | null>('all')
   const [sourceFilter, setSourceFilter] = useState<string | null>('all')
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [dateFilter, setDateFilter] = useState<string | null>(null)
 
-  // Filter leads
-  const filteredLeads = useMemo(() => {
-    let result = mockLeads
+  // Fetch leads
+  const fetchLeads = async () => {
+    try {
+      if (refreshing) {
+        setRefreshing(true)
+      } else {
+        setLoading(true)
+      }
 
-    // Stage filter
-    if (stageFilter && stageFilter !== 'all') {
-      result = result.filter((lead) => lead.stage === stageFilter)
+      const params = new URLSearchParams()
+      if (statusFilter && statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+      if (searchQuery.trim()) {
+        params.append('search', searchQuery.trim())
+      }
+      if (dateFilter) {
+        params.append('date', dateFilter)
+      }
+
+      const response = await api.get(`/crm/leads?${params.toString()}`)
+
+      if (response.data?.status) {
+        // Handle paginated or array response
+        const data = response.data.data
+        const leadsData = Array.isArray(data) ? data : (data?.data || [])
+
+        setLeads(leadsData)
+      } else {
+        throw new Error('Failed to fetch leads')
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching leads:', error)
+      }
+      notifications.show({
+        title: t('common.error'),
+        message: t('crm.leads.errorLoading'),
+        color: 'red',
+      })
+      setLeads([])
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
+  }
 
-    // Source filter
-    if (sourceFilter && sourceFilter !== 'all') {
-      result = result.filter((lead) => lead.source === sourceFilter)
+  // Initial fetch
+  useEffect(() => {
+    fetchLeads()
+  }, [])
+
+  // Fetch when filters change (debounced)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (!loading) {
+        fetchLeads()
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, statusFilter, sourceFilter, dateFilter])
+
+  // Get lead name
+  const getLeadName = (lead: Lead) => {
+    return lead.name || 'Unknown'
+  }
+
+  // Get status badge color
+  const getStatusColor = (status: string) => {
+    const colors: Record<string, string> = {
+      new: 'blue',
+      contacted: 'cyan',
+      qualified: 'green',
+      proposal: 'yellow',
+      negotiation: 'orange',
+      converted: 'teal',
+      lost: 'red',
     }
+    return colors[status] || 'gray'
+  }
 
-    // Search filter
-    if (!searchQuery.trim()) {
-      return result
-    }
-
-    const query = searchQuery.toLowerCase()
-    return result.filter((lead) =>
-      lead.name.toLowerCase().includes(query) ||
-      lead.email.toLowerCase().includes(query) ||
-      lead.phone.toLowerCase().includes(query) ||
-      lead.company.toLowerCase().includes(query)
-    )
-  }, [searchQuery, stageFilter, sourceFilter])
-
-  // Group leads by stage for kanban
-  const leadsByStage = useMemo(() => {
-    const stages: Stage[] = ['lead', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']
-    return stages.map((stage) => ({
-      stage,
-      ...stageConfig[stage],
-      leads: filteredLeads.filter((lead) => lead.stage === stage),
-    }))
-  }, [filteredLeads])
-
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  // Get source label
+  const getSourceLabel = (source: string) => {
+    const found = sourceConfig.find((s) => s.value === source)
+    return found?.label || source
   }
 
   // Format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Never'
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
@@ -200,30 +192,51 @@ export default function LeadsPage() {
     })
   }
 
+  // Check if lead has activity scheduled for today
+  const hasTodayActivity = (lead: Lead) => {
+    const today = new Date().toISOString().split('T')[0]
+    return lead.scheduledActivities?.some((activity) => {
+      const date = new Date(activity.schedule_at)
+      // Check if date is valid before calling toISOString()
+      if (isNaN(date.getTime())) {
+        return false
+      }
+      const activityDate = date.toISOString().split('T')[0]
+      return activityDate === today
+    })
+  }
+
   // Delete lead handler
-  const openDeleteModal = (_id: number, name: string) => {
+  const openDeleteModal = (id: number, name: string) => {
     modals.openConfirmModal({
-      title: 'Delete Lead',
+      title: t('crm.leads.delete'),
       centered: true,
       children: (
         <Text size="sm">
-          Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.
+          {t('crm.leads.deleteConfirm', { name })}
         </Text>
       ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      labels: {
+        confirm: t('common.delete'),
+        cancel: t('common.cancel')
+      },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
-          await new Promise(resolve => setTimeout(resolve, 500))
+          await api.delete(`/crm/leads/${id}`)
           notifications.show({
-            title: 'Lead Deleted',
-            message: `${name} has been deleted successfully`,
+            title: t('common.success'),
+            message: t('crm.leads.deleted', { name }),
             color: 'green',
           })
-        } catch {
+          fetchLeads()
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Error deleting lead:', error)
+          }
           notifications.show({
-            title: 'Error',
-            message: 'Failed to delete lead. Please try again.',
+            title: t('common.error'),
+            message: t('crm.leads.deleteError'),
             color: 'red',
           })
         }
@@ -231,199 +244,119 @@ export default function LeadsPage() {
     })
   }
 
-  // Lead card component
-  const LeadCard = ({ lead }: { lead: typeof mockLeads[0] }) => (
-    <Card
-      shadow="sm"
-      p="sm"
-      radius="md"
-      withBorder
-      style={{
-        cursor: 'pointer',
-        transition: 'all 0.2s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--mantine-color-red-9)'
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = ''
-      }}
-    >
-      <Stack >
-        {/* Header */}
-        <Group justify="space-between" wrap="nowrap">
-          <Group  style={{ flex: 1, minWidth: 0 }}>
-            <Avatar
-              size="sm"
-              radius="xl"
-              color="red"
-            >
-              {lead.name.charAt(0)}
-            </Avatar>
-            <Box style={{ flex: 1, minWidth: 0 }}>
-              <Text fw={600} size="sm" truncate>{lead.name}</Text>
-              <Text size="xs" c="dimmed" truncate>{lead.company}</Text>
-            </Box>
-          </Group>
-          <Menu shadow="md" width={160} position="bottom-end">
-            <Menu.Target>
-              <ActionIcon variant="subtle" size="sm">
-                <IconDots size={16} />
-              </ActionIcon>
-            </Menu.Target>
+  // Handle calendar view
+  const handleCalendarView = async () => {
+    if (selectedDate) {
+      // Set date filter and clear other filters for clean view
+      const dateStr = selectedDate.toISOString().split('T')[0]
+      setDateFilter(dateStr)
+      setCalendarModalOpen(false)
 
-            <Menu.Dropdown>
-              <Menu.Label>Actions</Menu.Label>
-              <Menu.Item
-                leftSection={<IconEye size={14} />}
-                component={Link}
-                to={`/crm/leads/${lead.id}`}
-              >
-                View Details
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconPencil size={14} />}
-                component={Link}
-                to={`/crm/leads/${lead.id}/edit`}
-              >
-                Edit
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconPhone size={14} />}
-                color="blue"
-              >
-                Call Now
-              </Menu.Item>
-              <Menu.Item
-                leftSection={<IconMail size={14} />}
-                color="green"
-              >
-                Send Email
-              </Menu.Item>
-              <Menu.Divider />
-              <Menu.Item
-                leftSection={<IconTrash size={14} />}
-                color="red"
-                onClick={() => openDeleteModal(lead.id, lead.name)}
-              >
-                Delete
-              </Menu.Item>
-            </Menu.Dropdown>
-          </Menu>
-        </Group>
+      // Fetch leads with activities scheduled for this date
+      await fetchLeads()
+    }
+  }
 
-        {/* Contact info */}
-        <Stack gap={4}>
-          {lead.email && (
-            <Group gap={4} style={{ flexWrap: 'wrap' }}>
-              <IconMail size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-              <Text size="xs" truncate style={{ flex: 1 }}>{lead.email}</Text>
-            </Group>
-          )}
-          <Group gap={4} style={{ flexWrap: 'wrap' }}>
-            <IconPhone size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-            <Text size="xs">{lead.phone}</Text>
-          </Group>
-        </Stack>
-
-        {/* Value & Probability */}
-        <Group justify="space-between">
-          <Box>
-            <Text size="xs" c="dimmed">Value</Text>
-            <Text fw={600} size="sm">{formatCurrency(lead.value)}</Text>
-          </Box>
-          <Box style={{ textAlign: 'right' }}>
-            <Text size="xs" c="dimmed">Probability</Text>
-            <Text fw={600} size="sm" c={lead.probability >= 70 ? 'green' : lead.probability >= 40 ? 'yellow' : 'red'}>
-              {lead.probability}%
-            </Text>
-          </Box>
-        </Group>
-
-        {/* Probability bar */}
-        <Progress
-          value={lead.probability}
-          color={lead.probability >= 70 ? 'green' : lead.probability >= 40 ? 'yellow' : 'red'}
-          size="xs"
-        />
-
-        {/* Assigned to */}
-        {lead.assigned_to && (
-          <Group >
-            <IconUser size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-            <Text size="xs" c="dimmed">Assigned to {lead.assigned_to}</Text>
-          </Group>
-        )}
-
-        {/* Last contact */}
-        <Group >
-          <IconClock size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-          <Text size="xs" c="dimmed">
-            Last contact: {formatDate(lead.last_contact)}
-          </Text>
-        </Group>
-      </Stack>
-    </Card>
-  )
-
-  // Calculate total value
-  const totalValue = useMemo(() => {
-    return filteredLeads.reduce((sum, lead) => sum + lead.value, 0)
-  }, [filteredLeads])
-
-  const weightedValue = useMemo(() => {
-    return filteredLeads.reduce((sum, lead) => sum + (lead.value * lead.probability / 100), 0)
-  }, [filteredLeads])
+  // Clear date filter
+  const clearDateFilter = async () => {
+    setDateFilter(null)
+    setSelectedDate(null)
+    await fetchLeads()
+  }
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
-      <Stack >
+      <Stack>
         {/* Header */}
         <Box>
           <Group justify="space-between" wrap="wrap">
             <Box>
-              <Title order={1} className="text-lg md:text-xl lg:text-2xl">Leads Pipeline</Title>
-              <Text c="dimmed" className="text-sm md:text-base">Manage and track your sales leads</Text>
+              <Title order={1} className="text-lg md:text-xl lg:text-2xl">
+                {t('crm.leads.title')}
+                {dateFilter && (
+                  <Badge ml="md" color="blue" variant="light">
+                    {t('crm.leads.scheduledFor', { date: new Date(dateFilter).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) })}
+                  </Badge>
+                )}
+              </Title>
+              <Text c="dimmed" className="text-sm md:text-base">
+                {dateFilter ? t('crm.leads.dateFilterSubtitle') : t('crm.leads.subtitle')}
+              </Text>
             </Box>
-            <Button
-              component={Link}
-              to="/crm/leads/create"
-              leftSection={<IconPlus size={16} />}
-            >
-              Add Lead
-            </Button>
+            <Group>
+              {dateFilter && (
+                <Button
+                  variant="light"
+                  size="md"
+                  color="red"
+                  onClick={clearDateFilter}
+                  leftSection={<IconRefresh size={16} />}
+                >
+                  {t('crm.leads.clearDateFilter')}
+                </Button>
+              )}
+              <Button
+                variant="light"
+                size="md"
+                onClick={() => {
+                  setRefreshing(true)
+                  fetchLeads()
+                }}
+                loading={refreshing}
+                leftSection={<IconRefresh size={16} />}
+              >
+                {t('common.refresh')}
+              </Button>
+              <Button
+                variant="light"
+                size="md"
+                leftSection={<IconCalendar size={16} />}
+                onClick={() => setCalendarModalOpen(true)}
+              >
+                {t('crm.leads.viewCalendar')}
+              </Button>
+              <Button
+                component={Link}
+                to="/crm/leads/create"
+                leftSection={<IconPlus size={16} />}
+              >
+                {t('crm.leads.add')}
+              </Button>
+            </Group>
           </Group>
         </Box>
 
         {/* Stats */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">Total Leads</Text>
-            <Text size="xl" fw={700}>{filteredLeads.length}</Text>
+            <Text size="xs" c="dimmed">{t('crm.leads.total')}</Text>
+            <Text size="xl" fw={700}>{leads.length}</Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">Total Value</Text>
-            <Text size="xl" fw={700}>{formatCurrency(totalValue)}</Text>
+            <Text size="xs" c="dimmed">{t('crm.leads.status.new')}</Text>
+            <Text size="xl" fw={700} c="blue">
+              {leads.filter((l) => l.status === 'new').length}
+            </Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">Weighted Value</Text>
-            <Text size="xl" fw={700}>{formatCurrency(weightedValue)}</Text>
+            <Text size="xs" c="dimmed">{t('crm.leads.status.contacted')}</Text>
+            <Text size="xl" fw={700} c="cyan">
+              {leads.filter((l) => l.status === 'contacted').length}
+            </Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">Conversion Rate</Text>
-            <Text size="xl" fw={700}>
-              {filteredLeads.length > 0
-                ? Math.round((filteredLeads.filter(l => l.stage === 'closed_won').length / filteredLeads.length) * 100)
-                : 0}%
+            <Text size="xs" c="dimmed">{t('crm.leads.status.converted')}</Text>
+            <Text size="xl" fw={700} c="teal">
+              {leads.filter((l) => l.status === 'converted').length}
             </Text>
           </Card>
         </SimpleGrid>
 
         {/* Filters */}
         <Group justify="space-between" wrap="wrap">
-          <Group  style={{ flex: 1, maxWidth: '100%' }}>
+          <Group style={{ flex: 1, maxWidth: '100%' }}>
             <TextInput
-              placeholder="Search leads..."
+              placeholder={t('crm.leads.searchPlaceholder')}
               leftSection={<IconSearch size={16} />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
@@ -431,27 +364,19 @@ export default function LeadsPage() {
               size="md"
             />
             <Select
-              placeholder="Filter by stage"
-              value={stageFilter}
-              onChange={setStageFilter}
-              data={[
-                { value: 'all', label: 'All Stages' },
-                { value: 'lead', label: 'Lead' },
-                { value: 'qualified', label: 'Qualified' },
-                { value: 'proposal', label: 'Proposal' },
-                { value: 'negotiation', label: 'Negotiation' },
-                { value: 'closed_won', label: 'Won' },
-                { value: 'closed_lost', label: 'Lost' },
-              ]}
+              placeholder={t('crm.leads.filterByStatus')}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              data={statusConfig}
               size="md"
               style={{ minWidth: '150px' }}
               clearable
             />
             <Select
-              placeholder="Filter by source"
+              placeholder={t('crm.leads.filterBySource')}
               value={sourceFilter}
               onChange={setSourceFilter}
-              data={[{ value: 'all', label: 'All Sources' }, ...sourceConfig]}
+              data={sourceConfig}
               size="md"
               style={{ minWidth: '150px' }}
               clearable
@@ -459,75 +384,192 @@ export default function LeadsPage() {
           </Group>
         </Group>
 
-        {/* Kanban Board - Desktop */}
-        <Box display={{ base: 'none', lg: 'block' }}>
-          <Group  style={{ alignItems: 'flex-start' }} wrap="nowrap">
-            {leadsByStage.map((stageData) => (
-              <Paper
-                key={stageData.stage}
-                withBorder
-                p="sm"
-                radius="lg"
-                style={{
-                  flex: 1,
-                  minWidth: '280px',
-                  maxWidth: '320px',
-                  backgroundColor: stageData.stage === 'closed_won' ? 'var(--mantine-color-green-0)' :
-                                   stageData.stage === 'closed_lost' ? 'var(--mantine-color-red-0)' :
-                                   'var(--mantine-color-gray-0)',
-                }}
-              >
-                <Stack >
-                  {/* Stage header */}
-                  <Group justify="space-between">
-                    <Badge
-                      color={stageData.color}
-                      variant="light"
-                      size="lg"
-                      radius="sm"
-                    >
-                      {stageData.label} ({stageData.leads.length})
-                    </Badge>
-                  </Group>
-
-                  {/* Stage value */}
-                  {stageData.leads.length > 0 && (
-                    <Text size="xs" c="dimmed">
-                      {formatCurrency(stageData.leads.reduce((sum, lead) => sum + lead.value, 0))}
-                    </Text>
-                  )}
-
-                  {/* Leads in this stage */}
-                  {stageData.leads.length > 0 ? (
-                    <Stack >
-                      {stageData.leads.map((lead) => (
-                        <LeadCard key={lead.id} lead={lead} />
-                      ))}
-                    </Stack>
-                  ) : (
-                    <Box p="xl" ta="center">
-                      <Text size="sm" c="dimmed">No leads</Text>
-                    </Box>
-                  )}
-                </Stack>
-              </Paper>
-            ))}
-          </Group>
-        </Box>
-
-        {/* Mobile: List View */}
-        <Stack  display={{ base: 'block', lg: 'none' }}>
-          {filteredLeads.length === 0 ? (
+        {/* Leads Table */}
+        <Box pos="relative">
+          <LoadingOverlay visible={loading} overlayProps={{ blur: 2 }} />
+          {leads.length === 0 ? (
             <Paper withBorder p="xl" ta="center">
-              <Text c="dimmed">No leads found</Text>
+              <Text c="dimmed">{t('crm.leads.noResults')}</Text>
             </Paper>
           ) : (
-            filteredLeads.map((lead) => (
-              <LeadCard key={lead.id} lead={lead} />
-            ))
+            <Paper withBorder p="md" radius="md">
+              <Table.ScrollContainer minWidth={800}>
+                <Table highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>{t('crm.leads.table.lead')}</Table.Th>
+                      <Table.Th>{t('crm.leads.table.contact')}</Table.Th>
+                      <Table.Th>{t('crm.leads.table.source')}</Table.Th>
+                      <Table.Th>{t('crm.leads.table.status')}</Table.Th>
+                      <Table.Th>{t('crm.leads.table.assignedTo')}</Table.Th>
+                      <Table.Th>{t('crm.leads.table.created')}</Table.Th>
+                      <Table.Th>{t('common.actions')}</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {leads.map((lead) => {
+                      const name = getLeadName(lead)
+                      const isTodayActivity = hasTodayActivity(lead)
+                      return (
+                        <Table.Tr
+                          key={lead.id}
+                          onClick={() => (window.location.href = `/crm/leads/${lead.id}/edit`)}
+                          style={{
+                            cursor: 'pointer',
+                            backgroundColor: isTodayActivity ? 'var(--mantine-color-blue-0)' : undefined,
+                          }}
+                        >
+                          <Table.Td>
+                            <Group gap="sm">
+                              <Avatar size="sm" radius="xl" color="red">
+                                {name.charAt(0).toUpperCase()}
+                              </Avatar>
+                              <div>
+                                <Group gap={4} align="center">
+                                  <Text fw={500} size="sm">
+                                    {name}
+                                  </Text>
+                                  {isTodayActivity && (
+                                    <IconCalendar
+                                      size={14}
+                                      style={{ color: 'var(--mantine-color-blue-6)' }}
+                                      title="Activity scheduled for today"
+                                    />
+                                  )}
+                                </Group>
+                              </div>
+                            </Group>
+                          </Table.Td>
+                          <Table.Td>
+                            <Stack gap={2}>
+                              <Group gap={4} style={{ flexWrap: 'wrap' }}>
+                                <IconPhone size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
+                                <Text size="xs">{lead.phone}</Text>
+                              </Group>
+                              {lead.email && (
+                                <Group gap={4} style={{ flexWrap: 'wrap' }}>
+                                  <IconMail size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
+                                  <Text size="xs" truncate style={{ maxWidth: '200px' }}>
+                                    {lead.email}
+                                  </Text>
+                                </Group>
+                              )}
+                            </Stack>
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{getSourceLabel(lead.source)}</Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Badge
+                              color={getStatusColor(lead.status)}
+                              variant="light"
+                              size="sm"
+                            >
+                              {t(`crm.leads.status.${lead.status}`)}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td>
+                            {lead.assignedAgent ? (
+                              <Group gap={4}>
+                                <IconUser size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
+                                <Text size="xs">{lead.assignedAgent.name}</Text>
+                              </Group>
+                            ) : (
+                              <Text size="xs" c="dimmed">{t('crm.leads.unassigned')}</Text>
+                            )}
+                          </Table.Td>
+                          <Table.Td>
+                            <Text size="sm">{formatDate(lead.created_at)}</Text>
+                          </Table.Td>
+                          <Table.Td>
+                            <Menu shadow="md" width={160} position="bottom-end">
+                              <Menu.Target>
+                                <ActionIcon variant="subtle" size="sm">
+                                  <IconDots size={16} />
+                                </ActionIcon>
+                              </Menu.Target>
+
+                              <Menu.Dropdown>
+                                <Menu.Label>{t('common.actions')}</Menu.Label>
+                                <Menu.Item
+                                  leftSection={<IconPencil size={14} />}
+                                  component={Link}
+                                  to={`/crm/leads/${lead.id}/edit`}
+                                >
+                                  {t('crm.leads.actions.viewEdit')}
+                                </Menu.Item>
+                                <Menu.Item
+                                  leftSection={<IconPhone size={14} />}
+                                  color="blue"
+                                  component="a"
+                                  href={`tel:${lead.phone}`}
+                                >
+                                  {t('crm.leads.actions.callNow')}
+                                </Menu.Item>
+                                {lead.email && (
+                                  <Menu.Item
+                                    leftSection={<IconMail size={14} />}
+                                    color="green"
+                                    component="a"
+                                    href={`mailto:${lead.email}`}
+                                  >
+                                    {t('crm.leads.actions.sendEmail')}
+                                  </Menu.Item>
+                                )}
+                                <Menu.Divider />
+                                <Menu.Item
+                                  leftSection={<IconTrash size={14} />}
+                                  color="red"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openDeleteModal(lead.id, name)
+                                  }}
+                                >
+                                  {t('common.delete')}
+                                </Menu.Item>
+                              </Menu.Dropdown>
+                            </Menu>
+                          </Table.Td>
+                        </Table.Tr>
+                      )
+                    })}
+                  </Table.Tbody>
+                </Table>
+              </Table.ScrollContainer>
+            </Paper>
+          )}
+        </Box>
+      </Stack>
+
+      {/* Calendar Modal */}
+      <Modal
+        opened={calendarModalOpen}
+        onClose={() => setCalendarModalOpen(false)}
+        title={t('crm.leads.calendarModalTitle')}
+        centered
+        size="md"
+      >
+        <Stack>
+          <Text size="sm" c="dimmed">
+            {t('crm.leads.calendarModalDescription')}
+          </Text>
+          <DateInput
+            placeholder={t('common.selectDate')}
+            value={selectedDate}
+            onChange={(value) => setSelectedDate(value ? new Date(value) : null)}
+            clearable
+            minDate={new Date()}
+          />
+          {selectedDate && (
+            <Button
+              onClick={handleCalendarView}
+              leftSection={<IconSearch size={16} />}
+            >
+              {t('crm.leads.viewScheduledLeads')}
+            </Button>
           )}
         </Stack>
-      </Stack>
+      </Modal>
     </Box>
   )
 }

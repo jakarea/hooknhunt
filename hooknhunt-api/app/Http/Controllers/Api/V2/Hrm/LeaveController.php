@@ -19,17 +19,64 @@ class LeaveController extends Controller
     {
         $query = Leave::with(['user:id,name', 'approver:id,name'])->latest();
 
-        // If not Admin/Manager, show only own leaves
-        // (Assuming Role ID 1 & 2 are Admin/Manager)
-        if (!in_array(auth()->user()->role_id, [1, 2])) {
-            $query->where('user_id', auth()->id());
+        $user = auth()->user();
+
+        // Debug logging
+        \Log::info('Leave Index - User Info:', [
+            'user_id' => $user->id,
+            'role_id' => $user->role_id,
+            'role' => $user->role ? $user->role->toArray() : 'null',
+            'request_params' => $request->all()
+        ]);
+
+        // Check if user is admin by checking role slug or role_id
+        $isAdmin = false;
+
+        if ($user->role) {
+            // Check by role slug (preferred) - matches frontend
+            $isAdmin = in_array($user->role->slug, ['super_admin', 'admin']);
+
+            \Log::info('Role check:', [
+                'role_slug' => $user->role->slug,
+                'role_name' => $user->role->name,
+                'is_admin_by_slug' => $isAdmin
+            ]);
         }
 
+        // Fallback to role_id check - Super Admin is ID 8, Admin is ID ???
+        if (!$isAdmin) {
+            $isAdmin = in_array($user->role_id, [8, 1, 2]);
+            \Log::info('Role_id fallback check:', [
+                'role_id' => $user->role_id,
+                'is_admin_by_id' => $isAdmin
+            ]);
+        }
+
+        \Log::info('Final Is Admin:', ['is_admin' => $isAdmin]);
+
+        // Non-admins can only see their own leaves
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
+            \Log::info('Filtering by user_id (not admin):', ['user_id' => $user->id]);
+        } else {
+            \Log::info('User is admin - showing all leaves');
+        }
+
+        // Filter by status if provided
         if ($request->status) {
             $query->where('status', $request->status);
         }
 
-        return $this->sendSuccess($query->paginate(20));
+        // Filter by user_id (admin only)
+        if ($request->user_id && $isAdmin) {
+            $query->where('user_id', $request->user_id);
+            \Log::info('Admin filtering by specific user_id:', ['user_id' => $request->user_id]);
+        }
+
+        $leaves = $query->paginate(20);
+        \Log::info('Leaves count:', ['count' => $leaves->total()]);
+
+        return $this->sendSuccess($leaves);
     }
 
     /**
@@ -46,10 +93,12 @@ class LeaveController extends Controller
         ]);
 
         $userId = $request->user_id ?? auth()->id();
-        
-        // Calculate Days
+
+        // Parse dates (supports both date and datetime formats)
         $start = Carbon::parse($request->start_date);
         $end = Carbon::parse($request->end_date);
+
+        // Calculate days based on date difference (ignoring time)
         $days = $start->diffInDays($end) + 1;
 
         // Auto-approve if Admin creates it
@@ -60,8 +109,8 @@ class LeaveController extends Controller
         $leave = Leave::create([
             'user_id' => $userId,
             'type' => $request->type,
-            'start_date' => $request->start_date,
-            'end_date' => $request->end_date,
+            'start_date' => $start,
+            'end_date' => $end,
             'days_count' => $days,
             'reason' => $request->reason,
             'status' => $status,
@@ -72,24 +121,57 @@ class LeaveController extends Controller
     }
 
     /**
-     * 3. Approve / Reject (Admin Only)
+     * 3. Approve / Reject (Admin Only) - Can also modify dates
      */
     public function update(Request $request, $id)
     {
-        // Permission check can be added here
-        
+        $leave = Leave::findOrFail($id);
+
+        // Validate
         $request->validate([
-            'status' => 'required|in:approved,rejected'
+            'status' => 'required|in:approved,rejected',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'reason' => 'nullable|string',
+            'admin_note' => 'nullable|string'
         ]);
 
-        $leave = Leave::findOrFail($id);
-        
+        // Update status and approver
         $leave->update([
             'status' => $request->status,
             'approved_by' => auth()->id()
         ]);
 
-        return $this->sendSuccess($leave, "Leave request {$request->status}");
+        // Update dates if provided (admin can modify leave duration)
+        if ($request->has('start_date')) {
+            $start = Carbon::parse($request->start_date);
+            $leave->update(['start_date' => $start]);
+        }
+
+        if ($request->has('end_date')) {
+            $end = Carbon::parse($request->end_date);
+            $leave->update(['end_date' => $end]);
+        }
+
+        // Recalculate days if dates changed
+        if ($request->has('start_date') || $request->has('end_date')) {
+            $start = Carbon::parse($leave->start_date);
+            $end = Carbon::parse($leave->end_date);
+            $days = $start->diffInDays($end) + 1;
+            $leave->update(['days_count' => $days]);
+        }
+
+        // Update reason if provided
+        if ($request->has('reason')) {
+            $leave->update(['reason' => $request->reason]);
+        }
+
+        // Store admin note in separate column
+        if ($request->has('admin_note')) {
+            $leave->update(['admin_note' => $request->admin_note]);
+        }
+
+        return $this->sendSuccess($leave->fresh(), "Leave request {$request->status}");
     }
 
     /**

@@ -20,6 +20,15 @@ class Lead extends Model
         return $this->hasMany(CrmActivity::class);
     }
 
+    // রিলেশন: শুধুমাত্র আপকামিং স্কেজুলড এক্টিভিটি
+    public function scheduledActivities()
+    {
+        return $this->hasMany(CrmActivity::class)
+            ->where('is_done', false)
+            ->whereNotNull('schedule_at')
+            ->orderBy('schedule_at', 'asc');
+    }
+
     // যদি কনভার্ট হয়ে যায়
     public function customer()
     {

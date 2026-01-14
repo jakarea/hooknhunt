@@ -39,7 +39,7 @@ import {
   IconHistory,
 } from '@tabler/icons-react'
 import api from '@/lib/api'
-// import { usePermissions } from '@/hooks/usePermissions'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface User {
   id: number
@@ -57,16 +57,28 @@ interface User {
     name: string
     slug: string
   }
-  profile?: {
+  staffProfile?: {
     department_id?: number
     designation?: string
     joining_date?: string
     base_salary?: number
+    house_rent?: number
+    medical_allowance?: number
+    conveyance_allowance?: number
+    overtime_hourly_rate?: number
     address?: string
-    city?: string
+    division?: string
+    district?: string
+    thana?: string
     dob?: string
     gender?: string
-    department_name?: string
+    whatsapp_number?: string
+    office_email?: string
+    office_email_password?: string
+    department?: {
+      id: number
+      name: string
+    }
   }
 }
 
@@ -147,10 +159,21 @@ const mockLoginHistory = [
 ]
 
 
-export default function EmployeeProfilePage() {
+export default function StaffProfilePage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  // const { canViewProfile } = usePermissions()
+  const { canViewProfile, hasPermission } = usePermissions()
+
+  // Check if user has permission to view this profile
+  if (!canViewProfile(id || '')) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Alert variant="light" color="red" title="Access Denied">
+          You do not have permission to view this staff profile.
+        </Alert>
+      </Box>
+    )
+  }
 
   // ALL hooks must be declared before any conditional logic or early returns
   const [user, setUser] = useState<User | null>(null)
@@ -171,14 +194,64 @@ export default function EmployeeProfilePage() {
     const fetchUserData = async () => {
       try {
         setLoading(true)
-        const response = await api.get(`/user-management/users/${id}`)
+        console.log('Fetching staff data for ID:', id)
+        const response = await api.get(`/hrm/staff/${id}`)
+        console.log('Raw API response:', response.data)
 
-        const userData = response.data.data.user
-        const rolePerms = response.data.data.role_permissions || []
-        const granted = response.data.data.granted_permissions || []
-        const blocked = response.data.data.blocked_permissions || []
+        // API returns { data: { user, rolePermissions, grantedPermissions, blockedPermissions } }
+        const apiData = response.data.data
+        const userData = apiData.user
+        const rolePerms = apiData.rolePermissions || apiData.role_permissions || []
+        const granted = apiData.grantedPermissions || apiData.granted_permissions || []
+        const blocked = apiData.blockedPermissions || apiData.blocked_permissions || []
 
-        setUser(userData)
+        console.log('User data from response:', userData)
+        console.log('Staff profile from API:', userData?.staffProfile || userData?.staff_profile)
+
+        // Normalize data - API returns camelCase, convert to snake_case for consistency
+        const profileData = userData.staffProfile || userData.staff_profile
+        const normalizedProfile = profileData ? {
+          ...profileData,
+          // Convert all camelCase to snake_case
+          department_id: profileData.departmentId || profileData.department_id,
+          department_name: profileData.departmentName || profileData.department_name,
+          designation: profileData.designation,
+          joining_date: profileData.joiningDate || profileData.joining_date,
+          base_salary: profileData.baseSalary || profileData.base_salary,
+          house_rent: profileData.houseRent || profileData.house_rent,
+          medical_allowance: profileData.medicalAllowance || profileData.medical_allowance,
+          conveyance_allowance: profileData.conveyanceAllowance || profileData.conveyance_allowance,
+          overtime_hourly_rate: profileData.overtimeHourlyRate || profileData.overtime_hourly_rate,
+          address: profileData.address,
+          division: profileData.division,
+          district: profileData.district,
+          thana: profileData.thana,
+          dob: profileData.dob,
+          gender: profileData.gender,
+          office_email: profileData.officeEmail || profileData.office_email,
+          office_email_password: profileData.officeEmailPassword || profileData.office_email_password,
+          whatsapp_number: profileData.whatsappNumber || profileData.whatsapp_number,
+        } : null
+
+        const normalizedUser = {
+          ...userData,
+          staffProfile: normalizedProfile,
+          // Convert camelCase to snake_case for user fields
+          whatsapp_number: userData.whatsappNumber || userData.whatsapp_number,
+          role_id: userData.roleId || userData.role_id,
+          is_active: userData.isActive || userData.is_active,
+          phone_verified_at: userData.phoneVerifiedAt || userData.phone_verified_at,
+          last_login_at: userData.lastLoginAt || userData.last_login_at,
+          created_at: userData.createdAt || userData.created_at,
+          updated_at: userData.updatedAt || userData.updated_at,
+          deleted_at: userData.deletedAt || userData.deleted_at,
+        }
+
+        console.log('Normalized user data:', normalizedUser)
+        console.log('Normalized staff profile:', normalizedProfile)
+        console.log('User name:', normalizedUser.name)
+        console.log('User role:', normalizedUser.role)
+        setUser(normalizedUser)
 
         // Combine role permissions with granted permissions, exclude blocked
         const allPermissions = [...rolePerms, ...granted]
@@ -190,7 +263,7 @@ export default function EmployeeProfilePage() {
         console.error('Failed to fetch user:', error)
         notifications.show({
           title: 'Error',
-          message: 'Failed to load employee data. Please try again.',
+          message: 'Failed to load staff data. Please try again.',
           color: 'red',
         })
         navigate('/hrm/staff')
@@ -296,16 +369,16 @@ export default function EmployeeProfilePage() {
           <Group >
             <Avatar
               src={null}
-              alt={user.name}
+              alt={user.name || 'User'}
               radius="xl"
               size="xl"
               color="red"
             >
-              {user.name.charAt(0).toUpperCase()}
+              {user.name?.charAt(0)?.toUpperCase() || 'U'}
             </Avatar>
             <Box>
               <Group  mb="xs">
-                <Title order={2}>{user.name}</Title>
+                <Title order={2}>{user.name || 'N/A'}</Title>
                 <Badge
                   color={user.is_active ? 'green' : 'gray'}
                   variant="light"
@@ -314,7 +387,7 @@ export default function EmployeeProfilePage() {
                   {user.is_active ? 'Active' : 'Inactive'}
                 </Badge>
               </Group>
-              <Text size="lg" c="dimmed" mb="xs">{user.profile?.designation || 'N/A'}</Text>
+              <Text size="lg" c="dimmed" mb="xs">{user.staffProfile?.designation || 'N/A'}</Text>
               <Group >
                 {user.email && (
                   <Group >
@@ -329,14 +402,16 @@ export default function EmployeeProfilePage() {
               </Group>
             </Box>
           </Group>
-          <Button
-            component={Link}
-            to={`/hrm/staff/${user.id}/edit`}
-            leftSection={<IconEdit size={16} />}
-            variant="light"
-          >
-            Edit Profile
-          </Button>
+          {hasPermission('hrm.staff.edit') && (
+            <Button
+              component={Link}
+              to={`/hrm/staff/${user.id}/edit`}
+              leftSection={<IconEdit size={16} />}
+              variant="light"
+            >
+              Edit Profile
+            </Button>
+          )}
         </Group>
       </Paper>
     )
@@ -346,24 +421,21 @@ export default function EmployeeProfilePage() {
   const personalInfo = useMemo(() => {
     if (!user) return null
 
-    return (
-      <UnstyledButton
-        component={Link}
-        to={`/hrm/staff/${user.id}/edit`}
-        style={{ width: '100%', display: 'block' }}
+    const cardContent = (
+      <Paper
+        withBorder
+        p={{ base: 'md', md: 'xl' }}
+        radius="lg"
+        className={hasPermission('hrm.staff.edit') ? "transition-all duration-200 cursor-pointer hover:border-red-9" : ""}
       >
-        <Paper
-          withBorder
-          p={{ base: 'md', md: 'xl' }}
-          radius="lg"
-          className="transition-all duration-200 cursor-pointer hover:border-red-9"
-        >
-          <Group justify="space-between" mb="md">
-            <Title order={4} className="text-base md:text-lg lg:text-xl">Personal Information</Title>
+        <Group justify="space-between" mb="md">
+          <Title order={4} className="text-base md:text-lg lg:text-xl">Personal Information</Title>
+          {hasPermission('hrm.staff.edit') && (
             <ActionIcon variant="subtle" color="blue" size="sm">
               <IconEdit size={16} />
             </ActionIcon>
-          </Group>
+          )}
+        </Group>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             <Group >
               <IconUser size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
@@ -375,7 +447,7 @@ export default function EmployeeProfilePage() {
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Employee ID</Text>
+                <Text size="xs" c="dimmed">Staff ID</Text>
                 <Text fw={500}>#{user.id}</Text>
               </Box>
             </Group>
@@ -397,14 +469,14 @@ export default function EmployeeProfilePage() {
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Date of Birth</Text>
-                <Text fw={500}>{formatDate(user.profile?.dob || null)}</Text>
+                <Text fw={500}>{formatDate(user.staffProfile?.dob || null)}</Text>
               </Box>
             </Group>
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Gender</Text>
-                <Text fw={500}>{user.profile?.gender ? user.profile.gender.charAt(0).toUpperCase() + user.profile.gender.slice(1) : 'N/A'}</Text>
+                <Text fw={500}>{user.staffProfile?.gender ? user.staffProfile.gender.charAt(0).toUpperCase() + user.staffProfile.gender.slice(1) : 'N/A'}</Text>
               </Box>
             </Group>
             <Group  style={{ gridColumn: '1 / -1' }}>
@@ -412,38 +484,44 @@ export default function EmployeeProfilePage() {
               <Box>
                 <Text size="xs" c="dimmed">Address</Text>
                 <Text fw={500}>
-                  {user.profile?.address ? `${user.profile.address}, ${user.profile.city || ''}`.trim() : 'N/A'}
+                  {user.staffProfile?.address ? `${user.staffProfile.address}${user.staffProfile.division ? `, ${user.staffProfile.division}` : ''}${user.staffProfile.district ? `, ${user.staffProfile.district}` : ''}${user.staffProfile.thana ? `, ${user.staffProfile.thana}` : ''}`.trim() : 'N/A'}
                 </Text>
               </Box>
             </Group>
           </SimpleGrid>
         </Paper>
-      </UnstyledButton>
     )
-  }, [user])
 
-  // Professional Information Section
-  const professionalInfo = useMemo(() => {
-    if (!user) return null
-
-    return (
+    return hasPermission('hrm.staff.edit') ? (
       <UnstyledButton
         component={Link}
         to={`/hrm/staff/${user.id}/edit`}
         style={{ width: '100%', display: 'block' }}
       >
-        <Paper
-          withBorder
-          p={{ base: 'md', md: 'xl' }}
-          radius="lg"
-          className="transition-all duration-200 cursor-pointer hover:border-red-9"
-        >
-          <Group justify="space-between" mb="md">
-            <Title order={4} className="text-base md:text-lg lg:text-xl">Professional Information</Title>
+        {cardContent}
+      </UnstyledButton>
+    ) : cardContent
+  }, [user, hasPermission])
+
+  // Professional Information Section
+  const professionalInfo = useMemo(() => {
+    if (!user) return null
+
+    const cardContent = (
+      <Paper
+        withBorder
+        p={{ base: 'md', md: 'xl' }}
+        radius="lg"
+        className={hasPermission('hrm.staff.edit') ? "transition-all duration-200 cursor-pointer hover:border-red-9" : ""}
+      >
+        <Group justify="space-between" mb="md">
+          <Title order={4} className="text-base md:text-lg lg:text-xl">Professional Information</Title>
+          {hasPermission('hrm.staff.edit') && (
             <ActionIcon variant="subtle" color="blue" size="sm">
               <IconEdit size={16} />
             </ActionIcon>
-          </Group>
+          )}
+        </Group>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             <Group >
               <IconShield size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
@@ -456,21 +534,21 @@ export default function EmployeeProfilePage() {
               <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Department</Text>
-                <Text fw={500}>{user.profile?.department_name || 'N/A'}</Text>
+                <Text fw={500}>{user.staffProfile?.department?.name || 'N/A'}</Text>
               </Box>
             </Group>
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Designation</Text>
-                <Text fw={500}>{user.profile?.designation || 'N/A'}</Text>
+                <Text fw={500}>{user.staffProfile?.designation || 'N/A'}</Text>
               </Box>
             </Group>
             <Group >
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
                 <Text size="xs" c="dimmed">Joining Date</Text>
-                <Text fw={500}>{formatDate(user.profile?.joining_date || null)}</Text>
+                <Text fw={500}>{formatDate(user.staffProfile?.joining_date || null)}</Text>
               </Box>
             </Group>
             <Group >
@@ -478,7 +556,27 @@ export default function EmployeeProfilePage() {
               <Box>
                 <Text size="xs" c="dimmed">Base Salary</Text>
                 <Text fw={500}>
-                  {user.profile?.base_salary ? `${parseFloat(user.profile.base_salary.toString()).toLocaleString()} BDT` : 'N/A'}
+                  {user.staffProfile?.base_salary ? `${parseFloat(String(user.staffProfile.base_salary)).toLocaleString()} BDT` : 'N/A'}
+                </Text>
+              </Box>
+            </Group>
+            <Group >
+              <IconCoin size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+              <Box>
+                <Text size="xs" c="dimmed">Total Salary Package</Text>
+                <Text fw={500}>
+                  {user.staffProfile?.base_salary || user.staffProfile?.house_rent || user.staffProfile?.medical_allowance || user.staffProfile?.conveyance_allowance
+                    ? `${(
+                        (parseFloat(String(user.staffProfile?.base_salary || '0')) ||
+                        0) +
+                        (parseFloat(String(user.staffProfile?.house_rent || '0')) ||
+                        0) +
+                        (parseFloat(String(user.staffProfile?.medical_allowance || '0')) ||
+                        0) +
+                        (parseFloat(String(user.staffProfile?.conveyance_allowance || '0')) ||
+                        0)
+                      ).toLocaleString()} BDT`
+                    : 'N/A'}
                 </Text>
               </Box>
             </Group>
@@ -491,9 +589,18 @@ export default function EmployeeProfilePage() {
             </Group>
           </SimpleGrid>
         </Paper>
-      </UnstyledButton>
     )
-  }, [user])
+
+    return hasPermission('hrm.staff.edit') ? (
+      <UnstyledButton
+        component={Link}
+        to={`/hrm/staff/${user.id}/edit`}
+        style={{ width: '100%', display: 'block' }}
+      >
+        {cardContent}
+      </UnstyledButton>
+    ) : cardContent
+  }, [user, hasPermission])
 
   // Account Security Section
   const accountSecurity = useMemo(() => {
@@ -893,15 +1000,15 @@ export default function EmployeeProfilePage() {
             <IconChevronRight size={14} />
             <Anchor component={Link} to="/hrm/staff" c="dimmed">HRM</Anchor>
             <IconChevronRight size={14} />
-            <Anchor component={Link} to="/hrm/staff" c="dimmed">Employees</Anchor>
+            <Anchor component={Link} to="/hrm/staff" c="dimmed">Staff</Anchor>
             <IconChevronRight size={14} />
             <Text c="red">Profile: {user.name}</Text>
           </Group>
 
           {/* Header */}
           <Box>
-            <Title order={1} className="text-lg md:text-xl lg:text-2xl">Employee Profile</Title>
-            <Text c="dimmed">View and manage employee information</Text>
+            <Title order={1} className="text-lg md:text-xl lg:text-2xl">Staff Profile</Title>
+            <Text c="dimmed">View and manage staff information</Text>
           </Box>
 
           {/* Profile Header */}

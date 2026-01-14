@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
+import { bangladeshDivisions } from '@/data/bangladesh-divisions'
 import {
   Box,
   Stack,
@@ -10,7 +11,6 @@ import {
   TextInput,
   Select,
   NumberInput,
-  PasswordInput,
   Paper,
   Grid,
   Breadcrumbs,
@@ -23,11 +23,13 @@ import {
   Alert,
   ActionIcon,
   Avatar,
+  PasswordInput,
 } from '@mantine/core'
-import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser } from '@tabler/icons-react'
+import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser, IconKey } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useAuthStore } from '@/stores/authStore'
 
   
 interface Permission {
@@ -52,14 +54,17 @@ interface ValidationErrors {
   password?: string
 }
 
-export default function EditEmployeePage() {
+export default function EditStaffPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { canEditProfile, isSuperAdmin } = usePermissions()
+  const { user: currentUser } = useAuthStore()
 
   // ALL React hooks must be declared before any conditional logic
   const [saving, setSaving] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
 
   // Data from API
   const [roles, setRoles] = useState<Array<{ value: string; label: string }>>([])
@@ -76,17 +81,51 @@ export default function EditEmployeePage() {
   const [departmentId, setDepartmentId] = useState('')
   const [joiningDate, setJoiningDate] = useState('')
   const [baseSalary, setBaseSalary] = useState<number | 0>(0)
+  const [houseRent, setHouseRent] = useState<number | 0>(0)
+  const [medicalAllowance, setMedicalAllowance] = useState<number | 0>(0)
+  const [conveyanceAllowance, setConveyanceAllowance] = useState<number | 0>(0)
+  const [overtimeHourlyRate, setOvertimeHourlyRate] = useState<number | 0>(0)
   const [address, setAddress] = useState('')
-  const [city, setCity] = useState('')
+  const [division, setDivision] = useState('')
+  const [district, setDistrict] = useState('')
+  const [thana, setThana] = useState('')
   const [dob, setDob] = useState('')
   const [gender, setGender] = useState('')
-  const [password, setPassword] = useState('')
+  const [whatsappNumber, setWhatsappNumber] = useState('')
+  const [officeEmail, setOfficeEmail] = useState('')
+  const [officeEmailPassword, setOfficeEmailPassword] = useState('')
   const [grantedPermissions, setGrantedPermissions] = useState<number[]>([])
   const [blockedPermissions, setBlockedPermissions] = useState<number[]>([])
   const [permissionSearch, setPermissionSearch] = useState('')
   const [activePermissionTab, setActivePermissionTab] = useState<'granted' | 'blocked'>('granted')
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
+
+  // Derived state for cascading dropdowns
+  const selectedDivisionData = bangladeshDivisions.find(d => d.name === division)
+  const availableDistricts = selectedDivisionData?.districts || []
+  // Remove duplicate districts by name
+  const uniqueDistricts = availableDistricts.filter((district, index, self) =>
+    index === self.findIndex((d) => d.name === district.name)
+  )
+  const selectedDistrictData = uniqueDistricts.find(d => d.name === district)
+  const availableThanas = selectedDistrictData?.thanas || []
+  // Remove duplicate thanas by name
+  const uniqueThanas = availableThanas.filter((thana, index, self) =>
+    index === self.findIndex((t) => t.name === thana.name)
+  )
+
+  // Helper to clear dependent fields
+  const handleDivisionChange = (value: string) => {
+    setDivision(value)
+    setDistrict('')
+    setThana('')
+  }
+
+  const handleDistrictChange = (value: string) => {
+    setDistrict(value)
+    setThana('')
+  }
 
   // Helper function to format date for HTML date input (YYYY-MM-DD)
   const formatDateForInput = (dateString: string | null | undefined): string => {
@@ -162,32 +201,51 @@ export default function EditEmployeePage() {
     const fetchUserData = async () => {
       try {
         setInitialLoading(true)
-        const response = await api.get(`/user-management/users/${id}`)
+        const response = await api.get(`/hrm/staff/${id}`)
 
         const userData = response.data.data.user
-        const granted = response.data.data.granted_permissions || []
-        const blocked = response.data.data.blocked_permissions || []
 
         setName(userData.name)
         setPhone(userData.phone)
         setEmail(userData.email || '')
-        setRoleId(String(userData.role_id))
-        setIsActive(userData.is_active)
+        setRoleId(String(userData.roleId))
+        setIsActive(userData.isActive)
 
         // Profile data (may be null)
-        if (userData.profile) {
-          setDesignation(userData.profile.designation || '')
-          setDepartmentId(userData.profile.department_id ? String(userData.profile.department_id) : '')
-          setJoiningDate(formatDateForInput(userData.profile.joining_date))
-          setBaseSalary(userData.profile.base_salary || 0)
-          setAddress(userData.profile.address || '')
-          setCity(userData.profile.city || '')
-          setDob(formatDateForInput(userData.profile.dob))
-          setGender(userData.profile.gender || '')
+        if (userData.staffProfile) {
+          setDesignation(userData.staffProfile.designation || '')
+          setDepartmentId(userData.staffProfile.departmentId ? String(userData.staffProfile.departmentId) : '')
+          setJoiningDate(formatDateForInput(userData.staffProfile.joiningDate))
+          setBaseSalary(userData.staffProfile.baseSalary || 0)
+          setHouseRent(userData.staffProfile.houseRent || 0)
+          setMedicalAllowance(userData.staffProfile.medicalAllowance || 0)
+          setConveyanceAllowance(userData.staffProfile.conveyanceAllowance || 0)
+          setOvertimeHourlyRate(userData.staffProfile.overtimeHourlyRate || 0)
+          setAddress(userData.staffProfile.address || '')
+          setDivision(userData.staffProfile.division || '')
+          setDistrict(userData.staffProfile.district || '')
+          setThana(userData.staffProfile.thana || '')
+          setDob(formatDateForInput(userData.staffProfile.dob))
+          setGender(userData.staffProfile.gender || '')
+          setWhatsappNumber(userData.staffProfile.whatsappNumber || '')
+          setOfficeEmail(userData.staffProfile.officeEmail || '')
+          setOfficeEmailPassword(userData.staffProfile.officeEmailPassword || '')
         }
 
-        setGrantedPermissions(granted.map((p: Permission) => p.id))
-        setBlockedPermissions(blocked.map((p: Permission) => p.id))
+        // Fetch user permissions separately
+        try {
+          const permResponse = await api.get(`/user-management/users/${id}`)
+          const permData = permResponse.data.data
+          const granted = permData.grantedPermissions || []
+          const blocked = permData.blockedPermissions || []
+          setGrantedPermissions(granted.map((p: Permission) => p.id))
+          setBlockedPermissions(blocked.map((p: Permission) => p.id))
+        } catch (permError) {
+          console.error('Failed to fetch permissions:', permError)
+          // Continue without permissions
+          setGrantedPermissions([])
+          setBlockedPermissions([])
+        }
       } catch (error: unknown) {
         console.error('Failed to fetch user:', error)
         notifications.show({
@@ -288,10 +346,19 @@ export default function EditEmployeePage() {
         designation: string | null
         joining_date: string | null
         base_salary: number
+        house_rent: number
+        medical_allowance: number
+        conveyance_allowance: number
+        overtime_hourly_rate: number
         address: string | null
-        city: string | null
+        division: string | null
+        district: string | null
+        thana: string | null
         dob: string | null
         gender: string | null
+        whatsapp_number: string | null
+        office_email: string | null
+        office_email_password: string | null
         password?: string
       } = {
         name,
@@ -303,19 +370,28 @@ export default function EditEmployeePage() {
         designation: designation || null,
         joining_date: formatDateForMySQL(joiningDate),
         base_salary: baseSalary !== null && baseSalary !== undefined ? baseSalary : 0,
+        house_rent: houseRent || 0,
+        medical_allowance: medicalAllowance || 0,
+        conveyance_allowance: conveyanceAllowance || 0,
+        overtime_hourly_rate: overtimeHourlyRate || 0,
         address: address || null,
-        city: city || null,
+        division: division || null,
+        district: district || null,
+        thana: thana || null,
         dob: formatDateForMySQL(dob),
         gender: gender || null,
+        whatsapp_number: whatsappNumber || null,
+        office_email: officeEmail || null,
+        office_email_password: officeEmailPassword || null,
       }
 
-      // Add password only if provided
-      if (password) {
+      // Only include password if it's provided and user has permission
+      if (canEditPassword && password) {
         payload.password = password
       }
 
       // Update user
-      await api.put(`/user-management/users/${id}`, payload)
+      await api.put(`/hrm/staff/${id}`, payload)
 
       // Sync permissions conditionally - only if there are permissions to sync
       const permissionPromises = []
@@ -411,9 +487,12 @@ export default function EditEmployeePage() {
     navigate(`/hrm/staff/${id}`)
   }
 
-  // Check permission - user can edit own profile OR needs employee.edit permission
-  const employeeId = parseInt(id || '0')
-  const hasAccess = canEditProfile(employeeId)
+  // Check permission - user can edit own profile OR needs staff.edit permission
+  const staffId = parseInt(id || '0')
+  const hasAccess = canEditProfile(staffId)
+
+  // Check if current user is profile owner or super_admin for password access
+  const canEditPassword = currentUser?.id === staffId || isSuperAdmin()
 
   // Show loading state
   if (initialLoading) {
@@ -440,7 +519,7 @@ export default function EditEmployeePage() {
                   Access Denied
                 </Title>
                 <Text size="lg" c="dimmed">
-                  You don't have permission to edit this employee profile.
+                  You don't have permission to edit this staff profile.
                 </Text>
                 <Text size="sm" c="dimmed" mt="xs">
                   Please contact your administrator if you believe this is an error.
@@ -454,7 +533,7 @@ export default function EditEmployeePage() {
                   leftSection={<IconArrowLeft size={16} />}
                   onClick={() => navigate('/hrm/staff')}
                 >
-                  Back to Employees
+                  Back to Staff
                 </Button>
                 <Button
                   variant="filled"
@@ -480,7 +559,7 @@ export default function EditEmployeePage() {
           <Anchor href="/dashboard" c="dimmed">Dashboard</Anchor>
           <Anchor href="/hrm/staff" c="dimmed">Users</Anchor>
           <Anchor href={`/hrm/staff/${id}`} c="dimmed">Profile</Anchor>
-          <Text c="red">Edit Employee</Text>
+          <Text c="red">Edit Staff</Text>
         </Breadcrumbs>
 
         {/* Header */}
@@ -496,7 +575,7 @@ export default function EditEmployeePage() {
               Back to Profile
             </Button>
           </Group>
-          <Title order={1} className="text-lg md:text-xl lg:text-2xl">Edit Employee: {name}</Title>
+          <Title order={1} className="text-lg md:text-xl lg:text-2xl">Edit Staff: {name}</Title>
           <Text c="dimmed">Update user information and settings</Text>
         </Box>
 
@@ -610,11 +689,51 @@ export default function EditEmployeePage() {
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <NumberInput
-                    label="Base Salary (BDT)"
+                    label="Base Salary"
                     placeholder="Enter salary"
                     value={baseSalary}
                     onChange={(value) => setBaseSalary(value as number)}
                     error={validationErrors.baseSalary}
+                    min={0}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="House Rent"
+                    placeholder="Enter house rent"
+                    value={houseRent}
+                    onChange={(value) => setHouseRent(value as number)}
+                    min={0}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="Medical Allowance"
+                    placeholder="Enter medical allowance"
+                    value={medicalAllowance}
+                    onChange={(value) => setMedicalAllowance(value as number)}
+                    min={0}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="Conveyance Allowance"
+                    placeholder="Enter conveyance allowance"
+                    value={conveyanceAllowance}
+                    onChange={(value) => setConveyanceAllowance(value as number)}
+                    min={0}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="Overtime Hourly Rate"
+                    placeholder="Enter overtime rate"
+                    value={overtimeHourlyRate}
+                    onChange={(value) => setOvertimeHourlyRate(value as number)}
                     min={0}
                     size="md"
                   />
@@ -663,40 +782,117 @@ export default function EditEmployeePage() {
                     size="md"
                   />
                 </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                  <Select
+                    label="Division"
+                    placeholder="Select division"
+                    data={bangladeshDivisions.map(d => ({ value: d.name, label: d.name }))}
+                    value={division}
+                    onChange={(value) => handleDivisionChange(value || '')}
+                    searchable
+                    clearable
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                  <Select
+                    label="District"
+                    placeholder="Select district"
+                    data={uniqueDistricts.map(d => ({ value: d.name, label: d.name }))}
+                    value={district}
+                    onChange={(value) => handleDistrictChange(value || '')}
+                    searchable
+                    clearable
+                    disabled={!division}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 4 }}>
+                  <Select
+                    label="Thana"
+                    placeholder="Select thana"
+                    data={uniqueThanas.map(t => ({ value: t.name, label: t.name }))}
+                    value={thana}
+                    onChange={(value) => setThana(value || '')}
+                    searchable
+                    clearable
+                    disabled={!district}
+                    size="md"
+                  />
+                </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
                   <TextInput
-                    label="City"
-                    placeholder="Enter city"
-                    value={city}
-                    onChange={(e) => setCity(e.currentTarget.value)}
+                    label="WhatsApp Number"
+                    placeholder="01XXXXXXXXX"
+                    value={whatsappNumber}
+                    onChange={(e) => setWhatsappNumber(e.currentTarget.value)}
                     size="md"
                   />
                 </Grid.Col>
-              </Grid>
-            </Stack>
-          </Paper>
-
-          {/* Change Password */}
-          <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
-            <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack >
-              <Title order={3} className="text-base md:text-lg lg:text-xl">Change Password</Title>
-              <Text size="sm" c="dimmed">Leave blank to keep current password</Text>
-
-              <Grid>
                 <Grid.Col span={{ base: 12, md: 6 }}>
-                  <PasswordInput
-                    label="New Password"
-                    placeholder="Enter new password (leave blank to keep current)"
-                    value={password}
-                    onChange={(e) => setPassword(e.currentTarget.value)}
-                    error={validationErrors.password}
+                  <TextInput
+                    label="Office Email"
+                    type="email"
+                    placeholder="staff@company.com"
+                    value={officeEmail}
+                    onChange={(e) => setOfficeEmail(e.currentTarget.value)}
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={{ base: 12, md: 6 }}>
+                  <TextInput
+                    label="Office Email Password"
+                    placeholder="Enter office email password"
+                    value={officeEmailPassword}
+                    onChange={(e) => setOfficeEmailPassword(e.currentTarget.value)}
                     size="md"
                   />
                 </Grid.Col>
               </Grid>
             </Stack>
           </Paper>
+
+          {/* Password Section - Only for profile owner or super_admin */}
+          {canEditPassword && (
+            <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
+              <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
+              <Stack >
+                <Group>
+                  <IconKey size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                  <Title order={3} className="text-base md:text-lg lg:text-xl">Change Password</Title>
+                </Group>
+
+                <Alert variant="light" color="blue" icon={<IconLock size={16} />}>
+                  <Text size="sm">
+                    Leave password fields empty to keep the current password. Only fill them if you want to change the password.
+                  </Text>
+                </Alert>
+
+                <Grid>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <PasswordInput
+                      label="New Password"
+                      placeholder="Enter new password (optional)"
+                      value={password}
+                      onChange={(e) => setPassword(e.currentTarget.value)}
+                      error={validationErrors.password}
+                      size="md"
+                    />
+                  </Grid.Col>
+                  <Grid.Col span={{ base: 12, md: 6 }}>
+                    <PasswordInput
+                      label="Confirm Password"
+                      placeholder="Confirm new password"
+                      value={passwordConfirmation}
+                      onChange={(e) => setPasswordConfirmation(e.currentTarget.value)}
+                      error={password && passwordConfirmation && password !== passwordConfirmation ? 'Passwords do not match' : undefined}
+                      size="md"
+                    />
+                  </Grid.Col>
+                </Grid>
+              </Stack>
+            </Paper>
+          )}
 
           {/* Permissions Section */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">

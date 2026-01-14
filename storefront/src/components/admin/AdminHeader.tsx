@@ -21,7 +21,7 @@ export default function AdminHeader() {
             <div className="hidden lg:block">
               <nav className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                 <Link href="/admin" className="hover:text-[#bc1215] transition-colors">
-                  Admin Dashboard
+                  Admin Dashboard 2
                 </Link>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

@@ -225,6 +225,61 @@ export default function EditRolePage() {
     setSelectedPermissionSlugs([])
   }, [])
 
+  // Handle bulk select by permission type at GROUP level
+  const handleGroupBulkSelectByType = useCallback((group: PermissionGroup, permissionType: string) => {
+    const typePatterns: Record<string, string[]> = {
+      'View': ['index', 'view'],
+      'Show': ['index', 'view'],
+      'Create': ['create'],
+      'Edit': ['edit', 'update'],
+      'Delete': ['delete', 'destroy'],
+    }
+
+    const patterns = typePatterns[permissionType] || []
+    const matchingPermissions = group.modules.flatMap((module) =>
+      module.permissions.filter((perm) =>
+        patterns.some((pattern) => perm.slug.toLowerCase().includes(pattern))
+      )
+    )
+
+    const matchingSlugs = matchingPermissions.map((perm) => perm.slug)
+
+    // Check if all matching permissions are already selected
+    const allSelected = matchingSlugs.length > 0 && matchingSlugs.every((slug) => selectedPermissionSlugs.includes(slug))
+
+    if (allSelected) {
+      // Deselect matching permissions
+      setSelectedPermissionSlugs((prev) => prev.filter((slug) => !matchingSlugs.includes(slug)))
+    } else {
+      // Select matching permissions
+      setSelectedPermissionSlugs((prev) => [
+        ...prev.filter((slug) => !matchingSlugs.includes(slug)),
+        ...matchingSlugs,
+      ])
+    }
+  }, [selectedPermissionSlugs])
+
+  // Check if all permissions of a specific type in group are selected
+  const hasAllPermissionsOfTypeInGroup = useCallback((group: PermissionGroup, permissionType: string) => {
+    const typePatterns: Record<string, string[]> = {
+      'View': ['index', 'view'],
+      'Show': ['index', 'view'],
+      'Create': ['create'],
+      'Edit': ['edit', 'update'],
+      'Delete': ['delete', 'destroy'],
+    }
+
+    const patterns = typePatterns[permissionType] || []
+    const matchingPermissions = group.modules.flatMap((module) =>
+      module.permissions.filter((perm) =>
+        patterns.some((pattern) => perm.slug.toLowerCase().includes(pattern))
+      )
+    )
+
+    const matchingSlugs = matchingPermissions.map((perm) => perm.slug)
+    return matchingSlugs.length > 0 && matchingSlugs.every((slug) => selectedPermissionSlugs.includes(slug))
+  }, [selectedPermissionSlugs])
+
   // Handle module select all
   const handleModuleSelectAll = useCallback((module: ModulePermissions) => {
     const moduleSlugs = module.permissions.map((perm) => perm.slug)
@@ -442,8 +497,38 @@ export default function EditRolePage() {
                 <Stack gap="lg">
                   {filteredGroups.map((group) => (
                     <Box key={group.groupName}>
-                      <Group mb="md">
+                      <Group justify="space-between" mb="md">
                         <Text fw={700} size="lg">{group.groupName}</Text>
+                        <Group gap="xs">
+                          <Checkbox
+                            label="Show"
+                            size="sm"
+                            checked={hasAllPermissionsOfTypeInGroup(group, 'Show')}
+                            onChange={() => handleGroupBulkSelectByType(group, 'Show')}
+                            styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                          />
+                          <Checkbox
+                            label="Create"
+                            size="sm"
+                            checked={hasAllPermissionsOfTypeInGroup(group, 'Create')}
+                            onChange={() => handleGroupBulkSelectByType(group, 'Create')}
+                            styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                          />
+                          <Checkbox
+                            label="Edit"
+                            size="sm"
+                            checked={hasAllPermissionsOfTypeInGroup(group, 'Edit')}
+                            onChange={() => handleGroupBulkSelectByType(group, 'Edit')}
+                            styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                          />
+                          <Checkbox
+                            label="Delete"
+                            size="sm"
+                            checked={hasAllPermissionsOfTypeInGroup(group, 'Delete')}
+                            onChange={() => handleGroupBulkSelectByType(group, 'Delete')}
+                            styles={{ label: { fontSize: '12px', fontWeight: 600 } }}
+                          />
+                        </Group>
                       </Group>
                       <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }} spacing="md">
                         {group.modules.map((module) => {
@@ -461,7 +546,7 @@ export default function EditRolePage() {
                             >
                               <Stack>
                                 {/* Module Header */}
-                                <Group justify="space-between">
+                                <Group justify="space-between" wrap="nowrap">
                                   <Text fw={600} size="sm">{module.module_name}</Text>
                                   <Button
                                     variant="light"

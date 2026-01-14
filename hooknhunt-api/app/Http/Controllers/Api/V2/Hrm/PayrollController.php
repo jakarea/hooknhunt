@@ -21,10 +21,21 @@ class PayrollController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Payroll::with(['user:id,name', 'user.profile:user_id,designation,department_id', 'user.profile.department']);
+        $query = Payroll::with(['user:id,name', 'user.staffProfile:user_id,designation,department_id', 'user.staffProfile.department']);
+
+        $user = auth()->user();
+
+        // Check if user is admin
+        $isAdmin = false;
+        if ($user->role) {
+            $isAdmin = in_array($user->role->slug, ['super_admin', 'admin']);
+        }
+        if (!$isAdmin) {
+            $isAdmin = in_array($user->role_id, [8, 1, 2]);
+        }
 
         // Admin can filter by specific user
-        if ($request->has('user_id') && in_array(auth()->user()->role_id, [1, 2])) {
+        if ($request->has('user_id') && $isAdmin) {
             $query->where('user_id', $request->user_id);
         }
 
@@ -37,8 +48,8 @@ class PayrollController extends Controller
         }
 
         // Staff can only see their own (unless admin already filtered by user_id above)
-        if (!in_array(auth()->user()->role_id, [1, 2])) {
-            $query->where('user_id', auth()->id());
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
         }
 
         return $this->sendSuccess($query->paginate(20));
@@ -57,7 +68,7 @@ class PayrollController extends Controller
         $month = $request->month_year;
 
         // Get All Active Staff (Excluding Customers)
-        $staffs = User::with('profile')
+        $staffs = User::with('staffProfile')
             ->whereHas('role', fn($q) => $q->whereNotIn('slug', ['retail_customer', 'wholesale_customer']))
             ->where('is_active', true)
             ->get();
@@ -72,8 +83,8 @@ class PayrollController extends Controller
             $skipped = 0;
 
             foreach ($staffs as $staff) {
-                // Skip if no profile or salary set
-                $baseSalary = $staff->profile->base_salary ?? 0;
+                // Skip if no staff profile or salary set
+                $baseSalary = $staff->staffProfile->base_salary ?? 0;
                 if ($baseSalary <= 0) {
                     $skipped++;
                     continue;

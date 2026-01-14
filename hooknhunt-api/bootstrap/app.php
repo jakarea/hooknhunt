@@ -10,6 +10,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use App\Http\Middleware\XssSanitization;
+use App\Http\Middleware\CamelCaseResponse;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,15 +21,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-            $middleware->api(prepend: [
-                \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            ]);
-            
+            // Disable EnsureFrontendRequestsAreStateful for local development with Bearer tokens
+            // Re-enable for production when using cookie-based auth
+            // $middleware->api(prepend: [
+            //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // ]);
+
             $middleware->append(XssSanitization::class);
             $middleware->append(\App\Http\Middleware\AuditLogMiddleware::class);
 
+            // Apply CamelCaseResponse middleware to API routes only
+            $middleware->api(CamelCaseResponse::class);
+
             $middleware->alias([
-                'auth' => \App\Http\Middleware\Authenticate::class,
+                // 'auth' => \App\Http\Middleware\Authenticate::class, // Use default Laravel auth
                 'permission' => \App\Http\Middleware\CheckPermission::class, // এটি যুক্ত করুন
                 'role' => \App\Http\Middleware\CheckRoleMiddleware::class,   // এটিও যুক্ত করে রাখা ভালো
             ]);

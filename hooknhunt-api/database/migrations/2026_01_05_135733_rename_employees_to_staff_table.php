@@ -11,8 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Rename the table
-        Schema::rename('employees', 'staff');
+        // Only rename if the employees table exists
+        // In fresh migrations, this table doesn't exist, so we skip the rename
+        if (Schema::hasTable('employees')) {
+            Schema::rename('employees', 'staff');
+        }
     }
 
     /**

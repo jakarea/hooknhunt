@@ -16,7 +16,7 @@ i18n
       en: { translation: en },
       bn: { translation: bn }
     },
-    lng: 'en', // Default language is English
+    // lng: 'en', // Removed - let LanguageDetector decide from localStorage
     fallbackLng: 'en', // ভাষা খুঁজে না পেলে ইংলিশ দেখাবে
     debug: false, // ডেভেলপমেন্টের সময় কনসোলে লগ দেখাবে
 

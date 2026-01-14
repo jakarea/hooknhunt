@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://192.168.0.166:8000/api/v2'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v2'
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -59,8 +59,9 @@ api.interceptors.response.use(
         showErrorToast((data as any)?.message || 'resource_not_found')
         break
 
+      case 400:
       case 422:
-        // Validation errors - return as is for component-level handling
+        // Business logic and validation errors - return as is for component-level handling
         return Promise.reject({
           ...error,
           handled: true,

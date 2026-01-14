@@ -15,6 +15,9 @@ class User extends Authenticatable
 
     protected $guarded = ['id'];
 
+    // Always load role relationship
+    protected $with = ['role'];
+
     protected $hidden = [
         'password',
         'remember_token',
@@ -35,6 +38,76 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserProfile::class);
     }
+
+    public function staffProfile()
+    {
+        return $this->hasOne(StaffProfile::class);
+    }
+
+    /**
+     * CRM: Customer profile relationship
+     */
+    public function customerProfile()
+    {
+        return $this->hasOne(CustomerProfile::class);
+    }
+
+    /**
+     * CRM: Customer addresses
+     */
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
+
+    /**
+     * CRM: Customer wallet
+     */
+    public function wallet()
+    {
+        return $this->hasOne(Wallet::class);
+    }
+
+    /**
+     * CRM: Opportunities as customer
+     */
+    public function opportunities()
+    {
+        return $this->hasMany(Opportunity::class, 'customer_id');
+    }
+
+    /**
+     * CRM: Quotations as customer
+     */
+    public function quotations()
+    {
+        return $this->hasMany(Quotation::class, 'customer_id');
+    }
+
+    /**
+     * CRM: Activities assigned to or created by this user
+     */
+    public function crmActivities()
+    {
+        return $this->hasMany(CrmActivity::class, 'assigned_to');
+    }
+
+    /**
+     * CRM: Leads created by this user
+     */
+    public function leads()
+    {
+        return $this->hasMany(Lead::class, 'created_by');
+    }
+
+    /**
+     * CRM: Loyalty transactions
+     */
+    public function loyaltyTransactions()
+    {
+        return $this->hasMany(LoyaltyTransaction::class, 'customer_id');
+    }
+
     public function directPermissions()
     {
         return $this->belongsToMany(Permission::class, 'permission_user');

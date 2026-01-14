@@ -28,7 +28,7 @@ Route::group([
 // ====================================================
 Route::group([
     'prefix' => 'v2',
-    'middleware' => ['auth:sanctum'],
+    'middleware' => ['auth'],
     'namespace' => 'App\Http\Controllers\Api\V2'
 ], function () {
 
@@ -131,6 +131,7 @@ Route::group([
     Route::group(['prefix' => 'hrm'], function() {
         // HRM Controllers
         Route::group(['namespace' => 'Hrm'], function() {
+            Route::get('stats', 'StaffController@getStats');
             Route::apiResource('departments', 'DepartmentController');
             Route::apiResource('staff', 'StaffController');
             Route::apiResource('leaves', 'LeaveController');
@@ -139,6 +140,8 @@ Route::group([
             Route::post('attendance', 'AttendanceController@store');
             Route::post('clock-in', 'AttendanceController@clockIn');
             Route::post('clock-out', 'AttendanceController@clockOut');
+            Route::post('break-in', 'AttendanceController@breakIn');
+            Route::post('break-out', 'AttendanceController@breakOut');
             Route::get('payrolls', 'PayrollController@index');
             Route::post('payrolls/generate', 'PayrollController@generate');
             Route::put('payrolls/{id}', 'PayrollController@update');
@@ -156,12 +159,24 @@ Route::group([
 
     // --- Module: CRM ---
     Route::group(['prefix' => 'crm', 'namespace' => 'Crm'], function() {
+        Route::get('stats', 'LeadController@getStats');
         Route::apiResource('leads', 'LeadController');
         Route::post('activities', 'ActivityController@store');
         Route::post('activities/{id}/done', 'ActivityController@markAsDone');
         Route::post('segments/auto-run', 'CampaignController@runAutoSegmentation');
         Route::post('campaigns', 'CampaignController@store');
         Route::get('campaigns/{id}/generate-pdf', 'CampaignController@generatePdf');
+    });
+
+    // --- Module: WALLET ---
+    Route::group(['prefix' => 'wallet'], function() {
+        Route::get('/', 'WalletController@index');
+        Route::get('/stats', 'WalletController@stats');
+        Route::get('/transactions', 'WalletController@transactions');
+        Route::get('/{id}', 'WalletController@show');
+        Route::post('/add-funds', 'WalletController@addFunds');
+        Route::post('/deduct-funds', 'WalletController@deductFunds');
+        Route::post('/{id}/toggle-freeze', 'WalletController@toggleFreeze');
     });
 
     // --- Module: FINANCE ---
@@ -192,7 +207,7 @@ Route::group([
 Route::group([
     'prefix' => 'v2/admin',
     'namespace' => 'App\Http\Controllers\Api\V2',
-    'middleware' => ['auth:sanctum']
+    'middleware' => ['auth']
 ], function () {
     Route::get('audit-logs', 'AuditController@index');
     Route::get('audit-logs/{fileName}/preview', 'AuditController@preview');

@@ -18,24 +18,7 @@ return new class extends Migration
             });
         }
 
-        // 2. Update User Profiles (Add Missing Columns Only)
-        if (Schema::hasTable('user_profiles')) {
-            Schema::table('user_profiles', function (Blueprint $table) {
-                // Check individually to be safe
-                if (!Schema::hasColumn('user_profiles', 'department_id')) {
-                    $table->foreignId('department_id')->nullable()->after('user_id')->constrained('departments')->onDelete('set null');
-                }
-                if (!Schema::hasColumn('user_profiles', 'designation')) {
-                    $table->string('designation')->nullable()->after('department_id');
-                }
-                if (!Schema::hasColumn('user_profiles', 'joining_date')) {
-                    $table->date('joining_date')->nullable()->after('designation');
-                }
-                if (!Schema::hasColumn('user_profiles', 'base_salary')) {
-                    $table->decimal('base_salary', 10, 2)->default(0)->after('joining_date');
-                }
-            });
-        }
+       
 
         // 3. Attendances (New Table)
         if (!Schema::hasTable('attendances')) {
@@ -45,6 +28,8 @@ return new class extends Migration
                 $table->date('date')->index(); 
                 
                 $table->time('clock_in')->nullable();
+                $table->text('break_in')->nullable();
+                $table->text('break_out')->nullable();
                 $table->time('clock_out')->nullable();
                 
                 $table->enum('status', ['present', 'late', 'absent', 'leave', 'holiday'])->default('absent');
@@ -82,18 +67,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('leaves');
         Schema::dropIfExists('attendances');
-        
-        if (Schema::hasTable('user_profiles')) {
-            Schema::table('user_profiles', function (Blueprint $table) {
-                // Drop columns if they exist
-                if (Schema::hasColumn('user_profiles', 'department_id')) {
-                    $table->dropForeign(['department_id']);
-                    $table->dropColumn('department_id');
-                }
-                $table->dropColumn(['designation', 'joining_date', 'base_salary']);
-            });
-        }
-
         Schema::dropIfExists('departments');
     }
 };

@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import {
   IconDashboard,
+  IconUsers,
   IconUsersGroup,
   IconShield,
   IconSearch,
@@ -155,25 +156,25 @@ export function AppSidebarMantine({
       //         { title: t("pos.held"), url: "/pos/held" },
       //       ],
       //     },
-      //     {
-      //       title: t("nav.crm"),
-      //       icon: IconUsers,
-      //       children: [
-      //         { title: t("crm.customers"), url: "/crm/customers" },
-      //         { title: t("crm.leads"), url: "/crm/leads" },
-      //         { title: t("crm.wallet"), url: "/crm/wallet" },
-      //         { title: t("crm.loyalty"), url: "/crm/loyalty" },
-      //       ],
-      //     },
+          {
+            title: t("nav.crm"),
+            icon: IconUsers,
+            children: [
+              { title: t("crm.customersMenu"), url: "/crm/customers" },
+              { title: t("crm.leadsMenu"), url: "/crm/leads" },
+              { title: t("crm.walletMenu"), url: "/crm/wallet" },
+              { title: t("crm.loyaltyMenu"), url: "/crm/loyalty" },
+            ],
+          },
           {
             title: t("hrm.title"),
             icon: IconUsersGroup,
             children: [
-              { title: t("hrm.staff"), url: "/hrm/staff" },
-              { title: t("hrm.departments"), url: "/hrm/departments" },
-              { title: t("hrm.leaves"), url: "/hrm/leaves" },
-              { title: t("hrm.attendance"), url: "/hrm/attendance" },
-              { title: t("hrm.payroll"), url: "/hrm/payroll" },
+              { title: t("hrm.attendanceMenu"), url: "/hrm/attendance" },
+              { title: t("hrm.leavesMenu"), url: "/hrm/leaves" },
+              { title: t("hrm.staffMenu"), url: "/hrm/staff" },
+              { title: t("hrm.departmentsMenu"), url: "/hrm/departments" },
+              { title: t("hrm.payrollMenu"), url: "/hrm/payroll" },
               { title: t("settings.roles"), url: "/hrm/roles" },
             ],
           },
@@ -302,6 +303,12 @@ export function AppSidebarMantine({
 
     // Helper function to check if user has any permission for a given URL/path
     const hasPermissionForPath = (path: string): boolean => {
+      // Attendance and leaves are accessible to all authenticated users
+      if (path === '/attendance' || path === '/leaves' ||
+          path === '/hrm/attendance' || path === '/hrm/leaves') {
+        return true
+      }
+
       // Remove leading slash and split
       const pathParts = path.replace(/^\//, '').split('/')
 
@@ -629,7 +636,7 @@ export function AppSidebarMantine({
         {/* Search */}
         <Box px={{ base: 'md', md: 'md' }} pt={{ base: 'sm', md: 'md' }} pb="xs">
           <TextInput
-            placeholder="Search menu items..."
+            placeholder={t('common.searchPlaceholder')}
             leftSection={<IconSearch size={16} />}
             value={searchValue}
             onChange={(e) => setSearchValue(e.currentTarget.value)}

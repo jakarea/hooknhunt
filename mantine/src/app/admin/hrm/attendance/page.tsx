@@ -3,7 +3,6 @@ import {
   Box,
   Stack,
   Group,
-  Title,
   Text,
   Button,
   Badge,
@@ -17,17 +16,19 @@ import {
   Textarea,
 } from '@mantine/core'
 import {
-  IconClock,
-  IconClockHour3,
   IconRefresh,
   IconCalendar,
+  IconClock,
   IconPencil,
   IconCheck,
   IconX,
+  IconCoffee,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { useTranslation } from 'react-i18next'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
+import AttendanceActions from '@/components/attendance-actions'
 
 interface Attendance {
   id: number
@@ -35,6 +36,8 @@ interface Attendance {
   date: string
   clock_in: string
   clock_out?: string
+  break_in?: string[]
+  break_out?: string[]
   status: 'present' | 'late' | 'absent' | 'leave' | 'holiday'
   note?: string
   created_at: string
@@ -65,6 +68,7 @@ interface FormData {
 
 export default function AttendancePage() {
   const { user } = useAuthStore()
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(true)
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -73,8 +77,6 @@ export default function AttendancePage() {
   const [monthFilter, setMonthFilter] = useState<string | null>(new Date().toISOString().slice(0, 7))
   const [modalOpened, setModalOpened] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [clockingIn, setClockingIn] = useState(false)
-  const [clockingOut, setClockingOut] = useState(false)
   const [todayAttendance, setTodayAttendance] = useState<Attendance | null>(null)
   const [formData, setFormData] = useState<FormData>({
     user_id: null,
@@ -87,8 +89,27 @@ export default function AttendancePage() {
 
   // Check if current user is admin (super_admin or admin)
   const isAdmin = useMemo(() => {
-    return user?.role?.name === 'super_admin' || user?.role?.name === 'admin'
+    return user?.role?.slug === 'super_admin' || user?.role?.slug === 'admin'
   }, [user])
+
+  // Status options for filter and form
+  const statusOptions = useMemo(() => [
+    { value: 'all', label: t('hrm.attendance.filterAllStatus') },
+    { value: 'present', label: t('hrm.attendance.status.present') },
+    { value: 'late', label: t('hrm.attendance.status.late') },
+    { value: 'absent', label: t('hrm.attendance.status.absent') },
+    { value: 'leave', label: t('hrm.attendance.status.onLeave') },
+    { value: 'holiday', label: t('hrm.attendance.status.holiday') },
+  ], [t])
+
+  // Status options for edit modal
+  const statusFormOptions = useMemo(() => [
+    { value: 'present', label: t('hrm.attendance.status.present') },
+    { value: 'late', label: t('hrm.attendance.status.late') },
+    { value: 'absent', label: t('hrm.attendance.status.absent') },
+    { value: 'leave', label: t('hrm.attendance.status.onLeave') },
+    { value: 'holiday', label: t('hrm.attendance.status.holiday') },
+  ], [t])
 
   // Fetch attendance records
   const fetchAttendance = async () => {
@@ -103,39 +124,100 @@ export default function AttendancePage() {
         params.status = statusFilter
       }
 
-      if (employeeFilter) {
+      // Non-admins can only see their own attendance
+      if (!isAdmin) {
+        params.user_id = String(user?.id)
+      } else if (employeeFilter) {
         params.user_id = employeeFilter
       }
 
       const response = await api.get('/hrm/attendance', { params })
       const attendanceData = response.data.data?.data || response.data.data || []
-      setAttendance(Array.isArray(attendanceData) ? attendanceData : [])
 
-      // Check today's attendance for current user
-      // Get today's date in local timezone
-      const now = new Date()
-      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+      // Normalize camelCase to snake_case for consistency
+      const normalizedAttendance = (Array.isArray(attendanceData) ? attendanceData : []).map((record: any) => ({
+        id: record.id,
+        user_id: record.userId || record.user_id,
+        date: record.date,
+        clock_in: record.clockIn || record.clock_in,
+        clock_out: record.clockOut || record.clock_out,
+        break_in: record.breakIn || record.break_in,
+        break_out: record.breakOut || record.break_out,
+        status: record.status,
+        note: record.note,
+        created_at: record.createdAt || record.created_at,
+        updated_at: record.updatedAt || record.updated_at,
+        user: record.user,
+        updater: record.updater,
+      }))
 
-      const todayRecord = Array.isArray(attendanceData)
-        ? attendanceData.find((a: Attendance) => {
-          if (a.user_id !== user?.id) return false
+      console.log('Normalized attendance:', normalizedAttendance)
+      setAttendance(normalizedAttendance)
 
-          // Convert attendance date (which might be in UTC) to local date
-          const attendanceDateObj = new Date(a.date)
-          const attendanceDate = `${attendanceDateObj.getFullYear()}-${String(attendanceDateObj.getMonth() + 1).padStart(2, '0')}-${String(attendanceDateObj.getDate()).padStart(2, '0')}`
+      // Fetch today's attendance for current user (same approach as dashboard)
+      if (user?.id) {
+        try {
+          const now = new Date()
+          const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
 
-          console.log('Date comparison:', { attendanceDate, today, clock_in: a.clock_in })
-          return attendanceDate === today
-        })
-        : null
+          // Fetch all attendance for today (without user filter to avoid permission issues)
+          const myAttendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
+          console.log('My attendance response:', myAttendanceResponse)
 
-      console.log('Final today record:', todayRecord)
-      setTodayAttendance(todayRecord || null)
+          // API returns paginated data with camelCase fields
+          let myAttendanceData = []
+
+          if (myAttendanceResponse.data?.data?.data) {
+            myAttendanceData = myAttendanceResponse.data.data.data
+          } else if (myAttendanceResponse.data?.data) {
+            myAttendanceData = Array.isArray(myAttendanceResponse.data.data) ? myAttendanceResponse.data.data : []
+          }
+
+          console.log('My attendance data:', myAttendanceData)
+
+          // Find my attendance - handle both camelCase/snake_case and string/number
+          const myRecord = myAttendanceData.find((a: any) => {
+            const recordUserId = a.userId || a.user_id
+            return String(recordUserId) === String(user.id)
+          })
+
+          if (myRecord) {
+            console.log('Found my attendance:', myRecord)
+
+            // Convert camelCase to snake_case for consistency
+            const normalizedRecord: Attendance = {
+              id: myRecord.id,
+              user_id: myRecord.userId || myRecord.user_id,
+              date: myRecord.date,
+              clock_in: myRecord.clockIn || myRecord.clock_in,
+              clock_out: myRecord.clockOut || myRecord.clock_out,
+              break_in: myRecord.breakIn || myRecord.break_in,
+              break_out: myRecord.breakOut || myRecord.break_out,
+              status: myRecord.status,
+              note: myRecord.note,
+              created_at: myRecord.createdAt || myRecord.created_at,
+              updated_at: myRecord.updatedAt || myRecord.updated_at,
+              user: myRecord.user,
+              updater: myRecord.updater,
+            }
+            console.log('Normalized attendance:', normalizedRecord)
+            setTodayAttendance(normalizedRecord)
+          } else {
+            console.log('No attendance found for user_id:', user.id)
+            setTodayAttendance(null)
+          }
+        } catch (error) {
+          console.error('Error fetching my attendance:', error)
+          setTodayAttendance(null)
+        }
+      } else {
+        setTodayAttendance(null)
+      }
     } catch (error: unknown) {
-      console.error('Failed to fetch attendance:', error)
+      if (import.meta.env.DEV) console.error('Failed to fetch attendance:', error)
       notifications.show({
-        title: 'Error',
-        message: 'Failed to load attendance. Please try again.',
+        title: t('common.error'),
+        message: t('hrm.attendance.error.loadFailed'),
         color: 'red',
       })
     } finally {
@@ -152,7 +234,7 @@ export default function AttendancePage() {
       const employeesData = response.data.data || []
       setEmployees(employeesData)
     } catch (error: unknown) {
-      console.error('Failed to fetch employees:', error)
+      if (import.meta.env.DEV) console.error('Failed to fetch employees:', error)
     }
   }
 
@@ -165,103 +247,6 @@ export default function AttendancePage() {
   // Handle refresh
   const handleRefresh = () => {
     fetchAttendance()
-  }
-
-  // Handle clock in
-  const handleClockIn = async () => {
-    try {
-      setClockingIn(true)
-      const response = await api.post('/hrm/clock-in', {
-        note: 'Clocked in via system',
-      })
-
-      console.log('Clock In Response:', response.data)
-
-      notifications.show({
-        title: 'Success',
-        message: 'Clocked in successfully!',
-        color: 'green',
-      })
-
-      // Update today's attendance immediately from response
-      // Handle different possible response structures
-      const attendanceData = response.data?.data || response.data
-      console.log('Attendance Data:', attendanceData)
-
-      if (attendanceData) {
-        setTodayAttendance(attendanceData)
-        console.log('Updated todayAttendance:', attendanceData)
-      }
-
-      // Also refresh from server to be sure
-      setTimeout(() => {
-        fetchAttendance()
-      }, 500)
-    } catch (error: unknown) {
-      console.error('Failed to clock in:', error)
-      const errorObj = error as { response?: { data?: { message?: string } } }
-      console.error('Error response:', errorObj.response?.data)
-
-      // If already clocked in, fetch the existing record
-      if (errorObj.response?.data?.message?.includes('Already clocked in')) {
-        notifications.show({
-          title: 'Already Clocked In',
-          message: 'You have already clocked in today. Ready to clock out!',
-          color: 'blue',
-        })
-        // Fetch the existing attendance record
-        fetchAttendance()
-        return
-      }
-
-      notifications.show({
-        title: 'Error',
-        message: errorObj.response?.data?.message || 'Failed to clock in. Please try again.',
-        color: 'red',
-      })
-    } finally {
-      setClockingIn(false)
-    }
-  }
-
-  // Handle clock out
-  const handleClockOut = async () => {
-    try {
-      setClockingOut(true)
-      const response = await api.post('/hrm/clock-out')
-
-      console.log('Clock Out Response:', response.data)
-
-      notifications.show({
-        title: 'Success',
-        message: 'Clocked out successfully!',
-        color: 'green',
-      })
-
-      // Update today's attendance immediately from response
-      const attendanceData = response.data?.data || response.data
-      console.log('Attendance Data:', attendanceData)
-
-      if (attendanceData) {
-        setTodayAttendance(attendanceData)
-        console.log('Updated todayAttendance:', attendanceData)
-      }
-
-      // Also refresh from server to be sure
-      setTimeout(() => {
-        fetchAttendance()
-      }, 500)
-    } catch (error: unknown) {
-      console.error('Failed to clock out:', error)
-      const errorObj = error as { response?: { data?: { message?: string } } }
-      notifications.show({
-        title: 'Error',
-        message: errorObj.response?.data?.message || 'Failed to clock out. Please try again.',
-        color: 'red',
-      })
-    } finally {
-      setClockingOut(false)
-    }
   }
 
   // Open edit modal (admin only)
@@ -281,8 +266,8 @@ export default function AttendancePage() {
   const handleSave = async () => {
     if (isAdmin && !formData.user_id) {
       notifications.show({
-        title: 'Validation Error',
-        message: 'Please select an employee',
+        title: t('common.error'),
+        message: t('hrm.attendance.validation.selectEmployee'),
         color: 'red',
       })
       return
@@ -290,8 +275,8 @@ export default function AttendancePage() {
 
     if (!formData.date) {
       notifications.show({
-        title: 'Validation Error',
-        message: 'Please select a date',
+        title: t('common.error'),
+        message: t('hrm.attendance.validation.selectDate'),
         color: 'red',
       })
       return
@@ -299,8 +284,8 @@ export default function AttendancePage() {
 
     if (!formData.status) {
       notifications.show({
-        title: 'Validation Error',
-        message: 'Please select a status',
+        title: t('common.error'),
+        message: t('hrm.attendance.validation.selectStatus'),
         color: 'red',
       })
       return
@@ -319,19 +304,19 @@ export default function AttendancePage() {
       })
 
       notifications.show({
-        title: 'Success',
-        message: 'Attendance updated successfully',
+        title: t('common.success'),
+        message: t('hrm.attendance.success.updated'),
         color: 'green',
       })
 
       setModalOpened(false)
       fetchAttendance()
     } catch (error: unknown) {
-      console.error('Failed to save attendance:', error)
+      if (import.meta.env.DEV) console.error('Failed to save attendance:', error)
       const errorObj = error as { response?: { data?: { message?: string } } }
       notifications.show({
-        title: 'Error',
-        message: errorObj.response?.data?.message || 'Failed to save attendance. Please try again.',
+        title: t('common.error'),
+        message: errorObj.response?.data?.message || t('hrm.attendance.error.saveFailed'),
         color: 'red',
       })
     } finally {
@@ -340,20 +325,158 @@ export default function AttendancePage() {
   }
 
   // Calculate working hours
-  const calculateHours = (clockIn: string, clockOut?: string) => {
+  const calculateHours = (clockIn: string, clockOut?: string, breakIns?: string[], breakOuts?: string[]) => {
     if (!clockOut) return '-'
 
-    const [inHours, inMinutes] = clockIn.split(':').map(Number)
-    const [outHours, outMinutes] = clockOut.split(':').map(Number)
+    // Parse clock in and clock out times
+    let inDate: Date
+    let outDate: Date
 
-    const inDate = new Date(2000, 0, 1, inHours, inMinutes)
-    const outDate = new Date(2000, 0, 1, outHours, outMinutes)
+    if (clockIn.includes('T') || clockIn.includes('-')) {
+      inDate = new Date(clockIn)
+    } else {
+      const [hours, minutes] = clockIn.split(':').map(Number)
+      inDate = new Date(2000, 0, 1, hours, minutes)
+    }
 
-    const diff = outDate.getTime() - inDate.getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    if (clockOut.includes('T') || clockOut.includes('-')) {
+      outDate = new Date(clockOut)
+    } else {
+      const [hours, minutes] = clockOut.split(':').map(Number)
+      outDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    let totalWorkTime = outDate.getTime() - inDate.getTime()
+
+    // Subtract break times
+    if (breakIns && breakOuts && Array.isArray(breakIns) && Array.isArray(breakOuts)) {
+      for (let i = 0; i < breakOuts.length; i++) {
+        const breakIn = breakIns[i]
+        const breakOut = breakOuts[i]
+
+        if (breakIn && breakOut) {
+          let breakInTime: Date
+          let breakOutTime: Date
+
+          if (breakIn.includes('T') || breakIn.includes('-')) {
+            breakInTime = new Date(breakIn)
+          } else {
+            const [hours, minutes] = breakIn.split(':').map(Number)
+            breakInTime = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          if (breakOut.includes('T') || breakOut.includes('-')) {
+            breakOutTime = new Date(breakOut)
+          } else {
+            const [hours, minutes] = breakOut.split(':').map(Number)
+            breakOutTime = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          const breakDuration = breakOutTime.getTime() - breakInTime.getTime()
+          totalWorkTime -= breakDuration
+        }
+      }
+    }
+
+    const hours = Math.floor(totalWorkTime / (1000 * 60 * 60))
+    const minutes = Math.floor((totalWorkTime % (1000 * 60 * 60)) / (1000 * 60))
 
     return `${hours}h ${minutes}m`
+  }
+
+  // Format time to 12-hour format
+  const formatTime = (timeString: string | null | undefined): string => {
+    if (!timeString) return '--'
+
+    // Check if already in HH:MM:SS format
+    if (/^\d{2}:\d{2}:\d{2}$/.test(timeString)) {
+      const [hours, minutes] = timeString.split(':')
+      const hour = parseInt(hours, 10)
+      const ampm = hour >= 12 ? 'PM' : 'AM'
+      const hour12 = hour % 12 || 12
+      return `${hour12}:${minutes} ${ampm}`
+    }
+
+    try {
+      const date = new Date(timeString)
+      let hours = date.getHours()
+      const minutes = date.getMinutes().toString().padStart(2, '0')
+      const ampm = hours >= 12 ? 'PM' : 'AM'
+      hours = hours % 12 || 12
+      return `${hours}:${minutes} ${ampm}`
+    } catch {
+      return timeString
+    }
+  }
+
+  // Calculate break duration
+  const calculateBreakDuration = (breakIn: string, breakOut: string | null | undefined): string => {
+    if (!breakIn || !breakOut) return '--'
+
+    try {
+      // Parse break in time
+      let breakInTime: Date
+      if (breakIn.includes('T') || breakIn.includes('-')) {
+        breakInTime = new Date(breakIn)
+      } else {
+        const [hours, minutes, seconds] = breakIn.split(':').map(Number)
+        breakInTime = new Date()
+        breakInTime.setHours(hours, minutes, seconds || 0, 0)
+      }
+
+      // Parse break out time
+      let breakOutTime: Date
+      if (breakOut.includes('T') || breakOut.includes('-')) {
+        breakOutTime = new Date(breakOut)
+      } else {
+        const [hours, minutes, seconds] = breakOut.split(':').map(Number)
+        breakOutTime = new Date()
+        breakOutTime.setHours(hours, minutes, seconds || 0, 0)
+      }
+
+      // Calculate duration in minutes
+      const diffMs = breakOutTime.getTime() - breakInTime.getTime()
+      const totalMinutes = Math.floor(diffMs / 1000 / 60)
+
+      if (totalMinutes <= 0) return '--'
+
+      const hours = Math.floor(totalMinutes / 60)
+      const minutes = totalMinutes % 60
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`
+      }
+      return `${minutes}m`
+    } catch {
+      return '--'
+    }
+  }
+
+  // Format break times for display
+  const formatBreakTimes = (breakIns: string[] | undefined, breakOuts: string[] | undefined) => {
+    if (!breakIns || breakIns.length === 0) return '--'
+
+    const ins = Array.isArray(breakIns) ? breakIns : []
+    const outs = Array.isArray(breakOuts) ? breakOuts : []
+
+    return ins.map((breakIn, i) => {
+      const inTime = formatTime(breakIn)
+      const outTime = i < outs.length ? formatTime(outs[i]) : 'Active'
+      const duration = i < outs.length ? calculateBreakDuration(breakIn, outs[i]) : null
+      const isActive = i >= outs.length
+
+      return (
+        <Group key={i} gap={4} wrap="nowrap">
+          <IconCoffee size={14} style={{ color: isActive ? '#f59e0b' : '#6b7280' }} />
+          <Text size="xs" c="dimmed">
+            {inTime} - {outTime}
+            {duration && (
+              <Text span c="orange" fw={500}> ({duration})</Text>
+            )}
+          </Text>
+        </Group>
+      )
+    })
   }
 
   // Stats
@@ -365,60 +488,30 @@ export default function AttendancePage() {
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
       <Stack >
-        {/* Header */}
+        {/* Header with refresh button */}
         <Box>
-          <Group justify="space-between">
-            <Box>
-              <Title order={1} className="text-lg md:text-xl lg:text-2xl">
-                {isAdmin ? 'Attendance Management' : 'My Attendance'}
-              </Title>
-              <Text c="dimmed" className="text-sm md:text-base">
-                {isAdmin ? 'View and manage all employee attendance' : 'View your attendance records'}
-              </Text>
+          <Group justify="space-between" align="flex-start">
+            <Box style={{ flex: 1 }}>
+              <AttendanceActions myAttendance={todayAttendance} onRefresh={fetchAttendance} />
             </Box>
-            <Group >
-              <ActionIcon
-                variant="light"
-                size="lg"
-                onClick={handleRefresh}
-                loading={loading}
-              >
-                <IconRefresh size={18} />
-              </ActionIcon>
-              {!todayAttendance?.clock_in ? (
-                <Button
-                  onClick={handleClockIn}
-                  loading={clockingIn}
-                  leftSection={<IconClock size={16} />}
-                  color="green"
-                >
-                  Clock In
-                </Button>
-              ) : todayAttendance?.clock_in && !todayAttendance?.clock_out ? (
-                <Button
-                  onClick={handleClockOut}
-                  loading={clockingOut}
-                  leftSection={<IconClockHour3 size={16} />}
-                  color="red"
-                >
-                  Clock Out
-                </Button>
-              ) : (
-                <Button disabled leftSection={<IconCheck size={16} />} color="gray">
-                  Completed for Today
-                </Button>
-              )}
-            </Group>
+            <ActionIcon
+              variant="light"
+              size="lg"
+              onClick={handleRefresh}
+              loading={loading}
+            >
+              <IconRefresh size={18} />
+            </ActionIcon>
           </Group>
         </Box>
 
         {/* Today's Status Card */}
         {todayAttendance && (
           <Card withBorder p="md" radius="md" shadow="sm">
-            <Group justify="space-between">
-              <Box>
-                <Text size="sm" c="dimmed">Today's Status</Text>
-                <Group  mt="xs">
+            <Group justify="space-between" align="flex-start">
+              <Box style={{ flex: 1 }}>
+                <Text size="sm" c="dimmed">{t('hrm.attendance.todaysStatus')}</Text>
+                <Group mt="xs" wrap="nowrap">
                   <Badge
                     color={
                       todayAttendance.status === 'present' ? 'green' :
@@ -431,20 +524,28 @@ export default function AttendancePage() {
                     {todayAttendance.status.toUpperCase()}
                   </Badge>
                   <Text size="lg" fw={500}>
-                    Clocked In: {todayAttendance.clock_in}
+                    In: {formatTime(todayAttendance.clock_in)}
                   </Text>
                   {todayAttendance.clock_out && (
                     <Text size="lg" fw={500}>
-                      Clocked Out: {todayAttendance.clock_out}
+                      Out: {formatTime(todayAttendance.clock_out)}
                     </Text>
                   )}
                 </Group>
+                {todayAttendance.break_in && todayAttendance.break_in.length > 0 && (
+                  <Stack mt="xs" gap={2}>
+                    <Text size="xs" c="dimmed" fw={500}>{t('hrm.attendance.breaks')}:</Text>
+                    <Stack gap={2}>
+                      {formatBreakTimes(todayAttendance.break_in, todayAttendance.break_out)}
+                    </Stack>
+                  </Stack>
+                )}
               </Box>
               {todayAttendance.clock_in && todayAttendance.clock_out && (
                 <Box>
-                  <Text size="sm" c="dimmed">Working Hours</Text>
+                  <Text size="sm" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
                   <Text size="xl" fw={700}>
-                    {calculateHours(todayAttendance.clock_in, todayAttendance.clock_out)}
+                    {calculateHours(todayAttendance.clock_in, todayAttendance.clock_out, todayAttendance.break_in, todayAttendance.break_out)}
                   </Text>
                 </Box>
               )}
@@ -458,15 +559,15 @@ export default function AttendancePage() {
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
               <Group >
                 <IconCheck size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-                <Text size="xs" c="dimmed">Present Days</Text>
+                <Text size="xs" c="dimmed">{t('hrm.attendance.presentDays')}</Text>
               </Group>
               <Text size="xl" fw={700}>{presentDays}</Text>
             </Card>
 
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
               <Group >
-                <IconClockHour3 size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
-                <Text size="xs" c="dimmed">Late Days</Text>
+                <IconClock size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
+                <Text size="xs" c="dimmed">{t('hrm.attendance.lateDays')}</Text>
               </Group>
               <Text size="xl" fw={700}>{lateDays}</Text>
             </Card>
@@ -474,7 +575,7 @@ export default function AttendancePage() {
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
               <Group >
                 <IconX size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                <Text size="xs" c="dimmed">Absent Days</Text>
+                <Text size="xs" c="dimmed">{t('hrm.attendance.absentDays')}</Text>
               </Group>
               <Text size="xl" fw={700}>{absentDays}</Text>
             </Card>
@@ -482,7 +583,7 @@ export default function AttendancePage() {
             <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
               <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                <Text size="xs" c="dimmed">Leave Days</Text>
+                <Text size="xs" c="dimmed">{t('hrm.attendance.leaveDays')}</Text>
               </Group>
               <Text size="xl" fw={700}>{leaveDays}</Text>
             </Card>
@@ -494,23 +595,16 @@ export default function AttendancePage() {
           <Group >
             <TextInput
               type="month"
-              label="Select Month"
+              label={t('hrm.attendance.selectMonth')}
               value={monthFilter || ''}
               onChange={(e) => setMonthFilter(e.currentTarget.value)}
               style={{ width: '150px' }}
               size="md"
             />
             <Select
-              placeholder="Filter by status"
-              label="Status"
-              data={[
-                { value: 'all', label: 'All Status' },
-                { value: 'present', label: 'Present' },
-                { value: 'late', label: 'Late' },
-                { value: 'absent', label: 'Absent' },
-                { value: 'leave', label: 'Leave' },
-                { value: 'holiday', label: 'Holiday' },
-              ]}
+              placeholder={t('hrm.attendance.filterByStatus')}
+              label={t('hrm.attendance.status.label')}
+              data={statusOptions}
               value={statusFilter}
               onChange={(value) => setStatusFilter(value)}
               style={{ width: '150px' }}
@@ -518,8 +612,8 @@ export default function AttendancePage() {
             />
             {isAdmin && (
               <Select
-                placeholder="Filter by employee"
-                label="Employee"
+                placeholder={t('hrm.attendance.filterByEmployee')}
+                label={t('hrm.attendance.employee')}
                 clearable
                 searchable
                 data={employees.map(emp => ({ value: String(emp.id), label: emp.name }))}
@@ -538,22 +632,23 @@ export default function AttendancePage() {
           <Table striped highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                {isAdmin && <Table.Th>Employee</Table.Th>}
-                <Table.Th>Date</Table.Th>
-                <Table.Th>Clock In</Table.Th>
-                <Table.Th>Clock Out</Table.Th>
-                <Table.Th>Working Hours</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Note</Table.Th>
-                {isAdmin && <Table.Th>Actions</Table.Th>}
+                {isAdmin && <Table.Th>{t('hrm.attendance.tableHeaders.employee')}</Table.Th>}
+                <Table.Th>{t('hrm.attendance.tableHeaders.date')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.clockIn')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.clockOut')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.breaks')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.workingHours')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.status')}</Table.Th>
+                <Table.Th>{t('hrm.attendance.tableHeaders.note')}</Table.Th>
+                {isAdmin && <Table.Th>{t('hrm.attendance.tableHeaders.actions')}</Table.Th>}
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {attendance.length === 0 ? (
                 <Table.Tr>
-                  <Table.Td colSpan={isAdmin ? 8 : 7}>
+                  <Table.Td colSpan={isAdmin ? 9 : 8}>
                     <Box py="xl" ta="center">
-                      <Text c="dimmed">No attendance records found</Text>
+                      <Text c="dimmed">{t('hrm.attendance.noAttendanceFound')}</Text>
                     </Box>
                   </Table.Td>
                 </Table.Tr>
@@ -575,14 +670,19 @@ export default function AttendancePage() {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500}>{record.clock_in}</Text>
+                      <Text fw={500} size="sm">{formatTime(record.clock_in)}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500}>{record.clock_out || '-'}</Text>
+                      <Text fw={500} size="sm">{formatTime(record.clock_out)}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500}>
-                        {record.clock_out ? calculateHours(record.clock_in, record.clock_out) : '-'}
+                      <Stack gap={4}>
+                        {formatBreakTimes(record.break_in, record.break_out)}
+                      </Stack>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text fw={500} size="sm">
+                        {record.clock_out ? calculateHours(record.clock_in, record.clock_out, record.break_in, record.break_out) : '-'}
                       </Text>
                     </Table.Td>
                     <Table.Td>
@@ -628,14 +728,14 @@ export default function AttendancePage() {
         <Modal
           opened={modalOpened}
           onClose={() => setModalOpened(false)}
-          title="Edit Attendance"
+          title={t('hrm.attendance.editAttendance')}
           centered
         >
           <Stack >
             <Stack >
-              <Text size="sm" fw={500}>Employee *</Text>
+              <Text size="sm" fw={500}>{t('hrm.attendance.employee')} *</Text>
               <Select
-                placeholder="Select employee"
+                placeholder={t('hrm.attendance.selectEmployee')}
                 data={employees.map(emp => ({ value: String(emp.id), label: emp.name }))}
                 value={formData.user_id}
                 onChange={(value) => setFormData({ ...formData, user_id: value })}
@@ -646,7 +746,7 @@ export default function AttendancePage() {
             </Stack>
 
             <Stack >
-              <Text size="sm" fw={500}>Date *</Text>
+              <Text size="sm" fw={500}>{t('hrm.attendance.date')} *</Text>
               <TextInput
                 type="date"
                 value={formData.date || ''}
@@ -657,7 +757,7 @@ export default function AttendancePage() {
 
             <Group >
               <Stack  style={{ flex: 1 }}>
-                <Text size="sm" fw={500}>Clock In</Text>
+                <Text size="sm" fw={500}>{t('hrm.attendance.clockIn')}</Text>
                 <TextInput
                   type="time"
                   value={formData.clock_in || ''}
@@ -667,7 +767,7 @@ export default function AttendancePage() {
               </Stack>
 
               <Stack  style={{ flex: 1 }}>
-                <Text size="sm" fw={500}>Clock Out</Text>
+                <Text size="sm" fw={500}>{t('hrm.attendance.clockOut')}</Text>
                 <TextInput
                   type="time"
                   value={formData.clock_out || ''}
@@ -678,16 +778,10 @@ export default function AttendancePage() {
             </Group>
 
             <Stack >
-              <Text size="sm" fw={500}>Status *</Text>
+              <Text size="sm" fw={500}>{t('hrm.attendance.status.label')} *</Text>
               <Select
-                placeholder="Select status"
-                data={[
-                  { value: 'present', label: 'Present' },
-                  { value: 'late', label: 'Late' },
-                  { value: 'absent', label: 'Absent' },
-                  { value: 'leave', label: 'Leave' },
-                  { value: 'holiday', label: 'Holiday' },
-                ]}
+                placeholder={t('hrm.attendance.selectStatus')}
+                data={statusFormOptions}
                 value={formData.status}
                 onChange={(value) => setFormData({ ...formData, status: value })}
                 size="md"
@@ -695,9 +789,9 @@ export default function AttendancePage() {
             </Stack>
 
             <Stack >
-              <Text size="sm" fw={500}>Note</Text>
+              <Text size="sm" fw={500}>{t('hrm.attendance.note')}</Text>
               <Textarea
-                placeholder="Enter note (optional)"
+                placeholder={t('hrm.attendance.enterNote')}
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.currentTarget.value })}
                 size="md"
@@ -711,13 +805,13 @@ export default function AttendancePage() {
                 onClick={() => setModalOpened(false)}
                 disabled={saving}
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleSave}
                 loading={saving}
               >
-                Update Attendance
+                {t('hrm.attendance.updateAttendance')}
               </Button>
             </Group>
           </Stack>

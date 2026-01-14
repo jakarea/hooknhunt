@@ -31,12 +31,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
             $table->text('address')->nullable();
-            $table->string('city')->nullable();
+            $table->string('division')->nullable();
+            $table->string('district')->nullable();
+            $table->string('thana')->nullable();
             $table->date('dob')->nullable(); // For Birthday Marketing
             $table->enum('gender', ['male', 'female', 'other'])->nullable();
             $table->foreignId('profile_photo_id')->nullable()->constrained('media_files')->onDelete('set null');
             $table->timestamps();
         });
+
+        
+
 
         Schema::create('otps', function (Blueprint $table) {
             $table->id();

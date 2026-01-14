@@ -48,14 +48,20 @@ import CourierBooking from "@/app/admin/logistics/booking/page"
 import TrackingHub from "@/app/admin/logistics/tracking/page"
 import Couriers from "@/app/admin/logistics/couriers/page"
 import Zones from "@/app/admin/logistics/zones/page"
+import CRMDashboard from "@/app/admin/crm/page"
 import Customers from "@/app/admin/crm/customers/page"
+import CreateCustomer from "@/app/admin/crm/customers/create/page"
 import CustomerDetails from "@/app/admin/crm/customers/[id]/page"
 import EditCustomer from "@/app/admin/crm/customers/[id]/edit/page"
 import Leads from "@/app/admin/crm/leads/page"
+import CreateLead from "@/app/admin/crm/leads/create/page"
+import EditLead from "@/app/admin/crm/leads/[id]/edit/page"
 import Wallet from "@/app/admin/crm/wallet/page"
+import WalletDetails from "@/app/admin/crm/wallet/[id]/page"
 import Campaigns from "@/app/admin/marketing/campaigns/page"
 import Affiliates from "@/app/admin/marketing/affiliates/page"
 import LoyaltyRules from "@/app/admin/crm/loyalty/page"
+import HRMDashboard from "@/app/admin/hrm/page"
 import Staff from "@/app/admin/hrm/staff/page"
 import StaffProfile from "@/app/admin/hrm/staff/[id]/page"
 import EditStaff from "@/app/admin/hrm/staff/[id]/edit/page"
@@ -119,6 +125,11 @@ function App() {
 
             {/* Admin routes with layout */}
             <Route path="/*" element={<AdminLayout />}>
+              {/* Redirect /attendance and /leaves to /hrm/* for consistency */}
+              <Route path="attendance" element={<Navigate to="/hrm/attendance" replace />} />
+              <Route path="leaves" element={<Navigate to="/hrm/leaves" replace />} />
+
+              {/* Other routes */}
               <Route path="dashboard" element={<AdminDashboard />} />
               <Route path="dashboard/analytics" element={<Analytics />} />
               <Route path="profile" element={<Profile />} />
@@ -160,14 +171,20 @@ function App() {
               <Route path="logistics/tracking" element={<TrackingHub />} />
               <Route path="logistics/couriers" element={<Couriers />} />
               <Route path="logistics/zones" element={<Zones />} />
+              <Route path="crm" element={<CRMDashboard />} />
               <Route path="crm/customers" element={<Customers />} />
+              <Route path="crm/customers/create" element={<CreateCustomer />} />
               <Route path="crm/customers/:id" element={<CustomerDetails />} />
               <Route path="crm/customers/:id/edit" element={<EditCustomer />} />
               <Route path="crm/leads" element={<Leads />} />
+              <Route path="crm/leads/create" element={<CreateLead />} />
+              <Route path="crm/leads/:id/edit" element={<EditLead />} />
               <Route path="crm/wallet" element={<Wallet />} />
+              <Route path="crm/wallet/:id" element={<WalletDetails />} />
               <Route path="marketing/campaigns" element={<Campaigns />} />
               <Route path="marketing/affiliates" element={<Affiliates />} />
               <Route path="crm/loyalty" element={<LoyaltyRules />} />
+              <Route path="hrm" element={<HRMDashboard />} />
               <Route path="hrm/staff" element={<Staff />} />
               <Route path="hrm/staff/create" element={<CreateStaffPage />} />
               <Route path="hrm/staff/:id" element={<StaffProfile />} />

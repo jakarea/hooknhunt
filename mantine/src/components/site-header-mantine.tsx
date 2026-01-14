@@ -7,11 +7,13 @@ import {
   IconLogout,
   IconUser,
   IconRefresh,
+  IconLanguage,
 } from '@tabler/icons-react'
 import { ThemeToggleMantine } from '@/components/theme-toggle-mantine'
 import { useAuthStore } from '@/stores/authStore'
 import { usePermissions } from '@/hooks/usePermissions'
 import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 interface HeaderProps {
   mobileOpened: boolean
@@ -26,6 +28,8 @@ export function SiteHeaderMantine({
 }: HeaderProps) {
   const { user, logout } = useAuthStore()
   const { refreshPermissions } = usePermissions()
+  const { i18n } = useTranslation()
+  const currentLanguage = i18n.language
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -43,6 +47,10 @@ export function SiteHeaderMantine({
 
   const handleRefreshPermissions = async () => {
     await refreshPermissions()
+  }
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng)
   }
   return (
     <Box
@@ -195,6 +203,24 @@ export function SiteHeaderMantine({
                 to="/settings/general"
               >
                 Settings
+              </Menu.Item>
+
+              <Menu.Divider />
+
+              <Menu.Label>Language</Menu.Label>
+              <Menu.Item
+                leftSection={<IconLanguage style={{ width: rem(16), height: rem(16) }} />}
+                onClick={() => changeLanguage('en')}
+                rightSection={currentLanguage === 'en' ? '✓' : undefined}
+              >
+                English
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<IconLanguage style={{ width: rem(16), height: rem(16) }} />}
+                onClick={() => changeLanguage('bn')}
+                rightSection={currentLanguage === 'bn' ? '✓' : undefined}
+              >
+                বাংলা (Bengali)
               </Menu.Item>
 
               <Menu.Divider />

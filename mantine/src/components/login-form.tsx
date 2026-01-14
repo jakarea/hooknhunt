@@ -70,20 +70,32 @@ export function LoginForm() {
       })
 
       console.log('Login response status:', response.data?.status)
+      console.log('Full login response:', JSON.stringify(response.data, null, 2))
 
       // Check response status
       if (!response.data?.status) {
         throw new Error(response.data?.message || 'Login failed')
       }
 
-      // API V2 response structure: { status, message, data: { access_token, user } }
+      // API V2 response structure: { status, message, data: { token/accessToken, user } }
       const { data } = response.data
-      const { access_token, user } = data
+      console.log('Response data object:', JSON.stringify(data, null, 2))
+
+      // Handle different token field names (token, accessToken, access_token)
+      const token = data.token || data.accessToken || data.access_token
+      const user = data.user
+
+      if (!token) {
+        console.error('Token not found in response. Available keys:', Object.keys(data))
+        throw new Error('Token not found in login response')
+      }
 
       console.log('User logged in:', user?.name)
+      console.log('Token received:', token ? 'Yes' : 'No')
 
       // Store token immediately
-      localStorage.setItem('token', access_token)
+      localStorage.setItem('token', token)
+      console.log('Token stored in localStorage:', localStorage.getItem('token'))
 
       // Extract permissions from login response (user.role.permissions is already included)
       const rolePermissions = user?.role?.permissions || []
@@ -91,13 +103,25 @@ export function LoginForm() {
 
       console.log('User permissions:', permissions.length)
 
-      login(access_token, user, permissions, rolePermissions)
+      console.log('About to call login() function...')
+      login(token, user, permissions, rolePermissions)
+
+      console.log('Login function completed. Checking localStorage...')
+      console.log('Token in localStorage after login():', localStorage.getItem('token'))
+      console.log('User in localStorage:', localStorage.getItem('user'))
+
       notifications.show({
         title: 'Success',
         message: t('auth.login.success'),
         color: 'green',
       })
-      navigate('/dashboard')
+
+      // Small delay to ensure localStorage is written before navigation
+      setTimeout(() => {
+        console.log('Navigating to dashboard...')
+        console.log('Final check - Token:', localStorage.getItem('token'))
+        navigate('/dashboard')
+      }, 300)
     } catch (error) {
       console.error('Login error:', error)
       const apiError = error as { response?: { data?: { message?: string; errors?: string | { action?: string }; error?: string } }, message?: string }

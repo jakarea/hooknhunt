@@ -12,10 +12,10 @@ return new class extends Migration
         Schema::create('loyalty_rules', function (Blueprint $table) {
             $table->id();
             $table->string('name'); // e.g., "Silver Tier Reward"
-            $table->string('channel')->default('retail_web')->after('name');
-            $table->integer('reward_points')->default(1)->after('min_order_amount'); // X
-            $table->decimal('spend_amount', 10, 2)->default(100.00)->after('reward_points'); // Y
+            $table->string('channel')->default('retail_web');
             $table->decimal('min_order_amount', 10, 2); // 1000 টাকার বেশি কিনলে
+            $table->integer('reward_points')->default(1); // X
+            $table->decimal('spend_amount', 10, 2)->default(100.00); // Y
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

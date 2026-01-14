@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { bangladeshDivisions } from '@/data/bangladesh-divisions'
 import {
   Box,
   Stack,
@@ -9,7 +10,6 @@ import {
   Button,
   Paper,
   TextInput,
-  PasswordInput,
   Select,
   NumberInput,
   LoadingOverlay,
@@ -23,6 +23,11 @@ import {
   IconCheck,
   IconLock,
   IconUser,
+  IconId,
+  IconMapPin,
+  IconMail,
+  IconBriefcase,
+  IconCoin,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
@@ -44,11 +49,13 @@ interface FormData {
   name: string
   email: string
   phone: string
-  password: string
   gender: string
   dob: string
   address: string
-  city: string
+  division: string
+  district: string
+  thana: string
+  whatsapp_number: string
 
   // Professional Info
   role_id: string | null
@@ -56,30 +63,47 @@ interface FormData {
   designation: string
   joining_date: string
   base_salary: number | null
+  house_rent: number | null
+  medical_allowance: number | null
+  conveyance_allowance: number | null
+  overtime_hourly_rate: number | null
+
+  // Office Info
+  office_email: string
+  office_email_password: string
 }
 
 const initialFormData: FormData = {
   name: '',
   email: '',
   phone: '',
-  password: '',
   gender: '',
   dob: '',
   address: '',
-  city: '',
+  division: '',
+  district: '',
+  thana: '',
+  whatsapp_number: '',
 
   role_id: null,
   department_id: null,
   designation: '',
   joining_date: new Date().toISOString().split('T')[0],
   base_salary: null,
+  house_rent: null,
+  medical_allowance: null,
+  conveyance_allowance: null,
+  overtime_hourly_rate: null,
+
+  office_email: '',
+  office_email_password: '',
 }
 
 interface FieldErrors {
   [key: string]: string
 }
 
-export default function CreateEmployeePage() {
+export default function CreateStaffPage() {
   const navigate = useNavigate()
   const { hasPermission, isSuperAdmin } = usePermissions()
 
@@ -90,6 +114,20 @@ export default function CreateEmployeePage() {
   const [roles, setRoles] = useState<Role[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+
+  // Derived state for cascading dropdowns
+  const selectedDivision = bangladeshDivisions.find(d => d.name === formData.division)
+  const availableDistricts = selectedDivision?.districts || []
+  // Remove duplicate districts by name
+  const uniqueDistricts = availableDistricts.filter((district, index, self) =>
+    index === self.findIndex((d) => d.name === district.name)
+  )
+  const selectedDistrict = uniqueDistricts.find(d => d.name === formData.district)
+  const availableThanas = selectedDistrict?.thanas || []
+  // Remove duplicate thanas by name
+  const uniqueThanas = availableThanas.filter((thana, index, self) =>
+    index === self.findIndex((t) => t.name === thana.name)
+  )
 
   // Fetch roles and departments
   useEffect(() => {
@@ -144,7 +182,7 @@ export default function CreateEmployeePage() {
                   Access Denied
                 </Title>
                 <Text size="lg" c="dimmed">
-                  You don't have permission to create employees.
+                  You don't have permission to create staff.
                 </Text>
                 <Text size="sm" c="dimmed" mt="xs">
                   Please contact your administrator if you believe this is an error.
@@ -158,7 +196,7 @@ export default function CreateEmployeePage() {
                   leftSection={<IconArrowLeft size={16} />}
                   onClick={() => navigate('/hrm/staff')}
                 >
-                  Back to Employees
+                  Back to Staff
                 </Button>
                 <Button
                   variant="filled"
@@ -177,7 +215,21 @@ export default function CreateEmployeePage() {
 
   // Handle form input changes
   const handleInputChange = (field: keyof FormData, value: string | number | null) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value }
+
+      // Clear dependent fields when division changes
+      if (field === 'division') {
+        updated.district = ''
+        updated.thana = ''
+      }
+      // Clear dependent field when district changes
+      if (field === 'district') {
+        updated.thana = ''
+      }
+
+      return updated
+    })
     // Clear error for this field when user starts typing
     if (fieldErrors[field]) {
       setFieldErrors((prev) => {
@@ -192,14 +244,19 @@ export default function CreateEmployeePage() {
   const validateForm = (): string | null => {
     if (!formData.name.trim()) return 'Name is required'
     if (!formData.phone.trim()) return 'Phone number is required'
-    if (!formData.email.trim()) return 'Email is required'
-    if (!formData.password) return 'Password is required'
-    if (formData.password.length < 6) return 'Password must be at least 6 characters'
     if (!formData.role_id) return 'Role is required'
     if (!formData.department_id) return 'Department is required'
     if (!formData.designation.trim()) return 'Designation is required'
     if (!formData.joining_date) return 'Joining date is required'
     if (!formData.base_salary || formData.base_salary <= 0) return 'Base salary is required'
+
+    // Validate email format if provided
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      return 'Invalid email format'
+    }
+    if (formData.office_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.office_email)) {
+      return 'Invalid office email format'
+    }
 
     return null
   }
@@ -230,35 +287,44 @@ export default function CreateEmployeePage() {
         name: formData.name,
         email: formData.email || null,
         phone: formData.phone,
-        password: formData.password,
         role_id: parseInt(formData.role_id as string),
         type: 'staff', // Required: staff or customer
 
-        profile: {
-          gender: formData.gender || null,
-          dob: formData.dob || null,
-          address: formData.address || null,
-          city: formData.city || null,
-          department_id: parseInt(formData.department_id as string),
-          designation: formData.designation,
-          joining_date: formData.joining_date,
-          base_salary: formData.base_salary,
-        },
+        // Staff profile fields at root level (backend expects them here)
+        department_id: parseInt(formData.department_id as string),
+        designation: formData.designation,
+        joining_date: formData.joining_date,
+        base_salary: formData.base_salary,
+        house_rent: formData.house_rent || 0,
+        medical_allowance: formData.medical_allowance || 0,
+        conveyance_allowance: formData.conveyance_allowance || 0,
+        overtime_hourly_rate: formData.overtime_hourly_rate || 0,
+        office_email: formData.office_email || null,
+        office_email_password: formData.office_email_password || null,
+
+        // Personal info fields
+        gender: formData.gender || null,
+        dob: formData.dob || null,
+        address: formData.address || null,
+        division: formData.division || null,
+        district: formData.district || null,
+        thana: formData.thana || null,
+        whatsapp_number: formData.whatsapp_number || null,
       }
 
-      await api.post('/user-management/users', payload)
+      await api.post('/hrm/staff', payload)
 
       notifications.show({
         title: 'Success',
-        message: 'Employee created successfully',
+        message: 'Staff created successfully. Login credentials sent via SMS.',
         color: 'green',
         icon: <IconCheck size={16} />,
       })
 
-      // Navigate to employees list
+      // Navigate to staff list
       navigate('/hrm/staff')
     } catch (error) {
-      console.error('Failed to create employee:', error)
+      console.error('Failed to create staff:', error)
 
       // Check for validation errors
       if ((error as any).response?.data?.errors) {
@@ -269,12 +335,6 @@ export default function CreateEmployeePage() {
         Object.keys(validationErrors).forEach((key) => {
           const messages = validationErrors[key]
           errors[key] = Array.isArray(messages) ? messages[0] : messages
-
-          // Handle nested profile fields
-          if (key.startsWith('profile.')) {
-            const fieldName = key.replace('profile.', '')
-            errors[fieldName] = errors[key]
-          }
         })
 
         setFieldErrors(errors)
@@ -290,7 +350,7 @@ export default function CreateEmployeePage() {
           (error as any).response?.data?.message ||
           (error as any).response?.data?.error ||
           (error as any).message ||
-          'Failed to create employee. Please try again.'
+          'Failed to create staff. Please try again.'
 
         notifications.show({
           title: 'Error',
@@ -330,9 +390,9 @@ export default function CreateEmployeePage() {
           <Group justify="space-between">
             <Box>
               <Title order={1} className="text-lg md:text-xl lg:text-2xl">
-                Add New Employee
+                Add New Staff
               </Title>
-              <Text c="dimmed">Create a new employee account and profile</Text>
+              <Text c="dimmed">Create a new staff account and profile</Text>
             </Box>
             <Button
               component={Link}
@@ -346,12 +406,13 @@ export default function CreateEmployeePage() {
 
           {/* Form */}
           <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" component="form" onSubmit={handleSubmit}>
-            <Stack >
-              {/* Personal Information */}
+            <Stack>
+              {/* Account Information */}
               <Box>
-                <Title order={4} mb="md">
-                  Personal Information
-                </Title>
+                <Group gap="xs" mb="md">
+                  <IconUser size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                  <Title order={4}>Account Information</Title>
+                </Group>
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                   <TextInput
                     label="Full Name"
@@ -374,27 +435,38 @@ export default function CreateEmployeePage() {
                   />
 
                   <TextInput
-                    label="Email"
+                    label="Personal Email"
                     type="email"
                     placeholder="john@example.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    required
-                    withAsterisk
                     error={fieldErrors.email}
                   />
 
-                  <PasswordInput
-                    label="Password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
+                  <Select
+                    label="Role"
+                    placeholder="Select role"
+                    data={roles.map((role) => ({
+                      value: role.id.toString(),
+                      label: role.name,
+                    }))}
+                    value={formData.role_id}
+                    onChange={(value) => handleInputChange('role_id', value)}
                     required
                     withAsterisk
-                    minLength={6}
-                    error={fieldErrors.password}
+                    searchable
+                    error={fieldErrors.role_id}
                   />
+                </SimpleGrid>
+              </Box>
 
+              {/* Personal Details */}
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconId size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                  <Title order={4}>Personal Details</Title>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                   <Select
                     label="Gender"
                     placeholder="Select gender"
@@ -418,44 +490,101 @@ export default function CreateEmployeePage() {
                   />
 
                   <TextInput
+                    label="WhatsApp Number"
+                    placeholder="01XXXXXXXXX"
+                    value={formData.whatsapp_number}
+                    onChange={(e) => handleInputChange('whatsapp_number', e.target.value)}
+                    error={fieldErrors.whatsapp_number}
+                  />
+                </SimpleGrid>
+              </Box>
+
+              {/* Address Information */}
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconMapPin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                  <Title order={4}>Address Information</Title>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                  <TextInput
                     label="Address"
                     placeholder="Street address"
                     value={formData.address}
                     onChange={(e) => handleInputChange('address', e.target.value)}
                     error={fieldErrors.address}
+                    style={{ gridColumn: '1 / -1' }}
+                  />
+
+                  <Select
+                    label="Division"
+                    placeholder="Select division"
+                    data={bangladeshDivisions.map(d => ({ value: d.name, label: d.name }))}
+                    value={formData.division}
+                    onChange={(value) => handleInputChange('division', value)}
+                    searchable
+                    clearable
+                    error={fieldErrors.division}
+                  />
+
+                  <Select
+                    label="District"
+                    placeholder="Select district"
+                    data={uniqueDistricts.map(d => ({ value: d.name, label: d.name }))}
+                    value={formData.district}
+                    onChange={(value) => handleInputChange('district', value)}
+                    searchable
+                    clearable
+                    disabled={!formData.division}
+                    error={fieldErrors.district}
+                  />
+
+                  <Select
+                    label="Thana"
+                    placeholder="Select thana"
+                    data={uniqueThanas.map(t => ({ value: t.name, label: t.name }))}
+                    value={formData.thana}
+                    onChange={(value) => handleInputChange('thana', value)}
+                    searchable
+                    clearable
+                    disabled={!formData.district}
+                    error={fieldErrors.thana}
+                  />
+                </SimpleGrid>
+              </Box>
+
+              {/* Official Information */}
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconMail size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                  <Title order={4}>Official Information</Title>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                  <TextInput
+                    label="Office Email"
+                    type="email"
+                    placeholder="staff@company.com"
+                    value={formData.office_email}
+                    onChange={(e) => handleInputChange('office_email', e.target.value)}
+                    error={fieldErrors.office_email}
                   />
 
                   <TextInput
-                    label="City"
-                    placeholder="Dhaka"
-                    value={formData.city}
-                    onChange={(e) => handleInputChange('city', e.target.value)}
-                    error={fieldErrors.city}
+                    label="Office Email Password"
+                    placeholder="Enter office email password"
+                    value={formData.office_email_password}
+                    onChange={(e) => handleInputChange('office_email_password', e.target.value)}
+                    error={fieldErrors.office_email_password}
                   />
                 </SimpleGrid>
               </Box>
 
               {/* Professional Information */}
               <Box>
-                <Title order={4} mb="md">
-                  Professional Information
-                </Title>
+                <Group gap="xs" mb="md">
+                  <IconBriefcase size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+                  <Title order={4}>Professional Information</Title>
+                </Group>
                 <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
-                  <Select
-                    label="Role"
-                    placeholder="Select role"
-                    data={roles.map((role) => ({
-                      value: role.id.toString(),
-                      label: role.name,
-                    }))}
-                    value={formData.role_id}
-                    onChange={(value) => handleInputChange('role_id', value)}
-                    required
-                    withAsterisk
-                    searchable
-                    error={fieldErrors.role_id}
-                  />
-
                   <Select
                     label="Department"
                     placeholder="Select department"
@@ -490,9 +619,18 @@ export default function CreateEmployeePage() {
                     withAsterisk
                     error={fieldErrors.joining_date}
                   />
+                </SimpleGrid>
+              </Box>
 
+              {/* Salary Information */}
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconCoin size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
+                  <Title order={4}>Salary Information</Title>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
                   <NumberInput
-                    label="Base Salary (BDT)"
+                    label="Base Salary"
                     placeholder="15000"
                     value={formData.base_salary ?? ''}
                     onChange={(value) => handleInputChange('base_salary', value)}
@@ -502,6 +640,50 @@ export default function CreateEmployeePage() {
                     prefix="৳"
                     decimalScale={2}
                     error={fieldErrors.base_salary}
+                  />
+
+                  <NumberInput
+                    label="House Rent"
+                    placeholder="5000"
+                    value={formData.house_rent ?? ''}
+                    onChange={(value) => handleInputChange('house_rent', value)}
+                    min={0}
+                    prefix="৳"
+                    decimalScale={2}
+                    error={fieldErrors.house_rent}
+                  />
+
+                  <NumberInput
+                    label="Medical Allowance"
+                    placeholder="2000"
+                    value={formData.medical_allowance ?? ''}
+                    onChange={(value) => handleInputChange('medical_allowance', value)}
+                    min={0}
+                    prefix="৳"
+                    decimalScale={2}
+                    error={fieldErrors.medical_allowance}
+                  />
+
+                  <NumberInput
+                    label="Conveyance Allowance"
+                    placeholder="2000"
+                    value={formData.conveyance_allowance ?? ''}
+                    onChange={(value) => handleInputChange('conveyance_allowance', value)}
+                    min={0}
+                    prefix="৳"
+                    decimalScale={2}
+                    error={fieldErrors.conveyance_allowance}
+                  />
+
+                  <NumberInput
+                    label="Overtime Hourly Rate"
+                    placeholder="200"
+                    value={formData.overtime_hourly_rate ?? ''}
+                    onChange={(value) => handleInputChange('overtime_hourly_rate', value)}
+                    min={0}
+                    prefix="৳"
+                    decimalScale={2}
+                    error={fieldErrors.overtime_hourly_rate}
                   />
                 </SimpleGrid>
               </Box>
@@ -517,7 +699,7 @@ export default function CreateEmployeePage() {
                   Cancel
                 </Button>
                 <Button type="submit" loading={submitting} leftSection={<IconCheck size={16} />}>
-                  Create Employee
+                  Create Staff
                 </Button>
               </Group>
             </Stack>

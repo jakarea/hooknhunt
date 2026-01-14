@@ -27,6 +27,7 @@ import {
 import { notifications } from '@mantine/notifications'
 import { modals } from '@mantine/modals'
 import api from '@/lib/api'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Department {
   id: number
@@ -43,6 +44,8 @@ interface FormData {
 }
 
 export default function DepartmentsPage() {
+  const { hasPermission } = usePermissions()
+
   const [loading, setLoading] = useState(true)
   const [departments, setDepartments] = useState<Department[]>([])
   const [searchQuery, setSearchQuery] = useState('')
@@ -245,12 +248,14 @@ export default function DepartmentsPage() {
               >
                 <IconRefresh size={18} />
               </ActionIcon>
-              <Button
-                onClick={openCreateModal}
-                leftSection={<IconPlus size={16} />}
-              >
-                Add Department
-              </Button>
+              {hasPermission('hrm.department.create') && (
+                <Button
+                  onClick={openCreateModal}
+                  leftSection={<IconPlus size={16} />}
+                >
+                  Add Department
+                </Button>
+              )}
             </Group>
           </Group>
         </Box>
@@ -354,23 +359,27 @@ export default function DepartmentsPage() {
                     </Table.Td>
                     <Table.Td>
                       <Group >
-                        <ActionIcon
-                          variant="subtle"
-                          color="gray"
-                          size="sm"
-                          onClick={() => openEditModal(department)}
-                        >
-                          <IconPencil size={16} />
-                        </ActionIcon>
-                        <ActionIcon
-                          variant="subtle"
-                          color="red"
-                          size="sm"
-                          onClick={() => openDeleteModal(department)}
-                          disabled={department.employees_count > 0}
-                        >
-                          <IconTrash size={16} />
-                        </ActionIcon>
+                        {hasPermission('hrm.department.edit') && (
+                          <ActionIcon
+                            variant="subtle"
+                            color="gray"
+                            size="sm"
+                            onClick={() => openEditModal(department)}
+                          >
+                            <IconPencil size={16} />
+                          </ActionIcon>
+                        )}
+                        {hasPermission('hrm.department.delete') && (
+                          <ActionIcon
+                            variant="subtle"
+                            color="red"
+                            size="sm"
+                            onClick={() => openDeleteModal(department)}
+                            disabled={department.employees_count > 0}
+                          >
+                            <IconTrash size={16} />
+                          </ActionIcon>
+                        )}
                       </Group>
                     </Table.Td>
                   </Table.Tr>
@@ -423,24 +432,28 @@ export default function DepartmentsPage() {
                 </Group>
 
                 <Group  mt="xs">
-                  <Button
-                    variant="light"
-                    size="xs"
-                    onClick={() => openEditModal(department)}
-                    leftSection={<IconPencil size={14} />}
-                    style={{ flex: 1 }}
-                  >
-                    Edit
-                  </Button>
-                  <ActionIcon
-                    variant="subtle"
-                    color="red"
-                    size="sm"
-                    onClick={() => openDeleteModal(department)}
-                    disabled={department.employees_count > 0}
-                  >
-                    <IconTrash size={16} />
-                  </ActionIcon>
+                  {hasPermission('hrm.department.edit') && (
+                    <Button
+                      variant="light"
+                      size="xs"
+                      onClick={() => openEditModal(department)}
+                      leftSection={<IconPencil size={14} />}
+                      style={{ flex: 1 }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                  {hasPermission('hrm.department.delete') && (
+                    <ActionIcon
+                      variant="subtle"
+                      color="red"
+                      size="sm"
+                      onClick={() => openDeleteModal(department)}
+                      disabled={department.employees_count > 0}
+                    >
+                      <IconTrash size={16} />
+                    </ActionIcon>
+                  )}
                 </Group>
               </Card>
             ))
