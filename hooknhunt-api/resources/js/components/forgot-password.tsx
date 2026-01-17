@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Stack, TextInput, Text, Button, Anchor } from '@mantine/core'
+import { useTranslation } from 'react-i18next'
 
 type ForgotPasswordFormProps = React.ComponentProps<'form'>
 
 export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormProps) {
+  const { t } = useTranslation()
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -21,17 +23,17 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
   return (
     <form onSubmit={handleSubmit} className={className} {...props}>
       <Stack align="center" gap="xs">
-        <Text size="xl" fw="bold">Forgot Password</Text>
+        <Text size="xl" fw="bold">{t('auth.forgotPassword.title')}</Text>
         <Text size="sm" c="dimmed" style={{ textAlign: 'center', textWrap: 'balance' }}>
-          Enter your phone number and we'll send you an OTP to reset your password
+          {t('auth.forgotPassword.subtitle')}
         </Text>
 
         <Stack gap="md">
           <TextInput
             id="phone"
             type="tel"
-            label="Phone Number"
-            placeholder="01XXXXXXXXX"
+            label={t('auth.login.phoneLabel')}
+            placeholder={t('auth.login.phonePlaceholder')}
             value={phone}
             onChange={(e) => setPhone(e.currentTarget.value)}
             required
@@ -39,13 +41,13 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
           />
 
           <Button type="submit" fullWidth loading={loading}>
-            Send OTP
+            {t('auth.forgotPassword.sendOtp')}
           </Button>
 
           <Text size="sm" ta="center" c="dimmed">
-            Remember your password?{' '}
+            {t('auth.forgotPassword.rememberPassword')}{' '}
             <Anchor href="/login" inherit style={{ textDecoration: 'underline', textDecorationOffset: '2px' }}>
-              Sign in
+              {t('auth.forgotPassword.signIn')}
             </Anchor>
           </Text>
         </Stack>

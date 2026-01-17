@@ -11,6 +11,7 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use App\Http\Middleware\XssSanitization;
 use App\Http\Middleware\CamelCaseResponse;
+use Illuminate\Console\Scheduling\Schedule;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,6 +21,13 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule) {
+        // Generate daily financial report at 6:00 AM every day
+        $schedule->command('finance:daily-report')
+                 ->dailyAt('06:00')
+                 ->description('Generate daily financial report')
+                 ->withoutOverlapping();
+    })
     ->withMiddleware(function (Middleware $middleware) {
             // Disable EnsureFrontendRequestsAreStateful for local development with Bearer tokens
             // Re-enable for production when using cookie-based auth

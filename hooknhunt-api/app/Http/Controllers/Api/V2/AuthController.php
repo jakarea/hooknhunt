@@ -25,15 +25,13 @@ class AuthController extends Controller
     {
         DB::beginTransaction();
         try {
-            // ডিফল্ট রোল সেট করা (Retail Customer)
-            $customerRole = \App\Models\Role::where('slug', 'retail_customer')->first();
-
+            // ডিফল্ট রোল সেট করা (Retail Customer - Fixed role_id = 10)
             $user = User::create([
                 'name' => $request->name,
                 'phone' => $request->phone,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
-                'role_id' => $customerRole ? $customerRole->id : null,
+                'role_id' => 10, // Retail Customer (fixed role_id)
                 'is_active' => false, // OTP ভেরিফাই না করা পর্যন্ত ইনঅ্যাক্টিভ
             ]);
 
@@ -54,7 +52,78 @@ class AuthController extends Controller
     }
 
     /**
-     * 2. Verify OTP & Activate Account
+     * 2. Register Super Admin (Special endpoint for creating super admin)
+     */
+    public function registerSuperAdmin(Request $request)
+    {
+        DB::beginTransaction();
+        try {
+            // Validate
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users,email',
+                'phone' => 'required|string|unique:users,phone',
+                'password' => 'required|string|min:6|confirmed',
+            ]);
+
+            // Create Super Admin User
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'password' => Hash::make($validated['password']),
+                'role_id' => 1, // Super Admin
+                'is_active' => true,
+                'phone_verified_at' => now(), // Auto verified
+            ]);
+
+            // Get or create Administration department
+            try {
+                $department = \App\Models\Department::firstOrCreate(
+                    ['name' => 'Administration'],
+                    [
+                        'description' => 'Administration Department',
+                        'is_active' => true,
+                    ]
+                );
+
+                // Verify department was created/found
+                if (!$department || !$department->id) {
+                    throw new \Exception('Department creation returned null or invalid ID');
+                }
+
+            } catch (\Exception $deptError) {
+                throw new \Exception('Failed to create Administration department: ' . $deptError->getMessage());
+            }
+
+            // Create Staff Profile
+            $user->staffProfile()->create([
+                'department_id' => $department->id,
+                'designation' => 'Super Administrator',
+                'base_salary' => 20000,
+                'house_rent' => 16000,
+                'medical_allowance' => 4000,
+                'conveyance_allowance' => 4000,
+                'overtime_hourly_rate' => 1000,
+                'joining_date' => now(),
+                'gender' => 'male',
+            ]);
+
+            DB::commit();
+
+            return $this->sendSuccess([
+                'user' => $user->load('staffProfile'),
+                'message' => 'Super Admin created successfully. You can now login.'
+            ], 'Super Admin registration successful.', 201);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Registration failed', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * 3. Verify OTP & Activate Account
      */
     public function verifyOtp(VerifyOtpRequest $request)
     {
@@ -93,39 +162,82 @@ class AuthController extends Controller
     }
 
     /**
-     * 3. Login (Updated with Phone Verification Check)
+     * 3. Login
      */
     public function login(LoginRequest $request)
     {
         $fieldType = filter_var($request->login_id, FILTER_VALIDATE_EMAIL) ? 'email' : 'phone';
 
+        // Explicitly load role and permissions (auto-loading removed from User model)
         $user = User::with('role.permissions')->where($fieldType, $request->login_id)->first();
 
-        // 1. Credentials Check
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            return $this->sendError('Invalid credentials', null, 401);
+        // 1. User Existence Check
+        if (!$user) {
+            return $this->sendError("User not found with {$fieldType}: {$request->login_id}", [
+                'searched_field' => $fieldType,
+                'searched_value' => $request->login_id,
+                'suggestion' => 'Please register first or check your credentials'
+            ], 401);
         }
 
-        // 2. Verification Check (Phone verification mandatory)
-        // 2. Verification Check
+        // Debug: Log user data
+        \Log::info('LOGIN ATTEMPT - User Found', [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'password_exists' => !empty($user->password),
+            'password_length' => strlen($user->password ?? ''),
+        ]);
+
+        // Check if user has empty data (corrupted record)
+        if (empty($user->email) && empty($user->phone)) {
+            return $this->sendError('User account data corrupted. Please re-register.', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'created_at' => $user->created_at,
+                'suggestion' => 'Delete this user and register again'
+            ], 401);
+        }
+
+        // 2. Hashed Password Check
+        if (!Hash::check($request->password, $user->password)) {
+            return $this->sendError('Invalid password', [
+                'email' => $user->email,
+                'phone' => $user->phone,
+            ], 401);
+        }
+
+        // 3. Phone Verification Check
         if (!$user->phone_verified_at) {
-            // Updated Line: Passing $user->id
-            $this->sendOtp($user->phone, $user->id); 
-            
-            return $this->sendError('Phone number not verified.', ['action' => 'verify_otp', 'phone' => $user->phone], 403);
+            $this->sendOtp($user->phone, $user->id);
+
+            return $this->sendError("Phone not verified for user: {$user->phone}", [
+                'action' => 'verify_otp',
+                'phone' => $user->phone,
+                'user_id' => $user->id,
+            ], 403);
         }
 
-        // 3. Status Check (Ban/Inactive)
+        // 4. Account Status Check
         if (!$user->is_active) {
-            return $this->sendError('Account is currently inactive/suspended.', null, 403);
+            return $this->sendError("Account inactive for user: {$user->email}", [
+                'user_id' => $user->id,
+                'is_active' => $user->is_active,
+                'reason' => 'Account is suspended or inactive',
+            ], 403);
         }
 
+        // 5. Generate Token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Convert user to array to trigger accessors that sanitize null bytes
+        $userData = $user->toArray();
 
         return $this->sendSuccess([
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => $user
+            'user' => $userData
         ], 'Login successful');
     }
 
@@ -167,11 +279,13 @@ class AuthController extends Controller
 
     public function profile(Request $request)
     {
+        $user = $request->user()->load('role.permissions');
+
         return response()->json([
             'status' => true,
             'message' => 'Profile retrieved successfully',
             'data' => [
-                'user' => $request->user()->load('role.permissions')
+                'user' => $user->toArray()
             ]
         ]);
     }

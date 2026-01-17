@@ -7,6 +7,7 @@ import {
   Group,
   Stack,
 } from '@mantine/core'
+import { useTranslation } from 'react-i18next'
 
 export interface Column<T> {
   key: keyof T | string
@@ -31,13 +32,16 @@ export function ResponsiveDataView<T extends Record<string, unknown>>({
   loading = false,
   onRowClick,
   actions,
-  emptyMessage = 'No data found',
+  emptyMessage,
 }: ResponsiveDataViewProps<T>) {
+  const { t } = useTranslation()
+  const effectiveEmptyMessage = emptyMessage || t('common.noResultsFound')
+
   if (loading) {
     return (
       <Box p="md">
         <Text ta="center" c="dimmed">
-          Loading...
+          {t('common.loading')}
         </Text>
       </Box>
     )
@@ -47,7 +51,7 @@ export function ResponsiveDataView<T extends Record<string, unknown>>({
     return (
       <Box p="md">
         <Text ta="center" c="dimmed">
-          {emptyMessage}
+          {effectiveEmptyMessage}
         </Text>
       </Box>
     )
@@ -100,7 +104,7 @@ export function ResponsiveDataView<T extends Record<string, unknown>>({
                       {column.label}
                     </Table.Th>
                   ))}
-                  {actions && <Table.Th>Actions</Table.Th>}
+                  {actions && <Table.Th>{t('common.actions')}</Table.Th>}
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>

@@ -6,8 +6,25 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Hook & Hunt - ERP</title>
 
-    @viteReactRefresh
-    @vite(['resources/js/main.tsx'])
+    {{-- Load Vite HMR in development --}}
+    @if(app()->environment('local'))
+        @viteReactRefresh
+        @vite(['resources/js/main.tsx'])
+    @else
+        {{-- Production: Load built assets from manifest --}}
+        @php
+            $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
+            $entry = $manifest['resources/js/main.tsx'];
+        @endphp
+
+        @if(isset($entry['css']))
+            @foreach($entry['css'] as $cssFile)
+                <link rel="stylesheet" href="{{ asset('build/' . $cssFile) }}">
+            @endforeach
+        @endif
+
+        <script defer src="{{ asset('build/' . $entry['file']) }}"></script>
+    @endif
 </head>
 <body>
     <div id="root"></div>

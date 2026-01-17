@@ -20,6 +20,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
+import { useTranslation } from 'react-i18next'
 
 interface MyAttendance {
   id: number
@@ -39,6 +40,7 @@ interface AttendanceActionsProps {
 }
 
 export default function AttendanceActions({ myAttendance, onRefresh }: AttendanceActionsProps) {
+  const { t } = useTranslation()
   const [actionLoading, setActionLoading] = useState(false)
   const [breakDuration, setBreakDuration] = useState(0)
 
@@ -98,17 +100,17 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
       setActionLoading(true)
       await api.post('/hrm/clock-in')
       notifications.show({
-        title: 'Success',
-        message: `Clocked in successfully at ${new Date().toLocaleTimeString()}`,
+        title: t('common.success'),
+        message: t('dashboard.success.clockedIn', { time: new Date().toLocaleTimeString() }),
         color: 'green',
       })
     } catch (error: unknown) {
-      let errorMessage = 'Failed to clock in'
+      let errorMessage = t('dashboard.errors.clockInFailed')
       if (error && typeof error === 'object' && 'response' in error) {
         errorMessage = (error as any).response?.data?.message || errorMessage
       }
       notifications.show({
-        title: 'Error',
+        title: t('common.error'),
         message: errorMessage,
         color: 'red',
       })
@@ -125,17 +127,17 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
       setActionLoading(true)
       await api.post('/hrm/break-in')
       notifications.show({
-        title: 'Success',
-        message: `Break started at ${new Date().toLocaleTimeString()}`,
+        title: t('common.success'),
+        message: t('dashboard.success.breakStarted', { time: new Date().toLocaleTimeString() }),
         color: 'green',
       })
     } catch (error: unknown) {
-      let errorMessage = 'Failed to start break'
+      let errorMessage = t('dashboard.errors.breakStartFailed')
       if (error && typeof error === 'object' && 'response' in error) {
         errorMessage = (error as any).response?.data?.message || errorMessage
       }
       notifications.show({
-        title: 'Error',
+        title: t('common.error'),
         message: errorMessage,
         color: 'red',
       })
@@ -151,17 +153,17 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
       setActionLoading(true)
       await api.post('/hrm/break-out')
       notifications.show({
-        title: 'Success',
-        message: `Break ended at ${new Date().toLocaleTimeString()}`,
+        title: t('common.success'),
+        message: t('dashboard.success.breakEnded', { time: new Date().toLocaleTimeString() }),
         color: 'green',
       })
     } catch (error: unknown) {
-      let errorMessage = 'Failed to end break'
+      let errorMessage = t('dashboard.errors.breakEndFailed')
       if (error && typeof error === 'object' && 'response' in error) {
         errorMessage = (error as any).response?.data?.message || errorMessage
       }
       notifications.show({
-        title: 'Error',
+        title: t('common.error'),
         message: errorMessage,
         color: 'red',
       })
@@ -177,17 +179,17 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
       setActionLoading(true)
       await api.post('/hrm/clock-out')
       notifications.show({
-        title: 'Success',
-        message: `Clocked out at ${new Date().toLocaleTimeString()}`,
+        title: t('common.success'),
+        message: t('dashboard.success.clockedOut', { time: new Date().toLocaleTimeString() }),
         color: 'green',
       })
     } catch (error: unknown) {
-      let errorMessage = 'Failed to clock out'
+      let errorMessage = t('dashboard.errors.clockOutFailed')
       if (error && typeof error === 'object' && 'response' in error) {
         errorMessage = (error as any).response?.data?.message || errorMessage
       }
       notifications.show({
-        title: 'Error',
+        title: t('common.error'),
         message: errorMessage,
         color: 'red',
       })
@@ -240,15 +242,15 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
         <Group justify="space-between" align="center">
           <Group gap={0}>
             <Stack gap={0}>
-              <Title order={3} mb={0}>My Attendance Actions 222</Title>
+              <Title order={3} mb={0}>{t('dashboard.myAttendanceActions')}</Title>
               <Text size="sm" c="dimmed">
                 {myAttendance ? (
                   <>
-                    {myAttendance.clock_in && <>Clocked in at {formatTime(myAttendance.clock_in)}</>}
-                    {myAttendance.clock_out && <> • Clocked out at {formatTime(myAttendance.clock_out)}</>}
+                    {myAttendance.clock_in && <>{t('dashboard.clockedInAt', { time: formatTime(myAttendance.clock_in) })}</>}
+                    {myAttendance.clock_out && <> • {t('dashboard.clockedOutAt', { time: formatTime(myAttendance.clock_out) })}</>}
                   </>
                 ) : (
-                  <>No attendance recorded today</>
+                  <>{t('dashboard.noAttendanceToday')}</>
                 )}
               </Text>
             </Stack>
@@ -263,7 +265,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                 color="green"
                 size="lg"
               >
-                Clock In
+                {t('dashboard.clockIn')}
               </Button>
             ) : myAttendance?.clock_out ? (
               // Clocked out - show completed button
@@ -273,7 +275,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                 size="lg"
                 variant="light"
               >
-                Completed for Today
+                {t('dashboard.completedForToday')}
               </Button>
             ) : (
               // Clocked in but not clocked out - check if on break
@@ -292,7 +294,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                       color="orange"
                       size="lg"
                     >
-                      End Break
+                      {t('dashboard.endBreak')}
                     </Button>
                   )
                 } else {
@@ -307,7 +309,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                         size="lg"
                         variant="light"
                       >
-                        Take Break
+                        {t('dashboard.takeBreak')}
                       </Button>
                       <Button
                         leftSection={<IconClockCheck size={16} />}
@@ -316,7 +318,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                         color="red"
                         size="lg"
                       >
-                        Clock Out
+                        {t('dashboard.clockOut')}
                       </Button>
                     </>
                   )
@@ -349,13 +351,13 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                 </ThemeIcon>
 
                 <Stack align="center" gap={0}>
-                  <Title order={1} c="white">You're on Break</Title>
+                  <Title order={1} c="white">{t('dashboard.youreOnBreak')}</Title>
                   <Text c="dimmed" size="lg" ta="center">
-                    Relax and recharge! Take your time.
+                    {t('dashboard.breakMessage')}
                   </Text>
                   {myAttendance?.clock_in && (
                     <Text c="yellow" size="sm" mt="md">
-                      Clocked in at {formatTime(myAttendance.clock_in)}
+                      {t('dashboard.clockedInAt', { time: formatTime(myAttendance.clock_in) })}
                     </Text>
                   )}
                 </Stack>
@@ -368,7 +370,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                   size="xl"
                   radius="xl"
                 >
-                  End Break
+                  {t('dashboard.endBreak')}
                 </Button>
 
                 {/* Break Timer */}
@@ -384,7 +386,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                 >
                   <Stack align="center" gap="xs">
                     <Text size="sm" c="orange" fw={600} tt="uppercase">
-                      ⏱️ Break Duration
+                      ⏱️ {t('dashboard.breakDuration')}
                     </Text>
                     <Text
                       size="48px"
@@ -400,7 +402,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                       {formatBreakDuration(breakDuration)}
                     </Text>
                     <Text size="xs" c="dimmed" mt="xs">
-                      Hours : Minutes : Seconds
+                      {t('dashboard.hoursMinutesSeconds')}
                     </Text>
                   </Stack>
                 </Paper>
@@ -409,7 +411,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                   <Group gap="xs">
                     <IconLock size={16} />
                     <Text size="sm">
-                      System is temporarily locked during break time
+                      {t('dashboard.systemLocked')}
                     </Text>
                   </Group>
                 </Alert>

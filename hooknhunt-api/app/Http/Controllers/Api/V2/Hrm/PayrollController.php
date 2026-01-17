@@ -69,7 +69,7 @@ class PayrollController extends Controller
 
         // Get All Active Staff (Excluding Customers)
         $staffs = User::with('staffProfile')
-            ->whereHas('role', fn($q) => $q->whereNotIn('slug', ['retail_customer', 'wholesale_customer']))
+            ->whereHas('role', fn($q) => $q->whereNotIn('id', [10, 11])) // Exclude customer roles
             ->where('is_active', true)
             ->get();
 

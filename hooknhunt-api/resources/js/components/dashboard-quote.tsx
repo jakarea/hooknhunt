@@ -1,8 +1,10 @@
 import { Paper, Text, Stack, ThemeIcon } from '@mantine/core'
 import { IconQuote } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 import { QUOTES } from '@/config/quotes'
 
 export function DashboardQuote() {
+  const { t, i18n } = useTranslation()
   // Get a quote based on the day of the month (1-31)
   const quotes = QUOTES.DASHBOARD_QUOTES
   const dayOfMonth = new Date().getDate() // Returns 1-31
@@ -60,7 +62,7 @@ export function DashboardQuote() {
             textTransform: 'uppercase',
           }}
         >
-          আজকের প্রেরণা • {new Date().toLocaleDateString('bn-BD', { month: 'long', day: 'numeric' })}
+          {t('dashboard.todaysInspiration')} {new Date().toLocaleDateString(i18n.language, { month: 'long', day: 'numeric' })}
         </Text>
       </Stack>
     </Paper>

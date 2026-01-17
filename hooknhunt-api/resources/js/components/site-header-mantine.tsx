@@ -28,7 +28,7 @@ export function SiteHeaderMantine({
 }: HeaderProps) {
   const { user, logout } = useAuthStore()
   const { refreshPermissions } = usePermissions()
-  const { i18n } = useTranslation()
+  const { t, i18n } = useTranslation()
   const currentLanguage = i18n.language
 
   // Get user initials for avatar
@@ -81,7 +81,7 @@ export function SiteHeaderMantine({
               H
             </Text>
             <Text fw={600} size="lg">
-              Hook & Hunt
+              {t('common.appName')}
             </Text>
           </Group>
 
@@ -179,48 +179,48 @@ export function SiteHeaderMantine({
             </Menu.Target>
 
             <Menu.Dropdown>
-              <Menu.Label>Account</Menu.Label>
+              <Menu.Label>{t('common.account')}</Menu.Label>
               <Menu.Item
                 leftSection={<IconUser style={{ width: rem(16), height: rem(16) }} />}
                 component={Link}
                 to="/profile"
               >
-                My Profile
+                {t('common.myProfile')}
               </Menu.Item>
               <Menu.Item
                 leftSection={<IconRefresh style={{ width: rem(16), height: rem(16) }} />}
                 onClick={handleRefreshPermissions}
               >
-                Refresh Permissions
+                {t('common.refreshPermissions')}
               </Menu.Item>
 
               <Menu.Divider />
 
-              <Menu.Label>System</Menu.Label>
+              <Menu.Label>{t('common.system')}</Menu.Label>
               <Menu.Item
                 leftSection={<IconSettings style={{ width: rem(16), height: rem(16) }} />}
                 component={Link}
                 to="/settings/general"
               >
-                Settings
+                {t('common.settings')}
               </Menu.Item>
 
               <Menu.Divider />
 
-              <Menu.Label>Language</Menu.Label>
+              <Menu.Label>{t('common.language')}</Menu.Label>
               <Menu.Item
                 leftSection={<IconLanguage style={{ width: rem(16), height: rem(16) }} />}
                 onClick={() => changeLanguage('en')}
                 rightSection={currentLanguage === 'en' ? '✓' : undefined}
               >
-                English
+                {t('common.english')}
               </Menu.Item>
               <Menu.Item
                 leftSection={<IconLanguage style={{ width: rem(16), height: rem(16) }} />}
                 onClick={() => changeLanguage('bn')}
                 rightSection={currentLanguage === 'bn' ? '✓' : undefined}
               >
-                বাংলা (Bengali)
+                {t('common.bengali')}
               </Menu.Item>
 
               <Menu.Divider />
@@ -230,7 +230,7 @@ export function SiteHeaderMantine({
                 color="red"
                 onClick={handleLogout}
               >
-                Logout
+                {t('common.logout')}
               </Menu.Item>
             </Menu.Dropdown>
           </Menu>

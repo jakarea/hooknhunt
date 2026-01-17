@@ -21,10 +21,6 @@ class CustomerProfile extends Model
         // Personal Information
         'dob',
         'gender',
-        'address',
-        'division',
-        'district',
-        'thana',
         // Marketing Info
         'source',
         'medium',
@@ -75,6 +71,14 @@ class CustomerProfile extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the addresses for the customer profile.
+     */
+    public function addresses()
+    {
+        return $this->hasManyThrough(Address::class, User::class);
     }
 
     /**

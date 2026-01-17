@@ -70,10 +70,22 @@ import Departments from "@/app/admin/hrm/departments/page"
 import Leaves from "@/app/admin/hrm/leaves/page"
 import Attendance from "@/app/admin/hrm/attendance/page"
 import Payroll from "@/app/admin/hrm/payroll/page"
+import FinanceDashboard from "@/app/admin/finance/page"
+import Banks from "@/app/admin/finance/banks/page"
+import CreateBank from "@/app/admin/finance/banks/create/page"
+import BankDetails from "@/app/admin/finance/banks/[id]/page"
+import EditBank from "@/app/admin/finance/banks/[id]/edit/page"
 import Transactions from "@/app/admin/finance/transactions/page"
 import Expenses from "@/app/admin/finance/expenses/page"
+import CreateExpense from "@/app/admin/finance/expenses/create/page"
 import Accounts from "@/app/admin/finance/accounts/page"
-import ProfitLoss from "@/app/admin/finance/reports/pl/page"
+import CreateAccount from "@/app/admin/finance/accounts/create/page"
+import ReportsIndex from "@/app/admin/finance/reports/page"
+import ProfitLoss from "@/app/admin/finance/reports/profit-loss/page"
+import BalanceSheet from "@/app/admin/finance/reports/balance-sheet/page"
+import CashFlow from "@/app/admin/finance/reports/cash-flow/page"
+import TrialBalance from "@/app/admin/finance/reports/trial-balance/page"
+import GeneralLedger from "@/app/admin/finance/reports/general-ledger/page"
 import Tickets from "@/app/admin/support/tickets/page"
 import SupportCategories from "@/app/admin/support/categories/page"
 import Banners from "@/app/admin/cms/banners/page"
@@ -104,6 +116,7 @@ import Login from "@/app/login/page"
 import ForgotPassword from "@/app/forgot-password/page"
 import SignUp from "@/app/register/page"
 import VerifyOtpPage from "@/app/verify-otp/page"
+import SuperAdminSignupPage from "@/app/register-super-admin/page"
 
 function App() {
   return (
@@ -118,6 +131,7 @@ function App() {
           <Route path="/register" element={<SignUp />} />
           <Route path="/sign-up" element={<SignUp />} />
           <Route path="/verify-otp" element={<VerifyOtpPage />} />
+          <Route path="/register-super-admin" element={<SuperAdminSignupPage />} />
 
           {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
@@ -194,10 +208,22 @@ function App() {
               <Route path="hrm/attendance" element={<Attendance />} />
               <Route path="hrm/payroll" element={<Payroll />} />
               <Route path="hrm/roles" element={<SettingsRoles />} />
+              <Route path="finance" element={<FinanceDashboard />} />
+              <Route path="finance/banks" element={<Banks />} />
+              <Route path="finance/banks/create" element={<CreateBank />} />
+              <Route path="finance/banks/:id" element={<BankDetails />} />
+              <Route path="finance/banks/:id/edit" element={<EditBank />} />
               <Route path="finance/transactions" element={<Transactions />} />
               <Route path="finance/expenses" element={<Expenses />} />
+              <Route path="finance/expenses/create" element={<CreateExpense />} />
               <Route path="finance/accounts" element={<Accounts />} />
-              <Route path="finance/reports/pl" element={<ProfitLoss />} />
+              <Route path="finance/accounts/create" element={<CreateAccount />} />
+              <Route path="finance/reports" element={<ReportsIndex />} />
+              <Route path="finance/reports/profit-loss" element={<ProfitLoss />} />
+              <Route path="finance/reports/balance-sheet" element={<BalanceSheet />} />
+              <Route path="finance/reports/cash-flow" element={<CashFlow />} />
+              <Route path="finance/reports/trial-balance" element={<TrialBalance />} />
+              <Route path="finance/reports/general-ledger" element={<GeneralLedger />} />
               <Route path="support/tickets" element={<Tickets />} />
               <Route path="support/categories" element={<SupportCategories />} />
               <Route path="cms/banners" element={<Banners />} />

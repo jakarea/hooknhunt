@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { Stack, PinInput, Text, Button, Anchor, Box } from '@mantine/core'
+import { useTranslation } from 'react-i18next'
 
 interface OTPFormProps extends React.ComponentProps<'form'> {
   phone?: string
 }
 
 export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
+  const { t } = useTranslation()
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -23,15 +25,15 @@ export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
   return (
     <form onSubmit={handleSubmit} className={className} {...props}>
       <Stack align="center" gap="xs">
-        <Text size="xl" fw="bold">Verify OTP</Text>
+        <Text size="xl" fw="bold">{t('auth.otp.verifyTitle')}</Text>
         <Text size="sm" c="dimmed" style={{ textAlign: 'center', textWrap: 'balance' }}>
-          Enter the 6-digit code sent to {phone || 'your phone'}
+          {t('auth.otp.verifySubtitle')} {phone || t('auth.otp.yourPhone')}
         </Text>
 
         <Stack gap="md">
         <Box>
           <Text component="label" size="sm" fw={500} mb="xs" display="block">
-            OTP Code
+            {t('auth.otp.label')}
           </Text>
           <PinInput
             length={6}
@@ -44,19 +46,19 @@ export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
         </Box>
 
         <Button type="submit" fullWidth loading={loading}>
-          Verify OTP
+          {t('auth.otp.verifyButton')}
         </Button>
 
         <Text size="sm" ta="center" c="dimmed">
-          Didn't receive the code?{' '}
+          {t('auth.otp.didntReceive')}{' '}
           <Anchor href="#" inherit style={{ textDecoration: 'underline', textDecorationOffset: '2px' }}>
-            Resend
+            {t('auth.otp.resend')}
           </Anchor>
         </Text>
 
         <Text size="sm" ta="center" c="dimmed">
           <Anchor href="/login" inherit style={{ textDecoration: 'underline', textDecorationOffset: '2px' }}>
-            Back to Login
+            {t('auth.otp.backToLogin')}
           </Anchor>
         </Text>
         </Stack>

@@ -17,7 +17,7 @@ class Department extends Model
      */
     public function employees()
     {
-        return $this->hasMany(UserProfile::class, 'department_id');
+        return $this->hasMany(StaffProfile::class, 'department_id');
     }
 
     /**
@@ -27,7 +27,7 @@ class Department extends Model
     {
         return $this->hasManyThrough(
             User::class,
-            UserProfile::class,
+            StaffProfile::class,
             'department_id',
             'id',
             'id',

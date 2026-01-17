@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Box, Text, Stack, Paper, ThemeIcon } from '@mantine/core'
 import { IconQuote } from '@tabler/icons-react'
+import { useTranslation } from 'react-i18next'
 import { QUOTES } from '@/config/quotes'
 
 export function LoginQuotes() {
+  const { t } = useTranslation()
   const [quote] = useState(() => {
     // Get a random quote from LOGIN_QUOTES array
     const quotes = QUOTES.LOGIN_QUOTES
@@ -85,7 +87,7 @@ export function LoginQuotes() {
           lineHeight: 1.6,
         }}
       >
-        প্রতিদিন একটু এগিয়ে যান—লক্ষ্যে পৌঁছাতে বাধ্য হবেন!
+        {t('common.motivationalMessage')}
       </Text>
     </Stack>
   )

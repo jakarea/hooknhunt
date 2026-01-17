@@ -575,7 +575,7 @@ export default function EditStaffPage() {
               Back to Profile
             </Button>
           </Group>
-          <Title order={1} className="text-lg md:text-xl lg:text-2xl">Edit Staff: {name}</Title>
+          <Title order={1} className="text-lg md:text-xl lg:text-2xl"> {name}</Title>
           <Text c="dimmed">Update user information and settings</Text>
         </Box>
 
@@ -895,27 +895,27 @@ export default function EditStaffPage() {
           )}
 
           {/* Permissions Section */}
-          <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
+          {/* <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
             <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-            <Stack >
-              <Group justify="space-between">
+            <Stack > */}
+              {/* <Group justify="space-between">
                 <Title order={3} className="text-base md:text-lg lg:text-xl">User-Level Permissions</Title>
                 <Group >
                   <Badge color="green" size="lg">{grantedPermissions.length} granted</Badge>
                   <Badge color="red" size="lg">{blockedPermissions.length} blocked</Badge>
                 </Group>
-              </Group>
+              </Group> */}
 
-              <Alert variant="light" color="blue" icon={<IconRefresh size={16} />}>
+              {/* <Alert variant="light" color="blue" icon={<IconRefresh size={16} />}>
                 <Text size="sm">
                   <strong>Granted:</strong> User gets permission even if role doesn't have it.{' '}
                   <strong>Blocked:</strong> User is denied permission even if role has it.{' '}
                   <strong>Inherit:</strong> Permission comes from role.
                 </Text>
-              </Alert>
+              </Alert> */}
 
               {/* Search Autocomplete */}
-              <Box pos="relative">
+              {/* <Box pos="relative">
                 <TextInput
                   placeholder="Search permissions to add..."
                   leftSection={<IconSearch size={16} />}
@@ -925,7 +925,7 @@ export default function EditStaffPage() {
                 />
 
                 {/* Search Results Dropdown */}
-                {permissionSearch.trim() && searchResults.length > 0 && (
+                {/*  {permissionSearch.trim() && searchResults.length > 0 && (
                   <Paper
                     withBorder
                     shadow="md"
@@ -988,21 +988,21 @@ export default function EditStaffPage() {
                     </Text>
                   </Paper>
                 )}
-              </Box>
+              </Box> */}
 
               {/* Tabs for Granted and Blocked */}
-              <Tabs defaultValue="granted" onChange={(value) => setActivePermissionTab(value as 'granted' | 'blocked')}>
-                <Tabs.List>
+              {/* <Tabs defaultValue="granted" onChange={(value) => setActivePermissionTab(value as 'granted' | 'blocked')}> */}
+                {/* <Tabs.List>
                   <Tabs.Tab value="granted" leftSection={<IconCheck size={14} />}>
                     Granted Permissions ({grantedPermissions.length})
                   </Tabs.Tab>
                   <Tabs.Tab value="blocked" leftSection={<IconX size={14} />}>
                     Blocked Permissions ({blockedPermissions.length})
                   </Tabs.Tab>
-                </Tabs.List>
+                </Tabs.List> */}
 
                 {/* Granted Permissions Tab */}
-                <Tabs.Panel value="granted">
+                {/* <Tabs.Panel value="granted">
                   <Stack  mt="md">
                     {grantedPermissions.length > 0 ? (
                       <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }}>
@@ -1046,10 +1046,10 @@ export default function EditStaffPage() {
                       </Box>
                     )}
                   </Stack>
-                </Tabs.Panel>
+                </Tabs.Panel> */}
 
                 {/* Blocked Permissions Tab */}
-                <Tabs.Panel value="blocked">
+                {/* <Tabs.Panel value="blocked">
                   <Stack  mt="md">
                     {blockedPermissions.length > 0 ? (
                       <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }}>
@@ -1093,11 +1093,11 @@ export default function EditStaffPage() {
                       </Box>
                     )}
                   </Stack>
-                </Tabs.Panel>
-              </Tabs>
+                </Tabs.Panel> 
+              </Tabs>*/}
 
               {/* Quick Actions */}
-              <Group >
+              {/* <Group >
                 <Button
                   variant="light"
                   size="xs"
@@ -1108,9 +1108,9 @@ export default function EditStaffPage() {
                 >
                   Clear All (Inherit from Role)
                 </Button>
-              </Group>
-            </Stack>
-          </Paper>
+              </Group> */}
+            {/* </Stack>
+          </Paper> */}
 
           {/* Actions */}
           <Group justify="flex-end" mt="md">

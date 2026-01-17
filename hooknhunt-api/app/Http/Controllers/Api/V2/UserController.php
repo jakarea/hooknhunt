@@ -53,19 +53,18 @@ class UserController extends Controller
         if ($type === 'staff') {
             // শুধুমাত্র স্টাফ রোলগুলো ফিল্টার (কাস্টমার বাদে বাকি সব)
             $query->whereHas('role', function($q) {
-                $q->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+                $q->whereNotIn('id', [10, 11]); // Exclude customer roles
             });
         } elseif ($type === 'customer') {
             // শুধুমাত্র কাস্টমার রোলগুলো ফিল্টার
             $query->whereHas('role', function($q) {
-                $q->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+                $q->whereIn('id', [10, 11]); // Include customer roles
             });
 
             // Filter by customer type if specified (retail/wholesale)
             if ($customerType && in_array($customerType, ['retail', 'wholesale'])) {
-                $query->whereHas('role', function($q) use ($customerType) {
-                    $q->where('slug', $customerType . '_customer');
-                });
+                $roleId = $customerType === 'retail' ? 10 : 11;
+                $query->where('role_id', $roleId);
             }
         } else {
             // যদি টাইপ না থাকে, তবে সিকিউরিটির জন্য খালি রেজাল্ট পাঠানোই প্রফেশনালিজম
@@ -235,15 +234,15 @@ class UserController extends Controller
         ]);
 
         // ভ্যালিডেশন: স্টাফ রোলে কাস্টমার বা কাস্টমার রোলে স্টাফ ঢুকছে কি না চেক
-        if ($request->type === 'staff' && in_array($role->slug, ['retail_customer', 'wholesale_customer'])) {
+        if ($request->type === 'staff' && in_array($role->id, [10, 11])) {
             return $this->sendError('Invalid role assigned for a Staff user.', null, 422);
         }
 
-        if ($request->type === 'customer' && !in_array($role->slug, ['retail_customer', 'wholesale_customer'])) {
+        if ($request->type === 'customer' && !in_array($role->id, [10, 11])) {
             \Log::error('Invalid role for customer', [
                 'role_id' => $request->role_id,
-                'role_slug' => $role->slug,
-                'allowed_slugs' => ['retail_customer', 'wholesale_customer']
+                'role_id' => $role->id,
+                'allowed_role_ids' => [10, 11]
             ]);
             return $this->sendError('Invalid role assigned for a Customer.', null, 422);
         }
@@ -512,10 +511,10 @@ class UserController extends Controller
 
         if ($type === 'staff') {
             // শুধুমাত্র স্টাফ রোলগুলো ফিল্টার (কাস্টমার বাদে বাকি সব)
-            $query->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+            $query->whereNotIn('id', [10, 11]); // Exclude customer roles
         } elseif ($type === 'customer') {
             // শুধুমাত্র কাস্টমার রোলগুলো ফিল্টার
-            $query->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+            $query->whereIn('id', [10, 11]); // Include customer roles
         }
 
         return $this->sendSuccess($query->get(), 'Roles retrieved.');

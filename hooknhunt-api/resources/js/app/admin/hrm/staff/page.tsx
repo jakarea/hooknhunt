@@ -49,31 +49,31 @@ interface Staff {
     slug: string
   }
   staffProfile?: {
-    department_id?: number
+    departmentId?: number
     designation?: string
-    joining_date?: string
-    base_salary?: number
-    house_rent?: number
-    medical_allowance?: number
-    conveyance_allowance?: number
-    overtime_hourly_rate?: number
+    joiningDate?: string
+    baseSalary?: number
+    houseRent?: number
+    medicalAllowance?: number
+    conveyanceAllowance?: number
+    overtimeHourlyRate?: number
     address?: string
     division?: string
     district?: string
     thana?: string
     dob?: string
     gender?: string
-    whatsapp_number?: string
-    office_email?: string
-    office_email_password?: string
+    whatsappNumber?: string
+    officeEmail?: string
+    officeEmailPassword?: string
     department?: {
       id: number
       name: string
     }
   }
-  is_active: boolean
-  created_at: string
-  updated_at: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 interface PaginatedResponse {
@@ -106,6 +106,7 @@ export default function StaffPage() {
       const response = await api.get('/hrm/staff', { params })
 
       const paginatedData = response.data.data
+
       setStaffData({
         data: paginatedData.data || [],
         current_page: paginatedData.current_page || 1,
@@ -204,10 +205,10 @@ export default function StaffPage() {
 
   // Calculate stats from real data
   const totalStaff = staffData?.total || 0
-  const activeStaff = useMemo(() => staff.filter(s => s.is_active).length, [staff])
+  const activeStaff = useMemo(() => staff.filter(s => s.isActive).length, [staff])
   const onLeaveStaff = 0 // No leave status in current data structure
   const departmentsCount = useMemo(
-    () => new Set(staff.map(s => s.staffProfile?.department_id)).size,
+    () => new Set(staff.map(s => s.staffProfile?.departmentId)).size,
     [staff]
   )
 
@@ -375,15 +376,15 @@ export default function StaffPage() {
                       </Table.Td>
                       <Table.Td>
                         <Badge
-                          color={staffMember.is_active ? 'green' : 'gray'}
+                          color={staffMember.isActive ? 'green' : 'gray'}
                           variant="light"
                           size="sm"
                         >
-                          {staffMember.is_active ? 'Active' : 'Inactive'}
+                          {staffMember.isActive? 'Active':'InActive'}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{formatDate(staffMember.staffProfile?.joining_date)}</Text>
+                        <Text size="sm">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Group >
@@ -465,11 +466,11 @@ export default function StaffPage() {
                     </Box>
                   </Group>
                   <Badge
-                    color={staffMember.is_active ? 'green' : 'gray'}
+                    color={staffMember.isActive ? 'green' : 'gray'}
                     variant="light"
                     size="sm"
                   >
-                    {staffMember.is_active ? 'Active' : 'Inactive'}
+                    {String(staffMember.isActive)}
                   </Badge>
                 </Group>
 
@@ -506,7 +507,7 @@ export default function StaffPage() {
                   </Box>
                   <Box>
                     <Text size="xs" c="dimmed">Joined</Text>
-                    <Text size="xs">{formatDate(staffMember.staffProfile?.joining_date)}</Text>
+                    <Text size="xs">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
                   </Box>
                 </SimpleGrid>
 

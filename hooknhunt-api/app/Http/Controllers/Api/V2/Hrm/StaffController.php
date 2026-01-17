@@ -28,14 +28,10 @@ class StaffController extends Controller
             return $this->sendError('You do not have permission to view staff.', null, 403);
         }
 
-        // আমরা ধরে নিচ্ছি role_id = 5 হলো 'Retail Customer'।
-        // তাই ৫ বাদে বাকি সব রোল (Admin, Manager, Staff) লোড করব।
-        // আপনার সিস্টেমে রোলের ID ভিন্ন হতে পারে, সেটা চেক করে নেবেন।
-
+        // Load staff - exclude customer roles (10 = Retail Customer, 11 = Wholesale Customer)
         $query = User::with(['staffProfile.department', 'role'])
             ->whereHas('role', function($q) {
-                $q->where('slug', '!=', 'retail_customer')
-                  ->where('slug', '!=', 'wholesale_customer');
+                $q->whereNotIn('id', [10, 11]); // Exclude customer roles
             });
 
         if ($request->department_id) {
@@ -313,13 +309,11 @@ class StaffController extends Controller
         try {
             // Staff stats
             $totalStaff = User::whereHas('role', function($q) {
-                $q->where('slug', '!=', 'retail_customer')
-                  ->where('slug', '!=', 'wholesale_customer');
+                $q->whereNotIn('id', [10, 11]); // Exclude customer roles
             })->count();
 
             $activeStaff = User::whereHas('role', function($q) {
-                $q->where('slug', '!=', 'retail_customer')
-                  ->where('slug', '!=', 'wholesale_customer');
+                $q->whereNotIn('id', [10, 11]); // Exclude customer roles
             })->where('is_active', true)->count();
 
             // Get staff by department - check if tables exist
@@ -343,8 +337,7 @@ class StaffController extends Controller
             }
 
             $thisMonthHires = User::whereHas('role', function($q) {
-                $q->where('slug', '!=', 'retail_customer')
-                  ->where('slug', '!=', 'wholesale_customer');
+                $q->whereNotIn('id', [10, 11]); // Exclude customer roles
             })->whereMonth('created_at', now()->month)
               ->whereYear('created_at', now()->year)
               ->count();
@@ -352,8 +345,7 @@ class StaffController extends Controller
             // Recent hires
             $recentHires = User::with(['staffProfile.department'])
                 ->whereHas('role', function($q) {
-                    $q->where('slug', '!=', 'retail_customer')
-                      ->where('slug', '!=', 'wholesale_customer');
+                    $q->whereNotIn('id', [10, 11]); // Exclude customer roles
                 })
                 ->latest()
                 ->limit(5)

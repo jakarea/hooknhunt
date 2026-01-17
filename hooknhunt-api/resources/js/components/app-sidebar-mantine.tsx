@@ -9,6 +9,7 @@ import {
   IconSearch,
   IconInnerShadowTop,
   IconChevronRight,
+  IconCoin,
 } from "@tabler/icons-react"
 import {
   Box,
@@ -201,16 +202,28 @@ export function AppSidebarMantine({
       //         { title: t("marketing.affiliates"), url: "/marketing/affiliates" },
       //       ],
       //     },
-      //     {
-      //       title: t("nav.finance"),
-      //       icon: IconCoin,
-      //       children: [
-      //         { title: t("finance.transactions"), url: "/finance/transactions" },
-      //         { title: t("finance.expenses"), url: "/finance/expenses" },
-      //         { title: t("finance.accounts"), url: "/finance/accounts" },
-      //         { title: t("finance.reports"), url: "/finance/reports/pl" },
-      //       ],
-      //     },
+          {
+            title: t("nav.finance"),
+            icon: IconCoin,
+            children: [
+              { title: t("finance.dashboard"), url: "/finance" },
+              { title: t("finance.banks"), url: "/finance/banks" },
+              { title: t("finance.transactions"), url: "/finance/transactions" },
+              { title: t("finance.expenses"), url: "/finance/expenses" },
+              { title: t("finance.accounts"), url: "/finance/accounts" },
+              {
+                title: t("finance.reports"),
+                url: "/finance/reports",
+                children: [
+                  { title: t("finance.profitLoss"), url: "/finance/reports/profit-loss" },
+                  { title: t("finance.balanceSheet"), url: "/finance/reports/balance-sheet" },
+                  { title: t("finance.cashFlow"), url: "/finance/reports/cash-flow" },
+                  { title: t("finance.trialBalance"), url: "/finance/reports/trial-balance" },
+                  { title: t("finance.generalLedger"), url: "/finance/reports/general-ledger" },
+                ]
+              },
+            ],
+          },
       //     {
       //       title: t("nav.reports"),
       //       icon: IconChartPie,
