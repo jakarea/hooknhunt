@@ -10,6 +10,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use App\Http\Middleware\XssSanitization;
+use App\Http\Middleware\CamelCaseResponse;
+use Illuminate\Console\Scheduling\Schedule;
 
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -19,16 +21,28 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    ->withSchedule(function (Schedule $schedule) {
+        // Generate daily financial report at 6:00 AM every day
+        $schedule->command('finance:daily-report')
+                 ->dailyAt('06:00')
+                 ->description('Generate daily financial report')
+                 ->withoutOverlapping();
+    })
     ->withMiddleware(function (Middleware $middleware) {
-            $middleware->api(prepend: [
-                \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-            ]);
-            
+            // Disable EnsureFrontendRequestsAreStateful for local development with Bearer tokens
+            // Re-enable for production when using cookie-based auth
+            // $middleware->api(prepend: [
+            //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // ]);
+
             $middleware->append(XssSanitization::class);
             $middleware->append(\App\Http\Middleware\AuditLogMiddleware::class);
 
+            // Apply CamelCaseResponse middleware to API routes only
+            $middleware->api(CamelCaseResponse::class);
+
             $middleware->alias([
-                'auth' => \App\Http\Middleware\Authenticate::class,
+                // 'auth' => \App\Http\Middleware\Authenticate::class, // Use default Laravel auth
                 'permission' => \App\Http\Middleware\CheckPermission::class, // এটি যুক্ত করুন
                 'role' => \App\Http\Middleware\CheckRoleMiddleware::class,   // এটিও যুক্ত করে রাখা ভালো
             ]);

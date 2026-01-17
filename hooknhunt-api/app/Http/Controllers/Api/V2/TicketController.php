@@ -23,7 +23,7 @@ class TicketController extends Controller
         $query = SupportTicket::with(['customer', 'messages']);
 
         // যদি ইউজার অ্যাডমিন না হয়, শুধু নিজের টিকিট দেখবে
-        if (!$user->role || $user->role->slug === 'retail_customer') {
+        if (!$user->role || $user->role->id === 10) { // Retail Customer
              // Assuming user -> customer relation exists
             $customer = $user->customer; 
             if (!$customer) return $this->sendError('Customer profile not found');
@@ -124,7 +124,7 @@ class TicketController extends Controller
         // Status Update Logic
         // If Admin replies, status -> answered
         // If Customer replies, status -> open
-        $status = auth()->user()->role->slug !== 'retail_customer' ? 'answered' : 'open';
+        $status = auth()->user()->role->id !== 10 ? 'answered' : 'open'; // 10 = Retail Customer
         $ticket->update(['status' => $status]);
 
         return $this->sendSuccess(null, 'Reply sent successfully');

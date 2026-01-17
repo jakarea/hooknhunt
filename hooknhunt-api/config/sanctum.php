@@ -34,7 +34,8 @@ return [
     |
     */
 
-    'guard' => ['web'],
+    'guard' => [], // Empty for Bearer token authentication (stateless)
+    // 'guard' => ['web'], // Use 'web' for cookie-based authentication (stateful)
 
     /*
     |--------------------------------------------------------------------------

@@ -23,9 +23,11 @@ class RoleController extends Controller
         $query = Role::withCount('users');
 
         if ($type === 'staff') {
-            $query->whereNotIn('slug', ['retail_customer', 'wholesale_customer']);
+            // Exclude customer roles (10 = Retail Customer, 11 = Wholesale Customer)
+            $query->whereNotIn('id', [10, 11]);
         } elseif ($type === 'customer') {
-            $query->whereIn('slug', ['retail_customer', 'wholesale_customer']);
+            // Include only customer roles
+            $query->whereIn('id', [10, 11]);
         }
 
         return $this->sendSuccess($query->get(), 'Role list retrieved.');
@@ -74,7 +76,7 @@ class RoleController extends Controller
      */
     public function show($id)
     {
-        $role = Role::with(['permissions:id,name,slug,group_name', 'users'])->findOrFail($id);
+        $role = Role::withSuperAdmin()->with(['permissions:id,name,slug,group_name', 'users'])->findOrFail($id);
         return $this->sendSuccess($role, 'Role retrieved successfully.');
     }
 
@@ -83,11 +85,19 @@ class RoleController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::withSuperAdmin()->findOrFail($id);
 
-        // Prevent modifying super admin role
-        if ($role->slug === 'super_admin') {
-            return $this->sendError('Super Admin role cannot be modified.', null, 403);
+        // Prevent modifying critical system roles (by ID for security)
+        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleNames = [
+            1 => 'Super Admin',
+            10 => 'Retail Customer',
+            11 => 'Wholesale Customer'
+        ];
+
+        if (in_array($role->id, $protectedRoleIds)) {
+            $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
+            return $this->sendError("{$roleName} role cannot be modified. It is a critical system role.", null, 403);
         }
 
         $request->validate([
@@ -117,11 +127,19 @@ class RoleController extends Controller
      */
     public function destroy($id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::withSuperAdmin()->findOrFail($id);
 
-        // Prevent deleting super admin role
-        if ($role->slug === 'super_admin') {
-            return $this->sendError('Super Admin role cannot be deleted.', null, 403);
+        // Prevent deleting critical system roles (by ID for security)
+        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleNames = [
+            1 => 'Super Admin',
+            10 => 'Retail Customer',
+            11 => 'Wholesale Customer'
+        ];
+
+        if (in_array($role->id, $protectedRoleIds)) {
+            $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
+            return $this->sendError("{$roleName} role cannot be deleted. It is a critical system role.", null, 403);
         }
 
         // Check if role has users (including soft-deleted)
@@ -140,10 +158,19 @@ class RoleController extends Controller
      */
     public function syncPermissions(Request $request, $id)
     {
-        $role = Role::findOrFail($id);
+        $role = Role::withSuperAdmin()->findOrFail($id);
 
-        if ($role->slug === 'super_admin') {
-            return $this->sendError('Super Admin permissions cannot be modified.', null, 403);
+        // Prevent modifying permissions for critical system roles
+        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleNames = [
+            1 => 'Super Admin',
+            10 => 'Retail Customer',
+            11 => 'Wholesale Customer'
+        ];
+
+        if (in_array($role->id, $protectedRoleIds)) {
+            $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
+            return $this->sendError("{$roleName} role permissions cannot be modified. It is a critical system role.", null, 403);
         }
 
         $request->validate([
@@ -164,7 +191,7 @@ class RoleController extends Controller
     {
         try {
             // ১. রোলটি খুঁজে বের করা এবং তার সাথে পারমিশনগুলো লোড করা
-            $role = \App\Models\Role::with('permissions:id,name,slug,group_name')->findOrFail($id);
+            $role = \App\Models\Role::withSuperAdmin()->with('permissions:id,name,slug,group_name')->findOrFail($id);
 
             return response()->json([
                 'status' => true,
