@@ -3,6 +3,7 @@ import { Title, Text, Stack, Paper, Group, Grid, Card, Badge, Button, Table, Sim
 import { IconDashboard, IconCoin, IconWallet, IconBuildingBank, IconMoneybag, IconPlus, IconArrowRight, IconRefresh, IconCheck, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // Mock data
 const mockSummary = {
@@ -118,6 +119,20 @@ const mockPendingExpenses = [
 
 export default function FinanceDashboardPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance dashboard view permission
+  if (!hasPermission('finance_dashboard_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to access the Finance Dashboard.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [refreshing, setRefreshing] = useState(false)
 
   // Format currency
@@ -443,7 +458,7 @@ export default function FinanceDashboardPage() {
             <IconDashboard size={40} />
             <div>
               <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
-              <Text size="xl" fw={700} style={{ fontFamily: 'monospace' }}>
+              <Text size="xl" fw={700} className="font-mono">
                 {formatCurrency(mockSummary.total_balance)}
               </Text>
             </div>

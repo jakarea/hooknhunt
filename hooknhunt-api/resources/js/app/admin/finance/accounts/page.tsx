@@ -28,6 +28,7 @@ import {
 import { notifications } from '@mantine/notifications'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Account {
   id: number
@@ -100,6 +101,20 @@ const mockAccounts: Account[] = [
 
 export default function AccountsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance accounts view permission
+  if (!hasPermission('finance_accounts_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Chart of Accounts.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<AccountType>('all')
   const [showInactive, setShowInactive] = useState(false)
@@ -191,7 +206,7 @@ export default function AccountsPage() {
 
   // Format account code with monospace
   const formatCode = (code: string) => {
-    return <Text style={{ fontFamily: 'monospace' }} fw={600}>{code}</Text>
+    return <Text className="font-mono" fw={600}>{code}</Text>
   }
 
   return (
@@ -221,7 +236,7 @@ export default function AccountsPage() {
 
         {/* Statistics Cards */}
         <Group>
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
               <Badge color="green" size="sm" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
             </Group>
@@ -230,7 +245,7 @@ export default function AccountsPage() {
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
               <Badge color="red" size="sm" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
             </Group>
@@ -239,7 +254,7 @@ export default function AccountsPage() {
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
               <Badge color="blue" size="sm" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
             </Group>
@@ -248,7 +263,7 @@ export default function AccountsPage() {
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
               <Badge color="cyan" size="sm" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
             </Group>
@@ -257,7 +272,7 @@ export default function AccountsPage() {
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
               <Badge color="orange" size="sm" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
             </Group>
@@ -299,7 +314,8 @@ export default function AccountsPage() {
           </Tabs.List>
 
           <Tabs.Panel value={activeTab}>
-            <Card withBorder p="0" radius="md" mt="md" shadow="sm">
+            {/* Desktop Table View */}
+            <Card withBorder p="0" radius="md" mt="md" shadow="sm" display={{ base: 'none', md: 'block' }}>
               <Table.ScrollContainer minWidth={1000}>
                 <Table striped highlightOnHover>
                   <Table.Thead>
@@ -385,6 +401,80 @@ export default function AccountsPage() {
                 </Table>
               </Table.ScrollContainer>
             </Card>
+
+            {/* Mobile Card View */}
+            <Stack display={{ base: 'block', md: 'none' }} mt="md">
+              {filteredAccounts.length === 0 ? (
+                <Card withBorder p="xl" ta="center" shadow="sm">
+                  <Text c="dimmed">{t('finance.accountsPage.noAccounts')}</Text>
+                </Card>
+              ) : (
+                filteredAccounts.map((account) => {
+                  const typeConfig = getTypeConfig(account.type)
+                  return (
+                    <Card key={account.id} shadow="sm" p="sm" radius="md" withBorder>
+                      {/* Header: Code + Status Badge */}
+                      <Group justify="space-between" mb="xs">
+                        <Text fw={700} className="font-mono">
+                          {account.code}
+                        </Text>
+                        {account.is_active ? (
+                          <Badge color="green" variant="light" size="sm" leftSection={<IconCheck size={12} />}>
+                            {t('finance.accountsPage.active')}
+                          </Badge>
+                        ) : (
+                          <Badge color="gray" variant="light" size="sm" leftSection={<IconX size={12} />}>
+                            {t('finance.accountsPage.inactive')}
+                          </Badge>
+                        )}
+                      </Group>
+
+                      {/* Account Name */}
+                      <Group justify="space-between" mb="xs">
+                        <Text size="sm" fw={500}>
+                          {account.name}
+                        </Text>
+                        <Badge color={typeConfig.color} variant="light" size="sm">
+                          {typeConfig.label}
+                        </Badge>
+                      </Group>
+
+                      {/* Sub-account indicator */}
+                      {account.parent_id && (
+                        <Text size="xs" c="dimmed" mb="xs">
+                          {t('finance.accountsPage.subAccount')}
+                        </Text>
+                      )}
+
+                      {/* Balance */}
+                      <Group justify="space-between" mb="xs">
+                        <Text size="xs" c="dimmed">{t('finance.accountsPage.tableHeaders.balance')}</Text>
+                        <Text
+                          size="sm"
+                          fw={700}
+                          c={account.balance >= 0 ? 'green' : 'red'}
+                        >
+                          <NumberFormatter value={Math.abs(account.balance)} prefix="৳" thousandSeparator />
+                          {account.balance < 0 && ' (Cr)'}
+                        </Text>
+                      </Group>
+
+                      {/* Actions */}
+                      <Group justify="flex-end" mt="xs">
+                        <ActionIcon
+                          size="sm"
+                          color="blue"
+                          variant="light"
+                          onClick={() => handleEdit(account.id)}
+                        >
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Card>
+                  )
+                })
+              )}
+            </Stack>
           </Tabs.Panel>
         </Tabs>
 

@@ -25,6 +25,7 @@ import {
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface AccountItem {
   id: number
@@ -72,6 +73,20 @@ const mockEquity: AccountItem[] = [
 
 export default function BalanceSheetPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports balance sheet permission
+  if (!hasPermission('finance_reports_balance_sheet')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Balance Sheet Report.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [asOfDate, setAsOfDate] = useState<Date | null>(new Date())
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['assets', 'liabilities', 'equity']))
 

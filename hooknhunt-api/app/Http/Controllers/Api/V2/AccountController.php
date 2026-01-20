@@ -58,7 +58,65 @@ class AccountController extends Controller
     }
 
     /**
-     * 3. Balance Summary (Dashboard Widget)
+     * 3. Get Single Account by ID
+     * GET /api/v2/finance/accounts/{id}
+     */
+    public function show($id)
+    {
+        $account = ChartOfAccount::withSum(['journalItems as debit_total' => function($q) {
+            $q->select(DB::raw('COALESCE(SUM(debit), 0)'));
+        }], 'debit')
+            ->withSum(['journalItems as credit_total' => function($q) {
+            $q->select(DB::raw('COALESCE(SUM(credit), 0)'));
+        }], 'credit')
+            ->findOrFail($id);
+
+        // Calculate balance based on account type
+        if (in_array($account->type, ['asset', 'expense'])) {
+            $account->balance = $account->debit_total - $account->credit_total;
+        } else {
+            $account->balance = $account->credit_total - $account->debit_total;
+        }
+
+        return $this->sendSuccess($account, 'Account retrieved successfully.');
+    }
+
+    /**
+     * 4. Update Account
+     * PUT/PATCH /api/v2/finance/accounts/{id}
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'sometimes|required|string',
+            'code' => 'sometimes|required|unique:chart_of_accounts,code,' . $id,
+            'type' => 'sometimes|required|in:asset,liability,equity,income,expense',
+            'is_active' => 'sometimes|boolean',
+            'description' => 'sometimes|nullable|string',
+        ]);
+
+        $account = ChartOfAccount::findOrFail($id);
+
+        // Check if account has journal entries (transactions)
+        $hasTransactions = $account->journalItems()->exists();
+        if ($hasTransactions) {
+            return $this->sendError('Cannot update account with existing journal entries. Create a new account instead.');
+        }
+
+        // Update the account
+        $account->update($request->only([
+            'name',
+            'code',
+            'type',
+            'is_active',
+            'description',
+        ]));
+
+        return $this->sendSuccess($account, 'Account updated successfully.');
+    }
+
+    /**
+     * 5. Balance Summary (Dashboard Widget)
      */
     public function balanceSummary()
     {
@@ -79,6 +137,32 @@ class AccountController extends Controller
         });
 
         // Simple Debit - Credit for now (Refine logic per type later)
-        return $query->sum(DB::raw('debit - credit')); 
+        return $query->sum(DB::raw('debit - credit'));
+    }
+
+    /**
+     * 6. Delete Account
+     * DELETE /api/v2/finance/accounts/{id}
+     */
+    public function destroy($id)
+    {
+        $account = ChartOfAccount::findOrFail($id);
+
+        // Check if account has journal entries (transactions)
+        $hasTransactions = $account->journalItems()->exists();
+        if ($hasTransactions) {
+            return $this->sendError('Cannot delete account with existing journal entries.');
+        }
+
+        // Check if account has expenses
+        $hasExpenses = $account->expenses()->exists();
+        if ($hasExpenses) {
+            return $this->sendError('Cannot delete account with existing expenses.');
+        }
+
+        // Delete the account (safe to delete if no transactions)
+        $account->delete();
+
+        return $this->sendSuccess(null, 'Account deleted successfully.');
     }
 }

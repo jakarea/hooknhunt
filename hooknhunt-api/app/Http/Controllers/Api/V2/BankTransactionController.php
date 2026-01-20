@@ -117,4 +117,126 @@ class BankTransactionController extends Controller
 
         return $this->sendSuccess($statistics, 'Transaction statistics retrieved successfully.');
     }
+
+    /**
+     * Create a new bank transaction
+     * POST /api/v2/finance/bank-transactions
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'bank_id' => 'required|exists:banks,id',
+            'type' => 'required|in:deposit,withdrawal,transfer_in,transfer_out',
+            'amount' => 'required|numeric|min:0.01',
+            'transaction_date' => 'required|date',
+            'description' => 'required|string',
+            'reference_number' => 'nullable|string',
+            'notes' => 'nullable|string',
+        ]);
+
+        // Find the bank and update balance (in real app, this should be wrapped in a transaction)
+        $bank = \App\Models\Bank::findOrFail($request->bank_id);
+
+        DB::beginTransaction();
+        try {
+            // Create transaction
+            $transaction = \App\Models\BankTransaction::create([
+                'bank_id' => $request->bank_id,
+                'type' => $request->type,
+                'amount' => $request->amount,
+                'transaction_date' => $request->transaction_date,
+                'description' => $request->description,
+                'reference_number' => $request->reference_number,
+                'notes' => $request->notes,
+                'balance_after' => 0, // Will be calculated
+                'created_by' => auth()->id(),
+            ]);
+
+            // Update bank balance based on transaction type
+            if ($request->type === 'deposit' || $request->type === 'transfer_in') {
+                $bank->current_balance += $request->amount;
+            } elseif ($request->type === 'withdrawal' || $request->type === 'transfer_out') {
+                $bank->current_balance -= $request->amount;
+            }
+
+            // Update balance_after in transaction
+            $transaction->balance_after = $bank->current_balance;
+            $transaction->save();
+            $bank->save();
+
+            DB::commit();
+            return $this->sendSuccess($transaction->load('bank'), 'Transaction created successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Transaction failed', ['error' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Update a bank transaction
+     * PUT/PATCH /api/v2/finance/bank-transactions/{id}
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'transaction_date' => 'sometimes|date',
+            'description' => 'sometimes|string',
+            'reference_number' => 'sometimes|nullable|string',
+            'notes' => 'sometimes|nullable|string',
+        ]);
+
+        $transaction = \App\Models\BankTransaction::findOrFail($id);
+
+        // Prevent modification if journal entry exists
+        if ($transaction->journal_entry_id) {
+            return $this->sendError('Cannot update transaction that has been posted to ledger.');
+        }
+
+        // Only update non-financial fields (amount, type, bank_id cannot be changed)
+        $transaction->update($request->only([
+            'transaction_date',
+            'description',
+            'reference_number',
+            'notes',
+        ]));
+
+        return $this->sendSuccess($transaction->load('bank'), 'Transaction updated successfully.');
+    }
+
+    /**
+     * Delete a bank transaction
+     * DELETE /api/v2/finance/bank-transactions/{id}
+     */
+    public function destroy($id)
+    {
+        $transaction = \App\Models\BankTransaction::findOrFail($id);
+
+        // Prevent deletion if journal entry exists
+        if ($transaction->journal_entry_id) {
+            return $this->sendError('Cannot delete transaction that has been posted to ledger.');
+        }
+
+        // Reverse the effect on bank balance (wrap in transaction in real app)
+        $bank = $transaction->bank;
+
+        DB::beginTransaction();
+        try {
+            // Reverse balance change
+            if ($transaction->type === 'deposit' || $transaction->type === 'transfer_in') {
+                $bank->current_balance -= $transaction->amount;
+            } elseif ($transaction->type === 'withdrawal' || $transaction->type === 'transfer_out') {
+                $bank->current_balance += $transaction->amount;
+            }
+
+            // Delete transaction
+            $transaction->delete();
+            $bank->save();
+
+            DB::commit();
+            return $this->sendSuccess(null, 'Transaction deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Delete failed', ['error' => $e->getMessage()]);
+        }
+    }
 }

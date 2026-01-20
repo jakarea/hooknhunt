@@ -28,7 +28,9 @@ import {
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { Link } from 'react-router-dom'
+import { usePermissions } from '@/hooks/usePermissions'
 import { useTranslation } from 'react-i18next'
+import { modals } from '@mantine/modals'
 
 interface ExpenseAccount {
   id: number
@@ -200,6 +202,20 @@ const mockExpenses: Expense[] = [
 
 export default function ExpensesPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance expenses view permission
+  if (!hasPermission('finance_expenses_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Expenses.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAccount, setSelectedAccount] = useState<string | null>(null)
   const [selectedStatus, setSelectedStatus] = useState<ExpenseStatus>('all')
@@ -306,11 +322,36 @@ export default function ExpensesPage() {
   }
 
   // Handle delete
-  const handleDelete = (expenseId: number) => {
-    notifications.show({
-      title: t('finance.banksPage.expensesPage.notification.delete'),
-      message: t('finance.banksPage.expensesPage.notification.deleteMessage', { id: expenseId }),
-      color: 'red',
+  const handleDelete = (expenseId: number, expenseTitle: string) => {
+    modals.openConfirmModal({
+      title: t('finance.banksPage.expensesPage.deleteConfirm.title'),
+      children: (
+        <Text size="sm">
+          {t('finance.banksPage.expensesPage.deleteConfirm.message')}{' '}
+          <Text span fw={600} c="blue">
+            "{expenseTitle}"
+          </Text>
+          ?
+        </Text>
+      ),
+      labels: {
+        confirm: t('finance.banksPage.expensesPage.deleteConfirm.confirm'),
+        cancel: t('finance.banksPage.expensesPage.deleteConfirm.cancel'),
+      },
+      confirmProps: { color: 'red' },
+      onCancel: () => {
+        // User cancelled - do nothing
+      },
+      onConfirm: () => {
+        // Show success notification after confirmation
+        notifications.show({
+          title: t('finance.banksPage.expensesPage.notification.deleteSuccess'),
+          message: t('finance.banksPage.expensesPage.notification.deleteSuccessMessage', {
+            title: expenseTitle,
+          }),
+          color: 'green',
+        })
+      },
     })
   }
 
@@ -546,7 +587,7 @@ export default function ExpensesPage() {
                             size="sm"
                             color="red"
                             variant="light"
-                            onClick={() => handleDelete(expense.id)}
+                            onClick={() => handleDelete(expense.id, expense.title)}
                             title={t('finance.banksPage.expensesPage.actions.delete')}
                           >
                             <IconTrash size={14} />
@@ -634,7 +675,7 @@ export default function ExpensesPage() {
                     size="sm"
                     color="red"
                     variant="light"
-                    onClick={() => handleDelete(expense.id)}
+                    onClick={() => handleDelete(expense.id, expense.title)}
                   >
                     <IconTrash size={14} />
                   </ActionIcon>

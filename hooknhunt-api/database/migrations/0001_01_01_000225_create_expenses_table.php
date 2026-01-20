@@ -13,9 +13,11 @@ return new class extends Migration
             $table->string('title');
             $table->decimal('amount', 12, 2);
             $table->date('expense_date');
+            $table->string('reference_number')->nullable();
             $table->foreignId('account_id')->constrained('chart_of_accounts');
             $table->foreignId('paid_by')->constrained('users');
             $table->string('attachment')->nullable();
+            $table->text('notes')->nullable();
             $table->boolean('is_approved')->default(false);
             $table->timestamps();
         });

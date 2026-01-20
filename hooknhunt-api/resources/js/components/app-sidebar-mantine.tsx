@@ -18,7 +18,6 @@ import {
   NavLink,
   Text,
   Group,
-  Avatar,
   rem,
   Drawer,
   ActionIcon,
@@ -60,11 +59,6 @@ export function AppSidebarMantine({
   }
 
   const data = React.useMemo(() => ({
-    user: {
-      name: user?.name || "Admin",
-      email: user?.email || "admin@hooknhunt.com",
-      avatar: "/avatars/default.jpg",
-    },
     navItems: [
       {
         label: t("nav.main"),
@@ -589,17 +583,18 @@ export function AppSidebarMantine({
     <>
       {/* Header */}
       <Box
-        p="md"
+        px="md"
+        pt="md"
+        pb="xs"
         ml="calc(var(--mantine-spacing-md) * -1)"
         mr="calc(var(--mantine-spacing-md) * -1)"
         mt="calc(var(--mantine-spacing-md) * -1)"
-        style={{ borderBottom: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))' }}
       >
         <Group justify="space-between">
           <Link to="/dashboard" style={{ textDecoration: 'none' }}>
             <Group gap="xs">
-              <IconInnerShadowTop size={24} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text fw={700} size="lg" c="light-dark(var(--mantine-color-dark-0), var(--mantine-color-dark-0))">
+              <IconInnerShadowTop size={28} className="text-red-600" />
+              <Text fw={800} size="xl" c="light-dark(var(--mantine-color-dark-0), var(--mantine-color-dark-0))">
                 {t("common.appName")}
               </Text>
             </Group>
@@ -612,23 +607,40 @@ export function AppSidebarMantine({
         </Group>
       </Box>
 
+      {/* Search */}
+      <Box
+        px="md"
+        pb="md"
+        ml="calc(var(--mantine-spacing-md) * -1)"
+        mr="calc(var(--mantine-spacing-md) * -1)"
+      >
+        <TextInput
+          placeholder={t('common.searchPlaceholder')}
+          leftSection={<IconSearch size={16} />}
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.currentTarget.value)}
+          radius="md"
+        />
+      </Box>
+
       {/* Navigation Links */}
       <ScrollArea
         style={{ flex: 1, marginLeft: 'calc(var(--mantine-spacing-md) * -1)', marginRight: 'calc(var(--mantine-spacing-md) * -1)' }}
       >
-        <Box p="md">
+        <Box px="md" pb="md">
           {filteredNavItems.map((section, sectionIndex) => (
-            <Box key={sectionIndex} mb="xl">
+            <Box key={sectionIndex} mb="lg">
               {section.label && (
                 <Text
                   size="xs"
                   fw={700}
                   c="dimmed"
                   mb="xs"
+                  mt="md"
                   style={{
                     paddingLeft: 'var(--mantine-spacing-md)',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
+                    letterSpacing: '0.1em',
                   }}
                 >
                 {section.label}
@@ -639,40 +651,6 @@ export function AppSidebarMantine({
           ))}
         </Box>
       </ScrollArea>
-
-      {/* Footer - Search & User */}
-      <Box
-        ml="calc(var(--mantine-spacing-md) * -1)"
-        mr="calc(var(--mantine-spacing-md) * -1)"
-        style={{ borderTop: '1px solid light-dark(var(--mantine-color-gray-3), var(--mantine-color-dark-4))' }}
-      >
-        {/* Search */}
-        <Box px={{ base: 'md', md: 'md' }} pt={{ base: 'sm', md: 'md' }} pb="xs">
-          <TextInput
-            placeholder={t('common.searchPlaceholder')}
-            leftSection={<IconSearch size={16} />}
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.currentTarget.value)}
-          />
-        </Box>
-
-        {/* User Profile */}
-        <Box p="md" pt="xs">
-          <Group>
-            <Avatar src={data.user.avatar} radius="xl" color="red" alt={data.user.name}>
-              {data.user.name.charAt(0).toUpperCase()}
-            </Avatar>
-            <Box style={{ flex: 1 }}>
-              <Text size="sm" fw={500} c="light-dark(var(--mantine-color-dark-9), var(--mantine-color-dark-0))">
-                {data.user.name}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {data.user.email}
-              </Text>
-            </Box>
-          </Group>
-        </Box>
-      </Box>
     </>
   )
 

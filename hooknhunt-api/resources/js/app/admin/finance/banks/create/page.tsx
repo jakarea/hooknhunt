@@ -1,5 +1,3 @@
-'use client'
-
 import { useState } from 'react'
 import {
   Box,
@@ -15,6 +13,7 @@ import {
   Button,
   Paper,
   Alert,
+  LoadingOverlay,
 } from '@mantine/core'
 import {
   IconArrowLeft,
@@ -26,6 +25,8 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
+import { createBank } from '@/utils/api'
+import { usePermissions } from '@/hooks/usePermissions'
 
 const getAccountTypes = (t: (key: string) => string) => [
   { value: 'cash', label: t('finance.banksPage.createPage.accountTypes.cash') },
@@ -38,12 +39,33 @@ const getAccountTypes = (t: (key: string) => string) => [
 
 export default function CreateBankPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
   const navigate = useNavigate()
+
+  // Permission check - user needs finance banks create permission
+  if (!hasPermission('finance_banks_create')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to create Bank Accounts.</Text>
+          <Button
+            component={Link}
+            to="/finance"
+            leftSection={<IconArrowLeft size={16} />}
+            mt="md"
+          >
+            Back to Finance
+          </Button>
+        </Paper>
+      </Stack>
+    )
+  }
   const [formData, setFormData] = useState({
     name: '',
     type: '',
-    account_number: '',
-    account_holder: '',
+    accountNumber: '',
+    accountName: '',
     branch: '',
     initial_balance: '',
     phone: '',
@@ -91,7 +113,7 @@ export default function CreateBankPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
@@ -105,16 +127,53 @@ export default function CreateBankPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      // Call the real API
+      await createBank({
+        name: formData.name,
+        type: formData.type as any,
+        accountNumber: formData.account_number || null,
+        accountName: formData.account_name || null,
+        branch: formData.branch || null,
+        initial_balance: formData.initial_balance ? parseFloat(formData.initial_balance) : null,
+        phone: formData.phone || null,
+        notes: formData.notes || null,
+      })
+
       notifications.show({
         title: t('finance.banksPage.createPage.notification.success'),
         message: t('finance.banksPage.createPage.notification.successMessage', { name: formData.name }),
         color: 'green',
       })
+
+      // Navigate back to banks list after successful creation
       navigate('/finance/banks')
-    }, 1000)
+    } catch (err: any) {
+      console.error('Error creating bank:', err)
+
+      // Handle validation errors from API
+      if (err.response?.data?.errors) {
+        const apiErrors: Record<string, string> = {}
+        Object.keys(err.response.data.errors).forEach((key) => {
+          apiErrors[key] = err.response.data.errors[key][0]
+        })
+        setErrors(apiErrors)
+
+        notifications.show({
+          title: t('finance.banksPage.createPage.notification.validationError'),
+          message: t('finance.banksPage.createPage.notification.validationErrorMessage'),
+          color: 'red',
+        })
+      } else {
+        notifications.show({
+          title: 'Error',
+          message: err.response?.data?.message || err.message || 'Failed to create bank account',
+          color: 'red',
+        })
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const getIconForType = (type: string) => {
@@ -130,7 +189,8 @@ export default function CreateBankPage() {
   }
 
   return (
-    <Box p={{ base: 'md', md: 'xl' }}>
+    <Box p={{ base: 'md', md: 'xl' }} pos="relative">
+      {isSubmitting && <LoadingOverlay visible={isSubmitting} />}
       <Stack>
         {/* Header */}
         <Box>
@@ -144,6 +204,7 @@ export default function CreateBankPage() {
               to="/finance/banks"
               leftSection={<IconArrowLeft size={16} />}
               variant="light"
+              disabled={isSubmitting}
             >
               {t('finance.banksPage.createPage.backToBanks')}
             </Button>
@@ -168,6 +229,7 @@ export default function CreateBankPage() {
                 onChange={(e) => handleChange('name', e.currentTarget.value)}
                 error={errors.name}
                 leftSection={<IconBuildingBank size={16} />}
+                disabled={isSubmitting}
               />
 
               {/* Account Type */}
@@ -180,6 +242,7 @@ export default function CreateBankPage() {
                 onChange={(value) => handleChange('type', value || '')}
                 error={errors.type}
                 searchable
+                disabled={isSubmitting}
               />
 
               {/* Account Number */}
@@ -191,15 +254,17 @@ export default function CreateBankPage() {
                 onChange={(e) => handleChange('account_number', e.currentTarget.value)}
                 error={errors.account_number}
                 leftSection={<IconDeviceFloppy size={16} />}
+                disabled={isSubmitting}
               />
 
               {/* Account Holder Name */}
               <TextInput
                 label={t('finance.banksPage.createPage.accountHolder')}
                 placeholder={t('finance.banksPage.createPage.accountHolderPlaceholder')}
-                value={formData.account_holder}
-                onChange={(e) => handleChange('account_holder', e.currentTarget.value)}
+                value={formData.account_name}
+                onChange={(e) => handleChange('account_name', e.currentTarget.value)}
                 description={t('finance.banksPage.createPage.accountHolderDescription')}
+                disabled={isSubmitting}
               />
 
               {/* Branch */}
@@ -209,6 +274,7 @@ export default function CreateBankPage() {
                 value={formData.branch}
                 onChange={(e) => handleChange('branch', e.currentTarget.value)}
                 description={t('finance.banksPage.createPage.branchDescription')}
+                disabled={isSubmitting}
               />
 
               {/* Initial Balance */}
@@ -224,6 +290,7 @@ export default function CreateBankPage() {
                 thousandSeparator=","
                 prefix="৳"
                 hideControls
+                disabled={isSubmitting}
               />
 
               {/* Phone Number */}
@@ -235,6 +302,7 @@ export default function CreateBankPage() {
                 onChange={(e) => handleChange('phone', e.currentTarget.value)}
                 error={errors.phone}
                 leftSection={<Text size="sm">+88</Text>}
+                disabled={isSubmitting}
               />
 
               {/* Notes */}
@@ -246,6 +314,7 @@ export default function CreateBankPage() {
                 onChange={(e) => handleChange('notes', e.currentTarget.value)}
                 minRows={3}
                 maxRows={6}
+                disabled={isSubmitting}
               />
             </Stack>
 

@@ -18,6 +18,7 @@ import {
   SimpleGrid,
   NumberFormatter,
 } from '@mantine/core'
+import { usePermissions } from '@/hooks/usePermissions'
 import {
   IconSearch,
   IconRefresh,
@@ -186,6 +187,20 @@ const mockTransactions: BankTransaction[] = [
 
 export default function TransactionsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance transactions view permission
+  if (!hasPermission('finance_transactions_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Transactions.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<TransactionType>('all')
@@ -418,7 +433,7 @@ export default function TransactionsPage() {
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowUp size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
+              <IconArrowUp size={20} className="text-green-600" />
               <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.totalInflow')}</Text>
             </Group>
             <Text size="xl" fw={700}>
@@ -428,7 +443,7 @@ export default function TransactionsPage() {
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowDown size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
+              <IconArrowDown size={20} className="text-red-600" />
               <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.totalOutflow')}</Text>
             </Group>
             <Text size="xl" fw={700}>
@@ -438,7 +453,7 @@ export default function TransactionsPage() {
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowsExchange size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+              <IconArrowsExchange size={20} className="text-blue-600" />
               <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.netFlow')}</Text>
             </Group>
             <Text
@@ -452,7 +467,7 @@ export default function TransactionsPage() {
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconRefresh size={20} style={{ color: 'var(--mantine-color-purple-filled)' }} />
+              <IconRefresh size={20} className="text-purple-600" />
               <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.transactionsCount')}</Text>
             </Group>
             <Text size="xl" fw={700}>{statistics.transaction_count}</Text>

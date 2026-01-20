@@ -24,6 +24,7 @@ import {
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
 import { DateInput } from '@mantine/dates'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface CashFlowItem {
   id: number
@@ -64,6 +65,20 @@ const mockBankTransactions: CashFlowItem[] = [
 
 export default function CashFlowPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports cash flow permission
+  if (!hasPermission('finance_reports_cash_flow')) {
+    return (
+      <Stack p="xl">
+        <Card withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Cash Flow Report.</Text>
+        </Card>
+      </Stack>
+    )
+  }
+
   const [startDate, setStartDate] = useState<Date | null>(new Date('2024-01-01'))
   const [endDate, setEndDate] = useState<Date | null>(new Date('2024-12-31'))
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['operating', 'bank', 'position']))

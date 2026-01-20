@@ -24,6 +24,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 // Mock existing accounts for validation
 const mockExistingCodes = [
@@ -60,7 +61,29 @@ const generateNextCode = (type: string, existingCodes: string[]): string => {
 
 export default function CreateAccountPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
   const navigate = useNavigate()
+
+  // Permission check - user needs finance accounts create permission
+  if (!hasPermission('finance_accounts_create')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to create Chart of Accounts.</Text>
+          <Button
+            component={Link}
+            to="/finance"
+            leftSection={<IconArrowLeft size={16} />}
+            mt="md"
+          >
+            Back to Finance
+          </Button>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',

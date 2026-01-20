@@ -187,13 +187,16 @@ Route::group([
 
     // --- Module: FINANCE ---
     Route::group(['prefix' => 'finance'], function () {
+        // Finance Dashboard
+        Route::get('dashboard', 'FinanceController@dashboard');
+
         // Chart of Accounts
         Route::apiResource('accounts', 'AccountController');
         Route::get('accounts/summary', 'AccountController@balanceSummary');
 
         // Bank Accounts
-        Route::apiResource('banks', 'BankController');
         Route::get('banks/summary', 'BankController@summary');
+        Route::apiResource('banks', 'BankController');
         Route::get('banks/{id}/transactions', 'BankController@transactions');
         Route::post('banks/{id}/deposit', 'BankController@deposit');
         Route::post('banks/{id}/withdraw', 'BankController@withdraw');

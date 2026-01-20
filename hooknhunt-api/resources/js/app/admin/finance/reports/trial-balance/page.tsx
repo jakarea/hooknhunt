@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface Account {
   id: number
@@ -91,6 +92,20 @@ const mockAccounts: Account[] = [
 
 export default function TrialBalancePage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports trial balance permission
+  if (!hasPermission('finance_reports_trial_balance')) {
+    return (
+      <Stack p="xl">
+        <Card withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Trial Balance Report.</Text>
+        </Card>
+      </Stack>
+    )
+  }
+
   const [asOfDate, setAsOfDate] = useState<Date | null>(new Date())
   const [activeTab, setActiveTab] = useState<AccountType>('all')
 

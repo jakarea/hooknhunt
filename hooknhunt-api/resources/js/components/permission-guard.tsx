@@ -21,7 +21,6 @@
 
 import { type ReactNode } from 'react'
 import { usePermissions } from '@/hooks/usePermissions'
-import { PERMISSION_CONFIG } from '@/config/permissions'
 
 interface PermissionGuardProps {
   children: ReactNode
@@ -120,11 +119,12 @@ export function SelfProfileGuard({
 /**
  * HELPER COMPONENTS FOR COMMON PERMISSIONS
  * These make your code more readable
+ * All permissions come from database dynamically using permission `key` field
  */
 
 export function CanCreateEmployee({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <PermissionGuard permission={PERMISSION_CONFIG.employees.create} fallback={fallback}>
+    <PermissionGuard permission="hrm_employees_create" fallback={fallback}>
       {children}
     </PermissionGuard>
   )
@@ -132,7 +132,7 @@ export function CanCreateEmployee({ children, fallback }: { children: ReactNode;
 
 export function CanEditEmployee({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <PermissionGuard permission={PERMISSION_CONFIG.employees.edit} fallback={fallback}>
+    <PermissionGuard permission="hrm_employees_edit" fallback={fallback}>
       {children}
     </PermissionGuard>
   )
@@ -140,7 +140,7 @@ export function CanEditEmployee({ children, fallback }: { children: ReactNode; f
 
 export function CanDeleteEmployee({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <PermissionGuard permission={PERMISSION_CONFIG.employees.delete} fallback={fallback}>
+    <PermissionGuard permission="hrm_employees_delete" fallback={fallback}>
       {children}
     </PermissionGuard>
   )
@@ -148,7 +148,7 @@ export function CanDeleteEmployee({ children, fallback }: { children: ReactNode;
 
 export function CanManageRoles({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <PermissionGuard permission={PERMISSION_CONFIG.roles.index} fallback={fallback}>
+    <PermissionGuard permission="hrm_roles_index" fallback={fallback}>
       {children}
     </PermissionGuard>
   )
@@ -156,7 +156,7 @@ export function CanManageRoles({ children, fallback }: { children: ReactNode; fa
 
 export function CanViewPayroll({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   return (
-    <PermissionGuard permission={PERMISSION_CONFIG.payroll.index} fallback={fallback}>
+    <PermissionGuard permission="hrm_payroll_view" fallback={fallback}>
       {children}
     </PermissionGuard>
   )

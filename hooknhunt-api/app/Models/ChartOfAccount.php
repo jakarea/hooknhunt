@@ -9,7 +9,29 @@ class ChartOfAccount extends Model
 {
     use HasFactory;
 
-    protected $guarded = ['id'];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'name',
+        'code',
+        'type',
+        'is_active',
+        'description',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
 
     /**
      * Relationship: One Account has many Journal Entries (Ledger Lines)
@@ -25,5 +47,36 @@ class ChartOfAccount extends Model
     public function expenses()
     {
         return $this->hasMany(Expense::class, 'account_id');
+    }
+
+    /**
+     * Scope: Only active accounts
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: Filter by account type
+     */
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Get type label
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return match($this->type) {
+            'asset' => 'Asset',
+            'liability' => 'Liability',
+            'equity' => 'Equity',
+            'income' => 'Revenue',
+            'expense' => 'Expense',
+            default => 'Unknown',
+        };
     }
 }

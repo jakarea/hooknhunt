@@ -23,6 +23,7 @@ import {
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface AccountItem {
   id: number
@@ -65,6 +66,20 @@ const mockOtherIncome: AccountItem[] = [
 
 export default function ProfitLossPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports profit loss permission
+  if (!hasPermission('finance_reports_profit_loss')) {
+    return (
+      <Stack p="xl">
+        <Card withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Profit & Loss Report.</Text>
+        </Card>
+      </Stack>
+    )
+  }
+
   const [startDate, setStartDate] = useState<Date | null>(new Date('2024-01-01'))
   const [endDate, setEndDate] = useState<Date | null>(new Date('2024-12-31'))
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['revenue', 'cogs', 'expenses']))
