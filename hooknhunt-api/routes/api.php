@@ -72,10 +72,18 @@ Route::group([
 
     // --- Module: MEDIA ASSETS ---
     Route::group(['prefix' => 'media'], function () {
+        // Folders
         Route::get('folders', 'MediaController@getFolders');
         Route::post('folders', 'MediaController@createFolder');
+        Route::put('folders/{id}', 'MediaController@updateFolder');
+        Route::delete('folders/{id}', 'MediaController@deleteFolder');
+
+        // Files
         Route::get('files', 'MediaController@getFiles');
+        Route::get('files/{id}', 'MediaController@getFile');
+        Route::put('files/{id}', 'MediaController@updateFile');
         Route::post('upload', 'MediaController@upload');
+        Route::post('files/bulk-move', 'MediaController@bulkMoveFiles');
         Route::delete('files/bulk-delete', 'MediaController@bulkDelete');
     });
 

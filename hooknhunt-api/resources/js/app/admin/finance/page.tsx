@@ -178,9 +178,9 @@ export default function FinanceDashboardPage() {
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconWallet size={24} color="green" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalCash')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalCash')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="green">
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
             {formatCurrency(mockSummary.by_type.cash.total_balance)}
           </Text>
         </Card>
@@ -188,9 +188,9 @@ export default function FinanceDashboardPage() {
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconBuildingBank size={24} color="blue" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBankBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBankBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="blue">
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
             {formatCurrency(mockSummary.by_type.bank.total_balance)}
           </Text>
         </Card>
@@ -198,9 +198,9 @@ export default function FinanceDashboardPage() {
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconMoneybag size={24} color="purple" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.bkashBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.bkashBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="purple">
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="purple">
             {formatCurrency(mockSummary.by_type.bkash.total_balance)}
           </Text>
         </Card>
@@ -208,9 +208,9 @@ export default function FinanceDashboardPage() {
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconCoin size={24} color="orange" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="orange">
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">
             {formatCurrency(mockSummary.total_balance)}
           </Text>
         </Card>
@@ -272,12 +272,12 @@ export default function FinanceDashboardPage() {
             <Group gap="xs" mb="sm">
               <Group gap="xs">
                 <IconTrendingUp size={20} color="green" />
-                <Text size="sm" c="dimmed">{t('finance.dashboardPage.totalRevenue')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.totalRevenue')}</Text>
               </Group>
               <Text size="xxl" fw={700} c="green">
                 ৳5,25,000.00
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text className="text-xs md:text-sm" c="dimmed">
                 +15.3% {t('finance.dashboardPage.fromLastMonth')}
               </Text>
             </Group>
@@ -285,16 +285,16 @@ export default function FinanceDashboardPage() {
             {/* Revenue Breakdown */}
             <Stack gap={4} mt="sm">
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.salesRevenue')}</Text>
-                <Text size="xs" fw={500}>৳3,50,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.salesRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳3,50,000</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.wholesaleRevenue')}</Text>
-                <Text size="xs" fw={500}>৳1,50,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.wholesaleRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳1,50,000</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.darazRevenue')}</Text>
-                <Text size="xs" fw={500}>৳250,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.darazRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳250,000</Text>
               </Group>
             </Stack>
           </Card>
@@ -304,12 +304,12 @@ export default function FinanceDashboardPage() {
             <Group gap="xs" mb="sm">
               <Group gap="xs">
                 <IconTrendingDown size={20} color="red" />
-                <Text size="sm" c="dimmed">{t('finance.dashboardPage.totalExpenses')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.totalExpenses')}</Text>
               </Group>
               <Text size="xxl" fw={700} c="red">
                 ৳3,80,000.00
               </Text>
-              <Text size="xs" c="dimmed">
+              <Text className="text-xs md:text-sm" c="dimmed">
                 +8.2% {t('finance.dashboardPage.fromLastMonth')}
               </Text>
             </Group>
@@ -317,20 +317,20 @@ export default function FinanceDashboardPage() {
             {/* Expenses Breakdown */}
             <Stack gap={4} mt="sm">
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.costOfGoodsSold')}</Text>
-                <Text size="xs" fw={500}>৳1,80,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.costOfGoodsSold')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳1,80,000</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.operationalExpenses')}</Text>
-                <Text size="xs" fw={500}>৳950,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.operationalExpenses')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳950,000</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.administrative')}</Text>
-                <Text size="xs" fw={500}>৳250,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.administrative')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳250,000</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.financeCharges')}</Text>
-                <Text size="xs" fw={500}>৳800,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.financeCharges')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>৳800,000</Text>
               </Group>
             </Stack>
           </Card>
@@ -341,11 +341,11 @@ export default function FinanceDashboardPage() {
           <Group justify="space-between">
             <Group gap="xs">
               <IconCoin size={20} color="gray" />
-              <Text size="sm" c="dimmed">{t('finance.dashboardPage.netProfit')} (January)</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.netProfit')} (January)</Text>
             </Group>
             <Badge
               color="green"
-              size="lg"
+              className="text-lg md:text-xl lg:text-2xl"
               variant="filled"
             >
               {t('finance.dashboardPage.profit')}: ৳1,45,000.00
@@ -362,7 +362,7 @@ export default function FinanceDashboardPage() {
             component={Link}
             to="/finance/transactions"
             variant="subtle"
-            size="xs"
+            className="text-xs md:text-sm"
             rightSection={<IconArrowRight size={14} />}
           >
             {t('finance.dashboardPage.viewAll')}
@@ -412,7 +412,7 @@ export default function FinanceDashboardPage() {
         <Paper withBorder p="md" shadow="sm" mt="md">
           <Group justify="space-between" mb="xs">
             <Text fw={600}>{t('finance.dashboardPage.pendingExpenses')}</Text>
-            <Badge size="xs">{mockPendingExpenses.length} {t('finance.dashboardPage.pending')}</Badge>
+            <Badge className="text-xs md:text-sm">{mockPendingExpenses.length} {t('finance.dashboardPage.pending')}</Badge>
           </Group>
 
           <Table striped highlightOnHover>
@@ -436,7 +436,7 @@ export default function FinanceDashboardPage() {
                   <Table.Td>{expense.paid_by.name}</Table.Td>
                   <Table.Td>
                     <Button
-                      size="xs"
+                      className="text-xs md:text-sm"
                       variant="light"
                       component={Link}
                       to={`/finance/expenses/${expense.id}/approve`}
@@ -457,8 +457,8 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconDashboard size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
-              <Text size="xl" fw={700} className="font-mono">
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl font-mono" fw={700}>
                 {formatCurrency(mockSummary.total_balance)}
               </Text>
             </div>
@@ -469,8 +469,8 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconCoin size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.activeBankAccounts')}</Text>
-              <Text size="xl" fw={700}>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.activeBankAccounts')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
                 {mockSummary.account_count} {t('finance.dashboardPage.accounts')}
               </Text>
             </div>
@@ -481,8 +481,8 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconRefresh size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalTransactions')}</Text>
-              <Text size="xl" fw={700}>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalTransactions')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
                 {mockTransactions.length} {t('finance.dashboardPage.records')}
               </Text>
             </div>

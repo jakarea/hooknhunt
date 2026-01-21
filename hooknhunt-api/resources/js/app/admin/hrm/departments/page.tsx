@@ -186,7 +186,7 @@ export default function DepartmentsPage() {
       title: 'Delete Department',
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           Are you sure you want to delete <strong>{department.name}</strong>?
           {department.employees_count > 0 && (
             <Text c="red" mt="xs" display="block">
@@ -242,7 +242,7 @@ export default function DepartmentsPage() {
             <Group >
               <ActionIcon
                 variant="light"
-                size="lg"
+                className="text-lg md:text-xl lg:text-2xl"
                 onClick={handleRefresh}
                 loading={loading}
               >
@@ -263,28 +263,28 @@ export default function DepartmentsPage() {
         {/* Stats */}
         <Stack  display={{ base: 'none', md: 'flex' }}>
           <Group >
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconBuilding size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                <Text size="xs" c="dimmed">Total Departments</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Total Departments</Text>
               </Group>
-              <Text size="xl" fw={700}>{totalDepartments}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalDepartments}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconBuilding size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-                <Text size="xs" c="dimmed">Active</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Active</Text>
               </Group>
-              <Text size="xl" fw={700}>{activeDepartments}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{activeDepartments}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconUsers size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-                <Text size="xs" c="dimmed">Total Employees</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Total Employees</Text>
               </Group>
-              <Text size="xl" fw={700}>{totalEmployees}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalEmployees}</Text>
             </Card>
           </Group>
         </Stack>
@@ -297,7 +297,7 @@ export default function DepartmentsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
             style={{ flex: 1, maxWidth: '400px' }}
-            size="md"
+            className="text-base md:text-lg"
           />
         </Group>
 
@@ -331,11 +331,11 @@ export default function DepartmentsPage() {
                     <Table.Td>
                       <Group >
                         <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                        <Text fw={500} size="sm">{department.name}</Text>
+                        <Text fw={500} className="text-sm md:text-base">{department.name}</Text>
                       </Group>
                     </Table.Td>
                     <Table.Td>
-                      <Badge size="sm" variant="light" leftSection={<IconUsers size={14} />}>
+                      <Badge className="text-sm md:text-base" variant="light" leftSection={<IconUsers size={14} />}>
                         {department.employees_count}
                       </Badge>
                     </Table.Td>
@@ -343,13 +343,13 @@ export default function DepartmentsPage() {
                       <Badge
                         color={department.is_active ? 'green' : 'gray'}
                         variant="light"
-                        size="sm"
+                        className="text-sm md:text-base"
                       >
                         {department.is_active ? 'Active' : 'Inactive'}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">
+                      <Text className="text-sm md:text-base">
                         {new Date(department.created_at).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -363,7 +363,7 @@ export default function DepartmentsPage() {
                           <ActionIcon
                             variant="subtle"
                             color="gray"
-                            size="sm"
+                            className="text-sm md:text-base"
                             onClick={() => openEditModal(department)}
                           >
                             <IconPencil size={16} />
@@ -373,7 +373,7 @@ export default function DepartmentsPage() {
                           <ActionIcon
                             variant="subtle"
                             color="red"
-                            size="sm"
+                            className="text-sm md:text-base"
                             onClick={() => openDeleteModal(department)}
                             disabled={department.employees_count > 0}
                           >
@@ -404,12 +404,12 @@ export default function DepartmentsPage() {
                 <Group justify="space-between" mb="xs">
                   <Group >
                     <IconBuilding size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                    <Text fw={600} size="sm">{department.name}</Text>
+                    <Text fw={600} className="text-sm md:text-base">{department.name}</Text>
                   </Group>
                   <Badge
                     color={department.is_active ? 'green' : 'gray'}
                     variant="light"
-                    size="sm"
+                    className="text-sm md:text-base"
                   >
                     {department.is_active ? 'Active' : 'Inactive'}
                   </Badge>
@@ -418,10 +418,10 @@ export default function DepartmentsPage() {
                 <Group  mt="xs">
                   <Group >
                     <IconUsers size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                    <Text size="xs">{department.employees_count} employee{department.employees_count !== 1 ? 's' : ''}</Text>
+                    <Text className="text-xs md:text-sm">{department.employees_count} employee{department.employees_count !== 1 ? 's' : ''}</Text>
                   </Group>
                   <Group >
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       Created {new Date(department.created_at).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -435,10 +435,9 @@ export default function DepartmentsPage() {
                   {hasPermission('hrm.department.edit') && (
                     <Button
                       variant="light"
-                      size="xs"
+                      className="text-xs md:text-sm flex-1"
                       onClick={() => openEditModal(department)}
                       leftSection={<IconPencil size={14} />}
-                      style={{ flex: 1 }}
                     >
                       Edit
                     </Button>
@@ -447,7 +446,7 @@ export default function DepartmentsPage() {
                     <ActionIcon
                       variant="subtle"
                       color="red"
-                      size="sm"
+                      className="text-sm md:text-base"
                       onClick={() => openDeleteModal(department)}
                       disabled={department.employees_count > 0}
                     >
@@ -470,12 +469,12 @@ export default function DepartmentsPage() {
       >
         <Stack >
           <Stack >
-            <Text size="sm" fw={500}>Department Name *</Text>
+            <Text className="text-sm md:text-base" fw={500}>Department Name *</Text>
             <TextInput
               placeholder="Enter department name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.currentTarget.value })}
-              size="md"
+              className="text-base md:text-lg"
               autoFocus
               required
             />
@@ -487,7 +486,7 @@ export default function DepartmentsPage() {
               checked={formData.is_active}
               onChange={(e) => setFormData({ ...formData, is_active: e.currentTarget.checked })}
             />
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {formData.is_active ? 'Department is active' : 'Department is inactive'}
             </Text>
           </Group>

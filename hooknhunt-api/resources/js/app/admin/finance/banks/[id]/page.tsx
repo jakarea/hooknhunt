@@ -395,7 +395,7 @@ export default function BankDetailsPage() {
             component={Link}
             to="/finance/banks"
             variant="light"
-            size="lg"
+            className="text-lg md:text-xl lg:text-2xl"
           >
             <IconArrowLeft size={16} />
           </Button>
@@ -404,17 +404,17 @@ export default function BankDetailsPage() {
               <Title order={1}>{bank.name}</Title>
               <ActionIcon
                 variant="light"
-                size="lg"
+                className="text-lg md:text-xl lg:text-2xl"
                 onClick={fetchBankDetails}
               >
                 <IconRefresh size={16} />
               </ActionIcon>
             </Group>
             <Group gap="xs">
-              <Badge color={config.color} variant="light" size="lg">
+              <Badge color={config.color} variant="light" className="text-lg md:text-xl lg:text-2xl">
                 {config.label}
               </Badge>
-              <Badge color={bank.status === 'active' ? 'green' : 'gray'} variant="dot" size="lg">
+              <Badge color={bank.status === 'active' ? 'green' : 'gray'} variant="dot" className="text-lg md:text-xl lg:text-2xl">
                 {bank.status === 'active' ? 'Active' : 'Inactive'}
               </Badge>
             </Group>
@@ -443,32 +443,32 @@ export default function BankDetailsPage() {
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
         <Card withBorder p="md" shadow="sm">
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Current Balance</Text>
-            <Text size="xl" fw={700} c={config.color}>
+            <Text className="text-sm md:text-base" c="dimmed">Current Balance</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c={config.color}>
               {formatCurrency(bank.currentBalance || 0)}
             </Text>
           </Stack>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Total Deposits</Text>
-            <Text size="xl" fw={700} c="green">
+            <Text className="text-sm md:text-base" c="dimmed">Total Deposits</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               {formatCurrency(bank.totalDeposits || 0)}
             </Text>
           </Stack>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Total Withdrawals</Text>
-            <Text size="xl" fw={700} c="red">
+            <Text className="text-sm md:text-base" c="dimmed">Total Withdrawals</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
               {formatCurrency(bank.totalWithdrawals || 0)}
             </Text>
           </Stack>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Stack gap="xs">
-            <Text size="sm" c="dimmed">Net Flow</Text>
-            <Text size="xl" fw={700} c={(bank.netFlow || 0) >= 0 ? 'green' : 'red'}>
+            <Text className="text-sm md:text-base" c="dimmed">Net Flow</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c={(bank.netFlow || 0) >= 0 ? 'green' : 'red'}>
               {formatCurrency(bank.netFlow || 0)}
             </Text>
           </Stack>
@@ -480,37 +480,37 @@ export default function BankDetailsPage() {
         <SimpleGrid cols={{ base: 1, md: 2 }}>
           <Stack gap="md">
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Account Name</Text>
-              <Text size="sm" fw={500}>{bank.name}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">Account Name</Text>
+              <Text className="text-sm md:text-base" fw={500}>{bank.name}</Text>
             </Group>
             {bank.account_number && (
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Account Number</Text>
-                <Text size="sm" fw={500}>{bank.account_number}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">Account Number</Text>
+                <Text className="text-sm md:text-base" fw={500}>{bank.account_number}</Text>
               </Group>
             )}
             {bank.account_name && (
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Account Holder</Text>
-                <Text size="sm" fw={500}>{bank.account_name}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">Account Holder</Text>
+                <Text className="text-sm md:text-base" fw={500}>{bank.account_name}</Text>
               </Group>
             )}
           </Stack>
           <Stack gap="md">
             {bank.branch && (
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Branch</Text>
-                <Text size="sm" fw={500}>{bank.branch}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">Branch</Text>
+                <Text className="text-sm md:text-base" fw={500}>{bank.branch}</Text>
               </Group>
             )}
             {bank.phone && (
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Phone</Text>
-                <Text size="sm" fw={500}>{bank.phone}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">Phone</Text>
+                <Text className="text-sm md:text-base" fw={500}>{bank.phone}</Text>
               </Group>
             )}
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Status</Text>
+              <Text className="text-sm md:text-base" c="dimmed">Status</Text>
               <Badge color={bank.status === 'active' ? 'green' : 'gray'} variant="dot">
                 {bank.status === 'active' ? 'Active' : 'Inactive'}
               </Badge>
@@ -520,7 +520,7 @@ export default function BankDetailsPage() {
         {bank.notes && (
           <>
             <Title order={4} mt="md" mb="xs">Notes</Title>
-            <Text size="sm">{bank.notes}</Text>
+            <Text className="text-sm md:text-base">{bank.notes}</Text>
           </>
         )}
       </Paper>
@@ -531,7 +531,7 @@ export default function BankDetailsPage() {
           <Button
             variant="light"
             color="green"
-            size="md"
+            className="text-base md:text-lg"
             leftSection={<IconArrowDownLeft size={16} />}
             onClick={openDeposit}
           >
@@ -540,7 +540,7 @@ export default function BankDetailsPage() {
           <Button
             variant="light"
             color="red"
-            size="md"
+            className="text-base md:text-lg"
             leftSection={<IconArrowUpRight size={16} />}
             onClick={openWithdraw}
           >
@@ -549,7 +549,7 @@ export default function BankDetailsPage() {
           <Button
             variant="light"
             color="blue"
-            size="md"
+            className="text-base md:text-lg"
             leftSection={<IconArrowsExchange size={16} />}
             onClick={openTransfer}
           >
@@ -557,7 +557,7 @@ export default function BankDetailsPage() {
           </Button>
           <Button
             variant="light"
-            size="md"
+            className="text-base md:text-lg"
             leftSection={<IconEye size={16} />}
             component={Link}
             to="/finance/transactions"
@@ -572,7 +572,7 @@ export default function BankDetailsPage() {
           <Title order={3}>Recent Transactions</Title>
           <Button
             variant="light"
-            size="sm"
+            className="text-sm md:text-base"
             component={Link}
             to="/finance/transactions"
           >
@@ -662,7 +662,7 @@ export default function BankDetailsPage() {
             value={bank?.name || ''}
             disabled
           />
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             Available Balance: {bank ? formatCurrency(bank.currentBalance) : '৳0.00'}
           </Text>
           <NumberInput
@@ -688,7 +688,7 @@ export default function BankDetailsPage() {
             disabled={chartOfAccounts.length === 0}
           />
           {chartOfAccounts.length === 0 && (
-            <Text size="xs" c="orange">
+            <Text className="text-xs md:text-sm" c="orange">
               No expense accounts found. Please create expense accounts in the Chart of Accounts first.
             </Text>
           )}
@@ -713,7 +713,7 @@ export default function BankDetailsPage() {
             value={bank?.name || ''}
             disabled
           />
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             Available Balance: {bank ? formatCurrency(bank.currentBalance) : '৳0.00'}
           </Text>
           <Select

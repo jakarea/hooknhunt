@@ -258,7 +258,7 @@ export default function PayrollPage() {
             <Group >
               <ActionIcon
                 variant="light"
-                size="lg"
+                className="text-lg md:text-xl lg:text-2xl"
                 onClick={fetchPayroll}
                 loading={loading}
               >
@@ -281,30 +281,30 @@ export default function PayrollPage() {
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
-              <Text size="xs" c="dimmed">Total Records</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Records</Text>
             </Group>
-            <Text size="xl" fw={700}>{stats.totalRecords}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats.totalRecords}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
-              <Text size="xs" c="dimmed">Total Net Payable</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Net Payable</Text>
             </Group>
-            <Text size="xl" fw={700}>{formatCurrency(stats.totalNetPayable)}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{formatCurrency(stats.totalNetPayable)}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
-              <Text size="xs" c="dimmed">Paid</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Paid</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">{stats.paidCount}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">{stats.paidCount}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
-              <Text size="xs" c="dimmed">Pending</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Pending</Text>
             </Group>
-            <Text size="xl" fw={700} c="orange">{stats.pendingCount}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">{stats.pendingCount}</Text>
           </Card>
         </SimpleGrid>
 
@@ -316,7 +316,7 @@ export default function PayrollPage() {
               label="Month"
               value={monthYear}
               onChange={(e) => setMonthYear(e.target.value)}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
             <Select
               label="Status"
@@ -327,7 +327,7 @@ export default function PayrollPage() {
                 { value: 'generated', label: 'Generated' },
                 { value: 'paid', label: 'Paid' },
               ]}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
           </Group>
         </Card>
@@ -398,7 +398,7 @@ export default function PayrollPage() {
                               <>
                                 {hasPermission('hrm.payroll.edit') && (
                                   <ActionIcon
-                                    size="sm"
+                                    className="text-sm md:text-base"
                                     color="blue"
                                     onClick={() => openEditModal(record)}
                                     variant="subtle"
@@ -408,7 +408,7 @@ export default function PayrollPage() {
                                 )}
                                 {(hasPermission('hrm.payroll.pay') || hasPermission('hrm.payroll.approve')) && (
                                   <ActionIcon
-                                    size="sm"
+                                    className="text-sm md:text-base"
                                     color="green"
                                     onClick={() => openPayModal(record)}
                                     variant="subtle"
@@ -438,7 +438,7 @@ export default function PayrollPage() {
         >
           <Stack >
             <Alert color="blue">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 This will generate payroll records for all active employees for{' '}
                 <strong>{monthYear}</strong>. Make sure this hasn't been generated already.
               </Text>
@@ -464,10 +464,10 @@ export default function PayrollPage() {
           <Stack >
             {selectedPayroll && (
               <>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   <strong>Employee:</strong> {selectedPayroll.user?.name || 'Unknown'}
                 </Text>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   <strong>Basic Salary:</strong> {formatCurrency(selectedPayroll.basic_salary)}
                 </Text>
 
@@ -494,7 +494,7 @@ export default function PayrollPage() {
                 <Paper withBorder p="sm" bg="gray.0">
                   <Group justify="space-between">
                     <Text fw={500}>Net Payable:</Text>
-                    <Text fw={700} size="lg">
+                    <Text fw={700} className="text-lg md:text-xl lg:text-2xl">
                       {formatCurrency(calculatedNetPayable)}
                     </Text>
                   </Group>
@@ -522,7 +522,7 @@ export default function PayrollPage() {
             {selectedPayroll && (
               <>
                 <Alert color="green">
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     Process payment for <strong>{selectedPayroll.user?.name || 'Employee'}</strong>?
                   </Text>
                 </Alert>
@@ -530,15 +530,15 @@ export default function PayrollPage() {
                 <Paper withBorder p="md">
                   <Stack >
                     <Group justify="space-between">
-                      <Text size="sm">Employee:</Text>
+                      <Text className="text-sm md:text-base">Employee:</Text>
                       <Text fw={500}>{selectedPayroll.user?.name || 'Unknown'}</Text>
                     </Group>
                     <Group justify="space-between">
-                      <Text size="sm">Net Payable:</Text>
+                      <Text className="text-sm md:text-base">Net Payable:</Text>
                       <Text fw={700}>{formatCurrency(selectedPayroll.net_payable)}</Text>
                     </Group>
                     <Group justify="space-between">
-                      <Text size="sm">Month:</Text>
+                      <Text className="text-sm md:text-base">Month:</Text>
                       <Text>{selectedPayroll.month_year}</Text>
                     </Group>
                   </Stack>

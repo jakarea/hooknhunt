@@ -133,7 +133,7 @@ export default function RolesListPage() {
             <ActionIcon
               variant="light"
               color="blue"
-              size="md"
+              className="text-base md:text-lg"
               onClick={() => navigate(`/roles/${role.id}/edit`)}
             >
               <IconEdit size={16} />
@@ -144,7 +144,7 @@ export default function RolesListPage() {
             <ActionIcon
               variant="light"
               color="red"
-              size="md"
+              className="text-base md:text-lg"
               onClick={() => {
                 setSelectedRole(role)
                 setDeleteConfirmOpened(true)
@@ -185,16 +185,14 @@ export default function RolesListPage() {
             leftSection={<IconSearch size={16} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            className="w-full md:w-auto md:min-w-[300px]"
-            size="md"
+            className="w-full md:w-auto md:min-w-[300px] text-base md:text-lg"
           />
 
           {hasPermission('role.create') && (
             <Button
               leftSection={<IconPlus size={16} />}
               onClick={() => navigate('/roles/create')}
-              className="text-sm md:text-base"
-              size="md"
+              className="text-base md:text-lg"
             >
               <span className="hidden md:inline">Add Role</span>
               <span className="md:hidden">Add</span>
@@ -257,7 +255,7 @@ export default function RolesListPage() {
                             <ActionIcon
                               variant="subtle"
                               color="blue"
-                              size="sm"
+                              className="text-sm md:text-base"
                               onClick={() => navigate(`/roles/${role.id}/edit`)}
                             >
                               <IconEdit size={14} />
@@ -268,7 +266,7 @@ export default function RolesListPage() {
                             <ActionIcon
                               variant="subtle"
                               color="red"
-                              size="sm"
+                              className="text-sm md:text-base"
                               onClick={() => {
                                 setSelectedRole(role)
                                 setDeleteConfirmOpened(true)

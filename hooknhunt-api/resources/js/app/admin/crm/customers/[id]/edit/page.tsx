@@ -437,7 +437,7 @@ export default function EditCustomerPage() {
                   />
                 </Group>
               </Radio.Group>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 Customer type cannot be changed after creation.
               </Text>
             </Box>
@@ -487,7 +487,7 @@ export default function EditCustomerPage() {
                     error={fieldErrors.password}
                     rightSection={
                       <Button
-                        size="xs"
+                        className="text-xs md:text-sm"
                         variant="subtle"
                         onClick={generatePassword}
                         leftSection={<IconDeviceMobile size={14} />}
@@ -607,7 +607,7 @@ export default function EditCustomerPage() {
                   error={fieldErrors.tax_id}
                 />
               </SimpleGrid>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 These fields are optional for all customers. Required for wholesale business accounts.
               </Text>
             </Box>

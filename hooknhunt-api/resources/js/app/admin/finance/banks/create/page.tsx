@@ -215,7 +215,7 @@ export default function CreateBankPage() {
         <Paper withBorder p="xl" radius="md" shadow="sm" component="form" onSubmit={handleSubmit}>
           <Stack>
             <Alert variant="light" color="blue" title={t('finance.banksPage.createPage.accountInformation')} mb="md">
-              <Text size="sm">{t('finance.banksPage.createPage.description')}</Text>
+              <Text className="text-sm md:text-base">{t('finance.banksPage.createPage.description')}</Text>
             </Alert>
 
             <Stack gap="md">
@@ -301,7 +301,7 @@ export default function CreateBankPage() {
                 value={formData.phone}
                 onChange={(e) => handleChange('phone', e.currentTarget.value)}
                 error={errors.phone}
-                leftSection={<Text size="sm">+88</Text>}
+                leftSection={<Text className="text-sm md:text-base">+88</Text>}
                 disabled={isSubmitting}
               />
 
@@ -323,7 +323,7 @@ export default function CreateBankPage() {
               <Alert variant="light" color="grape">
                 <Group gap="sm">
                   {getIconForType(formData.type)}
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     <Text span fw={600}>{t('finance.banksPage.createPage.accountTypePreview')}:</Text> {formData.type.toUpperCase()}
                   </Text>
                 </Group>

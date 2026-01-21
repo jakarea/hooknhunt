@@ -308,7 +308,7 @@ export default function EditBankPage() {
         {/* Warning if account has transactions */}
         {hasTransactions && (
           <Alert variant="light" color="yellow" title="Account has transactions">
-            <Text size="sm">
+            <Text className="text-sm md:text-base">
               This account has existing transactions. Some fields may be restricted to maintain data integrity.
             </Text>
           </Alert>
@@ -318,7 +318,7 @@ export default function EditBankPage() {
         <Paper withBorder p="xl" radius="md" shadow="sm" component="form" onSubmit={handleSubmit}>
           <Stack>
             <Alert variant="light" color="blue" title="Account Information">
-              <Text size="sm">Edit the bank account details below. Fields marked with * are required.</Text>
+              <Text className="text-sm md:text-base">Edit the bank account details below. Fields marked with * are required.</Text>
             </Alert>
 
             <Stack gap="md">
@@ -389,7 +389,7 @@ export default function EditBankPage() {
                 value={formData.phone}
                 onChange={(e) => handleChange('phone', e.currentTarget.value)}
                 error={errors.phone}
-                leftSection={<Text size="sm">+88</Text>}
+                leftSection={<Text className="text-sm md:text-base">+88</Text>}
                 disabled={isSubmitting}
               />
 
@@ -424,7 +424,7 @@ export default function EditBankPage() {
               <Alert variant="light" color="grape">
                 <Group gap="sm">
                   {getIconForType(formData.type)}
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     <Text span fw={600}>Account Type:</Text> {formData.type.toUpperCase()}
                   </Text>
                 </Group>
@@ -436,10 +436,10 @@ export default function EditBankPage() {
               <Alert variant="light" color="blue">
                 <Stack gap="xs">
                   <Group justify="space-between">
-                    <Text size="sm">Current Balance:</Text>
-                    <Text size="sm" fw={600}>৳{(bank.currentBalance || 0).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+                    <Text className="text-sm md:text-base">Current Balance:</Text>
+                    <Text className="text-sm md:text-base" fw={600}>৳{(bank.currentBalance || 0).toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
                   </Group>
-                  <Text size="xs" c="dimmed">
+                  <Text className="text-xs md:text-sm" c="dimmed">
                     Balance cannot be edited directly. Use Deposit/Withdraw options to change the balance.
                   </Text>
                 </Stack>
@@ -448,7 +448,7 @@ export default function EditBankPage() {
 
             {/* Audit Info */}
             {bank && (bank.created_at || bank.updated_at) && (
-              <Text size="xs" c="dimmed">
+              <Text className="text-xs md:text-sm" c="dimmed">
                 Last updated: {bank.updated_at ? new Date(bank.updated_at).toLocaleString() : 'N/A'}
               </Text>
             )}

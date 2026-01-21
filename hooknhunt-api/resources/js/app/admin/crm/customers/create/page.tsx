@@ -410,7 +410,7 @@ export default function CreateCustomerPage() {
                     error={fieldErrors.password}
                     rightSection={
                       <Button
-                        size="xs"
+                        className="text-xs md:text-sm"
                         variant="subtle"
                         onClick={generatePassword}
                         leftSection={<IconDeviceMobile size={14} />}
@@ -530,7 +530,7 @@ export default function CreateCustomerPage() {
                   error={fieldErrors.tax_id}
                 />
               </SimpleGrid>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 These fields are optional for all customers. Required for wholesale business accounts.
               </Text>
             </Box>

@@ -23,6 +23,15 @@ class AttendanceController extends Controller
      */
     public function clockIn(Request $request)
     {
+        // Permission check - staff can clock in for themselves
+        $user = auth()->user();
+        if ($request->has('user_id') && $request->user_id != $user->id) {
+            // Admin trying to clock in for someone else
+            if (!$user->hasPermissionTo('hrm.attendance.manage')) {
+                return $this->sendError('You do not have permission to manage attendance.', null, 403);
+            }
+        }
+
         $userId = $request->user_id ?? auth()->id();
         $date = date('Y-m-d');
         $time = date('H:i:s');
@@ -167,6 +176,11 @@ class AttendanceController extends Controller
      */
     public function index(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.attendance.view')) {
+            return $this->sendError('You do not have permission to view attendance records.', null, 403);
+        }
+
         $startDate = $request->start_date ?? date('Y-m-01');
         $endDate = $request->end_date ?? date('Y-m-t');
 
@@ -187,6 +201,11 @@ class AttendanceController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.attendance.edit')) {
+            return $this->sendError('You do not have permission to edit attendance records.', null, 403);
+        }
+
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',

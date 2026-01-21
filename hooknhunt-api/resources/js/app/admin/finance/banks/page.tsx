@@ -142,7 +142,7 @@ export default function BanksPage() {
       title: t('finance.banksPage.deleteConfirm.title'),
       children: (
         <Stack gap="xs">
-          <Text size="sm">
+          <Text className="text-sm md:text-base">
             {t('finance.banksPage.deleteConfirm.message')}{' '}
             <Text span fw={600} c="blue">
               "{bank.name}"
@@ -150,11 +150,11 @@ export default function BanksPage() {
             ?
           </Text>
           {(bank.currentBalance || 0) > 0 && (
-            <Text size="sm" c="yellow">
+            <Text className="text-sm md:text-base" c="yellow">
               ⚠️ {t('finance.banksPage.deleteConfirm.hasBalance')}: {formatCurrency(bank.currentBalance || 0)}
             </Text>
           )}
-          <Text size="xs" c="dimmed">
+          <Text className="text-xs md:text-sm" c="dimmed">
             {t('finance.banksPage.deleteConfirm.warning')}
           </Text>
         </Stack>
@@ -376,7 +376,7 @@ export default function BanksPage() {
             <Title order={1}>{t('finance.banksPage.title')}</Title>
             <ActionIcon
               variant="light"
-              size="lg"
+              className="text-lg md:text-xl lg:text-2xl"
               onClick={() => fetchBanks(true)}
               loading={refreshing}
             >
@@ -423,55 +423,55 @@ export default function BanksPage() {
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 5 }}>
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
-            <ThemeIcon color="green" size="lg" variant="light">
+            <ThemeIcon color="green" className="text-lg md:text-xl lg:text-2xl" variant="light">
               <IconWallet size={20} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed">{t('finance.banksPage.filterCash')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.filterCash')}</Text>
               <Text fw={700}>{formatCurrency(summary?.byType?.cash?.totalBalance || 0)}</Text>
             </div>
           </Group>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
-            <ThemeIcon color="blue" size="lg" variant="light">
+            <ThemeIcon color="blue" className="text-lg md:text-xl lg:text-2xl" variant="light">
               <IconBuildingBank size={20} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed">{t('finance.banksPage.filterBank')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.filterBank')}</Text>
               <Text fw={700}>{formatCurrency(summary?.byType?.bank?.totalBalance || 0)}</Text>
             </div>
           </Group>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
-            <ThemeIcon color="pink" size="lg" variant="light">
+            <ThemeIcon color="pink" className="text-lg md:text-xl lg:text-2xl" variant="light">
               <IconPhone size={20} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed">{t('finance.banksPage.filterBkash')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.filterBkash')}</Text>
               <Text fw={700}>{formatCurrency(summary?.byType?.bkash?.totalBalance || 0)}</Text>
             </div>
           </Group>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
-            <ThemeIcon color="orange" size="lg" variant="light">
+            <ThemeIcon color="orange" className="text-lg md:text-xl lg:text-2xl" variant="light">
               <IconBrandCashapp size={20} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed">{t('finance.banksPage.filterNagad')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.filterNagad')}</Text>
               <Text fw={700}>{formatCurrency(summary?.byType?.nagad?.totalBalance || 0)}</Text>
             </div>
           </Group>
         </Card>
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
-            <ThemeIcon color="grape" size="lg" variant="light">
+            <ThemeIcon color="grape" className="text-lg md:text-xl lg:text-2xl" variant="light">
               <IconRocket size={20} />
             </ThemeIcon>
             <div>
-              <Text size="xs" c="dimmed">{t('finance.banksPage.filterRocket')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.filterRocket')}</Text>
               <Text fw={700}>{formatCurrency(summary?.byType?.rocket?.totalBalance || 0)}</Text>
             </div>
           </Group>
@@ -487,12 +487,12 @@ export default function BanksPage() {
               {/* Card Header */}
               <Group justify="space-between" mb="md">
                 <Group gap="sm">
-                  <ThemeIcon color={config.color} size="xl" variant="light" radius="md">
+                  <ThemeIcon color={config.color} className="text-xl md:text-2xl lg:text-3xl" variant="light" radius="md">
                     {config.icon}
                   </ThemeIcon>
                   <div>
                     <Text fw={600}>{bank.name}</Text>
-                    <Badge color={config.color} variant="light" size="sm">
+                    <Badge color={config.color} variant="light" className="text-sm md:text-base">
                       {config.label}
                     </Badge>
                   </div>
@@ -503,7 +503,7 @@ export default function BanksPage() {
                   </Badge>
                   <Menu shadow="md" width={150} position="bottom-end">
                     <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray">
+                      <ActionIcon variant="subtle" color="gray" size="lg">
                         <IconDotsVertical size={16} />
                       </ActionIcon>
                     </Menu.Target>
@@ -539,19 +539,19 @@ export default function BanksPage() {
               <Stack gap="xs" mb="md">
                 {bank.account_number && (
                   <Group justify="space-between">
-                    <Text size="sm" c="dimmed">{t('finance.banksPage.accountNo')}</Text>
-                    <Text size="sm" fw={500}>{bank.account_number}</Text>
+                    <Text className="text-sm md:text-base" c="dimmed">{t('finance.banksPage.accountNo')}</Text>
+                    <Text className="text-sm md:text-base" fw={500}>{bank.account_number}</Text>
                   </Group>
                 )}
                 {bank.branch && (
                   <Group justify="space-between">
-                    <Text size="sm" c="dimmed">{t('finance.banksPage.branch')}</Text>
-                    <Text size="sm" fw={500}>{bank.branch}</Text>
+                    <Text className="text-sm md:text-base" c="dimmed">{t('finance.banksPage.branch')}</Text>
+                    <Text className="text-sm md:text-base" fw={500}>{bank.branch}</Text>
                   </Group>
                 )}
                 <Group justify="space-between">
-                  <Text size="sm" c="dimmed">{t('finance.banksPage.balance')}</Text>
-                  <Text size="lg" fw={700} c={config.color}>
+                  <Text className="text-sm md:text-base" c="dimmed">{t('finance.banksPage.balance')}</Text>
+                  <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c={config.color}>
                     {formatCurrency(bank.currentBalance || 0)}
                   </Text>
                 </Group>
@@ -562,7 +562,7 @@ export default function BanksPage() {
                 <Button
                   variant="light"
                   color="green"
-                  size="xs"
+                  className="text-xs md:text-sm"
                   leftSection={<IconArrowDownLeft size={14} />}
                   onClick={() => handleDeposit(bank)}
                 >
@@ -571,7 +571,7 @@ export default function BanksPage() {
                 <Button
                   variant="light"
                   color="red"
-                  size="xs"
+                  className="text-xs md:text-sm"
                   leftSection={<IconArrowUpRight size={14} />}
                   onClick={() => handleWithdraw(bank)}
                 >
@@ -580,7 +580,7 @@ export default function BanksPage() {
                 <Button
                   variant="light"
                   color="blue"
-                  size="xs"
+                  className="text-xs md:text-sm"
                   leftSection={<IconArrowsExchange size={14} />}
                   onClick={() => handleTransfer(bank)}
                 >
@@ -637,7 +637,7 @@ export default function BanksPage() {
             value={selectedBank?.name || ''}
             disabled
           />
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             {t('finance.banksPage.withdrawModal.availableBalance')} {selectedBank ? formatCurrency(selectedBank.currentBalance) : '৳0.00'}
           </Text>
           <NumberInput
@@ -663,7 +663,7 @@ export default function BanksPage() {
             disabled={chartOfAccounts.length === 0}
           />
           {chartOfAccounts.length === 0 && (
-            <Text size="xs" c="orange">
+            <Text className="text-xs md:text-sm" c="orange">
               No expense accounts found. Please create expense accounts in the Chart of Accounts first.
             </Text>
           )}
@@ -688,7 +688,7 @@ export default function BanksPage() {
             value={selectedBank?.name || ''}
             disabled
           />
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             {t('finance.banksPage.withdrawModal.availableBalance')} {selectedBank ? formatCurrency(selectedBank.currentBalance) : '৳0.00'}
           </Text>
           <Select

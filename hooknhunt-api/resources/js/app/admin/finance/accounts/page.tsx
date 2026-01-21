@@ -220,7 +220,7 @@ export default function AccountsPage() {
               <Text c="dimmed" className="text-sm md:text-base">{t('finance.accountsPage.subtitle')}</Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" size="lg" onClick={handleRefresh}>
+              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button
@@ -238,45 +238,45 @@ export default function AccountsPage() {
         <Group>
           <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="green" size="sm" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
+              <Badge color="green" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               <NumberFormatter value={statistics.total_assets} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="red" size="sm" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
+              <Badge color="red" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
               <NumberFormatter value={statistics.total_liabilities} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="blue" size="sm" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
+              <Badge color="blue" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="blue">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
               <NumberFormatter value={statistics.total_equity} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="cyan" size="sm" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
+              <Badge color="cyan" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="cyan">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="cyan">
               <NumberFormatter value={statistics.total_revenue} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="orange" size="sm" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
+              <Badge color="orange" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="orange">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">
               <NumberFormatter value={statistics.total_expenses} prefix="৳" thousandSeparator />
             </Text>
           </Card>
@@ -289,7 +289,7 @@ export default function AccountsPage() {
             leftSection={<IconSearch size={16} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
 
           <Group gap="sm">
@@ -344,23 +344,23 @@ export default function AccountsPage() {
                           <Table.Tr key={account.id}>
                             <Table.Td>{formatCode(account.code)}</Table.Td>
                             <Table.Td>
-                              <Text size="sm" fw={500}>
+                              <Text className="text-sm md:text-base" fw={500}>
                                 {account.name}
                                 {account.parent_id && (
-                                  <Text size="xs" c="dimmed" mt={2}>
+                                  <Text className="text-xs md:text-sm" c="dimmed" mt={2}>
                                     {t('finance.accountsPage.subAccount')}
                                   </Text>
                                 )}
                               </Text>
                             </Table.Td>
                             <Table.Td>
-                              <Badge color={typeConfig.color} variant="light" size="sm">
+                              <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
                                 {typeConfig.label}
                               </Badge>
                             </Table.Td>
                             <Table.Td>
                               <Text
-                                size="sm"
+                                className="text-sm md:text-base"
                                 fw={600}
                                 ta="right"
                                 c={account.balance >= 0 ? 'green' : 'red'}
@@ -371,11 +371,11 @@ export default function AccountsPage() {
                             </Table.Td>
                             <Table.Td>
                               {account.is_active ? (
-                                <Badge color="green" variant="light" size="sm" leftSection={<IconCheck size={12} />}>
+                                <Badge color="green" variant="light" className="text-sm md:text-base" leftSection={<IconCheck size={12} />}>
                                   {t('finance.accountsPage.active')}
                                 </Badge>
                               ) : (
-                                <Badge color="gray" variant="light" size="sm" leftSection={<IconX size={12} />}>
+                                <Badge color="gray" variant="light" className="text-sm md:text-base" leftSection={<IconX size={12} />}>
                                   {t('finance.accountsPage.inactive')}
                                 </Badge>
                               )}
@@ -383,7 +383,7 @@ export default function AccountsPage() {
                             <Table.Td>
                               <Group gap="xs" justify="center">
                                 <ActionIcon
-                                  size="sm"
+                                  className="text-sm md:text-base"
                                   color="blue"
                                   variant="light"
                                   onClick={() => handleEdit(account.id)}
@@ -419,11 +419,11 @@ export default function AccountsPage() {
                           {account.code}
                         </Text>
                         {account.is_active ? (
-                          <Badge color="green" variant="light" size="sm" leftSection={<IconCheck size={12} />}>
+                          <Badge color="green" variant="light" className="text-sm md:text-base" leftSection={<IconCheck size={12} />}>
                             {t('finance.accountsPage.active')}
                           </Badge>
                         ) : (
-                          <Badge color="gray" variant="light" size="sm" leftSection={<IconX size={12} />}>
+                          <Badge color="gray" variant="light" className="text-sm md:text-base" leftSection={<IconX size={12} />}>
                             {t('finance.accountsPage.inactive')}
                           </Badge>
                         )}
@@ -431,26 +431,26 @@ export default function AccountsPage() {
 
                       {/* Account Name */}
                       <Group justify="space-between" mb="xs">
-                        <Text size="sm" fw={500}>
+                        <Text className="text-sm md:text-base" fw={500}>
                           {account.name}
                         </Text>
-                        <Badge color={typeConfig.color} variant="light" size="sm">
+                        <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
                           {typeConfig.label}
                         </Badge>
                       </Group>
 
                       {/* Sub-account indicator */}
                       {account.parent_id && (
-                        <Text size="xs" c="dimmed" mb="xs">
+                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
                           {t('finance.accountsPage.subAccount')}
                         </Text>
                       )}
 
                       {/* Balance */}
                       <Group justify="space-between" mb="xs">
-                        <Text size="xs" c="dimmed">{t('finance.accountsPage.tableHeaders.balance')}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPage.tableHeaders.balance')}</Text>
                         <Text
-                          size="sm"
+                          className="text-sm md:text-base"
                           fw={700}
                           c={account.balance >= 0 ? 'green' : 'red'}
                         >
@@ -462,7 +462,7 @@ export default function AccountsPage() {
                       {/* Actions */}
                       <Group justify="flex-end" mt="xs">
                         <ActionIcon
-                          size="sm"
+                          className="text-sm md:text-base"
                           color="blue"
                           variant="light"
                           onClick={() => handleEdit(account.id)}
@@ -481,12 +481,12 @@ export default function AccountsPage() {
         {/* Summary Stats */}
         <Card withBorder p="md" radius="md">
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.accountsPage.totalAccounts')}: {statistics.total_count}
             </Text>
             {activeTab === 'all' && (
               <Group gap="xl">
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   <Text span fw={600} c="green">{t('finance.accountsPage.netIncome')}:</Text> ৳{statistics.net_income.toLocaleString()}
                 </Text>
               </Group>

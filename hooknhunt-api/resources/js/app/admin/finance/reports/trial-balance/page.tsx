@@ -209,7 +209,7 @@ export default function TrialBalancePage() {
               clearable
               style={{ width: 200 }}
             />
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.trialBalancePage.showingAccounts', { count: filteredAccounts.length })}
             </Text>
           </Group>
@@ -253,15 +253,15 @@ export default function TrialBalancePage() {
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" fw={500}>{account.name}</Text>
+                            <Text className="text-sm md:text-base" fw={500}>{account.name}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Badge color={typeConfig.color} variant="light" size="sm">
+                            <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
                               {typeConfig.label}
                             </Badge>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" ta="right" fw={600} c="teal">
+                            <Text className="text-sm md:text-base" ta="right" fw={600} c="teal">
                               {account.debit > 0 ? (
                                 <NumberFormatter value={account.debit} prefix="৳" thousandSeparator />
                               ) : (
@@ -270,7 +270,7 @@ export default function TrialBalancePage() {
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" ta="right" fw={600} c="orange">
+                            <Text className="text-sm md:text-base" ta="right" fw={600} c="orange">
                               {account.credit > 0 ? (
                                 <NumberFormatter value={account.credit} prefix="৳" thousandSeparator />
                               ) : (
@@ -281,18 +281,18 @@ export default function TrialBalancePage() {
                           <Table.Td>
                             {balance.amount > 0 ? (
                               <Text
-                                size="sm"
+                                className="text-sm md:text-base"
                                 ta="right"
                                 fw={700}
                                 c={balance.type === 'debit' ? 'teal' : 'orange'}
                               >
                                 <NumberFormatter value={balance.amount} prefix="৳" thousandSeparator />
-                                <Text span size="xs" ml="xs" c="dimmed" fw={400}>
+                                <Text span className="text-xs md:text-sm" ml="xs" c="dimmed" fw={400}>
                                   {balance.type}
                                 </Text>
                               </Text>
                             ) : (
-                              <Text size="sm" ta="right" c="dimmed">
+                              <Text className="text-sm md:text-base" ta="right" c="dimmed">
                                 -
                               </Text>
                             )}
@@ -304,20 +304,20 @@ export default function TrialBalancePage() {
                     {/* Totals Row */}
                     <Table.Tr bg="light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))">
                       <Table.Td colSpan={3}>
-                        <Text size="sm" fw={700}>{t('finance.trialBalancePage.totalAccounts')}</Text>
+                        <Text className="text-sm md:text-base" fw={700}>{t('finance.trialBalancePage.totalAccounts')}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" ta="right" fw={700} c="teal">
+                        <Text className="text-sm md:text-base" ta="right" fw={700} c="teal">
                           <NumberFormatter value={totals.totalDebit} prefix="৳" thousandSeparator />
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" ta="right" fw={700} c="orange">
+                        <Text className="text-sm md:text-base" ta="right" fw={700} c="orange">
                           <NumberFormatter value={totals.totalCredit} prefix="৳" thousandSeparator />
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" ta="right" fw={700}>
+                        <Text className="text-sm md:text-base" ta="right" fw={700}>
                           -
                         </Text>
                       </Table.Td>
@@ -338,10 +338,10 @@ export default function TrialBalancePage() {
             icon={<IconCheck size={20} />}
           >
             <Group gap="xl">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 {t('finance.trialBalancePage.debitEqualsCredit')} {t('finance.trialBalancePage.asOf')} {formatDate(asOfDate)}
               </Text>
-              <Text size="sm" fw={600}>
+              <Text className="text-sm md:text-base" fw={600}>
                 ৳{totals.totalDebit.toLocaleString()}
               </Text>
             </Group>
@@ -354,14 +354,14 @@ export default function TrialBalancePage() {
             icon={<IconX size={20} />}
           >
             <Group gap="xl">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 There's a discrepancy of ৳{Math.abs(totals.totalDebit - totals.totalCredit).toLocaleString()}
               </Text>
               <Group gap="md">
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   {t('finance.trialBalancePage.tableHeaders.debit')}: <Text span fw={600} c="teal">৳{totals.totalDebit.toLocaleString()}</Text>
                 </Text>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   {t('finance.trialBalancePage.tableHeaders.credit')}: <Text span fw={600} c="orange">৳{totals.totalCredit.toLocaleString()}</Text>
                 </Text>
               </Group>

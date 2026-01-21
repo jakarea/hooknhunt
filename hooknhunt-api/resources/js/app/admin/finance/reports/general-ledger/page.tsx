@@ -344,7 +344,7 @@ export default function GeneralLedgerPage() {
               leftSection={<IconSearch size={16} />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
-              style={{ flex: 1 }}
+              className="flex-1"
             />
 
             <Select
@@ -380,14 +380,14 @@ export default function GeneralLedgerPage() {
         {/* Summary Card */}
         <Card withBorder p="md" radius="md">
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('generalLedgerPage.showingEntries', { count: filteredEntries.length })}
             </Text>
             <Group gap="xl">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 <Text span fw={600} c="teal">{t('generalLedgerPage.totalDebit')}:</Text> ৳{totals.totalDebit.toLocaleString()}
               </Text>
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 <Text span fw={600} c="orange">{t('generalLedgerPage.totalCredit')}:</Text> ৳{totals.totalCredit.toLocaleString()}
               </Text>
               <Badge color={totals.totalDebit === totals.totalCredit ? 'green' : 'red'} variant="light">
@@ -421,22 +421,22 @@ export default function GeneralLedgerPage() {
                   >
                     <Group justify="space-between">
                       <Group gap="xl">
-                        <Text size="sm" fw={600} c="blue">
+                        <Text className="text-sm md:text-base" fw={600} c="blue">
                           {entry.entry_number}
                         </Text>
-                        <Text size="sm">{formatDate(entry.date)}</Text>
-                        <Text size="sm" miw={300} maw={500} lineClamp={1}>
+                        <Text className="text-sm md:text-base">{formatDate(entry.date)}</Text>
+                        <Text className="text-sm md:text-base" miw={300} maw={500} lineClamp={1}>
                           {entry.description}
                         </Text>
-                        <Text size="xs" c="dimmed">
+                        <Text className="text-xs md:text-sm" c="dimmed">
                           {t('generalLedgerPage.entryDetails', { name: entry.created_by.name })}
                         </Text>
                       </Group>
                       <Group gap="md">
-                        <Text size="sm" fw={600} c="teal">
+                        <Text className="text-sm md:text-base" fw={600} c="teal">
                           {t('generalLedgerPage.dr')}: ৳{entryDebit.toLocaleString()}
                         </Text>
-                        <Text size="sm" fw={600} c="orange">
+                        <Text className="text-sm md:text-base" fw={600} c="orange">
                           {t('generalLedgerPage.cr')}: ৳{entryCredit.toLocaleString()}
                         </Text>
                         {isExpanded ? (
@@ -463,16 +463,16 @@ export default function GeneralLedgerPage() {
                         {entry.items.map((item) => (
                           <Table.Tr key={item.id}>
                             <Table.Td>
-                              <Badge variant="light" size="sm">
+                              <Badge variant="light" className="text-sm md:text-base">
                                 {item.account.code}
                               </Badge>
-                              <Text size="sm" ml="xs">{item.account.name}</Text>
+                              <Text className="text-sm md:text-base" ml="xs">{item.account.name}</Text>
                             </Table.Td>
                             <Table.Td>
-                              <Text size="sm" c="dimmed">{entry.description}</Text>
+                              <Text className="text-sm md:text-base" c="dimmed">{entry.description}</Text>
                             </Table.Td>
                             <Table.Td>
-                              <Text size="sm" ta="right" fw={600} c="teal">
+                              <Text className="text-sm md:text-base" ta="right" fw={600} c="teal">
                                 {item.debit > 0 ? (
                                   <NumberFormatter value={item.debit} prefix="৳" thousandSeparator />
                                 ) : (
@@ -481,7 +481,7 @@ export default function GeneralLedgerPage() {
                               </Text>
                             </Table.Td>
                             <Table.Td>
-                              <Text size="sm" ta="right" fw={600} c="orange">
+                              <Text className="text-sm md:text-base" ta="right" fw={600} c="orange">
                                 {item.credit > 0 ? (
                                   <NumberFormatter value={item.credit} prefix="৳" thousandSeparator />
                                 ) : (
@@ -507,7 +507,7 @@ export default function GeneralLedgerPage() {
               total={totalPages}
               value={currentPage}
               onChange={handlePageChange}
-              size="sm"
+              className="text-sm md:text-base"
             />
           </Group>
         )}

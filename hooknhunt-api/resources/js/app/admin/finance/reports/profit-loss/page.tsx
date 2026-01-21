@@ -195,7 +195,7 @@ export default function ProfitLossPage() {
                 style={{ width: 180 }}
               />
             </Group>
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.profitLossPage.period')}: {formatDate(startDate)} - {formatDate(endDate)}
             </Text>
           </Group>
@@ -205,18 +205,18 @@ export default function ProfitLossPage() {
         <Group>
           <Card withBorder p="md" radius="md" style={{ flex: 1, borderTop: '4px solid var(--mantine-color-green-filled)' }}>
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.profitLossPage.totalRevenue')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.profitLossPage.totalRevenue')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               <NumberFormatter value={calculations.totalRevenue} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" style={{ flex: 1, borderTop: '4px solid var(--mantine-color-red-filled)' }}>
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.profitLossPage.totalExpenses')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.profitLossPage.totalExpenses')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
               <NumberFormatter value={calculations.totalExpenses} prefix="৳" thousandSeparator />
             </Text>
           </Card>
@@ -231,12 +231,12 @@ export default function ProfitLossPage() {
             }}
           >
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.profitLossPage.netProfitLoss')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.profitLossPage.netProfitLoss')}</Text>
             </Group>
-            <Text size="xl" fw={700} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
               <NumberFormatter value={calculations.netProfit} prefix="৳" thousandSeparator />
             </Text>
-            <Text size="xs" c="dimmed" mt="xs">
+            <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
               {t('finance.profitLossPage.margin')}: {calculations.profitMargin.toFixed(1)}%
             </Text>
           </Card>
@@ -254,9 +254,9 @@ export default function ProfitLossPage() {
             <Group justify="space-between">
               <Group>
                 {expandedSections.has('revenue') ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                <Text size="sm" fw={600} c="green">{t('finance.profitLossPage.revenue')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="green">{t('finance.profitLossPage.revenue')}</Text>
               </Group>
-              <Text size="sm" fw={700} c="green">
+              <Text className="text-sm md:text-base" fw={700} c="green">
                 <NumberFormatter value={calculations.totalRevenue} prefix="৳" thousandSeparator />
               </Text>
             </Group>
@@ -267,13 +267,13 @@ export default function ProfitLossPage() {
                 {mockRevenue.map((item) => (
                   <Table.Tr key={item.id}>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{item.code}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">{item.code}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{item.name}</Text>
+                      <Text className="text-sm md:text-base">{item.name}</Text>
                     </Table.Td>
                     <Table.Td ta="right">
-                      <Text size="sm" fw={600} c="green">
+                      <Text className="text-sm md:text-base" fw={600} c="green">
                         <NumberFormatter value={item.amount} prefix="৳" thousandSeparator />
                       </Text>
                     </Table.Td>
@@ -296,9 +296,9 @@ export default function ProfitLossPage() {
             <Group justify="space-between">
               <Group>
                 {expandedSections.has('cogs') ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                <Text size="sm" fw={600} c="orange">{t('finance.profitLossPage.costOfGoodsSold')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="orange">{t('finance.profitLossPage.costOfGoodsSold')}</Text>
               </Group>
-              <Text size="sm" fw={700} c="red">
+              <Text className="text-sm md:text-base" fw={700} c="red">
                 (<NumberFormatter value={calculations.totalCOGS} prefix="৳" thousandSeparator />)
               </Text>
             </Group>
@@ -309,13 +309,13 @@ export default function ProfitLossPage() {
                 {mockCOGS.map((item) => (
                   <Table.Tr key={item.id}>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{item.code}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">{item.code}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{item.name}</Text>
+                      <Text className="text-sm md:text-base">{item.name}</Text>
                     </Table.Td>
                     <Table.Td ta="right">
-                      <Text size="sm" fw={600} c="red">
+                      <Text className="text-sm md:text-base" fw={600} c="red">
                         (<NumberFormatter value={item.amount} prefix="৳" thousandSeparator />)
                       </Text>
                     </Table.Td>
@@ -329,18 +329,18 @@ export default function ProfitLossPage() {
         {/* Gross Profit */}
         <Card withBorder p="md" radius="md">
           <Group justify="space-between">
-            <Text size="sm" fw={600}>{t('finance.profitLossPage.grossProfit')}</Text>
-            <Text size="lg" fw={700} c="green">
+            <Text className="text-sm md:text-base" fw={600}>{t('finance.profitLossPage.grossProfit')}</Text>
+            <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="green">
               <NumberFormatter value={calculations.grossProfit} prefix="৳" thousandSeparator />
             </Text>
           </Group>
           <Progress
             value={calculations.totalRevenue > 0 ? (calculations.grossProfit / calculations.totalRevenue) * 100 : 0}
             color="green"
-            size="sm"
+            className="text-sm md:text-base"
             mt="xs"
           />
-          <Text size="xs" c="dimmed" mt="xs">
+          <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
             {t('finance.profitLossPage.grossMargin')}: {calculations.totalRevenue > 0 ? ((calculations.grossProfit / calculations.totalRevenue) * 100).toFixed(1) : 0}%
           </Text>
         </Card>
@@ -357,9 +357,9 @@ export default function ProfitLossPage() {
             <Group justify="space-between">
               <Group>
                 {expandedSections.has('expenses') ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                <Text size="sm" fw={600} c="red">{t('finance.profitLossPage.operatingExpenses')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="red">{t('finance.profitLossPage.operatingExpenses')}</Text>
               </Group>
-              <Text size="sm" fw={700} c="red">
+              <Text className="text-sm md:text-base" fw={700} c="red">
                 (<NumberFormatter value={calculations.totalOperatingExpenses} prefix="৳" thousandSeparator />)
               </Text>
             </Group>
@@ -370,13 +370,13 @@ export default function ProfitLossPage() {
                 {mockOperatingExpenses.map((item) => (
                   <Table.Tr key={item.id}>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{item.code}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">{item.code}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">{item.name}</Text>
+                      <Text className="text-sm md:text-base">{item.name}</Text>
                     </Table.Td>
                     <Table.Td ta="right">
-                      <Text size="sm" fw={600} c="red">
+                      <Text className="text-sm md:text-base" fw={600} c="red">
                         (<NumberFormatter value={item.amount} prefix="৳" thousandSeparator />)
                       </Text>
                     </Table.Td>
@@ -390,8 +390,8 @@ export default function ProfitLossPage() {
         {/* Operating Income */}
         <Card withBorder p="md" radius="md">
           <Group justify="space-between">
-            <Text size="sm" fw={600}>{t('finance.profitLossPage.operatingIncome')}</Text>
-            <Text size="lg" fw={700} c={calculations.operatingIncome >= 0 ? 'green' : 'red'}>
+            <Text className="text-sm md:text-base" fw={600}>{t('finance.profitLossPage.operatingIncome')}</Text>
+            <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c={calculations.operatingIncome >= 0 ? 'green' : 'red'}>
               <NumberFormatter value={calculations.operatingIncome} prefix="৳" thousandSeparator />
             </Text>
           </Group>
@@ -402,16 +402,16 @@ export default function ProfitLossPage() {
           <Stack gap="sm">
             {mockOtherIncome.map((item) => (
               <Group key={item.id} justify="space-between">
-                <Text size="sm">{item.code} - {item.name}</Text>
-                <Text size="sm" fw={600} c="green">
+                <Text className="text-sm md:text-base">{item.code} - {item.name}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="green">
                   + <NumberFormatter value={item.amount} prefix="৳" thousandSeparator />
                 </Text>
               </Group>
             ))}
             {mockOtherExpenses.map((item) => (
               <Group key={item.id} justify="space-between">
-                <Text size="sm">{item.code} - {item.name}</Text>
-                <Text size="sm" fw={600} c="red">
+                <Text className="text-sm md:text-base">{item.code} - {item.name}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="red">
                   - <NumberFormatter value={item.amount} prefix="৳" thousandSeparator />
                 </Text>
               </Group>
@@ -430,21 +430,21 @@ export default function ProfitLossPage() {
           }}
         >
           <Group justify="space-between" mb="md">
-            <Text size="lg" fw={700}>{t('finance.profitLossPage.netProfit')}</Text>
-            <Text size="xl" fw={900} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
+            <Text className="text-lg md:text-xl lg:text-2xl" fw={700}>{t('finance.profitLossPage.netProfit')}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={900} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
               <NumberFormatter value={calculations.netProfit} prefix="৳" thousandSeparator />
             </Text>
           </Group>
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">{t('finance.profitLossPage.profitMargin')}</Text>
-            <Text size="sm" fw={600} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
+            <Text className="text-sm md:text-base" c="dimmed">{t('finance.profitLossPage.profitMargin')}</Text>
+            <Text className="text-sm md:text-base" fw={600} c={calculations.netProfit >= 0 ? 'green' : 'red'}>
               {calculations.profitMargin.toFixed(2)}%
             </Text>
           </Group>
           <Progress
             value={Math.min(Math.abs(calculations.profitMargin), 100)}
             color={calculations.netProfit >= 0 ? 'green' : 'red'}
-            size="lg"
+            className="text-lg md:text-xl lg:text-2xl"
             mt="md"
           />
         </Card>

@@ -362,7 +362,7 @@ export default function LeavesPage() {
       title: 'Delete Leave Request',
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           Are you sure you want to delete this leave request for <strong>{leave.user?.name}</strong>?
         </Text>
       ),
@@ -416,7 +416,7 @@ export default function LeavesPage() {
             <Group >
               <ActionIcon
                 variant="light"
-                size="lg"
+                className="text-lg md:text-xl lg:text-2xl"
                 onClick={handleRefresh}
                 loading={loading}
               >
@@ -435,36 +435,36 @@ export default function LeavesPage() {
         {/* Stats */}
         <Stack  display={{ base: 'none', md: 'flex' }}>
           <Group >
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                <Text size="xs" c="dimmed">Total Requests</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Total Requests</Text>
               </Group>
-              <Text size="xl" fw={700}>{totalLeaves}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalLeaves}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
-                <Text size="xs" c="dimmed">Pending</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Pending</Text>
               </Group>
-              <Text size="xl" fw={700}>{pendingLeaves}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{pendingLeaves}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconCheck size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-                <Text size="xs" c="dimmed">Approved</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Approved</Text>
               </Group>
-              <Text size="xl" fw={700}>{approvedLeaves}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{approvedLeaves}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconX size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                <Text size="xs" c="dimmed">Rejected</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Rejected</Text>
               </Group>
-              <Text size="xl" fw={700}>{rejectedLeaves}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{rejectedLeaves}</Text>
             </Card>
           </Group>
         </Stack>
@@ -484,7 +484,7 @@ export default function LeavesPage() {
               value={statusFilter}
               onChange={(value) => setStatusFilter(value)}
               style={{ width: '150px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             {isAdmin && (
               <Select
@@ -495,7 +495,7 @@ export default function LeavesPage() {
                 value={employeeFilter}
                 onChange={(value) => setEmployeeFilter(value)}
                 style={{ width: '200px' }}
-                size="md"
+                className="text-base md:text-lg"
               />
             )}
           </Group>
@@ -531,7 +531,7 @@ export default function LeavesPage() {
                   <Table.Tr key={leave.id}>
                     {isAdmin && (
                       <Table.Td>
-                        <Text fw={500} size="sm">{leave.user?.name || 'N/A'}</Text>
+                        <Text fw={500} className="text-sm md:text-base">{leave.user?.name || 'N/A'}</Text>
                       </Table.Td>
                     )}
                     <Table.Td>
@@ -542,13 +542,13 @@ export default function LeavesPage() {
                           'gray'
                         }
                         variant="light"
-                        size="sm"
+                        className="text-sm md:text-base"
                       >
                         {leave.type.charAt(0).toUpperCase() + leave.type.slice(1)}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm">
+                      <Text className="text-sm md:text-base">
                         {(() => {
                           // Check if dates exist
                           if (!leave.start_date || !leave.end_date) {
@@ -591,9 +591,9 @@ export default function LeavesPage() {
                     </Table.Td>
                     <Table.Td>
                       <Stack gap={0}>
-                        <Text size="sm" c="dimmed">{leave.reason || 'N/A'}</Text>
+                        <Text className="text-sm md:text-base" c="dimmed">{leave.reason || 'N/A'}</Text>
                         {leave.admin_note && (
-                          <Text size="xs" c={leave.status === 'approved' ? 'green' : 'red'} fw={500}>
+                          <Text className="text-xs md:text-sm" c={leave.status === 'approved' ? 'green' : 'red'} fw={500}>
                             {leave.status === 'approved' ? '✓' : '✗'} {leave.admin_note}
                           </Text>
                         )}
@@ -607,14 +607,14 @@ export default function LeavesPage() {
                           'yellow'
                         }
                         variant="light"
-                        size="sm"
+                        className="text-sm md:text-base"
                       >
                         {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
                       </Badge>
                     </Table.Td>
                     {isAdmin && (
                       <Table.Td>
-                        <Text size="sm">{leave.approver?.name || 'N/A'}</Text>
+                        <Text className="text-sm md:text-base">{leave.approver?.name || 'N/A'}</Text>
                       </Table.Td>
                     )}
                     <Table.Td>
@@ -624,7 +624,7 @@ export default function LeavesPage() {
                             <ActionIcon
                               variant="subtle"
                               color="green"
-                              size="sm"
+                              className="text-sm md:text-base"
                               onClick={() => handleApprove(leave)}
                             >
                               <IconCheck size={16} />
@@ -632,7 +632,7 @@ export default function LeavesPage() {
                             <ActionIcon
                               variant="subtle"
                               color="red"
-                              size="sm"
+                              className="text-sm md:text-base"
                               onClick={() => handleReject(leave)}
                             >
                               <IconX size={16} />
@@ -643,7 +643,7 @@ export default function LeavesPage() {
                           <ActionIcon
                             variant="subtle"
                             color="red"
-                            size="sm"
+                            className="text-sm md:text-base"
                             onClick={() => handleDelete(leave)}
                           >
                             <IconTrash size={16} />
@@ -678,34 +678,34 @@ export default function LeavesPage() {
           {formData.action ? (
             // Approval/Rejection Mode - Show employee as read-only
             <Stack >
-              <Text size="sm" fw={500}>Employee</Text>
-              <Text size="sm" c="dimmed">
+              <Text className="text-sm md:text-base" fw={500}>Employee</Text>
+              <Text className="text-sm md:text-base" c="dimmed">
                 {employees.find(e => String(e.id) === formData.user_id)?.name || user?.name}
               </Text>
             </Stack>
           ) : isAdmin ? (
             // Admin Create Mode - Show employee dropdown
             <Stack >
-              <Text size="sm" fw={500}>Employee *</Text>
+              <Text className="text-sm md:text-base" fw={500}>Employee *</Text>
               <Select
                 placeholder="Select employee"
                 data={employees.map(emp => ({ value: String(emp.id), label: emp.name }))}
                 value={formData.user_id}
                 onChange={(value) => setFormData({ ...formData, user_id: value })}
                 searchable
-                size="md"
+                className="text-base md:text-lg"
               />
             </Stack>
           ) : (
             // Staff Create Mode - Show current user
             <Stack >
-              <Text size="sm" fw={500}>Employee</Text>
-              <Text size="sm">{user?.name}</Text>
+              <Text className="text-sm md:text-base" fw={500}>Employee</Text>
+              <Text className="text-sm md:text-base">{user?.name}</Text>
             </Stack>
           )}
 
           <Stack >
-            <Text size="sm" fw={500}>Leave Type *</Text>
+            <Text className="text-sm md:text-base" fw={500}>Leave Type *</Text>
             <Select
               placeholder="Select leave type"
               data={[
@@ -715,14 +715,14 @@ export default function LeavesPage() {
               ]}
               value={formData.type}
               onChange={(value) => setFormData({ ...formData, type: value })}
-              size="md"
+              className="text-base md:text-lg"
               disabled={!!formData.action} // Disable in approval mode
             />
           </Stack>
 
           <Group >
-            <Stack  style={{ flex: 1 }}>
-              <Text size="sm" fw={500}>
+            <Stack  className="flex-1">
+              <Text className="text-sm md:text-base" fw={500}>
                 Start Date *
                 {formData.action && " (Editable)"}
               </Text>
@@ -731,20 +731,20 @@ export default function LeavesPage() {
                 placeholder="Pick start date"
                 value={typeof formData.start_date === 'string' ? formData.start_date : ''}
                 onChange={(e) => setFormData({ ...formData, start_date: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
               />
-              <Text size="sm" fw={500}>Start Time *</Text>
+              <Text className="text-sm md:text-base" fw={500}>Start Time *</Text>
               <TextInput
                 type="time"
                 placeholder="Pick start time"
                 value={typeof formData.start_time === 'string' ? formData.start_time : ''}
                 onChange={(e) => setFormData({ ...formData, start_time: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
               />
             </Stack>
 
-            <Stack  style={{ flex: 1 }}>
-              <Text size="sm" fw={500}>
+            <Stack  className="flex-1">
+              <Text className="text-sm md:text-base" fw={500}>
                 End Date *
                 {formData.action && " (Editable)"}
               </Text>
@@ -753,23 +753,23 @@ export default function LeavesPage() {
                 placeholder="Pick end date"
                 value={typeof formData.end_date === 'string' ? formData.end_date : ''}
                 onChange={(e) => setFormData({ ...formData, end_date: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
                 min={typeof formData.start_date === 'string' ? formData.start_date : undefined}
               />
-              <Text size="sm" fw={500}>End Time *</Text>
+              <Text className="text-sm md:text-base" fw={500}>End Time *</Text>
               <TextInput
                 type="time"
                 placeholder="Pick end time"
                 value={typeof formData.end_time === 'string' ? formData.end_time : ''}
                 onChange={(e) => setFormData({ ...formData, end_time: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
               />
             </Stack>
           </Group>
 
           {formData.start_date && formData.end_date && (
             <Box>
-              <Text size="sm" c="dimmed">
+              <Text className="text-sm md:text-base" c="dimmed">
                 Total Days: {
                   Math.ceil((new Date(formData.end_date).getTime() - new Date(formData.start_date).getTime()) / (1000 * 60 * 60 * 24)) + 1
                 }
@@ -778,12 +778,12 @@ export default function LeavesPage() {
           )}
 
           <Stack >
-            <Text size="sm" fw={500}>Employee Reason</Text>
+            <Text className="text-sm md:text-base" fw={500}>Employee Reason</Text>
             <Textarea
               placeholder="Employee's reason for leave"
               value={formData.reason}
               onChange={(e) => setFormData({ ...formData, reason: e.currentTarget.value })}
-              size="md"
+              className="text-base md:text-lg"
               rows={2}
               disabled={!!formData.action} // Disable in approval mode
             />
@@ -791,14 +791,14 @@ export default function LeavesPage() {
 
           {formData.action && (
             <Stack >
-              <Text size="sm" fw={500}>
+              <Text className="text-sm md:text-base" fw={500}>
                 {formData.action === 'approve' ? 'Approval' : 'Rejection'} Note *
               </Text>
               <Textarea
                 placeholder={`Enter reason for ${formData.action}al...`}
                 value={formData.admin_note}
                 onChange={(e) => setFormData({ ...formData, admin_note: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
                 rows={3}
                 required
               />

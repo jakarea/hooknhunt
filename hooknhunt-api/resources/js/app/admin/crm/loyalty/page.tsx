@@ -237,7 +237,7 @@ export default function LoyaltyPage() {
       title: `Delete ${type}`,
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.
         </Text>
       ),
@@ -293,33 +293,33 @@ export default function LoyaltyPage() {
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconUsers size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-              <Text size="xs" c="dimmed">Total Members</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Members</Text>
             </Group>
-            <Text size="xl" fw={700}>{totalMembers}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalMembers}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconTrophy size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
-              <Text size="xs" c="dimmed">Active Tiers</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Active Tiers</Text>
             </Group>
-            <Text size="xl" fw={700}>{mockTiers.length}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{mockTiers.length}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconSettings size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="xs" c="dimmed">Active Rules</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Active Rules</Text>
             </Group>
-            <Text size="xl" fw={700}>{activeRules}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{activeRules}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconGift size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text size="xs" c="dimmed">Active Rewards</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Active Rewards</Text>
             </Group>
-            <Text size="xl" fw={700}>{activeRewards}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{activeRewards}</Text>
           </Card>
         </SimpleGrid>
 
@@ -350,7 +350,7 @@ export default function LoyaltyPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.currentTarget.value)}
                   style={{ flex: 1, maxWidth: '400px' }}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
                 <Button
                   leftSection={<IconPlus size={16} />}
@@ -368,7 +368,7 @@ export default function LoyaltyPage() {
 
               {/* Info Alert */}
               <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />}>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   Configure how customers earn and redeem loyalty points. Rules are automatically applied to customer transactions.
                 </Text>
               </Alert>
@@ -380,13 +380,13 @@ export default function LoyaltyPage() {
                     <Stack >
                       <Group justify="space-between">
                         <Group >
-                          <Avatar color={rule.type === 'earning' ? 'green' : 'orange'} size="sm">
+                          <Avatar color={rule.type === 'earning' ? 'green' : 'orange'} className="text-sm md:text-base">
                             {rule.type === 'earning' ? <IconPlus size={14} /> : <IconCoin size={14} />}
                           </Avatar>
                           <Box>
-                            <Text fw={600} size="sm">{rule.name}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{rule.name}</Text>
                             <Badge
-                              size="xs"
+                              className="text-xs md:text-sm"
                               color={rule.type === 'earning' ? 'green' : 'orange'}
                               variant="light"
                             >
@@ -403,24 +403,24 @@ export default function LoyaltyPage() {
                               color: 'green',
                             })
                           }}
-                          size="sm"
+                          className="text-sm md:text-base"
                         />
                       </Group>
 
-                      <Text size="sm" c="dimmed">{rule.description}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">{rule.description}</Text>
 
                       {rule.type === 'earning' && (
                         <>
                           {(rule.points_per_currency ?? 0) > 0 && (
                             <Group >
-                              <Text size="xs" c="dimmed">Points per 1 BDT:</Text>
-                              <Text size="sm" fw={600}>{rule.points_per_currency}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Points per 1 BDT:</Text>
+                              <Text className="text-sm md:text-base" fw={600}>{rule.points_per_currency}</Text>
                             </Group>
                           )}
                           {(rule.bonus_points ?? 0) > 0 && (
                             <Group >
-                              <Text size="xs" c="dimmed">Bonus points:</Text>
-                              <Text size="sm" fw={600}>{rule.bonus_points}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Bonus points:</Text>
+                              <Text className="text-sm md:text-base" fw={600}>{rule.bonus_points}</Text>
                             </Group>
                           )}
                         </>
@@ -428,24 +428,23 @@ export default function LoyaltyPage() {
 
                       {rule.type === 'redemption' && (
                         <Group >
-                          <Text size="xs" c="dimmed">Redemption rate:</Text>
-                          <Text size="sm" fw={600}>{rule.points_value} points = ৳{rule.currency_value}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">Redemption rate:</Text>
+                          <Text className="text-sm md:text-base" fw={600}>{rule.points_value} points = ৳{rule.currency_value}</Text>
                         </Group>
                       )}
 
                       <Group  mt="xs">
                         <Button
                           variant="light"
-                          size="xs"
+                          className="text-xs md:text-sm flex-1"
                           leftSection={<IconPencil size={14} />}
-                          style={{ flex: 1 }}
                         >
                           Edit
                         </Button>
                         <ActionIcon
                           variant="subtle"
                           color="red"
-                          size="sm"
+                          className="text-sm md:text-base"
                           onClick={() => openDeleteModal('Rule', rule.id, rule.name)}
                         >
                           <IconTrash size={16} />
@@ -462,7 +461,7 @@ export default function LoyaltyPage() {
           <Tabs.Panel value="tiers">
             <Stack  mt="md">
               <Alert variant="light" color="yellow" icon={<IconInfoCircle size={16} />}>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   Customer tiers are automatically assigned based on accumulated loyalty points. Higher tiers unlock exclusive benefits.
                 </Text>
               </Alert>
@@ -484,15 +483,15 @@ export default function LoyaltyPage() {
                       {/* Header */}
                       <Group justify="space-between" wrap="wrap">
                         <Group >
-                          <Text size="xl">{tier.icon}</Text>
+                          <Text className="text-xl md:text-2xl lg:text-3xl">{tier.icon}</Text>
                           <Box>
                             <Group  mb="xs">
                               <Title order={4} className="text-base md:text-lg lg:text-xl">{tier.name}</Title>
                               {index === 3 && (
-                                <Badge color="yellow" variant="filled" size="sm">Premium</Badge>
+                                <Badge color="yellow" variant="filled" className="text-sm md:text-base">Premium</Badge>
                               )}
                             </Group>
-                            <Text size="sm" c="dimmed">
+                            <Text className="text-sm md:text-base" c="dimmed">
                               {tier.min_points.toLocaleString()} - {tier.max_points ? tier.max_points.toLocaleString() : '∞'} points
                             </Text>
                           </Box>
@@ -500,7 +499,7 @@ export default function LoyaltyPage() {
                         <Group >
                           <Button
                             variant="light"
-                            size="sm"
+                            className="text-sm md:text-base"
                             leftSection={<IconPencil size={14} />}
                           >
                             Edit Benefits
@@ -510,12 +509,12 @@ export default function LoyaltyPage() {
 
                       {/* Benefits */}
                       <Box>
-                        <Text size="sm" fw={600} mb="xs">Benefits:</Text>
+                        <Text className="text-sm md:text-base" fw={600} mb="xs">Benefits:</Text>
                         <SimpleGrid cols={{ base: 1, sm: 2 }}>
                           {tier.benefits.map((benefit, idx) => (
                             <Group key={idx} >
                               <IconCheck size={14} color="green" />
-                              <Text size="sm">{benefit}</Text>
+                              <Text className="text-sm md:text-base">{benefit}</Text>
                             </Group>
                           ))}
                         </SimpleGrid>
@@ -523,7 +522,7 @@ export default function LoyaltyPage() {
 
                       {/* Member count - mock */}
                       <Box pt="xs">
-                        <Text size="xs" c="dimmed">
+                        <Text className="text-xs md:text-sm" c="dimmed">
                           {index === 0 && '150 members'}
                           {index === 1 && '80 members'}
                           {index === 2 && '45 members'}
@@ -547,7 +546,7 @@ export default function LoyaltyPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.currentTarget.value)}
                   style={{ flex: 1, maxWidth: '400px' }}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
                 <Button
                   leftSection={<IconPlus size={16} />}
@@ -581,7 +580,7 @@ export default function LoyaltyPage() {
                       </Box>
 
                       {/* Title */}
-                      <Text fw={700} size="lg" ta="center">{reward.name}</Text>
+                      <Text fw={700} className="text-lg md:text-xl lg:text-2xl" ta="center">{reward.name}</Text>
 
                       {/* Points */}
                       <Box
@@ -592,21 +591,21 @@ export default function LoyaltyPage() {
                           textAlign: 'center',
                         }}
                       >
-                        <Text size="xs" c="dimmed">Points Required</Text>
-                        <Text fw={700} size="xl" c="var(--mantine-color-yellow-filled)">
+                        <Text className="text-xs md:text-sm" c="dimmed">Points Required</Text>
+                        <Text fw={700} className="text-xl md:text-2xl lg:text-3xl" c="var(--mantine-color-yellow-filled)">
                           {reward.points_required.toLocaleString()}
                         </Text>
                       </Box>
 
                       {/* Description */}
-                      <Text size="sm" c="dimmed" ta="center">{reward.description}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed" ta="center">{reward.description}</Text>
 
                       {/* Stock */}
                       {reward.stock !== null && (
                         <Group justify="center" >
-                          <Text size="xs" c="dimmed">Available:</Text>
-                          <Text size="sm" fw={600}>{reward.stock - reward.redeemed}</Text>
-                          <Text size="xs" c="dimmed">/ {reward.stock}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">Available:</Text>
+                          <Text className="text-sm md:text-base" fw={600}>{reward.stock - reward.redeemed}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">/ {reward.stock}</Text>
                         </Group>
                       )}
 
@@ -624,23 +623,22 @@ export default function LoyaltyPage() {
                       <Group >
                         <Button
                           variant="light"
-                          size="xs"
+                          className="text-xs md:text-sm flex-1"
                           leftSection={<IconEye size={14} />}
-                          style={{ flex: 1 }}
                         >
                           View
                         </Button>
                         <ActionIcon
                           variant="subtle"
                           color="blue"
-                          size="sm"
+                          className="text-sm md:text-base"
                         >
                           <IconPencil size={16} />
                         </ActionIcon>
                         <ActionIcon
                           variant="subtle"
                           color="red"
-                          size="sm"
+                          className="text-sm md:text-base"
                           onClick={() => openDeleteModal('Reward', reward.id, reward.name)}
                         >
                           <IconTrash size={16} />
@@ -663,7 +661,7 @@ export default function LoyaltyPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.currentTarget.value)}
                   style={{ flex: 1, maxWidth: '400px' }}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
               </Group>
 
@@ -693,13 +691,13 @@ export default function LoyaltyPage() {
                       filteredTransactions.map((txn) => (
                         <Table.Tr key={txn.id}>
                           <Table.Td>
-                            <Text fw={600} size="sm">{txn.customer_name}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{txn.customer_name}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Badge
                               color={txn.type === 'earned' ? 'green' : 'red'}
                               variant="light"
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               {txn.type === 'earned' ? 'Earned' : 'Redeemed'}
                             </Badge>
@@ -707,20 +705,20 @@ export default function LoyaltyPage() {
                           <Table.Td>
                             <Text
                               fw={700}
-                              size="sm"
+                              className="text-sm md:text-base"
                               c={txn.type === 'earned' ? 'green' : 'red'}
                             >
                               {txn.type === 'earned' ? '+' : ''}{txn.points}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{txn.description}</Text>
+                            <Text className="text-sm md:text-base">{txn.description}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text fw={600} size="sm">{txn.balance_after}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{txn.balance_after}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{txn.date}</Text>
+                            <Text className="text-sm md:text-base">{txn.date}</Text>
                           </Table.Td>
                         </Table.Tr>
                       ))
@@ -739,27 +737,27 @@ export default function LoyaltyPage() {
                   filteredTransactions.map((txn) => (
                     <Card key={txn.id} shadow="sm" p="sm" radius="md" withBorder>
                       <Group justify="space-between" mb="xs">
-                        <Text fw={600} size="sm">{txn.customer_name}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{txn.customer_name}</Text>
                         <Badge
                           color={txn.type === 'earned' ? 'green' : 'red'}
                           variant="light"
-                          size="sm"
+                          className="text-sm md:text-base"
                         >
                           {txn.type === 'earned' ? 'Earned' : 'Redeemed'}
                         </Badge>
                       </Group>
-                      <Text size="sm" mb="xs">{txn.description}</Text>
+                      <Text className="text-sm md:text-base" mb="xs">{txn.description}</Text>
                       <Group justify="space-between">
                         <Text
                           fw={700}
-                          size="lg"
+                          className="text-lg md:text-xl lg:text-2xl"
                           c={txn.type === 'earned' ? 'green' : 'red'}
                         >
                           {txn.type === 'earned' ? '+' : ''}{txn.points}
                         </Text>
                         <Box style={{ textAlign: 'right' }}>
-                          <Text size="xs" c="dimmed">Balance: {txn.balance_after}</Text>
-                          <Text size="xs" c="dimmed">{txn.date}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">Balance: {txn.balance_after}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">{txn.date}</Text>
                         </Box>
                       </Group>
                     </Card>

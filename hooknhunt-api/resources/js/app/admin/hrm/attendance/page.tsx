@@ -468,7 +468,7 @@ export default function AttendancePage() {
       return (
         <Group key={i} gap={4} wrap="nowrap">
           <IconCoffee size={14} style={{ color: isActive ? '#f59e0b' : '#6b7280' }} />
-          <Text size="xs" c="dimmed">
+          <Text className="text-xs md:text-sm" c="dimmed">
             {inTime} - {outTime}
             {duration && (
               <Text span c="orange" fw={500}> ({duration})</Text>
@@ -491,12 +491,12 @@ export default function AttendancePage() {
         {/* Header with refresh button */}
         <Box>
           <Group justify="space-between" align="flex-start">
-            <Box style={{ flex: 1 }}>
+            <Box className="flex-1">
               <AttendanceActions myAttendance={todayAttendance} onRefresh={fetchAttendance} />
             </Box>
             <ActionIcon
               variant="light"
-              size="lg"
+              className="text-lg md:text-xl lg:text-2xl"
               onClick={handleRefresh}
               loading={loading}
             >
@@ -509,8 +509,8 @@ export default function AttendancePage() {
         {todayAttendance && (
           <Card withBorder p="md" radius="md" shadow="sm">
             <Group justify="space-between" align="flex-start">
-              <Box style={{ flex: 1 }}>
-                <Text size="sm" c="dimmed">{t('hrm.attendance.todaysStatus')}</Text>
+              <Box className="flex-1">
+                <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.todaysStatus')}</Text>
                 <Group mt="xs" wrap="nowrap">
                   <Badge
                     color={
@@ -519,22 +519,22 @@ export default function AttendancePage() {
                       todayAttendance.status === 'absent' ? 'red' :
                       'blue'
                     }
-                    size="lg"
+                    className="text-lg md:text-xl lg:text-2xl"
                   >
                     {todayAttendance.status.toUpperCase()}
                   </Badge>
-                  <Text size="lg" fw={500}>
+                  <Text className="text-lg md:text-xl lg:text-2xl" fw={500}>
                     In: {formatTime(todayAttendance.clock_in)}
                   </Text>
                   {todayAttendance.clock_out && (
-                    <Text size="lg" fw={500}>
+                    <Text className="text-lg md:text-xl lg:text-2xl" fw={500}>
                       Out: {formatTime(todayAttendance.clock_out)}
                     </Text>
                   )}
                 </Group>
                 {todayAttendance.break_in && todayAttendance.break_in.length > 0 && (
                   <Stack mt="xs" gap={2}>
-                    <Text size="xs" c="dimmed" fw={500}>{t('hrm.attendance.breaks')}:</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed" fw={500}>{t('hrm.attendance.breaks')}:</Text>
                     <Stack gap={2}>
                       {formatBreakTimes(todayAttendance.break_in, todayAttendance.break_out)}
                     </Stack>
@@ -543,8 +543,8 @@ export default function AttendancePage() {
               </Box>
               {todayAttendance.clock_in && todayAttendance.clock_out && (
                 <Box>
-                  <Text size="sm" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
-                  <Text size="xl" fw={700}>
+                  <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
+                  <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
                     {calculateHours(todayAttendance.clock_in, todayAttendance.clock_out, todayAttendance.break_in, todayAttendance.break_out)}
                   </Text>
                 </Box>
@@ -556,36 +556,36 @@ export default function AttendancePage() {
         {/* Stats */}
         <Stack  display={{ base: 'none', md: 'flex' }}>
           <Group >
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconCheck size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-                <Text size="xs" c="dimmed">{t('hrm.attendance.presentDays')}</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.attendance.presentDays')}</Text>
               </Group>
-              <Text size="xl" fw={700}>{presentDays}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{presentDays}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconClock size={20} style={{ color: 'var(--mantine-color-yellow-filled)' }} />
-                <Text size="xs" c="dimmed">{t('hrm.attendance.lateDays')}</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.attendance.lateDays')}</Text>
               </Group>
-              <Text size="xl" fw={700}>{lateDays}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{lateDays}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconX size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-                <Text size="xs" c="dimmed">{t('hrm.attendance.absentDays')}</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.attendance.absentDays')}</Text>
               </Group>
-              <Text size="xl" fw={700}>{absentDays}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{absentDays}</Text>
             </Card>
 
-            <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+            <Card withBorder p="md" radius="md" className="flex-1">
               <Group >
                 <IconCalendar size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                <Text size="xs" c="dimmed">{t('hrm.attendance.leaveDays')}</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.attendance.leaveDays')}</Text>
               </Group>
-              <Text size="xl" fw={700}>{leaveDays}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{leaveDays}</Text>
             </Card>
           </Group>
         </Stack>
@@ -599,7 +599,7 @@ export default function AttendancePage() {
               value={monthFilter || ''}
               onChange={(e) => setMonthFilter(e.currentTarget.value)}
               style={{ width: '150px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             <Select
               placeholder={t('hrm.attendance.filterByStatus')}
@@ -608,7 +608,7 @@ export default function AttendancePage() {
               value={statusFilter}
               onChange={(value) => setStatusFilter(value)}
               style={{ width: '150px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             {isAdmin && (
               <Select
@@ -620,7 +620,7 @@ export default function AttendancePage() {
                 value={employeeFilter}
                 onChange={(value) => setEmployeeFilter(value)}
                 style={{ width: '200px' }}
-                size="md"
+                className="text-base md:text-lg"
               />
             )}
           </Group>
@@ -657,11 +657,11 @@ export default function AttendancePage() {
                   <Table.Tr key={record.id}>
                     {isAdmin && (
                       <Table.Td>
-                        <Text fw={500} size="sm">{record.user?.name || 'N/A'}</Text>
+                        <Text fw={500} className="text-sm md:text-base">{record.user?.name || 'N/A'}</Text>
                       </Table.Td>
                     )}
                     <Table.Td>
-                      <Text size="sm">
+                      <Text className="text-sm md:text-base">
                         {new Date(record.date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -670,10 +670,10 @@ export default function AttendancePage() {
                       </Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500} size="sm">{formatTime(record.clock_in)}</Text>
+                      <Text fw={500} className="text-sm md:text-base">{formatTime(record.clock_in)}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500} size="sm">{formatTime(record.clock_out)}</Text>
+                      <Text fw={500} className="text-sm md:text-base">{formatTime(record.clock_out)}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Stack gap={4}>
@@ -681,7 +681,7 @@ export default function AttendancePage() {
                       </Stack>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500} size="sm">
+                      <Text fw={500} className="text-sm md:text-base">
                         {record.clock_out ? calculateHours(record.clock_in, record.clock_out, record.break_in, record.break_out) : '-'}
                       </Text>
                     </Table.Td>
@@ -695,20 +695,20 @@ export default function AttendancePage() {
                           'gray'
                         }
                         variant="light"
-                        size="sm"
+                        className="text-sm md:text-base"
                       >
                         {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                       </Badge>
                     </Table.Td>
                     <Table.Td>
-                      <Text size="sm" c="dimmed">{record.note || '-'}</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">{record.note || '-'}</Text>
                     </Table.Td>
                     {isAdmin && (
                       <Table.Td>
                         <ActionIcon
                           variant="subtle"
                           color="blue"
-                          size="sm"
+                          className="text-sm md:text-base"
                           onClick={() => openEditModal(record)}
                         >
                           <IconPencil size={16} />
@@ -733,68 +733,68 @@ export default function AttendancePage() {
         >
           <Stack >
             <Stack >
-              <Text size="sm" fw={500}>{t('hrm.attendance.employee')} *</Text>
+              <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.employee')} *</Text>
               <Select
                 placeholder={t('hrm.attendance.selectEmployee')}
                 data={employees.map(emp => ({ value: String(emp.id), label: emp.name }))}
                 value={formData.user_id}
                 onChange={(value) => setFormData({ ...formData, user_id: value })}
                 searchable
-                size="md"
+                className="text-base md:text-lg"
                 disabled
               />
             </Stack>
 
             <Stack >
-              <Text size="sm" fw={500}>{t('hrm.attendance.date')} *</Text>
+              <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.date')} *</Text>
               <TextInput
                 type="date"
                 value={formData.date || ''}
                 onChange={(e) => setFormData({ ...formData, date: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
               />
             </Stack>
 
             <Group >
-              <Stack  style={{ flex: 1 }}>
-                <Text size="sm" fw={500}>{t('hrm.attendance.clockIn')}</Text>
+              <Stack  className="flex-1">
+                <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.clockIn')}</Text>
                 <TextInput
                   type="time"
                   value={formData.clock_in || ''}
                   onChange={(e) => setFormData({ ...formData, clock_in: e.currentTarget.value })}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
               </Stack>
 
-              <Stack  style={{ flex: 1 }}>
-                <Text size="sm" fw={500}>{t('hrm.attendance.clockOut')}</Text>
+              <Stack  className="flex-1">
+                <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.clockOut')}</Text>
                 <TextInput
                   type="time"
                   value={formData.clock_out || ''}
                   onChange={(e) => setFormData({ ...formData, clock_out: e.currentTarget.value })}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
               </Stack>
             </Group>
 
             <Stack >
-              <Text size="sm" fw={500}>{t('hrm.attendance.status.label')} *</Text>
+              <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.status.label')} *</Text>
               <Select
                 placeholder={t('hrm.attendance.selectStatus')}
                 data={statusFormOptions}
                 value={formData.status}
                 onChange={(value) => setFormData({ ...formData, status: value })}
-                size="md"
+                className="text-base md:text-lg"
               />
             </Stack>
 
             <Stack >
-              <Text size="sm" fw={500}>{t('hrm.attendance.note')}</Text>
+              <Text className="text-sm md:text-base" fw={500}>{t('hrm.attendance.note')}</Text>
               <Textarea
                 placeholder={t('hrm.attendance.enterNote')}
                 value={formData.note}
                 onChange={(e) => setFormData({ ...formData, note: e.currentTarget.value })}
-                size="md"
+                className="text-base md:text-lg"
                 rows={3}
               />
             </Stack>

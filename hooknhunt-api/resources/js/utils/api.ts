@@ -385,3 +385,396 @@ const deleteExpense = async (id: number) => {
   const response = await api.delete(`expenses/${id}`)
   return response.data
 }
+
+// ============================================
+// SUPPLIERS API METHODS
+// ============================================
+
+export type Supplier = {
+  id: number
+  name: string
+  email: string
+  whatsapp?: string | null
+  shopUrl?: string | null
+  shopName?: string | null
+  contactPerson?: string | null
+  phone?: string | null
+  wechatId?: string | null
+  wechatQrFile?: string | null
+  wechatQrUrl?: string | null
+  alipayId?: string | null
+  alipayQrFile?: string | null
+  alipayQrUrl?: string | null
+  address?: string | null
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type SupplierFilters = {
+  search?: string
+  is_active?: boolean | null
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all suppliers with optional filters
+ * GET /api/v2/user-management/suppliers
+ */
+export const getSuppliers = async (filters?: SupplierFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.is_active !== undefined && filters.is_active !== null) {
+    params.append('is_active', filters.is_active ? '1' : '0')
+  }
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const response = await api.get(`user-management/suppliers?${params}`)
+  return response.data
+}
+
+/**
+ * Get single supplier by ID
+ * GET /api/v2/user-management/suppliers/{id}
+ */
+export const getSupplier = async (id: number) => {
+  const response = await api.get(`user-management/suppliers/${id}`)
+  return response.data
+}
+
+/**
+ * Create new supplier
+ * POST /api/v2/user-management/suppliers
+ */
+export const createSupplier = async (data: {
+  name: string
+  email: string
+  whatsapp?: string
+  shop_url?: string
+  shop_name?: string
+  contact_person?: string
+  phone?: string
+  wechat_id?: string
+  wechat_qr_file?: string
+  wechat_qr_url?: string
+  alipay_id?: string
+  alipay_qr_file?: string
+  alipay_qr_url?: string
+  address?: string
+  is_active?: boolean
+} | FormData) => {
+  const response = await api.post('user-management/suppliers', data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+  })
+  return response.data
+}
+
+/**
+ * Update supplier
+ * PUT/PATCH /api/v2/user-management/suppliers/{id}
+ */
+export const updateSupplier = async (id: number, data: {
+  name?: string
+  email?: string
+  whatsapp?: string
+  shop_url?: string
+  shop_name?: string
+  contact_person?: string
+  phone?: string
+  wechat_id?: string
+  wechat_qr_file?: string
+  wechat_qr_url?: string
+  alipay_id?: string
+  alipay_qr_file?: string
+  alipay_qr_url?: string
+  address?: string
+  is_active?: boolean
+} | FormData) => {
+  const response = await api.put(`user-management/suppliers/${id}`, data, {
+    headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+  })
+  return response.data
+}
+
+/**
+ * Delete supplier
+ * DELETE /api/v2/user-management/suppliers/{id}
+ */
+export const deleteSupplier = async (id: number) => {
+  const response = await api.delete(`user-management/suppliers/${id}`)
+  return response.data
+}
+
+// ============================================
+// BRANDS API METHODS
+// ============================================
+
+export type Brand = {
+  id: number
+  name: string
+  slug: string
+  logoId?: number | null
+  website?: string | null
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string | null
+}
+
+export type BrandFilters = {
+  search?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all brands with optional filters
+ * GET /api/v2/catalog/brands
+ */
+export const getBrands = async (filters?: BrandFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const response = await api.get(`catalog/brands?${params}`)
+  return response.data
+}
+
+/**
+ * Get single brand by ID
+ * GET /api/v2/catalog/brands/{id}
+ */
+export const getBrand = async (id: number) => {
+  const response = await api.get(`catalog/brands/${id}`)
+  return response.data
+}
+
+/**
+ * Get brands for dropdown (ID & Name only)
+ * GET /api/v2/catalog/brands/dropdown
+ */
+export const getBrandsDropdown = async () => {
+  const response = await api.get('catalog/brands/dropdown')
+  return response.data
+}
+
+/**
+ * Create new brand
+ * POST /api/v2/catalog/brands
+ */
+export const createBrand = async (data: {
+  name: string
+  logoId?: number
+  website?: string
+}) => {
+  const response = await api.post('catalog/brands', {
+    name: data.name,
+    logo_id: data.logoId,
+    website: data.website,
+  })
+  return response.data
+}
+
+/**
+ * Update brand
+ * PUT/PATCH /api/v2/catalog/brands/{id}
+ */
+export const updateBrand = async (id: number, data: {
+  name?: string
+  logoId?: number
+  website?: string
+}) => {
+  const response = await api.put(`catalog/brands/${id}`, {
+    name: data.name,
+    logo_id: data.logoId,
+    website: data.website,
+  })
+  return response.data
+}
+
+/**
+ * Delete brand
+ * DELETE /api/v2/catalog/brands/{id}
+ */
+export const deleteBrand = async (id: number) => {
+  const response = await api.delete(`catalog/brands/${id}`)
+  return response.data
+}
+
+// ============================================
+// MEDIA LIBRARY API METHODS
+// ============================================
+
+export type MediaFolder = {
+  id: number
+  name: string
+  slug: string
+  parentId?: number | null
+  mediaFilesCount?: number
+  viewRoles?: string[] | null
+  editRoles?: string[] | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type MediaFile = {
+  id: number
+  folderId?: number | null
+  filename: string
+  originalFilename: string
+  path: string
+  url: string
+  mimeType: string
+  size: number
+  disk: string
+  width?: number | null
+  height?: number | null
+  uploadedByUserId?: number | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type MediaFilters = {
+  folderId?: number
+  type?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all folders
+ * GET /api/v2/media/folders
+ */
+export const getMediaFolders = async () => {
+  const response = await api.get('media/folders')
+  return response.data
+}
+
+/**
+ * Create new folder
+ * POST /api/v2/media/folders
+ */
+export const createMediaFolder = async (data: {
+  name: string
+  parentId?: number
+  viewRoles?: string[]
+  editRoles?: string[]
+}) => {
+  const response = await api.post('media/folders', {
+    name: data.name,
+    parent_id: data.parentId,
+    view_roles: data.viewRoles || [],
+    edit_roles: data.editRoles || [],
+  })
+  return response.data
+}
+
+/**
+ * Get files with filters
+ * GET /api/v2/media/files
+ */
+export const getMediaFiles = async (filters?: MediaFilters) => {
+  const params = new URLSearchParams()
+  if (filters?.folderId) params.append('folder_id', filters.folderId.toString())
+  if (filters?.type) params.append('type', filters.type)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const response = await api.get(`media/files?${params}`)
+  return response.data
+}
+
+/**
+ * Upload files
+ * POST /api/v2/media/upload
+ */
+export const uploadMediaFiles = async (files: FileList | File[], folderId?: number) => {
+  const formData = new FormData()
+  files = Array.from(files)
+
+  files.forEach((file) => {
+    formData.append('files[]', file)
+  })
+
+  if (folderId) {
+    formData.append('folder_id', folderId.toString())
+  }
+
+  const response = await api.post('media/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return response.data
+}
+
+/**
+ * Bulk delete files
+ * DELETE /api/v2/media/files/bulk-delete
+ */
+export const bulkDeleteMediaFiles = async (ids: number[]) => {
+  const response = await api.delete('media/files/bulk-delete', { data: { ids } })
+  return response.data
+}
+
+/**
+ * Bulk move files to folder
+ * POST /api/v2/media/files/bulk-move
+ */
+export const bulkMoveMediaFiles = async (ids: number[], folderId: number | null) => {
+  const response = await api.post('media/files/bulk-move', {
+    ids,
+    folder_id: folderId,
+  })
+  return response.data
+}
+
+/**
+ * Delete folder
+ * DELETE /api/v2/media/folders/{id}
+ */
+export const deleteMediaFolder = async (id: number) => {
+  const response = await api.delete(`media/folders/${id}`)
+  return response.data
+}
+
+/**
+ * Update/Rename folder
+ * PUT/PATCH /api/v2/media/folders/{id}
+ */
+export const updateMediaFolder = async (id: number, data: {
+  name: string
+  viewRoles?: string[]
+  editRoles?: string[]
+}) => {
+  const response = await api.put(`media/folders/${id}`, {
+    name: data.name,
+    view_roles: data.viewRoles,
+    edit_roles: data.editRoles,
+  })
+  return response.data
+}
+
+/**
+ * Get single media file
+ * GET /api/v2/media/files/{id}
+ */
+export const getMediaFile = async (id: number) => {
+  const response = await api.get(`media/files/${id}`)
+  return response.data
+}
+
+/**
+ * Update media file (move, rename, alt text)
+ * PUT /api/v2/media/files/{id}
+ */
+export const updateMediaFile = async (id: number, data: {
+  folder_id?: number | null
+  alt_text?: string
+  filename?: string
+}) => {
+  const response = await api.put(`media/files/${id}`, data)
+  return response.data
+}

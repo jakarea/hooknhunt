@@ -164,10 +164,10 @@ export default function CashFlowPage() {
               )}
             </Table.Td>
             <Table.Td>
-              <Text size="sm">{item.description}</Text>
+              <Text className="text-sm md:text-base">{item.description}</Text>
             </Table.Td>
             <Table.Td ta="right">
-              <Text size="sm" fw={600} c={item.amount >= 0 ? 'green' : 'red'}>
+              <Text className="text-sm md:text-base" fw={600} c={item.amount >= 0 ? 'green' : 'red'}>
                 {item.amount >= 0 ? '+' : '-'}
                 {Math.abs(item.amount).toLocaleString()}
               </Text>
@@ -222,7 +222,7 @@ export default function CashFlowPage() {
                 style={{ width: 180 }}
               />
             </Group>
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.cashFlowPage.period')}: {formatDate(startDate)} - {formatDate(endDate)}
             </Text>
           </Group>
@@ -232,9 +232,9 @@ export default function CashFlowPage() {
         <Group>
           <Card withBorder p="md" radius="md" style={{ flex: 1, borderTop: '4px solid var(--mantine-color-teal-filled)' }}>
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.cashFlowPage.netChange')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.cashFlowPage.netChange')}</Text>
             </Group>
-            <Text size="xl" fw={700} c={calculations.netCashFlow >= 0 ? 'teal' : 'red'}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c={calculations.netCashFlow >= 0 ? 'teal' : 'red'}>
               {calculations.netCashFlow >= 0 ? '+' : '-'}
               {Math.abs(calculations.netCashFlow).toLocaleString()}
             </Text>
@@ -242,18 +242,18 @@ export default function CashFlowPage() {
 
           <Card withBorder p="md" radius="md" style={{ flex: 1, borderTop: '4px solid var(--mantine-color-blue-filled)' }}>
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.cashFlowPage.beginningBalance')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.cashFlowPage.beginningBalance')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="blue">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
               {beginningBalance.toLocaleString()}
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md" style={{ flex: 1, borderTop: '4px solid var(--mantine-color-cyan-filled)' }}>
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.cashFlowPage.endingBalance')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.cashFlowPage.endingBalance')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="cyan">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="cyan">
               {calculations.endingBalance.toLocaleString()}
             </Text>
           </Card>
@@ -271,35 +271,35 @@ export default function CashFlowPage() {
             <Group justify="space-between">
               <Group>
                 {expandedSections.has('operating') ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                <Text size="sm" fw={600} c="teal">{t('finance.cashFlowPage.operating')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="teal">{t('finance.cashFlowPage.operating')}</Text>
               </Group>
-              <Text size="sm" fw={700} c="teal">
+              <Text className="text-sm md:text-base" fw={700} c="teal">
                 {calculations.netOperatingCashFlow.toLocaleString()}
               </Text>
             </Group>
           </Card>
           <Collapse in={expandedSections.has('operating')}>
             <Box p="md">
-              <Text size="xs" fw={600} c="green" mb="xs">{t('finance.cashFlowPage.operatingInflow')}</Text>
+              <Text className="text-xs md:text-sm" fw={600} c="green" mb="xs">{t('finance.cashFlowPage.operatingInflow')}</Text>
               {renderCashFlowItems(mockOperatingInflow)}
               <Group justify="flex-end" mt="xs" mb="md">
-                <Text size="sm" fw={600} c="green">
+                <Text className="text-sm md:text-base" fw={600} c="green">
                   Total Inflow: {calculations.totalOperatingInflow.toLocaleString()}
                 </Text>
               </Group>
 
-              <Text size="xs" fw={600} c="red" mb="xs">{t('finance.cashFlowPage.operatingOutflow')}</Text>
+              <Text className="text-xs md:text-sm" fw={600} c="red" mb="xs">{t('finance.cashFlowPage.operatingOutflow')}</Text>
               {renderCashFlowItems(mockOperatingOutflow)}
               <Group justify="flex-end" mt="xs">
-                <Text size="sm" fw={600} c="red">
+                <Text className="text-sm md:text-base" fw={600} c="red">
                   Total Outflow: {Math.abs(calculations.totalOperatingOutflow).toLocaleString()}
                 </Text>
               </Group>
 
               <Card withBorder p="xs" radius="sm" bg="teal.0">
                 <Group justify="space-between">
-                  <Text size="sm" fw={700} c="teal">{t('finance.cashFlowPage.netOperating')}</Text>
-                  <Text size="sm" fw={700} c="teal">
+                  <Text className="text-sm md:text-base" fw={700} c="teal">{t('finance.cashFlowPage.netOperating')}</Text>
+                  <Text className="text-sm md:text-base" fw={700} c="teal">
                     {calculations.netOperatingCashFlow.toLocaleString()}
                   </Text>
                 </Group>
@@ -320,9 +320,9 @@ export default function CashFlowPage() {
             <Group justify="space-between">
               <Group>
                 {expandedSections.has('bank') ? <IconChevronDown size={16} /> : <IconChevronRight size={16} />}
-                <Text size="sm" fw={600} c="blue">BANK TRANSACTIONS</Text>
+                <Text className="text-sm md:text-base" fw={600} c="blue">BANK TRANSACTIONS</Text>
               </Group>
-              <Text size="sm" fw={700} c="blue">
+              <Text className="text-sm md:text-base" fw={700} c="blue">
                 {calculations.netBankTransfers.toLocaleString()}
               </Text>
             </Group>
@@ -332,8 +332,8 @@ export default function CashFlowPage() {
               {renderCashFlowItems(mockBankTransactions)}
               <Card withBorder p="xs" radius="sm" bg="blue.0">
                 <Group justify="space-between">
-                  <Text size="sm" fw={700} c="blue">Net Bank Transfers</Text>
-                  <Text size="sm" fw={700} c="blue">
+                  <Text className="text-sm md:text-base" fw={700} c="blue">Net Bank Transfers</Text>
+                  <Text className="text-sm md:text-base" fw={700} c="blue">
                     {calculations.netBankTransfers.toLocaleString()}
                   </Text>
                 </Group>
@@ -354,23 +354,23 @@ export default function CashFlowPage() {
         >
           <Stack gap="sm">
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{t('finance.cashFlowPage.beginningBalance')}</Text>
-              <Text size="lg" fw={700} c="blue">
+              <Text className="text-sm md:text-base" fw={600}>{t('finance.cashFlowPage.beginningBalance')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="blue">
                 {beginningBalance.toLocaleString()}
               </Text>
             </Group>
 
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{t('finance.cashFlowPage.netChange')}</Text>
-              <Text size="lg" fw={700} c={calculations.netCashFlow >= 0 ? 'teal' : 'red'}>
+              <Text className="text-sm md:text-base" fw={600}>{t('finance.cashFlowPage.netChange')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c={calculations.netCashFlow >= 0 ? 'teal' : 'red'}>
                 {calculations.netCashFlow >= 0 ? '+' : '-'}
                 {Math.abs(calculations.netCashFlow).toLocaleString()}
               </Text>
             </Group>
 
             <Group justify="space-between" style={{ borderTop: '2px solid var(--mantine-color-gray-3)', paddingTop: 'var(--mantine-spacing-sm)' }}>
-              <Text size="md" fw={700} c="cyan">{t('finance.cashFlowPage.endingBalance')}</Text>
-              <Text size="xl" fw={900} c="cyan">
+              <Text className="text-base md:text-lg" fw={700} c="cyan">{t('finance.cashFlowPage.endingBalance')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={900} c="cyan">
                 {calculations.endingBalance.toLocaleString()}
               </Text>
             </Group>
@@ -381,20 +381,20 @@ export default function CashFlowPage() {
         <Card withBorder p="md" radius="md">
           <Stack gap="xs">
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Total Cash Inflow</Text>
-              <Text size="sm" fw={600} c="green">
+              <Text className="text-sm md:text-base" c="dimmed">Total Cash Inflow</Text>
+              <Text className="text-sm md:text-base" fw={600} c="green">
                 {calculations.totalOperatingInflow.toLocaleString()}
               </Text>
             </Group>
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Total Cash Outflow</Text>
-              <Text size="sm" fw={600} c="red">
+              <Text className="text-sm md:text-base" c="dimmed">Total Cash Outflow</Text>
+              <Text className="text-sm md:text-base" fw={600} c="red">
                 {Math.abs(calculations.totalOperatingOutflow).toLocaleString()}
               </Text>
             </Group>
             <Group justify="space-between">
-              <Text size="sm" c="dimmed">Cash Flow Coverage Ratio</Text>
-              <Text size="sm" fw={600}>
+              <Text className="text-sm md:text-base" c="dimmed">Cash Flow Coverage Ratio</Text>
+              <Text className="text-sm md:text-base" fw={600}>
                 {calculations.totalOperatingOutflow !== 0 ? (calculations.totalOperatingInflow / Math.abs(calculations.totalOperatingOutflow)).toFixed(2) : '0.00'}x
               </Text>
             </Group>

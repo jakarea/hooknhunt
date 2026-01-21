@@ -172,7 +172,7 @@ export default function CreateExpensePage() {
         <Paper withBorder p="xl" radius="md" shadow="sm" component="form" onSubmit={handleSubmit}>
           <Stack>
             <Alert variant="light" color="blue" title={t('finance.banksPage.expensesCreatePage.expenseInformation')} mb="md">
-              <Text size="sm">{t('finance.banksPage.expensesCreatePage.description')}</Text>
+              <Text className="text-sm md:text-base">{t('finance.banksPage.expensesCreatePage.description')}</Text>
             </Alert>
 
             <Stack gap="md">
@@ -202,7 +202,7 @@ export default function CreateExpensePage() {
                 thousandSeparator=","
                 prefix="৳"
                 hideControls
-                leftSection={<Text size="sm">৳</Text>}
+                leftSection={<Text className="text-sm md:text-base">৳</Text>}
               />
 
               {/* Expense Account */}
@@ -225,19 +225,19 @@ export default function CreateExpensePage() {
               {formData.account_id && mockExpenseAccounts.find((acc) => acc.id === parseInt(formData.account_id as string))?.name === 'Salaries' && (
                 <Alert variant="light" color="yellow" title={t('finance.banksPage.expensesCreatePage.payrollWarning.title')}>
                   <Stack gap="xs">
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       <strong>{t('finance.banksPage.expensesCreatePage.payrollWarning.note')}</strong> {t('finance.banksPage.expensesCreatePage.payrollWarning.noteText')}{' '}
                       <Text span fw={600} c="blue">{t('finance.banksPage.expensesCreatePage.payrollWarning.hrmModule')}</Text> {t('finance.banksPage.expensesCreatePage.payrollWarning.moduleText')}
                     </Text>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {t('finance.banksPage.expensesCreatePage.payrollWarning.accountUsage')}
                     </Text>
-                    <Text size="sm" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.contractWorkers')}</Text>
-                    <Text size="sm" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.oneTimeBonuses')}</Text>
-                    <Text size="sm" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.adjustments')}</Text>
-                    <Text size="sm" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.taxPayments')}</Text>
+                    <Text className="text-sm md:text-base" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.contractWorkers')}</Text>
+                    <Text className="text-sm md:text-base" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.oneTimeBonuses')}</Text>
+                    <Text className="text-sm md:text-base" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.adjustments')}</Text>
+                    <Text className="text-sm md:text-base" ml="sm">• {t('finance.banksPage.expensesCreatePage.payrollWarning.taxPayments')}</Text>
                     <Divider />
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       {t('finance.banksPage.expensesCreatePage.payrollWarning.noteText2')}
                     </Text>
                   </Stack>

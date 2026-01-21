@@ -460,11 +460,11 @@ export default function CustomersPage() {
     return (
       <Table.Tr key={customer.id}>
         <Table.Td>
-          <Text fw={600} size="sm">{customer.name}</Text>
-          <Text size="xs" c="dimmed">{customer.email || 'No email'}</Text>
+          <Text fw={600} className="text-sm md:text-base">{customer.name}</Text>
+          <Text className="text-xs md:text-sm" c="dimmed">{customer.email || 'No email'}</Text>
         </Table.Td>
         <Table.Td>
-          <Text size="sm">{customer.phone}</Text>
+          <Text className="text-sm md:text-base">{customer.phone}</Text>
         </Table.Td>
         <Table.Td>
           <Badge color={type === 'wholesale' ? 'blue' : 'gray'} variant="light">
@@ -473,17 +473,17 @@ export default function CustomersPage() {
         </Table.Td>
         <Table.Td>
           <Group>
-            <Text size="sm" fw={500}>{formatCurrency(totalSpent)}</Text>
+            <Text className="text-sm md:text-base" fw={500}>{formatCurrency(totalSpent)}</Text>
           </Group>
         </Table.Td>
         <Table.Td>
           <Group>
-            <Text size="sm">{totalOrders}</Text>
-            <Text size="xs" c="dimmed">{t('crm.customers.orders')}</Text>
+            <Text className="text-sm md:text-base">{totalOrders}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.orders')}</Text>
           </Group>
         </Table.Td>
         <Table.Td>
-          <Text size="sm">{loyaltyPoints} {t('crm.customers.points')}</Text>
+          <Text className="text-sm md:text-base">{loyaltyPoints} {t('crm.customers.points')}</Text>
         </Table.Td>
         <Table.Td>
           <Badge color={isActive ? 'green' : 'gray'} variant="light">
@@ -491,7 +491,7 @@ export default function CustomersPage() {
           </Badge>
         </Table.Td>
         <Table.Td>
-          <Text size="sm">{formatDate(customer.createdAt)}</Text>
+          <Text className="text-sm md:text-base">{formatDate(customer.createdAt)}</Text>
         </Table.Td>
         <Table.Td>
           <Group>
@@ -540,10 +540,10 @@ export default function CustomersPage() {
         <Stack>
           {/* Header with name and actions */}
           <Group justify="space-between">
-            <Box style={{ flex: 1 }}>
-              <Text fw={700} size="lg">{customer.name}</Text>
-              <Text size="sm" c="dimmed">{customer.email || 'No email'}</Text>
-              <Text size="xs" c="dimmed" mt={2}>{customer.phone}</Text>
+            <Box className="flex-1">
+              <Text fw={700} className="text-lg md:text-xl lg:text-2xl">{customer.name}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{customer.email || 'No email'}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed" mt={2}>{customer.phone}</Text>
             </Box>
             <Group>
               <ActionIcon
@@ -591,22 +591,22 @@ export default function CustomersPage() {
               <Group>
                 <IconShoppingBag size={16} />
                 <Box>
-                  <Text size="xs" c="dimmed">{t('crm.customers.orders')}</Text>
-                  <Text size="sm" fw={500}>{totalOrders}</Text>
+                  <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.orders')}</Text>
+                  <Text className="text-sm md:text-base" fw={500}>{totalOrders}</Text>
                 </Box>
               </Group>
             </Grid.Col>
             <Grid.Col span={6}>
-              <Text size="xs" c="dimmed">{t('crm.customers.table.totalSpent')}</Text>
-              <Text size="sm" fw={500}>{formatCurrency(totalSpent)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.table.totalSpent')}</Text>
+              <Text className="text-sm md:text-base" fw={500}>{formatCurrency(totalSpent)}</Text>
             </Grid.Col>
             <Grid.Col span={6}>
-              <Text size="xs" c="dimmed">{t('crm.customers.table.loyaltyPoints')}</Text>
-              <Text size="sm" fw={500}>{loyaltyPoints}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.table.loyaltyPoints')}</Text>
+              <Text className="text-sm md:text-base" fw={500}>{loyaltyPoints}</Text>
             </Grid.Col>
             <Grid.Col span={6}>
-              <Text size="xs" c="dimmed">{t('crm.customers.table.joined')}</Text>
-              <Text size="sm" fw={500}>{formatDate(customer.createdAt)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.table.joined')}</Text>
+              <Text className="text-sm md:text-base" fw={500}>{formatDate(customer.createdAt)}</Text>
             </Grid.Col>
           </Grid>
         </Stack>
@@ -619,7 +619,7 @@ export default function CustomersPage() {
       title: t('crm.customers.delete'),
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           {t('crm.customers.deleteConfirm')}
         </Text>
       ),
@@ -674,7 +674,7 @@ export default function CustomersPage() {
           <Group>
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               onClick={() => fetchCustomers(pagination.current_page)}
               loading={refreshing}
               leftSection={<IconRefresh size={16} />}
@@ -683,7 +683,7 @@ export default function CustomersPage() {
             </Button>
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               onClick={exportToCSV}
               loading={exporting}
               leftSection={<IconDownload size={16} />}
@@ -694,7 +694,7 @@ export default function CustomersPage() {
               component={Link}
               to="/crm/customers/create"
               leftSection={<IconPlus size={16} />}
-              size="md"
+              className="text-base md:text-lg"
               color="red"
             >
               {t('crm.customers.add')}
@@ -712,20 +712,20 @@ export default function CustomersPage() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{ flex: 1, maxWidth: '400px' }}
-                size="md"
+                className="text-base md:text-lg"
               />
               <Select
                 placeholder={t('crm.customers.type.all')}
                 value={typeFilter}
                 onChange={setTypeFilter}
                 data={customerTypeOptions}
-                size="md"
+                className="text-base md:text-lg"
                 style={{ minWidth: '150px' }}
                 clearable
               />
               <Button
                 variant="light"
-                size="md"
+                className="text-base md:text-lg"
                 leftSection={<IconFilter size={16} />}
                 onClick={toggleFilters}
                 color={hasActiveFilters ? 'red' : 'gray'}
@@ -740,11 +740,11 @@ export default function CustomersPage() {
             <Paper withBorder p="md" radius="md">
               <Stack>
                 <Group justify="space-between">
-                  <Text fw={600} size="lg">{t('crm.customers.advancedFilters')}</Text>
+                  <Text fw={600} className="text-lg md:text-xl lg:text-2xl">{t('crm.customers.advancedFilters')}</Text>
                   {hasActiveFilters && (
                     <Button
                       variant="subtle"
-                      size="sm"
+                      className="text-sm md:text-base"
                       leftSection={<IconX size={14} />}
                       onClick={clearAllFilters}
                       color="gray"
@@ -758,7 +758,7 @@ export default function CustomersPage() {
                   {/* Status & VIP */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>{t('crm.customers.status.label')}</Text>
+                      <Text className="text-sm md:text-base" fw={500}>{t('crm.customers.status.label')}</Text>
                       <Select
                         placeholder={t('crm.customers.status.all')}
                         value={statusFilter}
@@ -771,7 +771,7 @@ export default function CustomersPage() {
 
                   <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>VIP Status</Text>
+                      <Text className="text-sm md:text-base" fw={500}>VIP Status</Text>
                       <Select
                         placeholder="Select VIP status"
                         value={vipStatusFilter}
@@ -789,7 +789,7 @@ export default function CustomersPage() {
                   {/* Location */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>Division/Region</Text>
+                      <Text className="text-sm md:text-base" fw={500}>Division/Region</Text>
                       <Select
                         placeholder="Select region"
                         value={locationFilter}
@@ -810,7 +810,7 @@ export default function CustomersPage() {
 
                   <Grid.Col span={{ base: 12, md: 6, lg: 3 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>Cities</Text>
+                      <Text className="text-sm md:text-base" fw={500}>Cities</Text>
                       <MultiSelect
                         placeholder="Select cities"
                         value={cityFilter}
@@ -832,7 +832,7 @@ export default function CustomersPage() {
                   {/* Purchase History - Total Spent */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>
+                      <Text className="text-sm md:text-base" fw={500}>
                         Total Spent: ৳{spentRangeFilter[0].toLocaleString()} - ৳{spentRangeFilter[1].toLocaleString()}
                       </Text>
                       <RangeSlider
@@ -849,7 +849,7 @@ export default function CustomersPage() {
                   {/* Purchase History - Number of Orders */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>
+                      <Text className="text-sm md:text-base" fw={500}>
                         Number of Orders: {ordersRangeFilter[0]} - {ordersRangeFilter[1]}
                       </Text>
                       <RangeSlider
@@ -866,7 +866,7 @@ export default function CustomersPage() {
                   {/* Loyalty Points */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 4 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>
+                      <Text className="text-sm md:text-base" fw={500}>
                         Loyalty Points: {loyaltyPointsFilter[0]} - {loyaltyPointsFilter[1]}
                       </Text>
                       <RangeSlider
@@ -883,14 +883,14 @@ export default function CustomersPage() {
                   {/* Date Filters */}
                   <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>Registration Date Range</Text>
+                      <Text className="text-sm md:text-base" fw={500}>Registration Date Range</Text>
                       <Group>
                         <DateInput
                           placeholder="From date"
                           value={registrationDateFrom}
                           onChange={(value) => setRegistrationDateFrom(value as Date | null)}
                           clearable
-                          size="sm"
+                          className="text-sm md:text-base"
                           maxDate={registrationDateTo || undefined}
                         />
                         <DateInput
@@ -898,7 +898,7 @@ export default function CustomersPage() {
                           value={registrationDateTo}
                           onChange={(value) => setRegistrationDateTo(value as Date | null)}
                           clearable
-                          size="sm"
+                          className="text-sm md:text-base"
                           minDate={registrationDateFrom || undefined}
                         />
                       </Group>
@@ -907,14 +907,14 @@ export default function CustomersPage() {
 
                   <Grid.Col span={{ base: 12, md: 6, lg: 6 }}>
                     <Stack gap="xs">
-                      <Text size="sm" fw={500}>Last Purchase Date Range</Text>
+                      <Text className="text-sm md:text-base" fw={500}>Last Purchase Date Range</Text>
                       <Group>
                         <DateInput
                           placeholder="From date"
                           value={lastPurchaseFrom}
                           onChange={(value) => setLastPurchaseFrom(value as Date | null)}
                           clearable
-                          size="sm"
+                          className="text-sm md:text-base"
                           maxDate={lastPurchaseTo || undefined}
                         />
                         <DateInput
@@ -922,7 +922,7 @@ export default function CustomersPage() {
                           value={lastPurchaseTo}
                           onChange={(value) => setLastPurchaseTo(value as Date | null)}
                           clearable
-                          size="sm"
+                          className="text-sm md:text-base"
                           minDate={lastPurchaseFrom || undefined}
                         />
                       </Group>
@@ -986,23 +986,23 @@ export default function CustomersPage() {
         {/* Pagination */}
         {pagination.last_page > 1 && (
           <Group justify="flex-end">
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('crm.customers.total')}: {pagination.total} {t('crm.customers.title').toLowerCase()}
             </Text>
             <Button
               variant="light"
-              size="sm"
+              className="text-sm md:text-base"
               disabled={pagination.current_page === 1}
               onClick={() => handlePageChange(pagination.current_page - 1)}
             >
               {t('common.previous')}
             </Button>
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('crm.customers.page', { current: pagination.current_page, total: pagination.last_page })}
             </Text>
             <Button
               variant="light"
-              size="sm"
+              className="text-sm md:text-base"
               disabled={pagination.current_page === pagination.last_page}
               onClick={() => handlePageChange(pagination.current_page + 1)}
             >

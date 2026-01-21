@@ -17,6 +17,11 @@ class LeaveController extends Controller
      */
     public function index(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.leave.index')) {
+            return $this->sendError('You do not have permission to view leave requests.', null, 403);
+        }
+
         $query = Leave::with(['user:id,name', 'approver:id,name'])->latest();
 
         $user = auth()->user();
@@ -84,6 +89,11 @@ class LeaveController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.leave.create')) {
+            return $this->sendError('You do not have permission to create leave requests.', null, 403);
+        }
+
         $request->validate([
             'user_id' => 'nullable|exists:users,id', // Admin can apply for others
             'type' => 'required|in:sick,casual,unpaid',
@@ -125,6 +135,11 @@ class LeaveController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.leave.approve')) {
+            return $this->sendError('You do not have permission to approve leave requests.', null, 403);
+        }
+
         $leave = Leave::findOrFail($id);
 
         // Validate
@@ -179,6 +194,11 @@ class LeaveController extends Controller
      */
     public function destroy($id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.leave.delete')) {
+            return $this->sendError('You do not have permission to delete leave requests.', null, 403);
+        }
+
         $leave = Leave::findOrFail($id);
         
         if ($leave->status === 'approved' && !in_array(auth()->user()->role_id, [1, 2])) {

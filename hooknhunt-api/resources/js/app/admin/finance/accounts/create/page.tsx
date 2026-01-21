@@ -206,13 +206,13 @@ export default function CreateAccountPage() {
         <Paper withBorder p="xl" radius="md" shadow="sm" component="form" onSubmit={handleSubmit}>
           <Stack>
             <Alert variant="light" color="blue" title={t('finance.accountsCreatePage.accountInformation')} mb="md">
-              <Text size="sm">{t('finance.accountsCreatePage.description')}</Text>
+              <Text className="text-sm md:text-base">{t('finance.accountsCreatePage.description')}</Text>
             </Alert>
 
             {/* Code Format Guide */}
             <Alert variant="light" color="grape" icon={<IconInfoCircle size={16} />}>
               <Stack gap="xs">
-                <Text size="sm" fw={600}>{t('finance.accountsCreatePage.codeFormatTitle')}</Text>
+                <Text className="text-sm md:text-base" fw={600}>{t('finance.accountsCreatePage.codeFormatTitle')}</Text>
                 <Group>
                   <Badge color="green" variant="light">{t('finance.accountsCreatePage.codeRanges.assets')}</Badge>
                   <Badge color="red" variant="light">{t('finance.accountsCreatePage.codeRanges.liabilities')}</Badge>
@@ -262,13 +262,13 @@ export default function CreateAccountPage() {
                 value={formData.code}
                 onChange={(e) => handleChange('code', e.currentTarget.value)}
                 error={errors.code}
-                leftSection={<Text size="sm" fw={700}>#</Text>}
+                leftSection={<Text className="text-sm md:text-base" fw={700}>#</Text>}
               />
 
               {/* Auto-generated code notice */}
               {formData.type && formData.code && !errors.code && (
                 <Alert variant="light" color="teal">
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     ✓ {t('finance.accountsCreatePage.codeAvailable', { code: formData.code })}{' '}
                     <Text span fw={600} c={selectedTypeConfig?.color as any}>{selectedTypeConfig?.label}</Text>
                   </Text>

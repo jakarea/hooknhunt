@@ -326,7 +326,7 @@ export default function ExpensesPage() {
     modals.openConfirmModal({
       title: t('finance.banksPage.expensesPage.deleteConfirm.title'),
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           {t('finance.banksPage.expensesPage.deleteConfirm.message')}{' '}
           <Text span fw={600} c="blue">
             "{expenseTitle}"
@@ -396,7 +396,7 @@ export default function ExpensesPage() {
               </Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" size="lg" onClick={handleRefresh}>
+              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button
@@ -412,35 +412,35 @@ export default function ExpensesPage() {
 
         {/* Statistics Cards */}
         <Group>
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Text size="xs" c="dimmed">{t('finance.banksPage.expensesPage.totalExpenses')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.expensesPage.totalExpenses')}</Text>
             </Group>
-            <Text size="xl" fw={700}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               <NumberFormatter value={statistics.total_amount} prefix="৳" thousandSeparator />
             </Text>
-            <Text size="xs" c="dimmed" mt="xs">
+            <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
               {statistics.total_count} {t('finance.banksPage.expensesPage.transactions')}
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="green" size="sm" variant="light">{t('finance.banksPage.expensesPage.approved')}</Badge>
+              <Badge color="green" className="text-sm md:text-base" variant="light">{t('finance.banksPage.expensesPage.approved')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               <NumberFormatter value={statistics.approved_amount} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="yellow" size="sm" variant="light">{t('finance.banksPage.expensesPage.pending')}</Badge>
+              <Badge color="yellow" className="text-sm md:text-base" variant="light">{t('finance.banksPage.expensesPage.pending')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="yellow">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="yellow">
               <NumberFormatter value={statistics.pending_amount} prefix="৳" thousandSeparator />
             </Text>
-            <Text size="xs" c="dimmed" mt="xs">
+            <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
               {statistics.pending_count} {t('finance.banksPage.expensesPage.awaitingApproval')}
             </Text>
           </Card>
@@ -453,7 +453,7 @@ export default function ExpensesPage() {
             leftSection={<IconSearch size={16} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1 }}
+            className="flex-1"
           />
 
           <Select
@@ -463,7 +463,7 @@ export default function ExpensesPage() {
             onChange={setSelectedAccount}
             clearable
             searchable
-            style={{ flex: 1 }}
+            className="flex-1"
           />
 
           <Select
@@ -522,33 +522,33 @@ export default function ExpensesPage() {
                   paginatedExpenses.map((expense) => (
                     <Table.Tr key={expense.id}>
                       <Table.Td>
-                        <Text size="sm">{formatDate(expense.expense_date)}</Text>
+                        <Text className="text-sm md:text-base">{formatDate(expense.expense_date)}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" fw={500}>
+                        <Text className="text-sm md:text-base" fw={500}>
                           {expense.title}
                           {expense.notes && (
-                            <Text size="xs" c="dimmed" mt={2}>
+                            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>
                               {expense.notes}
                             </Text>
                           )}
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="xs" c="dimmed" fw={500}>
+                        <Text className="text-xs md:text-sm" c="dimmed" fw={500}>
                           {expense.reference_number || '-'}
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Badge color="blue" variant="light" size="sm">
+                        <Badge color="blue" variant="light" className="text-sm md:text-base">
                           {expense.account.name}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{expense.paid_by.name}</Text>
+                        <Text className="text-sm md:text-base">{expense.paid_by.name}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm" fw={600} ta="right">
+                        <Text className="text-sm md:text-base" fw={600} ta="right">
                           <NumberFormatter value={expense.amount} prefix="৳" thousandSeparator />
                         </Text>
                       </Table.Td>
@@ -556,7 +556,7 @@ export default function ExpensesPage() {
                         <Badge
                           color={expense.is_approved ? 'green' : 'yellow'}
                           variant="light"
-                          size="sm"
+                          className="text-sm md:text-base"
                         >
                           {expense.is_approved ? t('finance.banksPage.expensesPage.approved') : t('finance.banksPage.expensesPage.pending')}
                         </Badge>
@@ -565,7 +565,7 @@ export default function ExpensesPage() {
                         <Group gap="xs" justify="center">
                           {!expense.is_approved && (
                             <ActionIcon
-                              size="sm"
+                              className="text-sm md:text-base"
                               color="green"
                               variant="light"
                               onClick={() => handleApprove(expense.id)}
@@ -575,7 +575,7 @@ export default function ExpensesPage() {
                             </ActionIcon>
                           )}
                           <ActionIcon
-                            size="sm"
+                            className="text-sm md:text-base"
                             color="blue"
                             variant="light"
                             onClick={() => handleEdit(expense.id)}
@@ -584,7 +584,7 @@ export default function ExpensesPage() {
                             <IconPencil size={14} />
                           </ActionIcon>
                           <ActionIcon
-                            size="sm"
+                            className="text-sm md:text-base"
                             color="red"
                             variant="light"
                             onClick={() => handleDelete(expense.id, expense.title)}
@@ -615,39 +615,39 @@ export default function ExpensesPage() {
                   <Badge
                     color={expense.is_approved ? 'green' : 'yellow'}
                     variant="light"
-                    size="sm"
+                    className="text-sm md:text-base"
                   >
                     {expense.is_approved ? t('finance.banksPage.expensesPage.approved') : t('finance.banksPage.expensesPage.pending')}
                   </Badge>
-                  <Text size="xs" c="dimmed">{formatDate(expense.expense_date)}</Text>
+                  <Text className="text-xs md:text-sm" c="dimmed">{formatDate(expense.expense_date)}</Text>
                 </Group>
 
                 <Group justify="space-between" mb="xs">
-                  <Text size="sm" fw={500}>
+                  <Text className="text-sm md:text-base" fw={500}>
                     {expense.title}
                   </Text>
-                  <Text size="sm" fw={700}>
+                  <Text className="text-sm md:text-base" fw={700}>
                     <NumberFormatter value={expense.amount} prefix="৳" thousandSeparator />
                   </Text>
                 </Group>
 
                 {expense.reference_number && (
-                  <Text size="xs" c="dimmed" mb="xs">
+                  <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
                     Ref: {expense.reference_number}
                   </Text>
                 )}
 
                 {expense.notes && (
-                  <Text size="xs" c="dimmed" mb="xs">
+                  <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
                     {expense.notes}
                   </Text>
                 )}
 
                 <Group mb="xs">
-                  <Badge color="blue" variant="light" size="sm">
+                  <Badge color="blue" variant="light" className="text-sm md:text-base">
                     {expense.account.name}
                   </Badge>
-                  <Text size="xs" c="dimmed">
+                  <Text className="text-xs md:text-sm" c="dimmed">
                     By {expense.paid_by.name}
                   </Text>
                 </Group>
@@ -655,7 +655,7 @@ export default function ExpensesPage() {
                 <Group justify="flex-end" mt="xs">
                   {!expense.is_approved && (
                     <ActionIcon
-                      size="sm"
+                      className="text-sm md:text-base"
                       color="green"
                       variant="light"
                       onClick={() => handleApprove(expense.id)}
@@ -664,7 +664,7 @@ export default function ExpensesPage() {
                     </ActionIcon>
                   )}
                   <ActionIcon
-                    size="sm"
+                    className="text-sm md:text-base"
                     color="blue"
                     variant="light"
                     onClick={() => handleEdit(expense.id)}
@@ -672,7 +672,7 @@ export default function ExpensesPage() {
                     <IconPencil size={14} />
                   </ActionIcon>
                   <ActionIcon
-                    size="sm"
+                    className="text-sm md:text-base"
                     color="red"
                     variant="light"
                     onClick={() => handleDelete(expense.id, expense.title)}
@@ -692,7 +692,7 @@ export default function ExpensesPage() {
               total={totalPages}
               value={currentPage}
               onChange={handlePageChange}
-              size="sm"
+              className="text-sm md:text-base"
             />
           </Group>
         )}

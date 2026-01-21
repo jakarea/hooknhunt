@@ -168,57 +168,57 @@ export default function HRMDashboardPage() {
           {/* Total Staff */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="blue" size="md" radius="md">
+              <ThemeIcon color="blue" className="text-base md:text-lg" radius="md">
                 <IconUsers size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('hrm.dashboard.totalStaff')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.dashboard.totalStaff')}</Text>
             </Group>
-            <Text size="xl" fw={700}>{stats.staff.total}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats.staff.total}</Text>
             <Group mt="xs" gap={4}>
               <IconTrendingUp size={14} color="var(--mantine-color-green-6)" />
-              <Text size="xs" c="green">{stats.staff.active} {t('hrm.staff.active')}</Text>
+              <Text className="text-xs md:text-sm" c="green">{stats.staff.active} {t('hrm.staff.active')}</Text>
             </Group>
           </Card>
 
           {/* Today's Attendance */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="green" size="md" radius="md">
+              <ThemeIcon color="green" className="text-base md:text-lg" radius="md">
                 <IconCheck size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('hrm.dashboard.todayAttendance')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.dashboard.todayAttendance')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">{stats.attendance.todayPresent}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">{stats.attendance.todayPresent}</Text>
             <Group mt="xs" gap={4}>
-              <Text size="xs" c="dimmed">{stats.attendance.attendanceRate}% {t('hrm.dashboard.present')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{stats.attendance.attendanceRate}% {t('hrm.dashboard.present')}</Text>
             </Group>
           </Card>
 
           {/* On Leave */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="orange" size="md" radius="md">
+              <ThemeIcon color="orange" className="text-base md:text-lg" radius="md">
                 <IconCalendarEvent size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('hrm.dashboard.onLeave')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.dashboard.onLeave')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="orange">{stats.staff.onLeave}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">{stats.staff.onLeave}</Text>
             <Group mt="xs" gap={4}>
-              <Text size="xs" c="dimmed">{stats.leaves.pending} {t('hrm.dashboard.pendingRequests')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{stats.leaves.pending} {t('hrm.dashboard.pendingRequests')}</Text>
             </Group>
           </Card>
 
           {/* Departments */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="grape" size="md" radius="md">
+              <ThemeIcon color="grape" className="text-base md:text-lg" radius="md">
                 <IconBuilding size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('hrm.departments.title')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.departments.title')}</Text>
             </Group>
-            <Text size="xl" fw={700}>{stats.departments.total}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats.departments.total}</Text>
             <Group mt="xs" gap={4}>
-              <Text size="xs" c="dimmed">{stats.staff.byDepartment.length} {t('hrm.dashboard.active')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{stats.staff.byDepartment.length} {t('hrm.dashboard.active')}</Text>
             </Group>
           </Card>
         </SimpleGrid>
@@ -235,15 +235,15 @@ export default function HRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               {stats.staff.byDepartment.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center">{t('hrm.dashboard.noDepartments')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed" ta="center">{t('hrm.dashboard.noDepartments')}</Text>
               ) : (
                 stats.staff.byDepartment.map((dept) => (
                   <Box key={dept.name}>
                     <Group justify="space-between" mb={4}>
-                      <Text size="sm" fw={500}>{dept.name}</Text>
+                      <Text className="text-sm md:text-base" fw={500}>{dept.name}</Text>
                       <Group gap={4}>
-                        <Text size="sm" fw={600}>{dept.count}</Text>
-                        <Text size="xs" c="dimmed">
+                        <Text className="text-sm md:text-base" fw={600}>{dept.count}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">
                           {stats.staff.total > 0 ? `${Math.round((dept.count / stats.staff.total) * 100)}%` : '0%'}
                         </Text>
                       </Group>
@@ -251,7 +251,7 @@ export default function HRMDashboardPage() {
                     <Progress
                       value={stats.staff.total > 0 ? (dept.count / maxStaffInDept) * 100 : 0}
                       color="blue"
-                      size="sm"
+                      className="text-sm md:text-base"
                       radius="md"
                     />
                   </Box>
@@ -268,20 +268,20 @@ export default function HRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               <Group justify="space-between">
-                <Text size="sm">{t('hrm.dashboard.pendingRequests')}</Text>
+                <Text className="text-sm md:text-base">{t('hrm.dashboard.pendingRequests')}</Text>
                 <Badge color="yellow" variant="light">{stats.leaves.pending}</Badge>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('hrm.dashboard.approvedThisMonth')}</Text>
+                <Text className="text-sm md:text-base">{t('hrm.dashboard.approvedThisMonth')}</Text>
                 <Badge color="green" variant="light">{stats.leaves.approved}</Badge>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('hrm.dashboard.rejected')}</Text>
+                <Text className="text-sm md:text-base">{t('hrm.dashboard.rejected')}</Text>
                 <Badge color="red" variant="light">{stats.leaves.rejected}</Badge>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('hrm.dashboard.totalThisMonth')}</Text>
-                <Text size="sm" fw={600}>{stats.leaves.thisMonth}</Text>
+                <Text className="text-sm md:text-base">{t('hrm.dashboard.totalThisMonth')}</Text>
+                <Text className="text-sm md:text-base" fw={600}>{stats.leaves.thisMonth}</Text>
               </Group>
             </Stack>
           </Card>
@@ -292,25 +292,25 @@ export default function HRMDashboardPage() {
           <Card withBorder p="md" radius="md">
             <Group gap="xs" mb="sm">
               <IconCheck size={18} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="sm" c="dimmed">{t('hrm.dashboard.presentToday')}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{t('hrm.dashboard.presentToday')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">{stats.attendance.todayPresent}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">{stats.attendance.todayPresent}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group gap="xs" mb="sm">
               <IconX size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text size="sm" c="dimmed">{t('hrm.dashboard.absentToday')}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{t('hrm.dashboard.absentToday')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="red">{stats.attendance.todayAbsent}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">{stats.attendance.todayAbsent}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group gap="xs" mb="sm">
               <IconClock size={18} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-              <Text size="sm" c="dimmed">{t('hrm.dashboard.lateToday')}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{t('hrm.dashboard.lateToday')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="orange">{stats.attendance.todayLate}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">{stats.attendance.todayLate}</Text>
           </Card>
         </SimpleGrid>
 
@@ -327,7 +327,7 @@ export default function HRMDashboardPage() {
                 component={Link}
                 to="/hrm/staff"
                 variant="light"
-                size="xs"
+                className="text-xs md:text-sm"
                 rightSection={<IconArrowRight size={14} />}
               >
                 {t('crm.dashboard.viewAll')}
@@ -335,22 +335,22 @@ export default function HRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               {stats.recentHires.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center">{t('hrm.dashboard.noRecentHires')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed" ta="center">{t('hrm.dashboard.noRecentHires')}</Text>
               ) : (
                 stats.recentHires.map((hire) => (
                   <Paper key={hire.id} withBorder p="sm" radius="md">
                     <Group justify="space-between" mb="xs">
                       <Group gap="xs">
-                        <Avatar size="xs" radius="xl" color="blue">
+                        <Avatar className="text-xs md:text-sm" radius="xl" color="blue">
                           {hire.name.charAt(0)}
                         </Avatar>
-                        <Text fw={600} size="sm">{hire.name}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{hire.name}</Text>
                       </Group>
-                      <Badge size="xs" variant="light">{hire.designation}</Badge>
+                      <Badge className="text-xs md:text-sm" variant="light">{hire.designation}</Badge>
                     </Group>
                     <Group justify="space-between">
-                      <Text size="xs" c="dimmed">{hire.department}</Text>
-                      <Text size="xs" c="dimmed">{formatDate(hire.joiningDate)}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{hire.department}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{formatDate(hire.joiningDate)}</Text>
                     </Group>
                   </Paper>
                 ))
@@ -366,25 +366,25 @@ export default function HRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               {stats.upcomingLeaves.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center">{t('hrm.dashboard.noUpcomingLeaves')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed" ta="center">{t('hrm.dashboard.noUpcomingLeaves')}</Text>
               ) : (
                 stats.upcomingLeaves.map((leave) => (
                   <Paper key={leave.id} withBorder p="sm" radius="md">
                     <Group justify="space-between" mb="xs">
                       <Group gap="xs">
-                        <Avatar size="xs" radius="xl" color="orange">
+                        <Avatar className="text-xs md:text-sm" radius="xl" color="orange">
                           {leave.staffName.charAt(0)}
                         </Avatar>
-                        <Text fw={600} size="sm">{leave.staffName}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{leave.staffName}</Text>
                       </Group>
-                      <Badge size="xs" color="orange" variant="light">{leave.days} {t('hrm.dashboard.days')}</Badge>
+                      <Badge className="text-xs md:text-sm" color="orange" variant="light">{leave.days} {t('hrm.dashboard.days')}</Badge>
                     </Group>
-                    <Text size="xs" mb="xs">{leave.department}</Text>
+                    <Text className="text-xs md:text-sm" mb="xs">{leave.department}</Text>
                     <Group justify="space-between">
-                      <Text size="xs" c="dimmed">{leave.leaveType}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{leave.leaveType}</Text>
                       <Group gap={4}>
                         <IconCalendar size={12} style={{ color: 'var(--mantine-color-orange-6)' }} />
-                        <Text size="xs" c="orange">
+                        <Text className="text-xs md:text-sm" c="orange">
                           {formatDate(leave.startDate)}
                         </Text>
                       </Group>
@@ -404,12 +404,12 @@ export default function HRMDashboardPage() {
           </Group>
           <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
             <Box>
-              <Text size="xs" c="dimmed">{t('hrm.dashboard.thisMonth')}</Text>
-              <Text size="lg" fw={700} c="green">{formatCurrency(stats.payroll.thisMonth)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.dashboard.thisMonth')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="green">{formatCurrency(stats.payroll.thisMonth)}</Text>
             </Box>
             <Box>
-              <Text size="xs" c="dimmed">{t('hrm.dashboard.totalPaidYTD')}</Text>
-              <Text size="lg" fw={600}>{formatCurrency(stats.payroll.totalPaid)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('hrm.dashboard.totalPaidYTD')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={600}>{formatCurrency(stats.payroll.totalPaid)}</Text>
             </Box>
           </SimpleGrid>
         </Card>

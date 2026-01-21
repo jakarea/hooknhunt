@@ -20,6 +20,11 @@ class CampaignController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.marketing.campaigns.create')) {
+            return $this->sendError('You do not have permission to create campaigns.', null, 403);
+        }
+
         $request->validate([
             'title' => 'required',
             'crm_segment_id' => 'required|exists:crm_segments,id',
@@ -63,6 +68,11 @@ class CampaignController extends Controller
      */
     public function runAutoSegmentation()
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.marketing.segmentation.run')) {
+            return $this->sendError('You do not have permission to run segmentation.', null, 403);
+        }
+
         $service = new SegmentationService();
         $stats = $service->runSegmentation();
         return $this->sendSuccess($stats, "Segmentation logic executed.");
@@ -74,6 +84,11 @@ class CampaignController extends Controller
      */
     public function generatePdf($campaignId)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.marketing.campaigns.generate')) {
+            return $this->sendError('You do not have permission to generate campaigns.', null, 403);
+        }
+
         $campaign = CrmCampaign::with(['products', 'segment.customers'])->findOrFail($campaignId);
 
         // ডাটা প্রস্তুত করা

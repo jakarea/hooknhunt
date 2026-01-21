@@ -115,7 +115,7 @@ export default function ReportsPage() {
                     <Title order={3}>{report.title}</Title>
                   </Group>
 
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {report.description}
                   </Text>
 
@@ -134,7 +134,7 @@ export default function ReportsPage() {
 
         {/* Info Card */}
         <Card withBorder p="md" radius="md" mt="xl">
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             {t('finance.reportsHubPage.infoText')}
           </Text>
         </Card>

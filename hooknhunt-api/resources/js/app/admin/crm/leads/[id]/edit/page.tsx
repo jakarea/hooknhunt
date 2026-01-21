@@ -467,7 +467,7 @@ export default function EditLeadPage() {
           </Box>
           <Button
             variant="light"
-            size="md"
+            className="text-base md:text-lg"
             onClick={() => {
               fetchLead()
             }}
@@ -605,7 +605,7 @@ export default function EditLeadPage() {
                   <Group justify="space-between" mb="md">
                     <Title order={4}>Activity History</Title>
                     <Button
-                      size="xs"
+                      className="text-xs md:text-sm"
                       variant="light"
                       leftSection={<IconPlus size={14} />}
                       onClick={() => setShowActivityForm(!showActivityForm)}
@@ -653,10 +653,10 @@ export default function EditLeadPage() {
                           />
 
                           <Group justify="flex-end">
-                            <Button type="button" variant="default" size="sm" onClick={() => setShowActivityForm(false)}>
+                            <Button type="button" variant="default" className="text-sm md:text-base" onClick={() => setShowActivityForm(false)}>
                               Cancel
                             </Button>
-                            <Button type="submit" size="sm" loading={savingActivity}>
+                            <Button type="submit" className="text-sm md:text-base" loading={savingActivity}>
                               Log Activity
                             </Button>
                           </Group>
@@ -681,14 +681,14 @@ export default function EditLeadPage() {
                             <Paper withBorder p="sm" radius="md">
                               <Stack gap={4}>
                                 <Group justify="space-between" wrap="nowrap">
-                                  <Text fw={500} size="sm">
+                                  <Text fw={500} className="text-sm md:text-base">
                                     {activity.summary}
                                   </Text>
                                   <Group gap={4}>
                                     {activity.schedule_at && !activity.is_done && (
                                       <Tooltip label="Mark as done">
                                         <ActionIcon
-                                          size="sm"
+                                          className="text-sm md:text-base"
                                           color="green"
                                           variant="light"
                                           onClick={() => markActivityDone(activity.id)}
@@ -698,7 +698,7 @@ export default function EditLeadPage() {
                                       </Tooltip>
                                     )}
                                     {activity.is_done && (
-                                      <Badge color="green" size="xs" variant="light">
+                                      <Badge color="green" className="text-xs md:text-sm" variant="light">
                                         Done
                                       </Badge>
                                     )}
@@ -706,17 +706,17 @@ export default function EditLeadPage() {
                                 </Group>
 
                                 {activity.description && (
-                                  <Text size="xs" c="dimmed">
+                                  <Text className="text-xs md:text-sm" c="dimmed">
                                     {activity.description}
                                   </Text>
                                 )}
 
                                 <Group gap={4}>
                                   <IconClock size={12} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                                  <Text size="xs" c="dimmed">
+                                  <Text className="text-xs md:text-sm" c="dimmed">
                                     {formatDate(activity.created_at)}
                                   </Text>
-                                  <Text size="xs" c="dimmed">
+                                  <Text className="text-xs md:text-sm" c="dimmed">
                                     by {activity.user.name}
                                   </Text>
                                 </Group>
@@ -724,7 +724,7 @@ export default function EditLeadPage() {
                                 {scheduleInfo && !activity.is_done && (
                                   <Group gap={4}>
                                     <IconCalendar size={12} style={{ color: scheduleInfo.isPast ? 'var(--mantine-color-red-6)' : 'var(--mantine-color-orange-6)' }} />
-                                    <Text size="xs" c={scheduleInfo.isPast ? 'red' : 'orange'}>
+                                    <Text className="text-xs md:text-sm" c={scheduleInfo.isPast ? 'red' : 'orange'}>
                                       Follow-up: {scheduleInfo.text} {scheduleInfo.isPast && '(Overdue)'}
                                     </Text>
                                   </Group>
@@ -758,7 +758,7 @@ export default function EditLeadPage() {
                           key={action.type}
                           variant="light"
                           color={action.color}
-                          size="md"
+                          className="text-base md:text-lg"
                           leftSection={<Icon size={18} />}
                           onClick={() => {
                             setActivityData((prev) => ({ ...prev, type: action.type }))
@@ -777,15 +777,15 @@ export default function EditLeadPage() {
                   <Title order={4} mb="md">Lead Details</Title>
                   <Stack gap="sm">
                     <Box>
-                      <Text size="xs" c="dimmed">Lead ID</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">Lead ID</Text>
                       <Text fw={500}>#{lead.id}</Text>
                     </Box>
                     <Box>
-                      <Text size="xs" c="dimmed">Created</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">Created</Text>
                       <Text fw={500}>{formatDate(lead.created_at)}</Text>
                     </Box>
                     <Box>
-                      <Text size="xs" c="dimmed">Assigned To</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">Assigned To</Text>
                       {formData.assigned_to && lead.assignedAgent ? (
                         <Text fw={500}>{lead.assignedAgent.name}</Text>
                       ) : (

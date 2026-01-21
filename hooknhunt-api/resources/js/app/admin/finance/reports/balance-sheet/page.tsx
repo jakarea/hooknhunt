@@ -151,13 +151,13 @@ export default function BalanceSheetPage() {
         {accounts.map((item) => (
           <Table.Tr key={item.id}>
             <Table.Td width={80}>
-              <Text size="sm" c="dimmed">{item.code}</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{item.code}</Text>
             </Table.Td>
             <Table.Td>
-              <Text size="sm">{item.name}</Text>
+              <Text className="text-sm md:text-base">{item.name}</Text>
             </Table.Td>
             <Table.Td ta="right">
-              <Text size="sm" fw={600} c={item.amount < 0 ? 'red' : color}>
+              <Text className="text-sm md:text-base" fw={600} c={item.amount < 0 ? 'red' : color}>
                 {item.amount < 0 ? (
                   <NumberFormatter value={Math.abs(item.amount)} thousandSeparator />
                 ) : (
@@ -203,7 +203,7 @@ export default function BalanceSheetPage() {
               clearable
               style={{ width: 200 }}
             />
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.balanceSheetPage.asOf')} {formatDate(asOfDate)}
             </Text>
           </Group>
@@ -228,16 +228,16 @@ export default function BalanceSheetPage() {
                 {expandedSections.has('assets') ? <IconChevronDown size={20} color="white" /> : <IconChevronRight size={20} color="white" />}
                 <Title order={3} c="white">{t('finance.balanceSheetPage.assets')}</Title>
               </Group>
-              <Text size="lg" fw={700} c="white">
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="white">
                 {totals.totalAssets.toLocaleString()}
               </Text>
             </Group>
           </Card>
           <Collapse in={expandedSections.has('assets')}>
             <Box p="md">
-              <Text size="xs" fw={700} c="dimmed" mb="sm" mt="sm">{t('finance.balanceSheetPage.currentAssets')}</Text>
+              <Text className="text-xs md:text-sm" fw={700} c="dimmed" mb="sm" mt="sm">{t('finance.balanceSheetPage.currentAssets')}</Text>
               {renderAccountList(mockAssets.slice(0, 6), 'green')}
-              <Text size="xs" fw={700} c="dimmed" mb="sm" mt="lg">{t('finance.balanceSheetPage.nonCurrentAssets')}</Text>
+              <Text className="text-xs md:text-sm" fw={700} c="dimmed" mb="sm" mt="lg">{t('finance.balanceSheetPage.nonCurrentAssets')}</Text>
               {renderAccountList(mockAssets.slice(6), 'green')}
             </Box>
           </Collapse>
@@ -262,16 +262,16 @@ export default function BalanceSheetPage() {
                 {expandedSections.has('liabilities') ? <IconChevronDown size={20} color="white" /> : <IconChevronRight size={20} color="white" />}
                 <Title order={3} c="white">{t('finance.balanceSheetPage.liabilities')}</Title>
               </Group>
-              <Text size="lg" fw={700} c="white">
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="white">
                 {totals.totalLiabilities.toLocaleString()}
               </Text>
             </Group>
           </Card>
           <Collapse in={expandedSections.has('liabilities')}>
             <Box p="md">
-              <Text size="xs" fw={700} c="dimmed" mb="sm" mt="sm">{t('finance.balanceSheetPage.currentLiabilities')}</Text>
+              <Text className="text-xs md:text-sm" fw={700} c="dimmed" mb="sm" mt="sm">{t('finance.balanceSheetPage.currentLiabilities')}</Text>
               {renderAccountList(mockLiabilities.slice(0, 4), 'red')}
-              <Text size="xs" fw={700} c="dimmed" mb="sm" mt="lg">{t('finance.balanceSheetPage.nonCurrentLiabilities')}</Text>
+              <Text className="text-xs md:text-sm" fw={700} c="dimmed" mb="sm" mt="lg">{t('finance.balanceSheetPage.nonCurrentLiabilities')}</Text>
               {renderAccountList(mockLiabilities.slice(4), 'red')}
             </Box>
           </Collapse>
@@ -296,7 +296,7 @@ export default function BalanceSheetPage() {
                 {expandedSections.has('equity') ? <IconChevronDown size={20} color="white" /> : <IconChevronRight size={20} color="white" />}
                 <Title order={3} c="white">{t('finance.balanceSheetPage.equity')}</Title>
               </Group>
-              <Text size="lg" fw={700} c="white">
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="white">
                 {totals.totalEquity.toLocaleString()}
               </Text>
             </Group>
@@ -312,26 +312,26 @@ export default function BalanceSheetPage() {
         <Card withBorder p="md" radius="md" shadow="sm">
           <Stack gap="sm">
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{t('finance.balanceSheetPage.totalAssets')}</Text>
-              <Text size="lg" fw={700} c="green">
+              <Text className="text-sm md:text-base" fw={600}>{t('finance.balanceSheetPage.totalAssets')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="green">
                 {totals.totalAssets.toLocaleString()}
               </Text>
             </Group>
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{t('finance.balanceSheetPage.totalLiabilities')}</Text>
-              <Text size="lg" fw={700} c="red">
+              <Text className="text-sm md:text-base" fw={600}>{t('finance.balanceSheetPage.totalLiabilities')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="red">
                 {totals.totalLiabilities.toLocaleString()}
               </Text>
             </Group>
             <Group justify="space-between">
-              <Text size="sm" fw={600}>{t('finance.balanceSheetPage.totalEquity')}</Text>
-              <Text size="lg" fw={700} c="blue">
+              <Text className="text-sm md:text-base" fw={600}>{t('finance.balanceSheetPage.totalEquity')}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" fw={700} c="blue">
                 {totals.totalEquity.toLocaleString()}
               </Text>
             </Group>
             <Group justify="space-between" style={{ borderTop: '2px solid var(--mantine-color-gray-3)', paddingTop: 'var(--mantine-spacing-sm)' }}>
-              <Text size="sm" fw={700}>{t('finance.balanceSheetPage.totalLiabilitiesAndEquity')}</Text>
-              <Text size="xl" fw={900} c="red">
+              <Text className="text-sm md:text-base" fw={700}>{t('finance.balanceSheetPage.totalLiabilitiesAndEquity')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={900} c="red">
                 {totals.totalLiabilitiesAndEquity.toLocaleString()}
               </Text>
             </Group>
@@ -347,10 +347,10 @@ export default function BalanceSheetPage() {
             icon={<IconCheck size={20} />}
           >
             <Group gap="xl">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 {t('finance.balanceSheetPage.balanced')}
               </Text>
-              <Text size="sm" fw={600}>
+              <Text className="text-sm md:text-base" fw={600}>
                 {totals.totalAssets.toLocaleString()} = {totals.totalLiabilities.toLocaleString()} + {totals.totalEquity.toLocaleString()}
               </Text>
             </Group>
@@ -363,14 +363,14 @@ export default function BalanceSheetPage() {
             icon={<IconX size={20} />}
           >
             <Group gap="xl">
-              <Text size="sm">
+              <Text className="text-sm md:text-base">
                 {t('finance.balanceSheetPage.assetsEqualLiabilities')}
               </Text>
               <Group gap="md">
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   Assets: <Text span fw={600} c="green">{totals.totalAssets.toLocaleString()}</Text>
                 </Text>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   Liab + Equity: <Text span fw={600} c="red">{totals.totalLiabilitiesAndEquity.toLocaleString()}</Text>
                 </Text>
               </Group>

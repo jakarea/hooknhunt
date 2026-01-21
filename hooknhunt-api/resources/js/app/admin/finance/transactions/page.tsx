@@ -419,7 +419,7 @@ export default function TransactionsPage() {
               </Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" size="lg" onClick={handleRefresh}>
+              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button leftSection={<IconDownload size={16} />} variant="light" onClick={handleExport}>
@@ -434,9 +434,9 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowUp size={20} className="text-green-600" />
-              <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.totalInflow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalInflow')}</Text>
             </Group>
-            <Text size="xl" fw={700}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               <NumberFormatter value={statistics.total_inflow} prefix="৳" thousandSeparator />
             </Text>
           </Card>
@@ -444,9 +444,9 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowDown size={20} className="text-red-600" />
-              <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.totalOutflow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalOutflow')}</Text>
             </Group>
-            <Text size="xl" fw={700}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               <NumberFormatter value={statistics.total_outflow} prefix="৳" thousandSeparator />
             </Text>
           </Card>
@@ -454,10 +454,10 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowsExchange size={20} className="text-blue-600" />
-              <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.netFlow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.netFlow')}</Text>
             </Group>
             <Text
-              size="xl"
+              className="text-xl md:text-2xl lg:text-3xl"
               fw={700}
               c={statistics.net_flow >= 0 ? 'green' : 'red'}
             >
@@ -468,9 +468,9 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconRefresh size={20} className="text-purple-600" />
-              <Text size="xs" c="dimmed">{t('finance.banksPage.transactionsPage.transactionsCount')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.transactionsCount')}</Text>
             </Group>
-            <Text size="xl" fw={700}>{statistics.transaction_count}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{statistics.transaction_count}</Text>
           </Card>
         </SimpleGrid>
 
@@ -538,29 +538,29 @@ export default function TransactionsPage() {
                     return (
                       <Table.Tr key={transaction.id}>
                         <Table.Td>
-                          <Text size="sm">{formatDate(transaction.transaction_date)}</Text>
+                          <Text className="text-sm md:text-base">{formatDate(transaction.transaction_date)}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={500}>
+                          <Text className="text-sm md:text-base" fw={500}>
                             {transaction.bank?.name || 'N/A'}
                           </Text>
                         </Table.Td>
                         <Table.Td>
-                          <Badge color={typeConfig.color} size="sm" variant="light" leftSection={<typeConfig.icon size={12} />}>
+                          <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
                             {typeConfig.label}
                           </Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">{transaction.description || '-'}</Text>
+                          <Text className="text-sm md:text-base">{transaction.description || '-'}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" c="dimmed">
+                          <Text className="text-sm md:text-base" c="dimmed">
                             {transaction.reference_number || '-'}
                           </Text>
                         </Table.Td>
                         <Table.Td>
                           <Text
-                            size="sm"
+                            className="text-sm md:text-base"
                             fw={600}
                             ta="right"
                             c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
@@ -570,7 +570,7 @@ export default function TransactionsPage() {
                           </Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" fw={500} ta="right">
+                          <Text className="text-sm md:text-base" fw={500} ta="right">
                             <NumberFormatter value={transaction.balance_after} prefix="৳" thousandSeparator />
                           </Text>
                         </Table.Td>
@@ -595,18 +595,18 @@ export default function TransactionsPage() {
               return (
                 <Card key={transaction.id} shadow="sm" p="sm" radius="md" withBorder>
                   <Group justify="space-between" mb="xs">
-                    <Badge color={typeConfig.color} size="sm" variant="light" leftSection={<typeConfig.icon size={12} />}>
+                    <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
                       {typeConfig.label}
                     </Badge>
-                    <Text size="xs" c="dimmed">{formatDate(transaction.transaction_date)}</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">{formatDate(transaction.transaction_date)}</Text>
                   </Group>
 
                   <Group justify="space-between" mb="xs">
-                    <Text size="sm" fw={500}>
+                    <Text className="text-sm md:text-base" fw={500}>
                       {transaction.bank?.name || 'N/A'}
                     </Text>
                     <Text
-                      size="sm"
+                      className="text-sm md:text-base"
                       fw={700}
                       c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
                     >
@@ -616,19 +616,19 @@ export default function TransactionsPage() {
                   </Group>
 
                   {transaction.description && (
-                    <Text size="xs" c="dimmed" mb="xs">
+                    <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
                       {transaction.description}
                     </Text>
                   )}
 
                   {transaction.reference_number && (
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       Ref: {transaction.reference_number}
                     </Text>
                   )}
 
                   <Box mt="xs">
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       {t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')}:{' '}
                       <Text span fw={500} c="bright">
                         <NumberFormatter value={transaction.balance_after} prefix="৳" thousandSeparator />
@@ -648,7 +648,7 @@ export default function TransactionsPage() {
               total={totalPages}
               value={currentPage}
               onChange={handlePageChange}
-              size="sm"
+              className="text-sm md:text-base"
             />
           </Group>
         )}

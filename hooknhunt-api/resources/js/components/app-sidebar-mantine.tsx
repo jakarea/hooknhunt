@@ -10,6 +10,9 @@ import {
   IconInnerShadowTop,
   IconChevronRight,
   IconCoin,
+  IconShoppingCart,
+  IconPackage,
+  IconPhoto,
 } from "@tabler/icons-react"
 import {
   Box,
@@ -83,20 +86,20 @@ export function AppSidebarMantine({
       {
         label: t("nav.hrm"),
         items: [
-          // {
-          //   title: t("nav.products"),
-          //   icon: IconPackage,
-          //   children: [
-          //     { title: t("products.productList"), url: "/catalog/products" },
-          //     { title: t("products.createProduct"), url: "/catalog/products/create" },
-          //     { title: t("products.variants"), url: "/catalog/variants" },
-          //     { title: t("products.categories"), url: "/catalog/categories" },
-          //     { title: t("products.brands"), url: "/catalog/brands" },
-          //     { title: t("products.attributes"), url: "/catalog/attributes" },
-          //     { title: t("products.units"), url: "/catalog/units" },
-          //     { title: t("products.printLabels"), url: "/catalog/print-labels" },
-          //   ],
-          // },
+          {
+            title: t("nav.products"),
+            icon: IconPackage,
+            children: [
+              { title: t("products.productList"), url: "/catalog/products" },
+              { title: t("products.createProduct"), url: "/catalog/products/create" },
+              { title: t("products.variants"), url: "/catalog/variants" },
+              { title: t("products.categories"), url: "/catalog/categories" },
+              { title: t("products.brands"), url: "/catalog/brands" },
+              { title: t("products.attributes"), url: "/catalog/attributes" },
+              { title: t("products.units"), url: "/catalog/units" },
+              { title: t("products.printLabels"), url: "/catalog/print-labels" },
+            ],
+          },
       //     {
       //       title: t("nav.inventory"),
       //       icon: IconBuildingWarehouse,
@@ -110,16 +113,16 @@ export function AppSidebarMantine({
       //         { title: t("inventory.transfers"), url: "/inventory/transfers" },
       //       ],
       //     },
-      //     {
-      //       title: t("nav.procurement"),
-      //       icon: IconShoppingCart,
-      //       children: [
-      //         { title: t("procurement.orders"), url: "/procurement/orders" },
-      //         { title: t("procurement.createPO"), url: "/procurement/create" },
-      //         { title: t("procurement.suppliers"), url: "/procurement/suppliers" },
-      //         { title: t("procurement.returns"), url: "/procurement/returns" },
-      //       ],
-      //     },
+          {
+            title: t("nav.procurement"),
+            icon: IconShoppingCart,
+            children: [
+              { title: t("procurement.orders"), url: "/procurement/orders" },
+              { title: t("procurement.createPO"), url: "/procurement/create" },
+              { title: t("procurement.suppliers"), url: "/procurement/suppliers" },
+              { title: t("procurement.returns"), url: "/procurement/returns" },
+            ],
+          },
       //     {
       //       title: t("nav.importShipments"),
       //       icon: IconShip,
@@ -229,6 +232,13 @@ export function AppSidebarMantine({
       //         { title: t("reports.tax"), url: "/reports/tax" },
       //       ],
       //     },
+        ],
+      },
+      {
+        label: t("nav.cms"),
+        icon: IconPhoto,
+        items: [
+          { title: t("cms.media"), url: "/cms/media" },
         ],
       },
       {
