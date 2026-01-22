@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Box,
   Stack,
@@ -17,6 +17,7 @@ import {
   ActionIcon,
   SimpleGrid,
   NumberFormatter,
+  Skeleton,
 } from '@mantine/core'
 import { usePermissions } from '@/hooks/usePermissions'
 import {
@@ -30,160 +31,13 @@ import {
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { useTranslation } from 'react-i18next'
-
-interface Bank {
-  id: number
-  name: string
-  type: string
-  account_number: string
-}
-
-interface BankTransaction {
-  id: number
-  bank_id: number
-  type: 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out'
-  amount: number
-  balance_before: number
-  balance_after: number
-  reference_number: string
-  description: string
-  transaction_date: string
-  bank?: Bank
-}
-
-type TransactionType = 'all' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out'
-
-// Mock data for development
-const mockBanks: Bank[] = [
-  { id: 1, name: 'Dutch-Bangla Bank', type: 'bank', account_number: '1234567890' },
-  { id: 2, name: 'bKash', type: 'bkash', account_number: '01712345678' },
-  { id: 3, name: 'Cash', type: 'cash', account_number: 'N/A' },
-  { id: 4, name: 'Brac Bank', type: 'bank', account_number: '9876543210' },
-  { id: 5, name: 'Nagad', type: 'nagad', account_number: '01898765432' },
-]
-
-const mockTransactions: BankTransaction[] = [
-  {
-    id: 1,
-    bank_id: 1,
-    type: 'deposit',
-    amount: 50000,
-    balance_before: 100000,
-    balance_after: 150000,
-    reference_number: 'TXN-2024-001',
-    description: 'Sales collection',
-    transaction_date: '2024-01-15',
-    bank: mockBanks[0],
-  },
-  {
-    id: 2,
-    bank_id: 2,
-    type: 'withdrawal',
-    amount: 5000,
-    balance_before: 25000,
-    balance_after: 20000,
-    reference_number: 'TXN-2024-002',
-    description: 'Payment to supplier',
-    transaction_date: '2024-01-15',
-    bank: mockBanks[1],
-  },
-  {
-    id: 3,
-    bank_id: 1,
-    type: 'transfer_in',
-    amount: 30000,
-    balance_before: 120000,
-    balance_after: 150000,
-    reference_number: 'TXN-2024-003',
-    description: 'Transfer from Cash',
-    transaction_date: '2024-01-14',
-    bank: mockBanks[0],
-  },
-  {
-    id: 4,
-    bank_id: 3,
-    type: 'withdrawal',
-    amount: 10000,
-    balance_before: 50000,
-    balance_after: 40000,
-    reference_number: 'TXN-2024-004',
-    description: 'Office expenses',
-    transaction_date: '2024-01-14',
-    bank: mockBanks[2],
-  },
-  {
-    id: 5,
-    bank_id: 4,
-    type: 'deposit',
-    amount: 75000,
-    balance_before: 200000,
-    balance_after: 275000,
-    reference_number: 'TXN-2024-005',
-    description: 'Customer payment',
-    transaction_date: '2024-01-13',
-    bank: mockBanks[3],
-  },
-  {
-    id: 6,
-    bank_id: 2,
-    type: 'deposit',
-    amount: 15000,
-    balance_before: 20000,
-    balance_after: 35000,
-    reference_number: 'TXN-2024-006',
-    description: 'bKash payment received',
-    transaction_date: '2024-01-13',
-    bank: mockBanks[1],
-  },
-  {
-    id: 7,
-    bank_id: 1,
-    type: 'transfer_out',
-    amount: 20000,
-    balance_before: 150000,
-    balance_after: 130000,
-    reference_number: 'TXN-2024-007',
-    description: 'Transfer to bKash',
-    transaction_date: '2024-01-12',
-    bank: mockBanks[0],
-  },
-  {
-    id: 8,
-    bank_id: 5,
-    type: 'deposit',
-    amount: 25000,
-    balance_before: 30000,
-    balance_after: 55000,
-    reference_number: 'TXN-2024-008',
-    description: 'Nagad collection',
-    transaction_date: '2024-01-12',
-    bank: mockBanks[4],
-  },
-  {
-    id: 9,
-    bank_id: 3,
-    type: 'deposit',
-    amount: 45000,
-    balance_before: 40000,
-    balance_after: 85000,
-    reference_number: 'TXN-2024-009',
-    description: 'Cash sales',
-    transaction_date: '2024-01-11',
-    bank: mockBanks[2],
-  },
-  {
-    id: 10,
-    bank_id: 4,
-    type: 'withdrawal',
-    amount: 15000,
-    balance_before: 275000,
-    balance_after: 260000,
-    reference_number: 'TXN-2024-010',
-    description: 'Utility bill payment',
-    transaction_date: '2024-01-11',
-    bank: mockBanks[3],
-  },
-]
+import {
+  getBankTransactions,
+  getBankTransactionStatistics,
+  getBanks,
+  type BankTransaction,
+  type TransactionType,
+} from '@/utils/api'
 
 export default function TransactionsPage() {
   const { t } = useTranslation()
@@ -193,14 +47,21 @@ export default function TransactionsPage() {
   if (!hasPermission('finance_transactions_view')) {
     return (
       <Stack p="xl">
-        <Paper withBorder p="xl" shadow="sm" ta="center">
+        <Card withBorder p="xl" shadow="sm" ta="center">
           <Title order={3}>Access Denied</Title>
           <Text c="dimmed">You don't have permission to view Transactions.</Text>
-        </Paper>
+        </Card>
       </Stack>
     )
   }
 
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [transactions, setTransactions] = useState<BankTransaction[]>([])
+  const [banks, setBanks] = useState<any[]>([])
+  const [statistics, setStatistics] = useState<any>(null)
+
+  // Filters
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedBank, setSelectedBank] = useState<string | null>(null)
   const [selectedType, setSelectedType] = useState<TransactionType>('all')
@@ -208,119 +69,147 @@ export default function TransactionsPage() {
   const [endDate, setEndDate] = useState<Date | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
 
-  // Filter transactions based on current filters
-  const filteredTransactions = useMemo(() => {
-    return mockTransactions.filter((transaction) => {
-      // Search filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase()
-        const matchesSearch =
-          transaction.description?.toLowerCase().includes(searchLower) ||
-          transaction.reference_number?.toLowerCase().includes(searchLower)
-        if (!matchesSearch) return false
+  // Fetch transactions
+  const fetchTransactions = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true)
+      } else {
+        setRefreshing(true)
       }
 
-      // Bank filter
-      if (selectedBank && transaction.bank_id !== parseInt(selectedBank)) {
-        return false
+      const filters: any = {}
+      if (searchQuery) filters.search = searchQuery
+      if (selectedBank) filters.bank_id = parseInt(selectedBank)
+      if (selectedType !== 'all') filters.type = selectedType
+      if (startDate) filters.start_date = startDate.toISOString().split('T')[0]
+      if (endDate) filters.end_date = endDate.toISOString().split('T')[0]
+
+      const response = await getBankTransactions(filters)
+
+      // Handle nested response structure: { data: { data: [...], ... } }
+      let transactionsData: BankTransaction[] = []
+      if (response && typeof response === 'object') {
+        if ('data' in response) {
+          const innerData = response.data
+          if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+            transactionsData = innerData.data
+          } else if (Array.isArray(innerData)) {
+            transactionsData = innerData
+          }
+        } else if (Array.isArray(response)) {
+          transactionsData = response
+        }
       }
 
-      // Type filter
-      if (selectedType !== 'all' && transaction.type !== selectedType) {
-        return false
-      }
-
-      // Date filter
-      if (startDate) {
-        const transactionDate = new Date(transaction.transaction_date)
-        if (transactionDate < startDate) return false
-      }
-
-      if (endDate) {
-        const transactionDate = new Date(transaction.transaction_date)
-        if (transactionDate > endDate) return false
-      }
-
-      return true
-    })
-  }, [searchQuery, selectedBank, selectedType, startDate, endDate])
-
-  // Pagination
-  const itemsPerPage = 10
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage)
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return filteredTransactions.slice(start, start + itemsPerPage)
-  }, [filteredTransactions, currentPage])
-
-  // Calculate statistics from filtered data
-  const statistics = useMemo(() => {
-    const totalDeposits = filteredTransactions
-      .filter((t) => t.type === 'deposit')
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalWithdrawals = filteredTransactions
-      .filter((t) => t.type === 'withdrawal')
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalTransferIn = filteredTransactions
-      .filter((t) => t.type === 'transfer_in')
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalTransferOut = filteredTransactions
-      .filter((t) => t.type === 'transfer_out')
-      .reduce((sum, t) => sum + t.amount, 0)
-
-    const totalInflow = totalDeposits + totalTransferIn
-    const totalOutflow = totalWithdrawals + totalTransferOut
-
-    return {
-      total_deposits: totalDeposits,
-      total_withdrawals: totalWithdrawals,
-      total_transfer_in: totalTransferIn,
-      total_transfer_out: totalTransferOut,
-      total_inflow: totalInflow,
-      total_outflow: totalOutflow,
-      net_flow: totalInflow - totalOutflow,
-      transaction_count: filteredTransactions.length,
+      setTransactions(transactionsData)
+      setCurrentPage(1)
+    } catch (error) {
+      notifications.show({
+        title: t('finance.banksPage.transactionsPage.notification.errorLoading'),
+        message: t('common.somethingWentWrong'),
+        color: 'red',
+      })
+      setTransactions([])
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
     }
-  }, [filteredTransactions])
+  }, [searchQuery, selectedBank, selectedType, startDate, endDate, t])
 
-  // Handle page change
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
+  // Fetch statistics
+  const fetchStatistics = useCallback(async () => {
+    try {
+      const filters: any = {}
+      if (selectedBank) filters.bank_id = parseInt(selectedBank)
+      if (startDate) filters.start_date = startDate.toISOString().split('T')[0]
+      if (endDate) filters.end_date = endDate.toISOString().split('T')[0]
 
-  // Handle refresh
+      const response = await getBankTransactionStatistics(filters)
+
+      if (response && typeof response === 'object') {
+        if ('data' in response) {
+          setStatistics(response.data)
+        } else {
+          setStatistics(response)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch statistics:', error)
+    }
+  }, [selectedBank, startDate, endDate])
+
+  // Fetch banks for dropdown
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const response = await getBanks()
+        let banksData: any[] = []
+        if (response && typeof response === 'object') {
+          if ('data' in response && Array.isArray(response.data)) {
+            banksData = response.data
+          } else if (Array.isArray(response)) {
+            banksData = response
+          }
+        }
+        setBanks(banksData)
+      } catch (error) {
+        console.error('Failed to fetch banks:', error)
+      }
+    }
+    fetchBanks()
+  }, [])
+
+  // Initial load
+  useEffect(() => {
+    fetchTransactions(true)
+    fetchStatistics()
+  }, [])
+
+  // Refresh statistics when filters change
+  useEffect(() => {
+    fetchStatistics()
+  }, [fetchStatistics])
+
+  // Manual refresh
   const handleRefresh = () => {
+    fetchTransactions(false)
+    fetchStatistics()
     notifications.show({
       title: t('finance.banksPage.transactionsPage.notification.refreshed'),
       message: t('finance.banksPage.transactionsPage.notification.refreshedMessage'),
       color: 'blue',
     })
-    setCurrentPage(1)
   }
+
+  // Pagination
+  const itemsPerPage = 10
+  const totalPages = Math.ceil(transactions.length / itemsPerPage)
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * itemsPerPage
+    return transactions.slice(start, start + itemsPerPage)
+  }, [transactions, currentPage])
 
   // Handle export
   const handleExport = () => {
     // Create CSV content
     const headers = [
       t('finance.banksPage.transactionsPage.tableHeaders.date'),
-      t('finance.banksPage.transactionsPage.tableHeaders.bank'),
       t('finance.banksPage.transactionsPage.tableHeaders.type'),
       t('finance.banksPage.transactionsPage.tableHeaders.description'),
       t('finance.banksPage.transactionsPage.tableHeaders.reference'),
+      t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore'),
       t('finance.banksPage.transactionsPage.tableHeaders.amount'),
       t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')
     ]
     const rows = paginatedTransactions.map((t) => [
-      t.transaction_date,
-      t.bank?.name || 'N/A',
-      t.type,
+      t.transactionDate,
+      t.bank?.name ? `${t.type} (${t.bank.name})` : t.type,
       t.description || '',
-      t.reference_number || '',
-      t.amount.toString(),
-      t.balance_after.toString(),
+      t.referenceNumber || '',
+      t.balanceBefore || '0',
+      t.amount,
+      t.balanceAfter || '0',
     ])
 
     const csvContent = [headers, ...rows]
@@ -385,14 +274,20 @@ export default function TransactionsPage() {
     })
   }
 
+  // Format amount (handle string from API)
+  const formatAmount = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+    return num.toLocaleString()
+  }
+
   // Bank options for select
   const bankOptions = useMemo(
     () =>
-      mockBanks.map((bank) => ({
+      banks.map((bank) => ({
         value: bank.id.toString(),
-        label: `${bank.name} (${bank.account_number})`,
+        label: bank.name,
       })),
-    []
+    [banks]
   )
 
   // Type options
@@ -403,6 +298,24 @@ export default function TransactionsPage() {
     { value: 'transfer_in', label: t('finance.banksPage.transactionsPage.typeLabels.transfersIn') },
     { value: 'transfer_out', label: t('finance.banksPage.transactionsPage.typeLabels.transfersOut') },
   ]
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack>
+          <Skeleton height={40} width="100%" />
+          <SimpleGrid cols={{ base: 2, md: 4 }}>
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} height={100} radius="md" />
+            ))}
+          </SimpleGrid>
+          <Skeleton height={60} radius="md" />
+          <Skeleton height={400} radius="md" />
+        </Stack>
+      </Box>
+    )
+  }
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
@@ -419,7 +332,7 @@ export default function TransactionsPage() {
               </Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh}>
+              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh} loading={refreshing}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button leftSection={<IconDownload size={16} />} variant="light" onClick={handleExport}>
@@ -433,49 +346,49 @@ export default function TransactionsPage() {
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowUp size={20} className="text-green-600" />
+              <IconArrowUp size={20} style={{ color: 'var(--mantine-color-green-6)' }} />
               <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalInflow')}</Text>
             </Group>
             <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
-              <NumberFormatter value={statistics.total_inflow} prefix="৳" thousandSeparator />
+              <NumberFormatter value={statistics?.total_inflow || 0} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowDown size={20} className="text-red-600" />
+              <IconArrowDown size={20} style={{ color: 'var(--mantine-color-red-6)' }} />
               <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalOutflow')}</Text>
             </Group>
             <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
-              <NumberFormatter value={statistics.total_outflow} prefix="৳" thousandSeparator />
+              <NumberFormatter value={statistics?.total_outflow || 0} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconArrowsExchange size={20} className="text-blue-600" />
+              <IconArrowsExchange size={20} style={{ color: 'var(--mantine-color-blue-6)' }} />
               <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.netFlow')}</Text>
             </Group>
             <Text
               className="text-xl md:text-2xl lg:text-3xl"
               fw={700}
-              c={statistics.net_flow >= 0 ? 'green' : 'red'}
+              c={(statistics?.net_flow || 0) >= 0 ? 'green' : 'red'}
             >
-              <NumberFormatter value={statistics.net_flow} prefix="৳" thousandSeparator />
+              <NumberFormatter value={statistics?.net_flow || 0} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <IconRefresh size={20} className="text-purple-600" />
+              <IconRefresh size={20} style={{ color: 'var(--mantine-color-purple-6)' }} />
               <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.transactionsCount')}</Text>
             </Group>
-            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{statistics.transaction_count}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{statistics?.transaction_count || 0}</Text>
           </Card>
         </SimpleGrid>
 
         {/* Filters */}
-        <SimpleGrid cols={{ base: 1, md: 4 }} spacing="md">
+        <SimpleGrid cols={{ base: 1, md: 5 }} spacing="md">
           <TextInput
             placeholder={t('finance.banksPage.transactionsPage.searchPlaceholder')}
             leftSection={<IconSearch size={16} />}
@@ -502,23 +415,31 @@ export default function TransactionsPage() {
           <DateInput
             placeholder={t('finance.banksPage.transactionsPage.startDate')}
             value={startDate}
-            onChange={(value) => setStartDate(value as Date | null)}
+            onChange={setStartDate}
             maxDate={endDate || undefined}
+            clearable
+          />
+
+          <DateInput
+            placeholder={t('finance.banksPage.transactionsPage.endDate')}
+            value={endDate}
+            onChange={setEndDate}
+            minDate={startDate || undefined}
             clearable
           />
         </SimpleGrid>
 
         {/* Desktop Table */}
         <Card withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} shadow="sm">
-          <Table.ScrollContainer minWidth={1000}>
+          <Table.ScrollContainer minWidth={900}>
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.date')}</Table.Th>
-                  <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.bank')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.type')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.description')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.reference')}</Table.Th>
+                  <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore')}</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.amount')}</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')}</Table.Th>
                 </Table.Tr>
@@ -538,16 +459,11 @@ export default function TransactionsPage() {
                     return (
                       <Table.Tr key={transaction.id}>
                         <Table.Td>
-                          <Text className="text-sm md:text-base">{formatDate(transaction.transaction_date)}</Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Text className="text-sm md:text-base" fw={500}>
-                            {transaction.bank?.name || 'N/A'}
-                          </Text>
+                          <Text className="text-sm md:text-base">{formatDate(transaction.transactionDate)}</Text>
                         </Table.Td>
                         <Table.Td>
                           <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
-                            {typeConfig.label}
+                            {transaction.bank?.name ? `${typeConfig.label} (${transaction.bank.name})` : typeConfig.label}
                           </Badge>
                         </Table.Td>
                         <Table.Td>
@@ -555,7 +471,12 @@ export default function TransactionsPage() {
                         </Table.Td>
                         <Table.Td>
                           <Text className="text-sm md:text-base" c="dimmed">
-                            {transaction.reference_number || '-'}
+                            {transaction.referenceNumber || '-'}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          <Text className="text-sm md:text-base" fw={500} ta="right">
+                            <NumberFormatter value={parseFloat(transaction.balanceBefore || '0')} prefix="৳" thousandSeparator />
                           </Text>
                         </Table.Td>
                         <Table.Td>
@@ -566,12 +487,12 @@ export default function TransactionsPage() {
                             c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
                           >
                             {['deposit', 'transfer_in'].includes(transaction.type) ? '+' : '-'}৳{' '}
-                            {transaction.amount.toLocaleString()}
+                            {formatAmount(transaction.amount)}
                           </Text>
                         </Table.Td>
                         <Table.Td>
                           <Text className="text-sm md:text-base" fw={500} ta="right">
-                            <NumberFormatter value={transaction.balance_after} prefix="৳" thousandSeparator />
+                            <NumberFormatter value={parseFloat(transaction.balanceAfter || '0')} prefix="৳" thousandSeparator />
                           </Text>
                         </Table.Td>
                       </Table.Tr>
@@ -596,14 +517,14 @@ export default function TransactionsPage() {
                 <Card key={transaction.id} shadow="sm" p="sm" radius="md" withBorder>
                   <Group justify="space-between" mb="xs">
                     <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
-                      {typeConfig.label}
+                      {transaction.bank?.name ? `${typeConfig.label} (${transaction.bank.name})` : typeConfig.label}
                     </Badge>
-                    <Text className="text-xs md:text-sm" c="dimmed">{formatDate(transaction.transaction_date)}</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">{formatDate(transaction.transactionDate)}</Text>
                   </Group>
 
                   <Group justify="space-between" mb="xs">
-                    <Text className="text-sm md:text-base" fw={500}>
-                      {transaction.bank?.name || 'N/A'}
+                    <Text className="text-sm md:text-base" fw={500} truncate style={{ maxWidth: '60%' }}>
+                      {transaction.description || '-'}
                     </Text>
                     <Text
                       className="text-sm md:text-base"
@@ -611,30 +532,30 @@ export default function TransactionsPage() {
                       c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
                     >
                       {['deposit', 'transfer_in'].includes(transaction.type) ? '+' : '-'}৳{' '}
-                      {transaction.amount.toLocaleString()}
+                      {formatAmount(transaction.amount)}
                     </Text>
                   </Group>
 
-                  {transaction.description && (
-                    <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
-                      {transaction.description}
-                    </Text>
-                  )}
-
-                  {transaction.reference_number && (
+                  {transaction.referenceNumber && (
                     <Text className="text-xs md:text-sm" c="dimmed">
-                      Ref: {transaction.reference_number}
+                      Ref: {transaction.referenceNumber}
                     </Text>
                   )}
 
-                  <Box mt="xs">
+                  <Group justify="space-between" mt="xs">
+                    <Text className="text-xs md:text-sm" c="dimmed">
+                      {t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore')}:{' '}
+                      <Text span fw={500} c="bright">
+                        <NumberFormatter value={parseFloat(transaction.balanceBefore || '0')} prefix="৳" thousandSeparator />
+                      </Text>
+                    </Text>
                     <Text className="text-xs md:text-sm" c="dimmed">
                       {t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')}:{' '}
                       <Text span fw={500} c="bright">
-                        <NumberFormatter value={transaction.balance_after} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={parseFloat(transaction.balanceAfter || '0')} prefix="৳" thousandSeparator />
                       </Text>
                     </Text>
-                  </Box>
+                  </Group>
                 </Card>
               )
             })
@@ -647,7 +568,7 @@ export default function TransactionsPage() {
             <Pagination
               total={totalPages}
               value={currentPage}
-              onChange={handlePageChange}
+              onChange={setCurrentPage}
               className="text-sm md:text-base"
             />
           </Group>

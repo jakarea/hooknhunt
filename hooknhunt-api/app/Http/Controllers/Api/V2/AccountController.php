@@ -5,164 +5,433 @@ namespace App\Http\Controllers\Api\V2;
 use App\Http\Controllers\Controller;
 use App\Models\ChartOfAccount;
 use App\Models\JournalItem;
-use App\Traits\ApiResponse;
+use App\Models\JournalEntry;
+use App\Models\Expense;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class AccountController extends Controller
 {
-    use ApiResponse;
-
     /**
-     * 1. List Accounts with Current Balance
+     * Get all chart of accounts
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        // Fetch accounts with calculated balance
-        $accounts = ChartOfAccount::where('is_active', 1)
-            ->withSum(['journalItems as debit_total' => function($q) {
-                $q->select(DB::raw('COALESCE(SUM(debit), 0)'));
-            }], 'debit')
-            ->withSum(['journalItems as credit_total' => function($q) {
-                $q->select(DB::raw('COALESCE(SUM(credit), 0)'));
-            }], 'credit')
-            ->get()
-            ->map(function($acc) {
-                // Calculate Balance based on Account Type
-                // Asset/Expense: Debit - Credit
-                // Liability/Equity/Income: Credit - Debit
-                if (in_array($acc->type, ['asset', 'expense'])) {
-                    $acc->balance = $acc->debit_total - $acc->credit_total;
-                } else {
-                    $acc->balance = $acc->credit_total - $acc->debit_total;
-                }
-                return $acc;
+        $query = ChartOfAccount::query();
+
+        // Filter by account type
+        if ($request->type) {
+            $query->ofType($request->type);
+        }
+
+        // Filter by active status
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        // Search by name, code, or description
+        if ($request->search) {
+            $query->where(function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('code', 'like', '%' . $request->search . '%')
+                  ->orWhere('description', 'like', '%' . $request->search . '%');
             });
-
-        return $this->sendSuccess($accounts);
-    }
-
-    /**
-     * 2. Create New Ledger Account
-     */
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'code' => 'required|unique:chart_of_accounts,code',
-            'type' => 'required|in:asset,liability,equity,income,expense'
-        ]);
-
-        $account = ChartOfAccount::create($request->all());
-        return $this->sendSuccess($account, 'Account Head created');
-    }
-
-    /**
-     * 3. Get Single Account by ID
-     * GET /api/v2/finance/accounts/{id}
-     */
-    public function show($id)
-    {
-        $account = ChartOfAccount::withSum(['journalItems as debit_total' => function($q) {
-            $q->select(DB::raw('COALESCE(SUM(debit), 0)'));
-        }], 'debit')
-            ->withSum(['journalItems as credit_total' => function($q) {
-            $q->select(DB::raw('COALESCE(SUM(credit), 0)'));
-        }], 'credit')
-            ->findOrFail($id);
-
-        // Calculate balance based on account type
-        if (in_array($account->type, ['asset', 'expense'])) {
-            $account->balance = $account->debit_total - $account->credit_total;
-        } else {
-            $account->balance = $account->credit_total - $account->debit_total;
         }
 
-        return $this->sendSuccess($account, 'Account retrieved successfully.');
-    }
+        // Order by type and code
+        $query->orderByRaw("FIELD(type, 'asset', 'liability', 'equity', 'income', 'expense'), 'code'")
+              ->orderBy('code');
 
-    /**
-     * 4. Update Account
-     * PUT/PATCH /api/v2/finance/accounts/{id}
-     */
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'name' => 'sometimes|required|string',
-            'code' => 'sometimes|required|unique:chart_of_accounts,code,' . $id,
-            'type' => 'sometimes|required|in:asset,liability,equity,income,expense',
-            'is_active' => 'sometimes|boolean',
-            'description' => 'sometimes|nullable|string',
-        ]);
+        $accounts = $query->paginate($request->per_page ?? 50);
 
-        $account = ChartOfAccount::findOrFail($id);
-
-        // Check if account has journal entries (transactions)
-        $hasTransactions = $account->journalItems()->exists();
-        if ($hasTransactions) {
-            return $this->sendError('Cannot update account with existing journal entries. Create a new account instead.');
-        }
-
-        // Update the account
-        $account->update($request->only([
-            'name',
-            'code',
-            'type',
-            'is_active',
-            'description',
-        ]));
-
-        return $this->sendSuccess($account, 'Account updated successfully.');
-    }
-
-    /**
-     * 5. Balance Summary (Dashboard Widget)
-     */
-    public function balanceSummary()
-    {
-        $summary = [
-            'total_cash' => $this->getAccountBalance('Cash on Hand'), // Name needs to match DB
-            'total_sales' => $this->getAccountBalance('Sales Revenue'),
-            'total_expense' => $this->getAccountBalance('Expense', true) // true = by Type
-        ];
-        return $this->sendSuccess($summary);
-    }
-
-    // Helper
-    private function getAccountBalance($identifier, $byType = false)
-    {
-        $query = JournalItem::whereHas('account', function($q) use ($identifier, $byType) {
-            if ($byType) $q->where('type', $identifier);
-            else $q->where('name', $identifier);
+        // Calculate current balances for each account
+        $accounts->getCollection()->transform(function ($account) {
+            $account = $this->calculateAccountBalance($account);
+            $account->type_label = $account->type_label;
+            return $account;
         });
 
-        // Simple Debit - Credit for now (Refine logic per type later)
-        return $query->sum(DB::raw('debit - credit'));
+        return response()->json([
+            'success' => true,
+            'data' => $accounts,
+        ]);
     }
 
     /**
-     * 6. Delete Account
-     * DELETE /api/v2/finance/accounts/{id}
+     * Get single chart of account
      */
-    public function destroy($id)
+    public function show(int $id): JsonResponse
     {
-        $account = ChartOfAccount::findOrFail($id);
+        $account = ChartOfAccount::with(['journalItems.journalEntry'])->find($id);
 
-        // Check if account has journal entries (transactions)
+        if (!$account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account not found',
+            ], 404);
+        }
+
+        // Calculate balance
+        $account = $this->calculateAccountBalance($account);
+        $account->type_label = $account->type_label;
+
+        // Get recent journal entries for this account
+        $recentEntries = JournalEntry::whereHas('items', function ($q) use ($id) {
+            $q->where('account_id', $id);
+        })
+            ->with(['creator', 'items.account'])
+            ->orderBy('date', 'desc')
+            ->limit(20)
+            ->get();
+
+        // Get recent expenses for this account (if it's an expense account)
+        $recentExpenses = [];
+        if ($account->type === 'expense') {
+            $recentExpenses = Expense::where('account_id', $id)
+                ->with(['vendor', 'category', 'paymentMethod'])
+                ->orderBy('date', 'desc')
+                ->limit(10)
+                ->get();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => array_merge($account->toArray(), [
+                'recent_entries' => $recentEntries,
+                'recent_expenses' => $recentExpenses,
+            ]),
+        ]);
+    }
+
+    /**
+     * Create new chart of account
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => 'required|string|max:50|unique:chart_of_accounts,code',
+            'type' => 'required|in:asset,liability,equity,income,expense',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        $validated['is_active'] = $request->boolean('is_active', true);
+
+        $account = ChartOfAccount::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account created successfully',
+            'data' => $account,
+        ], 201);
+    }
+
+    /**
+     * Update chart of account
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $account = ChartOfAccount::find($id);
+
+        if (!$account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account not found',
+            ], 404);
+        }
+
+        // Check if account has journal entries
         $hasTransactions = $account->journalItems()->exists();
         if ($hasTransactions) {
-            return $this->sendError('Cannot delete account with existing journal entries.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot update account with existing journal entries. Create a new account instead.',
+            ], 400);
         }
 
         // Check if account has expenses
         $hasExpenses = $account->expenses()->exists();
         if ($hasExpenses) {
-            return $this->sendError('Cannot delete account with existing expenses.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot update account with existing expenses.',
+            ], 400);
         }
 
-        // Delete the account (safe to delete if no transactions)
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'code' => 'sometimes|string|max:50|unique:chart_of_accounts,code,' . $id,
+            'type' => 'sometimes|in:asset,liability,equity,income,expense',
+            'description' => 'nullable|string',
+            'is_active' => 'boolean',
+        ]);
+
+        $account->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Account updated successfully',
+            'data' => $account->fresh(),
+        ]);
+    }
+
+    /**
+     * Delete chart of account
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $account = ChartOfAccount::find($id);
+
+        if (!$account) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Account not found',
+            ], 404);
+        }
+
+        // Check if account has journal entries
+        $hasTransactions = $account->journalItems()->exists();
+        if ($hasTransactions) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete account with existing journal entries.',
+            ], 400);
+        }
+
+        // Check if account has expenses
+        $hasExpenses = $account->expenses()->exists();
+        if ($hasExpenses) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete account with existing expenses.',
+            ], 400);
+        }
+
         $account->delete();
 
-        return $this->sendSuccess(null, 'Account deleted successfully.');
+        return response()->json([
+            'success' => true,
+            'message' => 'Account deleted successfully',
+        ]);
+    }
+
+    /**
+     * Get balance summary
+     */
+    public function balanceSummary(): JsonResponse
+    {
+        // Get all accounts with their balances
+        $accounts = ChartOfAccount::active()
+            ->get()
+            ->map(function ($account) {
+                return $this->calculateAccountBalance($account);
+            });
+
+        // Calculate totals by type
+        $totalsByType = [
+            'asset' => $accounts->where('type', 'asset')->sum('balance'),
+            'liability' => $accounts->where('type', 'liability')->sum('balance'),
+            'equity' => $accounts->where('type', 'equity')->sum('balance'),
+            'income' => $accounts->where('type', 'income')->sum('balance'),
+            'expense' => $accounts->where('type', 'expense')->sum('balance'),
+        ];
+
+        // Calculate totals
+        $totalAssets = $totalsByType['asset'];
+        $totalLiabilities = $totalsByType['liability'];
+        $totalEquity = $totalsByType['equity'];
+        $totalRevenue = $totalsByType['income'];
+        $totalExpenses = $totalsByType['expense'];
+
+        // Accounting equation: Assets = Liabilities + Equity
+        $calculatedEquity = $totalAssets - $totalLiabilities;
+
+        // Net Income = Revenue - Expenses
+        $netIncome = $totalRevenue - $totalExpenses;
+
+        $summary = [
+            'total_accounts' => $accounts->count(),
+            'accounts_by_type' => [
+                'asset' => $accounts->where('type', 'asset')->count(),
+                'liability' => $accounts->where('type', 'liability')->count(),
+                'equity' => $accounts->where('type', 'equity')->count(),
+                'income' => $accounts->where('type', 'income')->count(),
+                'expense' => $accounts->where('type', 'expense')->count(),
+            ],
+            'totals_by_type' => [
+                [
+                    'type' => 'asset',
+                    'label' => 'Total Assets',
+                    'amount' => $totalAssets,
+                ],
+                [
+                    'type' => 'liability',
+                    'label' => 'Total Liabilities',
+                    'amount' => $totalLiabilities,
+                ],
+                [
+                    'type' => 'equity',
+                    'label' => 'Total Equity',
+                    'amount' => $totalEquity,
+                ],
+                [
+                    'type' => 'income',
+                    'label' => 'Total Revenue',
+                    'amount' => $totalRevenue,
+                ],
+                [
+                    'type' => 'expense',
+                    'label' => 'Total Expenses',
+                    'amount' => $totalExpenses,
+                ],
+            ],
+            'accounting_equation' => [
+                'assets' => $totalAssets,
+                'liabilities' => $totalLiabilities,
+                'equity' => $totalEquity,
+                'calculated_equity' => $calculatedEquity,
+                'is_balanced' => abs($totalEquity - $calculatedEquity) < 0.01,
+            ],
+            'net_income' => $netIncome,
+            'retained_earnings' => $netIncome,
+            'cash_and_cash_equivalents' => $accounts->filter(function($acc) {
+                return stripos(strtolower($acc->name), 'cash') !== false ||
+                       stripos(strtolower($acc->name), 'bank') !== false;
+            })->sum('balance'),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $summary,
+        ]);
+    }
+
+    /**
+     * Get trial balance data
+     */
+    public function trialBalance(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'as_of_date' => 'nullable|date',
+            'include_zero_balance' => 'boolean',
+        ]);
+
+        $query = ChartOfAccount::active();
+
+        $asOfDate = $validated['as_of_date'] ?? now()->toDateString();
+
+        // Get all accounts with their balances up to the specified date
+        $accounts = $query->get()->map(function ($account) use ($asOfDate) {
+            // Calculate balance from journal items up to the specified date
+            $debitTotal = JournalItem::where('account_id', $account->id)
+                ->whereHas('journalEntry', function ($q) use ($asOfDate) {
+                    $q->where('date', '<=', $asOfDate);
+                })
+                ->sum('debit');
+
+            $creditTotal = JournalItem::where('account_id', $account->id)
+                ->whereHas('journalEntry', function ($q) use ($asOfDate) {
+                    $q->where('date', '<=', $asOfDate);
+                })
+                ->sum('credit');
+
+            // Calculate balance based on account type
+            if (in_array($account->type, ['asset', 'expense'])) {
+                $balance = $debitTotal - $creditTotal;
+            } else {
+                $balance = $creditTotal - $debitTotal;
+            }
+
+            return [
+                'id' => $account->id,
+                'code' => $account->code,
+                'name' => $account->name,
+                'type' => $account->type,
+                'type_label' => $account->type_label,
+                'debit' => $debitTotal,
+                'credit' => $creditTotal,
+                'balance' => $balance,
+            ];
+        });
+
+        // Filter out zero balance accounts if requested
+        if (!$request->boolean('include_zero_balance')) {
+            $accounts = $accounts->filter(function($acc) {
+                return abs($acc['balance']) > 0.01;
+            });
+        }
+
+        // Calculate totals
+        $totalDebit = $accounts->sum('debit');
+        $totalCredit = $accounts->sum('credit');
+        $totalDebitBalances = $accounts->filter(function($acc) {
+            return in_array($acc['type'], ['asset', 'expense']);
+        })->sum('balance');
+        $totalCreditBalances = $accounts->filter(function($acc) {
+            return in_array($acc['type'], ['liability', 'equity', 'income']);
+        })->sum('balance');
+
+        $trialBalance = [
+            'as_of_date' => $asOfDate,
+            'accounts' => $accounts,
+            'total_debit' => $totalDebit,
+            'total_credit' => $totalCredit,
+            'difference' => $totalDebit - $totalCredit,
+            'is_balanced' => abs($totalDebit - $totalCredit) < 0.01,
+            'total_debit_balances' => $totalDebitBalances,
+            'total_credit_balances' => $totalCreditBalances,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $trialBalance,
+        ]);
+    }
+
+    /**
+     * Get account statistics
+     */
+    public function statistics(): JsonResponse
+    {
+        $stats = [
+            'total_accounts' => ChartOfAccount::count(),
+            'active_accounts' => ChartOfAccount::active()->count(),
+            'inactive_accounts' => ChartOfAccount::where('is_active', false)->count(),
+            'accounts_by_type' => [
+                'asset' => ChartOfAccount::ofType('asset')->count(),
+                'liability' => ChartOfAccount::ofType('liability')->count(),
+                'equity' => ChartOfAccount::ofType('equity')->count(),
+                'income' => ChartOfAccount::ofType('income')->count(),
+                'expense' => ChartOfAccount::ofType('expense')->count(),
+            ],
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Calculate account balance based on type
+     */
+    private function calculateAccountBalance(ChartOfAccount $account): ChartOfAccount
+    {
+        $debitTotal = $account->journalItems()->sum('debit');
+        $creditTotal = $account->journalItems()->sum('credit');
+
+        // Calculate balance based on account type
+        if (in_array($account->type, ['asset', 'expense'])) {
+            $account->balance = $debitTotal - $creditTotal;
+        } else {
+            $account->balance = $creditTotal - $debitTotal;
+        }
+
+        $account->debit_total = $debitTotal;
+        $account->credit_total = $creditTotal;
+
+        return $account;
     }
 }

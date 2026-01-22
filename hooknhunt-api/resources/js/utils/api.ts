@@ -129,20 +129,20 @@ export const getBanksSummary = async () => {
 
 export type BankTransaction = {
   id: number
-  bank_id: number
+  bankId: number
   bank: {
     id: number
     name: string
     type: string
   }
   type: 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out'
-  amount: number
-  balance_before: number
-  balance_after: number
-  reference_number?: string
+  amount: string
+  balanceBefore: string
+  balanceAfter: string
+  referenceNumber?: string | null
   description: string
-  transaction_date: string
-  created_at: string
+  transactionDate: string
+  createdAt: string
 }
 
 export type TransactionType = 'all' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out'
@@ -168,7 +168,26 @@ export const getBankTransactions = async (filters?: TransactionFilters) => {
   if (filters?.start_date) params.append('start_date', filters.start_date)
   if (filters?.end_date) params.append('end_date', filters.end_date)
 
-  const response = await api.get(`bank-transactions?${params}`)
+  const response = await api.get(`finance/bank-transactions?${params}`)
+  return response.data
+}
+
+/**
+ * Get bank transaction statistics
+ * GET /api/v2/finance/bank-transactions/statistics
+ */
+export const getBankTransactionStatistics = async (filters?: {
+  start_date?: string
+  end_date?: string
+  bank_id?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.bank_id) params.append('bank_id', filters.bank_id)
+
+  const response = await api.get(`finance/bank-transactions/statistics?${params}`)
   return response.data
 }
 
@@ -226,7 +245,10 @@ export type ChartOfAccount = {
   name: string
   code: string
   type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+  balance: number
   is_active: boolean
+  parent_id?: number | null
+  description?: string | null
 }
 
 /**
@@ -235,6 +257,337 @@ export type ChartOfAccount = {
  */
 export const getAccounts = async () => {
   const response = await api.get('finance/accounts')
+  return response.data
+}
+
+/**
+ * Get single chart of account by ID
+ * GET /api/v2/finance/accounts/{id}
+ */
+export const getAccount = async (id: number) => {
+  const response = await api.get(`finance/accounts/${id}`)
+  return response.data
+}
+
+/**
+ * Create new chart of account
+ * POST /api/v2/finance/accounts
+ */
+export const createAccount = async (data: {
+  name: string
+  code: string
+  type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+  description?: string
+  is_active?: boolean
+}) => {
+  // Convert 'revenue' to 'income' for backend
+  const payload = {
+    name: data.name,
+    code: data.code,
+    type: data.type === 'revenue' ? 'income' : data.type,
+    description: data.description,
+    is_active: data.is_active ?? true,
+  }
+  const response = await api.post('finance/accounts', payload)
+  return response.data
+}
+
+/**
+ * Update chart of account
+ * PUT/PATCH /api/v2/finance/accounts/{id}
+ */
+export const updateAccount = async (id: number, data: {
+  name?: string
+  code?: string
+  type?: string
+  description?: string
+  is_active?: boolean
+}) => {
+  const payload: any = {}
+  if (data.name !== undefined) payload.name = data.name
+  if (data.code !== undefined) payload.code = data.code
+  if (data.type !== undefined) payload.type = data.type === 'revenue' ? 'income' : data.type
+  if (data.description !== undefined) payload.description = data.description
+  if (data.is_active !== undefined) payload.is_active = data.is_active
+
+  const response = await api.put(`finance/accounts/${id}`, payload)
+  return response.data
+}
+
+/**
+ * Delete chart of account
+ * DELETE /api/v2/finance/accounts/{id}
+ */
+export const deleteAccount = async (id: number) => {
+  const response = await api.delete(`finance/accounts/${id}`)
+  return response.data
+}
+
+/**
+ * Get balance summary
+ * GET /api/v2/finance/accounts/summary
+ */
+export const getAccountBalanceSummary = async () => {
+  const response = await api.get('finance/accounts/summary')
+  return response.data
+}
+
+/**
+ * Get trial balance
+ * GET /api/v2/finance/accounts/trial-balance
+ */
+export const getTrialBalance = async (params?: {
+  as_of_date?: string
+  include_zero_balance?: boolean
+}) => {
+  const response = await api.get('finance/accounts/trial-balance', { params })
+  return response.data
+}
+
+/**
+ * Get account statistics
+ * GET /api/v2/finance/accounts/statistics
+ */
+export const getAccountStatistics = async () => {
+  const response = await api.get('finance/accounts/statistics')
+  return response.data
+}
+
+// ============================================
+// ACCOUNTS PAYABLE API METHODS
+// ============================================
+
+export type VendorBill = {
+  id: number
+  bill_number: string
+  supplier_id: number
+  supplier?: any
+  supplier_name?: string
+  chart_account_id?: number | null
+  chart_account?: any
+  account_name?: string
+  bill_date: string
+  due_date: string
+  subtotal: number
+  tax_amount: number
+  discount_amount: number
+  total_amount: number
+  paid_amount: number
+  balance_due: number
+  status: 'draft' | 'open' | 'partial' | 'paid' | 'overdue'
+  status_label?: string
+  payment_status: 'unpaid' | 'partial' | 'paid'
+  payment_status_label?: string
+  notes?: string | null
+  created_by?: number | null
+  creator?: any
+  paid_at?: string | null
+  is_overdue?: boolean
+  days_overdue?: number
+  items?: VendorBillItem[]
+  created_at: string
+  updated_at: string
+}
+
+export type VendorBillItem = {
+  id: number
+  vendor_bill_id: number
+  description: string
+  quantity: number
+  unit_price: number
+  tax_rate: number
+  tax_amount: number
+  discount_amount: number
+  total: number
+  chart_account_id?: number | null
+  chart_account?: any
+}
+
+export type VendorPayment = {
+  id: number
+  payment_number: string
+  supplier_id: number
+  supplier?: any
+  chart_account_id?: number | null
+  chart_account?: any
+  payment_date: string
+  amount: number
+  payment_method: 'cash' | 'bank_transfer' | 'cheque' | 'card'
+  payment_method_label?: string
+  reference_number?: string | null
+  notes?: string | null
+  status: 'draft' | 'completed' | 'cancelled'
+  status_label?: string
+  created_by?: number | null
+  creator?: any
+  bills?: any[]
+  created_at: string
+  updated_at: string
+}
+
+export type AccountsPayableFilters = {
+  page?: number
+  per_page?: number
+  status?: string
+  payment_status?: string
+  supplier_id?: number
+  start_date?: string
+  end_date?: string
+  search?: string
+}
+
+export type AgingReport = {
+  as_of_date: string
+  total_due: number
+  aging: {
+    current: { count: number; amount: number }
+    '1_30_days': { count: number; amount: number }
+    '31_60_days': { count: number; amount: number }
+    '61_90_days': { count: number; amount: number }
+    over_90_days: { count: number; amount: number }
+  }
+  by_supplier: Array<{
+    supplier_id: number
+    supplier_name: string
+    total_due: number
+    current: number
+    '1_30_days': number
+    '31_60_days': number
+    '61_90_days': number
+    over_90_days: number
+  }>
+  total_unpaid_bills: number
+}
+
+export type AccountsPayableStatistics = {
+  total_bills: number
+  unpaid_bills: number
+  partial_bills: number
+  paid_bills: number
+  overdue_bills: number
+  total_due: number
+  total_paid_this_month: number
+}
+
+/**
+ * Get all vendor bills
+ * GET /api/v2/finance/accounts-payable
+ */
+export const getVendorBills = async (filters?: AccountsPayableFilters) => {
+  const response = await api.get('finance/accounts-payable', { params: filters })
+  return response.data
+}
+
+/**
+ * Get single vendor bill
+ * GET /api/v2/finance/accounts-payable/{id}
+ */
+export const getVendorBill = async (id: number) => {
+  const response = await api.get(`finance/accounts-payable/${id}`)
+  return response.data
+}
+
+/**
+ * Create new vendor bill
+ * POST /api/v2/finance/accounts-payable
+ */
+export const createVendorBill = async (data: {
+  supplier_id: number
+  chart_account_id?: number | null
+  bill_date: string
+  due_date: string
+  items: Array<{
+    description: string
+    quantity: number
+    unit_price: number
+    tax_rate?: number
+    discount_amount?: number
+    chart_account_id?: number | null
+  }>
+  notes?: string
+}) => {
+  const response = await api.post('finance/accounts-payable', data)
+  return response.data
+}
+
+/**
+ * Update vendor bill
+ * PUT/PATCH /api/v2/finance/accounts-payable/{id}
+ */
+export const updateVendorBill = async (id: number, data: {
+  supplier_id?: number
+  chart_account_id?: number | null
+  bill_date?: string
+  due_date?: string
+  notes?: string
+}) => {
+  const response = await api.put(`finance/accounts-payable/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete vendor bill
+ * DELETE /api/v2/finance/accounts-payable/{id}
+ */
+export const deleteVendorBill = async (id: number) => {
+  const response = await api.delete(`finance/accounts-payable/${id}`)
+  return response.data
+}
+
+/**
+ * Get aging report
+ * GET /api/v2/finance/accounts-payable/aging-report
+ */
+export const getAgingReport = async (asOfDate?: string) => {
+  const response = await api.get('finance/accounts-payable/aging-report', {
+    params: asOfDate ? { as_of_date: asOfDate } : {}
+  })
+  return response.data
+}
+
+/**
+ * Get vendor payments
+ * GET /api/v2/finance/accounts-payable/payments
+ */
+export const getVendorPayments = async (filters?: {
+  page?: number
+  per_page?: number
+  status?: string
+  supplier_id?: number
+  start_date?: string
+  end_date?: string
+}) => {
+  const response = await api.get('finance/accounts-payable/payments', { params: filters })
+  return response.data
+}
+
+/**
+ * Create vendor payment
+ * POST /api/v2/finance/accounts-payable/payments
+ */
+export const createVendorPayment = async (data: {
+  supplier_id: number
+  chart_account_id?: number | null
+  payment_date: string
+  amount: number
+  payment_method: 'cash' | 'bank_transfer' | 'cheque' | 'card'
+  reference_number?: string
+  notes?: string
+  bills: Array<{
+    bill_id: number
+    amount_applied: number
+  }>
+}) => {
+  const response = await api.post('finance/accounts-payable/payments', data)
+  return response.data
+}
+
+/**
+ * Get accounts payable statistics
+ * GET /api/v2/finance/accounts-payable/statistics
+ */
+export const getAccountsPayableStatistics = async () => {
+  const response = await api.get('finance/accounts-payable/statistics')
   return response.data
 }
 
@@ -278,22 +631,35 @@ export const getFinanceDashboard = async () => {
 export type Expense = {
   id: number
   title: string
-  amount: number
-  expense_date: string
-  is_approved: boolean
-  account: {
+  amount: string  // API returns string
+  expenseDate: string
+  isApproved: boolean  // API returns 0/1, convert to boolean
+  accountId: number
+  account?: {
     id: number
     name: string
     code: string
+    type: string
   }
-  paid_by: {
+  paidById: number
+  paidBy?: {
     id: number
     name: string
+    email?: string
   }
-  reference_number?: string
-  notes?: string
-  created_at: string
-  updated_at: string
+  referenceNumber?: string | null
+  notes?: string | null
+  attachment?: string | null
+  // VAT (Value Added Tax) fields - optional
+  vatPercentage?: number | null
+  vatAmount?: string | null
+  vatChallanNo?: string | null
+  // Tax (AIT) fields - optional
+  taxPercentage?: number | null
+  taxAmount?: string | null
+  taxChallanNo?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export type ExpenseFilters = {
@@ -314,7 +680,7 @@ export const getExpenses = async (filters?: ExpenseFilters) => {
   const params = new URLSearchParams()
 
   if (filters?.search) params.append('search', filters.search)
-  if (filters?.account_id) params.append('account_id', filters.account_id)
+  if (filters?.account_id) params.append('account_id', filters.account_id.toString())
   if (filters?.is_approved !== undefined) params.append('is_approved', filters.is_approved ? '1' : '0')
   if (filters?.start_date) params.append('start_date', filters.start_date)
   if (filters?.end_date) params.append('end_date', filters.end_date)
@@ -323,7 +689,7 @@ export const getExpenses = async (filters?: ExpenseFilters) => {
   if (filters?.page) params.append('page', filters.page.toString())
   if (filters?.per_page) params.append('per_page', filters.per_page.toString())
 
-  const response = await api.get(`expenses?${params}`)
+  const response = await api.get(`finance/expenses?${params}`)
   return response.data
 }
 
@@ -332,7 +698,7 @@ export const getExpenses = async (filters?: ExpenseFilters) => {
  * GET /api/v2/finance/expenses/{id}
  */
 export const getExpense = async (id: number) => {
-  const response = await api.get(`expenses/${id}`)
+  const response = await api.get(`finance/expenses/${id}`)
   return response.data
 }
 
@@ -343,12 +709,22 @@ export const getExpense = async (id: number) => {
 export const createExpense = async (data: {
   title: string
   amount: number
-  account_id: number
-  expense_date: string
-  reference_number?: string
+  accountId: number
+  expenseDate: string
+  referenceNumber?: string
   notes?: string
+  attachment?: string | File
 }) => {
-  const response = await api.post('expenses', data)
+  const payload = {
+    title: data.title,
+    amount: data.amount,
+    account_id: data.accountId,
+    expense_date: data.expenseDate,
+    reference_number: data.referenceNumber,
+    notes: data.notes,
+    attachment: data.attachment,
+  }
+  const response = await api.post('finance/expenses', payload)
   return response.data
 }
 
@@ -357,7 +733,7 @@ export const createExpense = async (data: {
  * POST /api/v2/finance/expenses/{id}/approve
  */
 export const approveExpense = async (id: number) => {
-  const response = await api.post(`expenses/${id}/approve`)
+  const response = await api.post(`finance/expenses/${id}/approve`)
   return response.data
 }
 
@@ -368,12 +744,22 @@ export const approveExpense = async (id: number) => {
 export const updateExpense = async (id: number, data: {
   title?: string
   amount?: number
-  account_id?: number
-  expense_date?: string
-  reference_number?: string
+  accountId?: number
+  expenseDate?: string
+  referenceNumber?: string
   notes?: string
+  attachment?: string | File
 }) => {
-  const response = await api.put(`expenses/${id}`, data)
+  const payload: any = {}
+  if (data.title !== undefined) payload.title = data.title
+  if (data.amount !== undefined) payload.amount = data.amount
+  if (data.accountId !== undefined) payload.account_id = data.accountId
+  if (data.expenseDate !== undefined) payload.expense_date = data.expenseDate
+  if (data.referenceNumber !== undefined) payload.reference_number = data.referenceNumber
+  if (data.notes !== undefined) payload.notes = data.notes
+  if (data.attachment !== undefined) payload.attachment = data.attachment
+
+  const response = await api.put(`finance/expenses/${id}`, payload)
   return response.data
 }
 
@@ -381,8 +767,1822 @@ export const updateExpense = async (id: number, data: {
  * Delete expense
  * DELETE /api/v2/finance/expenses/{id}
  */
-const deleteExpense = async (id: number) => {
-  const response = await api.delete(`expenses/${id}`)
+export const deleteExpense = async (id: number) => {
+  const response = await api.delete(`finance/expenses/${id}`)
+  return response.data
+}
+
+// ============================================
+// BANK RECONCILIATION API METHODS
+// ============================================
+
+export type BankReconciliation = {
+  id: number
+  bankId: number
+  bank?: {
+    id: number
+    name: string
+    type: string
+    current_balance: number
+  }
+  statementDate: string
+  statementNumber?: string | null
+  openingBalance: number
+  closingBalance: number
+  bookBalance: number
+  depositsInTransit: number
+  outstandingChecks: number
+  bankCharges: number
+  interestEarned: number
+  otherAdjustments: number
+  adjustedBalance: number
+  difference: number
+  isReconciled: boolean
+  reconciledAt?: string | null
+  notes?: string | null
+  attachment?: string | null
+  createdAt: string
+  updatedAt: string
+  summary?: {
+    book_balance: number
+    deposits_in_transit: number
+    outstanding_checks: number
+    bank_charges: number
+    interest_earned: number
+    other_adjustments: number
+    adjusted_balance: number
+    closing_balance: number
+    difference: number
+    is_balanced: boolean
+  }
+}
+
+export type ReconciliationFilters = {
+  bank_id?: number
+  is_reconciled?: boolean
+  start_date?: string
+  end_date?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all bank reconciliations
+ * GET /api/v2/finance/bank-reconciliations
+ */
+export const getBankReconciliations = async (filters?: ReconciliationFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.bank_id) params.append('bank_id', filters.bank_id.toString())
+  if (filters?.is_reconciled !== undefined) params.append('is_reconciled', filters.is_reconciled ? '1' : '0')
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const response = await api.get(`finance/bank-reconciliations?${params}`)
+  return response.data
+}
+
+/**
+ * Get single bank reconciliation
+ * GET /api/v2/finance/bank-reconciliations/{id}
+ */
+export const getBankReconciliation = async (id: number) => {
+  const response = await api.get(`finance/bank-reconciliations/${id}`)
+  return response.data
+}
+
+/**
+ * Create bank reconciliation
+ * POST /api/v2/finance/bank-reconciliations
+ */
+export const createBankReconciliation = async (data: {
+  bank_id: number
+  statement_date: string
+  statement_number?: string
+  opening_balance: number
+  closing_balance: number
+  deposits_in_transit?: number
+  outstanding_checks?: number
+  bank_charges?: number
+  interest_earned?: number
+  other_adjustments?: number
+  notes?: string
+}) => {
+  const response = await api.post('finance/bank-reconciliations', data)
+  return response.data
+}
+
+/**
+ * Update bank reconciliation
+ * PUT/PATCH /api/v2/finance/bank-reconciliations/{id}
+ */
+export const updateBankReconciliation = async (id: number, data: {
+  statement_number?: string
+  opening_balance?: number
+  closing_balance?: number
+  deposits_in_transit?: number
+  outstanding_checks?: number
+  bank_charges?: number
+  interest_earned?: number
+  other_adjustments?: number
+  notes?: string
+  attachment?: string
+}) => {
+  const response = await api.put(`finance/bank-reconciliations/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete bank reconciliation
+ * DELETE /api/v2/finance/bank-reconciliations/{id}
+ */
+export const deleteBankReconciliation = async (id: number) => {
+  const response = await api.delete(`finance/bank-reconciliations/${id}`)
+  return response.data
+}
+
+/**
+ * Reconcile bank statement
+ * POST /api/v2/finance/bank-reconciliations/{id}/reconcile
+ */
+export const reconcileBank = async (id: number) => {
+  const response = await api.post(`finance/bank-reconciliations/${id}/reconcile`)
+  return response.data
+}
+
+/**
+ * Reset reconciliation
+ * POST /api/v2/finance/bank-reconciliations/{id}/reset
+ */
+export const resetBankReconciliation = async (id: number) => {
+  const response = await api.post(`finance/bank-reconciliations/${id}/reset`)
+  return response.data
+}
+
+/**
+ * Get book balance for a bank
+ * GET /api/v2/finance/bank-reconciliations/book-balance/{bankId}
+ */
+export const getBookBalance = async (bankId: number) => {
+  const response = await api.get(`finance/bank-reconciliations/book-balance/${bankId}`)
+  return response.data
+}
+
+/**
+ * Get pending transactions for reconciliation
+ * GET /api/v2/finance/bank-reconciliations/pending-transactions/{bankId}
+ */
+export const getPendingTransactions = async (bankId: number, statementDate: string) => {
+  const response = await api.get(`finance/bank-reconciliations/pending-transactions/${bankId}?statement_date=${statementDate}`)
+  return response.data
+}
+
+/**
+ * Get reconciliation summary
+ * GET /api/v2/finance/bank-reconciliations/summary
+ */
+export const getReconciliationSummary = async (filters?: {
+  start_date?: string
+  end_date?: string
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/bank-reconciliations/summary?${params}`)
+  return response.data
+}
+
+// ============================================
+// FIXED ASSETS API METHODS
+// ============================================
+
+export type FixedAsset = {
+  id: number
+  name: string
+  assetCode: string
+  serialNumber?: string | null
+  description?: string | null
+  category: string
+  subcategory?: string | null
+  location?: string | null
+  accountId?: number | null
+  account?: {
+    id: number
+    name: string
+    code: string
+    type: string
+  }
+  purchasePrice: number
+  purchaseDate: string
+  supplier?: string | null
+  invoiceNumber?: string | null
+  salvageValue: number
+  usefulLife: number
+  depreciationMethod: 'straight_line' | 'declining_balance' | 'units_of_production' | 'none'
+  depreciationRate: number
+  accumulatedDepreciation: number
+  netBookValue: number
+  status: 'active' | 'disposed' | 'sold' | 'scrapped' | 'lost'
+  disposalDate?: string | null
+  disposalValue?: number | null
+  disposalReason?: string | null
+  disposalReference?: string | null
+  warrantyExpiry?: string | null
+  maintenanceNotes?: string | null
+  attachment?: string | null
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+  // Computed fields
+  remaining_life?: number
+  depreciation_progress?: number
+  depreciation_schedule?: Array<{
+    year: number
+    depreciation: number
+    accumulated: number
+    book_value: number
+  }>
+  is_fully_depreciated?: boolean
+}
+
+export type FixedAssetFilters = {
+  category?: string
+  status?: 'active' | 'disposed' | 'sold' | 'scrapped' | 'lost'
+  location?: string
+  search?: string
+  start_date?: string
+  end_date?: string
+}
+
+/**
+ * Get all fixed assets with optional filters
+ * GET /api/v2/finance/fixed-assets
+ */
+export const getFixedAssets = async (filters?: FixedAssetFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.category) params.append('category', filters.category)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.location) params.append('location', filters.location)
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/fixed-assets?${params}`)
+  return response.data
+}
+
+/**
+ * Get a single fixed asset
+ * GET /api/v2/finance/fixed-assets/{id}
+ */
+export const getFixedAsset = async (id: number) => {
+  const response = await api.get(`finance/fixed-assets/${id}`)
+  return response.data
+}
+
+/**
+ * Create a new fixed asset
+ * POST /api/v2/finance/fixed-assets
+ */
+export const createFixedAsset = async (data: {
+  name: string
+  category: string
+  subcategory?: string
+  location?: string
+  serial_number?: string
+  description?: string
+  account_id?: number
+  purchase_price: number
+  purchase_date: string
+  supplier?: string
+  invoice_number?: string
+  salvage_value?: number
+  useful_life: number
+  depreciation_method: 'straight_line' | 'declining_balance' | 'units_of_production' | 'none'
+  depreciation_rate?: number
+  warranty_expiry?: string
+  attachment?: string
+  notes?: string
+}) => {
+  const response = await api.post('finance/fixed-assets', data)
+  return response.data
+}
+
+/**
+ * Update a fixed asset
+ * PUT/PATCH /api/v2/finance/fixed-assets/{id}
+ */
+export const updateFixedAsset = async (id: number, data: {
+  name?: string
+  category?: string
+  subcategory?: string
+  location?: string
+  serial_number?: string
+  description?: string
+  account_id?: number
+  purchase_price?: number
+  purchase_date?: string
+  supplier?: string
+  invoice_number?: string
+  salvage_value?: number
+  useful_life?: number
+  depreciation_method?: 'straight_line' | 'declining_balance' | 'units_of_production' | 'none'
+  depreciation_rate?: number
+  warranty_expiry?: string
+  attachment?: string
+  notes?: string
+}) => {
+  const response = await api.put(`finance/fixed-assets/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete a fixed asset
+ * DELETE /api/v2/finance/fixed-assets/{id}
+ */
+export const deleteFixedAsset = async (id: number) => {
+  const response = await api.delete(`finance/fixed-assets/${id}`)
+  return response.data
+}
+
+/**
+ * Dispose/Sell/Scrap an asset
+ * POST /api/v2/finance/fixed-assets/{id}/dispose
+ */
+export const disposeFixedAsset = async (id: number, data: {
+  status: 'disposed' | 'sold' | 'scrapped' | 'lost'
+  disposal_date: string
+  disposal_value?: number
+  disposal_reason?: string
+  disposal_reference?: string
+}) => {
+  const response = await api.post(`finance/fixed-assets/${id}/dispose`, data)
+  return response.data
+}
+
+/**
+ * Update depreciation for all assets
+ * POST /api/v2/finance/fixed-assets/update-depreciation
+ */
+export const updateAllDepreciation = async () => {
+  const response = await api.post('finance/fixed-assets/update-depreciation')
+  return response.data
+}
+
+/**
+ * Get asset categories
+ * GET /api/v2/finance/fixed-assets/categories
+ */
+export const getAssetCategories = async () => {
+  const response = await api.get('finance/fixed-assets/categories')
+  return response.data
+}
+
+/**
+ * Get asset locations
+ * GET /api/v2/finance/fixed-assets/locations
+ */
+export const getAssetLocations = async () => {
+  const response = await api.get('finance/fixed-assets/locations')
+  return response.data
+}
+
+/**
+ * Get fixed assets summary
+ * GET /api/v2/finance/fixed-assets/summary
+ */
+export const getFixedAssetsSummary = async (filters?: {
+  start_date?: string
+  end_date?: string
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/fixed-assets/summary?${params}`)
+  return response.data
+}
+
+// ============================================
+// CHEQUE/PDC MANAGEMENT API METHODS
+// ============================================
+
+export type Cheque = {
+  id: number
+  chequeNumber: string
+  issueDate: string
+  dueDate: string
+  amount: number
+  payeeName: string
+  bankId?: number | null
+  bank?: {
+    id: number
+    name: string
+    type: string
+  }
+  bankName?: string | null
+  branchName?: string | null
+  type: 'incoming' | 'outgoing'
+  referenceType?: string | null
+  referenceId?: number | null
+  status: 'pending' | 'deposited' | 'cleared' | 'bounced' | 'cancelled' | 'dishonored'
+  depositDate?: string | null
+  clearanceDate?: string | null
+  bounceReason?: string | null
+  partyName?: string | null
+  partyContact?: string | null
+  notes?: string | null
+  attachment?: string | null
+  alertSent: boolean
+  alertSentAt?: string | null
+  createdAt: string
+  updatedAt: string
+  // Computed fields
+  days_until_due?: number
+  is_due_today?: boolean
+  is_overdue?: boolean
+  is_upcoming?: boolean
+}
+
+export type ChequeFilters = {
+  type?: 'incoming' | 'outgoing'
+  status?: 'pending' | 'deposited' | 'cleared' | 'bounced' | 'cancelled' | 'dishonored'
+  bank_id?: number
+  search?: string
+  start_date?: string
+  end_date?: string
+}
+
+/**
+ * Get all cheques with optional filters
+ * GET /api/v2/finance/cheques
+ */
+export const getCheques = async (filters?: ChequeFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.type) params.append('type', filters.type)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.bank_id) params.append('bank_id', filters.bank_id.toString())
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/cheques?${params}`)
+  return response.data
+}
+
+/**
+ * Get a single cheque
+ * GET /api/v2/finance/cheques/{id}
+ */
+export const getCheque = async (id: number) => {
+  const response = await api.get(`finance/cheques/${id}`)
+  return response.data
+}
+
+/**
+ * Create a new cheque
+ * POST /api/v2/finance/cheques
+ */
+export const createCheque = async (data: {
+  cheque_number: string
+  issue_date: string
+  due_date: string
+  amount: number
+  payee_name: string
+  bank_id?: number
+  branch_name?: string
+  type: 'incoming' | 'outgoing'
+  reference_type?: string
+  reference_id?: number
+  party_name?: string
+  party_contact?: string
+  notes?: string
+  attachment?: string
+}) => {
+  const response = await api.post('finance/cheques', data)
+  return response.data
+}
+
+/**
+ * Update a cheque
+ * PUT/PATCH /api/v2/finance/cheques/{id}
+ */
+export const updateCheque = async (id: number, data: {
+  cheque_number?: string
+  issue_date?: string
+  due_date?: string
+  amount?: number
+  payee_name?: string
+  bank_id?: number
+  branch_name?: string
+  party_name?: string
+  party_contact?: string
+  notes?: string
+  attachment?: string
+}) => {
+  const response = await api.put(`finance/cheques/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete a cheque
+ * DELETE /api/v2/finance/cheques/{id}
+ */
+export const deleteCheque = async (id: number) => {
+  const response = await api.delete(`finance/cheques/${id}`)
+  return response.data
+}
+
+/**
+ * Mark cheque as deposited
+ * POST /api/v2/finance/cheques/{id}/deposit
+ */
+export const depositCheque = async (id: number, data?: { deposit_date?: string }) => {
+  const response = await api.post(`finance/cheques/${id}/deposit`, data || {})
+  return response.data
+}
+
+/**
+ * Mark cheque as cleared
+ * POST /api/v2/finance/cheques/{id}/clear
+ */
+export const clearCheque = async (id: number, data?: { clearance_date?: string }) => {
+  const response = await api.post(`finance/cheques/${id}/clear`, data || {})
+  return response.data
+}
+
+/**
+ * Mark cheque as bounced
+ * POST /api/v2/finance/cheques/{id}/bounce
+ */
+export const bounceCheque = async (id: number, data: { bounce_reason: string }) => {
+  const response = await api.post(`finance/cheques/${id}/bounce`, data)
+  return response.data
+}
+
+/**
+ * Cancel cheque
+ * POST /api/v2/finance/cheques/{id}/cancel
+ */
+export const cancelCheque = async (id: number) => {
+  const response = await api.post(`finance/cheques/${id}/cancel`)
+  return response.data
+}
+
+/**
+ * Get cheque alerts (upcoming and overdue)
+ * GET /api/v2/finance/cheques/alerts?days=7
+ */
+export const getChequeAlerts = async (days: number = 7) => {
+  const response = await api.get(`finance/cheques/alerts?days=${days}`)
+  return response.data
+}
+
+/**
+ * Get cheques summary
+ * GET /api/v2/finance/cheques/summary
+ */
+export const getChequesSummary = async () => {
+  const response = await api.get('finance/cheques/summary')
+  return response.data
+}
+
+// ============================================
+// VAT/TAX LEDGER API METHODS
+// ============================================
+
+export type VatTaxLedger = {
+  id: number
+  transaction_type: 'purchase' | 'sale' | 'expense' | 'adjustment'
+  tax_type: 'vat' | 'tax' | 'ait'
+  base_amount: number
+  tax_rate: number
+  tax_amount: number
+  direction: 'input' | 'output'
+  flow_type: 'debit' | 'credit'
+  transaction_date: string
+  chart_account_id?: number
+  fiscal_year?: string
+  tax_period?: string
+  challan_number?: string
+  challan_date?: string
+  is_paid: boolean
+  payment_date?: string
+  payment_reference?: string
+  status: 'pending' | 'filed' | 'paid'
+  description?: string
+  notes?: string
+  tax_type_label?: string
+  direction_label?: string
+  status_label?: string
+  status_badge?: string
+  chart_account?: any
+  creator?: any
+  updater?: any
+  created_at: string
+  updated_at: string
+}
+
+export type VatTaxLedgerFilters = {
+  tax_type?: 'vat' | 'tax' | 'ait'
+  direction?: 'input' | 'output'
+  status?: 'pending' | 'filed' | 'paid'
+  fiscal_year?: string
+  tax_period?: string
+  transaction_type?: 'purchase' | 'sale' | 'expense' | 'adjustment'
+  is_paid?: boolean
+  search?: string
+  start_date?: string
+  end_date?: string
+}
+
+export type VatTaxSummary = {
+  by_type_and_direction: any[]
+  vat: {
+    collected: number
+    paid: number
+    net: number
+  }
+  tax: {
+    collected: number
+    paid: number
+    net: number
+  }
+  total: {
+    collected: number
+    paid: number
+    net_payable: number
+  }
+  transaction_counts: {
+    total: number
+    pending: number
+    filed: number
+    paid: number
+  }
+}
+
+/**
+ * Get all VAT/Tax ledger entries with optional filters
+ * GET /api/v2/finance/vat-tax-ledgers
+ */
+export const getVatTaxLedgers = async (filters?: VatTaxLedgerFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.tax_type) params.append('tax_type', filters.tax_type)
+  if (filters?.direction) params.append('direction', filters.direction)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.fiscal_year) params.append('fiscal_year', filters.fiscal_year)
+  if (filters?.tax_period) params.append('tax_period', filters.tax_period)
+  if (filters?.transaction_type) params.append('transaction_type', filters.transaction_type)
+  if (filters?.is_paid !== undefined) params.append('is_paid', filters.is_paid.toString())
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/vat-tax-ledgers?${params}`)
+  return response.data
+}
+
+/**
+ * Get a single VAT/Tax ledger entry
+ * GET /api/v2/finance/vat-tax-ledgers/{id}
+ */
+export const getVatTaxLedger = async (id: number) => {
+  const response = await api.get(`finance/vat-tax-ledgers/${id}`)
+  return response.data
+}
+
+/**
+ * Create a new VAT/Tax ledger entry
+ * POST /api/v2/finance/vat-tax-ledgers
+ */
+export const createVatTaxLedger = async (data: {
+  transaction_type: 'purchase' | 'sale' | 'expense' | 'adjustment'
+  tax_type: 'vat' | 'tax' | 'ait'
+  base_amount: number
+  tax_rate: number
+  tax_amount: number
+  direction: 'input' | 'output'
+  flow_type: 'debit' | 'credit'
+  transaction_date: string
+  chart_account_id?: number
+  fiscal_year?: string
+  tax_period?: string
+  challan_number?: string
+  challan_date?: string
+  reference_type?: string
+  reference_id?: number
+  description?: string
+  notes?: string
+}) => {
+  const response = await api.post('finance/vat-tax-ledgers', data)
+  return response.data
+}
+
+/**
+ * Update a VAT/Tax ledger entry
+ * PUT/PATCH /api/v2/finance/vat-tax-ledgers/{id}
+ */
+export const updateVatTaxLedger = async (id: number, data: {
+  transaction_type?: 'purchase' | 'sale' | 'expense' | 'adjustment'
+  base_amount?: number
+  tax_rate?: number
+  tax_amount?: number
+  flow_type?: 'debit' | 'credit'
+  transaction_date?: string
+  chart_account_id?: number
+  fiscal_year?: string
+  tax_period?: string
+  challan_number?: string
+  challan_date?: string
+  description?: string
+  notes?: string
+}) => {
+  const response = await api.put(`finance/vat-tax-ledgers/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete a VAT/Tax ledger entry
+ * DELETE /api/v2/finance/vat-tax-ledgers/{id}
+ */
+export const deleteVatTaxLedger = async (id: number) => {
+  const response = await api.delete(`finance/vat-tax-ledgers/${id}`)
+  return response.data
+}
+
+/**
+ * Mark VAT/Tax entry as filed
+ * POST /api/v2/finance/vat-tax-ledgers/{id}/mark-filed
+ */
+export const markVatTaxAsFiled = async (id: number, data: {
+  filing_date?: string
+  acknowledgement_number?: string
+}) => {
+  const response = await api.post(`finance/vat-tax-ledgers/${id}/mark-filed`, data)
+  return response.data
+}
+
+/**
+ * Mark VAT/Tax entry as paid
+ * POST /api/v2/finance/vat-tax-ledgers/{id}/mark-paid
+ */
+export const markVatTaxAsPaid = async (id: number, data: {
+  payment_date: string
+  payment_reference: string
+}) => {
+  const response = await api.post(`finance/vat-tax-ledgers/${id}/mark-paid`, data)
+  return response.data
+}
+
+/**
+ * Get VAT/Tax summary statistics
+ * GET /api/v2/finance/vat-tax-ledgers/summary
+ */
+export const getVatTaxSummary = async (filters?: {
+  start_date?: string
+  end_date?: string
+  fiscal_year?: string
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.fiscal_year) params.append('fiscal_year', filters.fiscal_year)
+
+  const response = await api.get(`finance/vat-tax-ledgers/summary?${params}`)
+  return response.data
+}
+
+/**
+ * Get net VAT/Tax calculation
+ * GET /api/v2/finance/vat-tax-ledgers/net-calculation
+ */
+export const getVatTaxNetCalculation = async (fiscalYear?: string) => {
+  const params = fiscalYear ? `?fiscal_year=${fiscalYear}` : ''
+  const response = await api.get(`finance/vat-tax-ledgers/net-calculation${params}`)
+  return response.data
+}
+
+/**
+ * Get VAT/Tax entries grouped by period
+ * GET /api/v2/finance/vat-tax-ledgers/by-period
+ */
+export const getVatTaxByPeriod = async (filters?: {
+  fiscal_year?: string
+  tax_type?: 'vat' | 'tax' | 'ait'
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.fiscal_year) params.append('fiscal_year', filters.fiscal_year)
+  if (filters?.tax_type) params.append('tax_type', filters.tax_type)
+
+  const response = await api.get(`finance/vat-tax-ledgers/by-period?${params}`)
+  return response.data
+}
+
+// ============================================
+// JOURNAL ENTRY API METHODS
+// ============================================
+
+export type JournalItem = {
+  id: number
+  journal_entry_id: number
+  account_id: number
+  debit: number
+  credit: number
+  account?: {
+    id: number
+    account_name: string
+    account_code: string
+    account_type: string
+  }
+}
+
+export type JournalEntry = {
+  id: number
+  entry_number: string
+  date: string
+  description?: string
+  reference_type?: string
+  reference_id?: number
+  is_reversed: boolean
+  created_by: number
+  creator?: {
+    id: number
+    name: string
+    email: string
+  }
+  items?: JournalItem[]
+  total_debit?: number
+  total_credit?: number
+  is_balanced?: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type JournalEntryFilters = {
+  start_date?: string
+  end_date?: string
+  entry_number?: string
+  is_reversed?: boolean
+  reference_type?: string
+  reference_id?: number
+  search?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all journal entries with filters
+ * GET /api/v2/finance/journal-entries
+ */
+export const getJournalEntries = async (filters?: JournalEntryFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.entry_number) params.append('entry_number', filters.entry_number)
+  if (filters?.is_reversed !== undefined) params.append('is_reversed', filters.is_reversed ? '1' : '0')
+  if (filters?.reference_type) params.append('reference_type', filters.reference_type)
+  if (filters?.reference_id) params.append('reference_id', filters.reference_id.toString())
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/journal-entries${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get single journal entry
+ * GET /api/v2/finance/journal-entries/{id}
+ */
+export const getJournalEntry = async (id: number) => {
+  const response = await api.get(`finance/journal-entries/${id}`)
+  return response.data
+}
+
+/**
+ * Create new journal entry
+ * POST /api/v2/finance/journal-entries
+ */
+export const createJournalEntry = async (data: {
+  entry_number: string
+  date: string
+  description?: string
+  reference_type?: string
+  reference_id?: number
+  items: {
+    account_id: number
+    debit: number
+    credit: number
+  }[]
+}) => {
+  const response = await api.post('finance/journal-entries', data)
+  return response.data
+}
+
+/**
+ * Update journal entry
+ * PUT /api/v2/finance/journal-entries/{id}
+ */
+export const updateJournalEntry = async (id: number, data: {
+  entry_number?: string
+  date?: string
+  description?: string
+  items?: {
+    account_id: number
+    debit: number
+    credit: number
+  }[]
+}) => {
+  const response = await api.put(`finance/journal-entries/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete journal entry
+ * DELETE /api/v2/finance/journal-entries/{id}
+ */
+export const deleteJournalEntry = async (id: number) => {
+  const response = await api.delete(`finance/journal-entries/${id}`)
+  return response.data
+}
+
+/**
+ * Reverse journal entry
+ * POST /api/v2/finance/journal-entries/{id}/reverse
+ */
+export const reverseJournalEntry = async (id: number, data: {
+  reason?: string
+}) => {
+  const response = await api.post(`finance/journal-entries/${id}/reverse`, data)
+  return response.data
+}
+
+/**
+ * Get journal entries by account (general ledger view)
+ * GET /api/v2/finance/journal-entries/by-account
+ */
+export const getJournalEntriesByAccount = async (accountId: number, filters?: {
+  start_date?: string
+  end_date?: string
+}) => {
+  const params = new URLSearchParams()
+  params.append('account_id', accountId.toString())
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/journal-entries/by-account?${params}`)
+  return response.data
+}
+
+/**
+ * Get next journal entry number
+ * GET /api/v2/finance/journal-entries/next-number
+ */
+export const getNextJournalEntryNumber = async () => {
+  const response = await api.get('finance/journal-entries/next-number')
+  return response.data
+}
+
+/**
+ * Get journal entry statistics
+ * GET /api/v2/finance/journal-entries/statistics
+ */
+export const getJournalEntryStatistics = async (filters?: {
+  start_date?: string
+  end_date?: string
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/journal-entries/statistics${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+// ============================================
+// BUDGET API METHODS
+// ============================================
+
+export type Budget = {
+  id: number
+  name: string
+  description?: string
+  account_id?: number
+  scope_type: 'company' | 'department' | 'account'
+  scope_id?: string
+  period_type: 'monthly' | 'quarterly' | 'yearly' | 'custom'
+  fiscal_year: string
+  period_name?: string
+  start_date: string
+  end_date: string
+  planned_amount: number
+  actual_amount: number
+  variance: number
+  variance_percentage: number
+  status: 'draft' | 'active' | 'completed' | 'exceeded'
+  alert_threshold: number
+  alert_sent: boolean
+  approved_by?: number
+  approved_at?: string
+  notes?: string
+  created_by: number
+  updated_by?: number
+  created_at: string
+  updated_at: string
+  // Computed properties
+  usage_percentage?: number
+  is_exceeded?: boolean
+  needs_alert?: boolean
+  status_label?: string
+  status_badge?: string
+  variance_status?: string
+  variance_color?: string
+  period_type_label?: string
+  scope_type_label?: string
+  chart_account?: {
+    id: number
+    account_name: string
+    account_code: string
+  }
+  creator?: {
+    id: number
+    name: string
+  }
+  approver?: {
+    id: number
+    name: string
+  }
+}
+
+export type BudgetFilters = {
+  fiscal_year?: string
+  period_type?: 'monthly' | 'quarterly' | 'yearly' | 'custom'
+  status?: 'draft' | 'active' | 'completed' | 'exceeded'
+  scope_type?: 'company' | 'department' | 'account'
+  account_id?: number
+  search?: string
+  active?: boolean
+  needing_alert?: boolean
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all budgets with filters
+ * GET /api/v2/finance/budgets
+ */
+export const getBudgets = async (filters?: BudgetFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.fiscal_year) params.append('fiscal_year', filters.fiscal_year)
+  if (filters?.period_type) params.append('period_type', filters.period_type)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.scope_type) params.append('scope_type', filters.scope_type)
+  if (filters?.account_id) params.append('account_id', filters.account_id.toString())
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.active !== undefined) params.append('active', filters.active ? '1' : '0')
+  if (filters?.needing_alert !== undefined) params.append('needing_alert', filters.needing_alert ? '1' : '0')
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/budgets${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get single budget
+ * GET /api/v2/finance/budgets/{id}
+ */
+export const getBudget = async (id: number) => {
+  const response = await api.get(`finance/budgets/${id}`)
+  return response.data
+}
+
+/**
+ * Create new budget
+ * POST /api/v2/finance/budgets
+ */
+export const createBudget = async (data: {
+  name: string
+  description?: string
+  account_id?: number
+  scope_type: 'company' | 'department' | 'account'
+  scope_id?: string
+  period_type: 'monthly' | 'quarterly' | 'yearly' | 'custom'
+  fiscal_year: string
+  period_name?: string
+  start_date: string
+  end_date: string
+  planned_amount: number
+  alert_threshold?: number
+  notes?: string
+}) => {
+  const response = await api.post('finance/budgets', data)
+  return response.data
+}
+
+/**
+ * Update budget
+ * PUT /api/v2/finance/budgets/{id}
+ */
+export const updateBudget = async (id: number, data: {
+  name?: string
+  description?: string
+  account_id?: number
+  scope_type?: 'company' | 'department' | 'account'
+  scope_id?: string
+  period_type?: 'monthly' | 'quarterly' | 'yearly' | 'custom'
+  fiscal_year?: string
+  period_name?: string
+  start_date?: string
+  end_date?: string
+  planned_amount?: number
+  alert_threshold?: number
+  notes?: string
+}) => {
+  const response = await api.put(`finance/budgets/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete budget
+ * DELETE /api/v2/finance/budgets/{id}
+ */
+export const deleteBudget = async (id: number) => {
+  const response = await api.delete(`finance/budgets/${id}`)
+  return response.data
+}
+
+/**
+ * Approve budget
+ * POST /api/v2/finance/budgets/{id}/approve
+ */
+export const approveBudget = async (id: number) => {
+  const response = await api.post(`finance/budgets/${id}/approve`)
+  return response.data
+}
+
+/**
+ * Update actual amount
+ * PUT /api/v2/finance/budgets/{id}/actual
+ */
+export const updateBudgetActual = async (id: number, data: {
+  actual_amount: number
+}) => {
+  const response = await api.put(`finance/budgets/${id}/actual`, data)
+  return response.data
+}
+
+/**
+ * Get budget variance report
+ * GET /api/v2/finance/budgets/variance-report
+ */
+export const getBudgetVarianceReport = async (filters?: {
+  fiscal_year?: string
+  period_type?: 'monthly' | 'quarterly' | 'yearly' | 'custom'
+  scope_type?: 'company' | 'department' | 'account'
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.fiscal_year) params.append('fiscal_year', filters.fiscal_year)
+  if (filters?.period_type) params.append('period_type', filters.period_type)
+  if (filters?.scope_type) params.append('scope_type', filters.scope_type)
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/budgets/variance-report${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get budget statistics
+ * GET /api/v2/finance/budgets/statistics
+ */
+export const getBudgetStatistics = async (fiscalYear?: string) => {
+  const params = fiscalYear ? `?fiscal_year=${fiscalYear}` : ''
+  const response = await api.get(`finance/budgets/statistics${params}`)
+  return response.data
+}
+
+// ============================================
+// COST CENTER API METHODS
+// ============================================
+
+export type CostCenter = {
+  id: number
+  name: string
+  code: string
+  description?: string
+  department_id?: number
+  manager_id?: number
+  monthly_budget: number
+  actual_spent: number
+  remaining_budget: number
+  location?: string
+  is_active: boolean
+  notes?: string
+  created_by: number
+  updated_by?: number
+  created_at: string
+  updated_at: string
+  // Computed properties
+  budget_utilization?: number
+  is_over_budget?: boolean
+  is_approaching_limit?: boolean
+  department?: {
+    id: number
+    name: string
+  }
+  manager?: {
+    id: number
+    name: string
+  }
+  creator?: {
+    id: number
+    name: string
+  }
+}
+
+export type CostCenterFilters = {
+  department_id?: number
+  manager_id?: number
+  is_active?: boolean
+  search?: string
+  active?: boolean
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all cost centers with filters
+ * GET /api/v2/finance/cost-centers
+ */
+export const getCostCenters = async (filters?: CostCenterFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.department_id) params.append('department_id', filters.department_id.toString())
+  if (filters?.manager_id) params.append('manager_id', filters.manager_id.toString())
+  if (filters?.is_active !== undefined) params.append('is_active', filters.is_active ? '1' : '0')
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.active !== undefined) params.append('active', filters.active ? '1' : '0')
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/cost-centers${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get single cost center
+ * GET /api/v2/finance/cost-centers/{id}
+ */
+export const getCostCenter = async (id: number) => {
+  const response = await api.get(`finance/cost-centers/${id}`)
+  return response.data
+}
+
+/**
+ * Create new cost center
+ * POST /api/v2/finance/cost-centers
+ */
+export const createCostCenter = async (data: {
+  name: string
+  code?: string
+  description?: string
+  department_id?: number
+  manager_id?: number
+  monthly_budget: number
+  location?: string
+  is_active?: boolean
+  notes?: string
+}) => {
+  const response = await api.post('finance/cost-centers', data)
+  return response.data
+}
+
+/**
+ * Update cost center
+ * PUT /api/v2/finance/cost-centers/{id}
+ */
+export const updateCostCenter = async (id: number, data: {
+  name?: string
+  code?: string
+  description?: string
+  department_id?: number
+  manager_id?: number
+  monthly_budget?: number
+  location?: string
+  is_active?: boolean
+  notes?: string
+}) => {
+  const response = await api.put(`finance/cost-centers/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete cost center
+ * DELETE /api/v2/finance/cost-centers/{id}
+ */
+export const deleteCostCenter = async (id: number) => {
+  const response = await api.delete(`finance/cost-centers/${id}`)
+  return response.data
+}
+
+/**
+ * Allocate budget to cost center
+ * POST /api/v2/finance/cost-centers/{id}/allocate-budget
+ */
+export const allocateCostCenterBudget = async (id: number, data: {
+  amount: number
+  notes?: string
+}) => {
+  const response = await api.post(`finance/cost-centers/${id}/allocate-budget`, data)
+  return response.data
+}
+
+/**
+ * Recalculate cost center budget
+ * POST /api/v2/finance/cost-centers/{id}/recalculate-budget
+ */
+export const recalculateCostCenterBudget = async (id: number) => {
+  const response = await api.post(`finance/cost-centers/${id}/recalculate-budget`)
+  return response.data
+}
+
+/**
+ * Get cost center expenses
+ * GET /api/v2/finance/cost-centers/{id}/expenses
+ */
+export const getCostCenterExpenses = async (id: number, filters?: {
+  start_date?: string
+  end_date?: string
+  status?: string
+  per_page?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/cost-centers/${id}/expenses${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get cost center statistics
+ * GET /api/v2/finance/cost-centers/statistics
+ */
+export const getCostCenterStatistics = async (departmentId?: number) => {
+  const params = departmentId ? `?department_id=${departmentId}` : ''
+  const response = await api.get(`finance/cost-centers/statistics${params}`)
+  return response.data
+}
+
+/**
+ * Get next cost center code
+ * GET /api/v2/finance/cost-centers/next-code
+ */
+export const getNextCostCenterCode = async () => {
+  const response = await api.get('finance/cost-centers/next-code')
+  return response.data
+}
+
+// ============================================
+// PROJECT API METHODS
+// ============================================
+
+export type Project = {
+  id: number
+  name: string
+  code: string
+  description?: string
+  customer_id?: number
+  start_date: string
+  end_date?: string
+  deadline?: string
+  budget_amount: number
+  estimated_revenue: number
+  actual_cost: number
+  actual_revenue: number
+  profit: number
+  profit_margin: number
+  manager_id?: number
+  department_id?: number
+  cost_center_id?: number
+  status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  progress_percentage: number
+  location?: string
+  notes?: string
+  attachments?: any[]
+  created_by: number
+  updated_by?: number
+  created_at: string
+  updated_at: string
+  // Computed properties
+  budget_utilization?: number
+  is_over_budget?: boolean
+  days_remaining?: number
+  is_overdue?: boolean
+  status_label?: string
+  status_badge?: string
+  priority_label?: string
+  priority_color?: string
+  customer?: {
+    id: number
+    name: string
+  }
+  manager?: {
+    id: number
+    name: string
+  }
+  department?: {
+    id: number
+    name: string
+  }
+  costCenter?: {
+    id: number
+    name: string
+    code: string
+  }
+  creator?: {
+    id: number
+    name: string
+  }
+}
+
+export type ProjectFilters = {
+  customer_id?: number
+  department_id?: number
+  cost_center_id?: number
+  manager_id?: number
+  status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  search?: string
+  active?: boolean
+  completed?: boolean
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all projects with filters
+ * GET /api/v2/finance/projects
+ */
+export const getProjects = async (filters?: ProjectFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.customer_id) params.append('customer_id', filters.customer_id.toString())
+  if (filters?.department_id) params.append('department_id', filters.department_id.toString())
+  if (filters?.cost_center_id) params.append('cost_center_id', filters.cost_center_id.toString())
+  if (filters?.manager_id) params.append('manager_id', filters.manager_id.toString())
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.priority) params.append('priority', filters.priority)
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.active !== undefined) params.append('active', filters.active ? '1' : '0')
+  if (filters?.completed !== undefined) params.append('completed', filters.completed ? '1' : '0')
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/projects${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get single project
+ * GET /api/v2/finance/projects/{id}
+ */
+export const getProject = async (id: number) => {
+  const response = await api.get(`finance/projects/${id}`)
+  return response.data
+}
+
+/**
+ * Create new project
+ * POST /api/v2/finance/projects
+ */
+export const createProject = async (data: {
+  name: string
+  code?: string
+  description?: string
+  customer_id?: number
+  start_date: string
+  end_date?: string
+  deadline?: string
+  budget_amount: number
+  estimated_revenue: number
+  manager_id?: number
+  department_id?: number
+  cost_center_id?: number
+  status: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  progress_percentage?: number
+  location?: string
+  notes?: string
+}) => {
+  const response = await api.post('finance/projects', data)
+  return response.data
+}
+
+/**
+ * Update project
+ * PUT /api/v2/finance/projects/{id}
+ */
+export const updateProject = async (id: number, data: {
+  name?: string
+  code?: string
+  description?: string
+  customer_id?: number
+  start_date?: string
+  end_date?: string
+  deadline?: string
+  budget_amount?: number
+  estimated_revenue?: number
+  actual_revenue?: number
+  manager_id?: number
+  department_id?: number
+  cost_center_id?: number
+  status?: 'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'
+  priority?: 'low' | 'medium' | 'high' | 'urgent'
+  progress_percentage?: number
+  location?: string
+  notes?: string
+}) => {
+  const response = await api.put(`finance/projects/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete project
+ * DELETE /api/v2/finance/projects/{id}
+ */
+export const deleteProject = async (id: number) => {
+  const response = await api.delete(`finance/projects/${id}`)
+  return response.data
+}
+
+/**
+ * Calculate project profitability
+ * POST /api/v2/finance/projects/{id}/calculate-profitability
+ */
+export const calculateProjectProfitability = async (id: number) => {
+  const response = await api.post(`finance/projects/${id}/calculate-profitability`)
+  return response.data
+}
+
+/**
+ * Update project progress
+ * PUT /api/v2/finance/projects/{id}/update-progress
+ */
+export const updateProjectProgress = async (id: number, data: {
+  progress_percentage: number
+}) => {
+  const response = await api.put(`finance/projects/${id}/update-progress`, data)
+  return response.data
+}
+
+/**
+ * Get project expenses
+ * GET /api/v2/finance/projects/{id}/expenses
+ */
+export const getProjectExpenses = async (id: number, filters?: {
+  start_date?: string
+  end_date?: string
+  status?: string
+  per_page?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/projects/${id}/expenses${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get project statistics
+ * GET /api/v2/finance/projects/statistics
+ */
+export const getProjectStatistics = async (filters?: {
+  department_id?: number
+  cost_center_id?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.department_id) params.append('department_id', filters.department_id.toString())
+  if (filters?.cost_center_id) params.append('cost_center_id', filters.cost_center_id.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/projects/statistics${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get next project code
+ * GET /api/v2/finance/projects/next-code
+ */
+export const getNextProjectCode = async () => {
+  const response = await api.get('finance/projects/next-code')
+  return response.data
+}
+
+// ============================================
+// FISCAL YEAR API METHODS
+// ============================================
+
+export type FiscalYear = {
+  id: number
+  name: string
+  start_date: string
+  end_date: string
+  is_active: boolean
+  is_closed: boolean
+  notes?: string
+  created_by: number
+  closed_by?: number
+  closed_at?: string
+  created_at: string
+  updated_at: string
+  // Computed properties
+  creator?: {
+    id: number
+    name: string
+  }
+  closer?: {
+    id: number
+    name: string
+  }
+}
+
+export type FiscalYearFilters = {
+  is_active?: boolean
+  is_closed?: boolean
+  search?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all fiscal years with filters
+ * GET /api/v2/finance/fiscal-years
+ */
+export const getFiscalYears = async (filters?: FiscalYearFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.is_active !== undefined) params.append('is_active', filters.is_active ? '1' : '0')
+  if (filters?.is_closed !== undefined) params.append('is_closed', filters.is_closed ? '1' : '0')
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const queryString = params.toString()
+  const response = await api.get(`finance/fiscal-years${queryString ? `?${queryString}` : ''}`)
+  return response.data
+}
+
+/**
+ * Get single fiscal year
+ * GET /api/v2/finance/fiscal-years/{id}
+ */
+export const getFiscalYear = async (id: number) => {
+  const response = await api.get(`finance/fiscal-years/${id}`)
+  return response.data
+}
+
+/**
+ * Create new fiscal year
+ * POST /api/v2/finance/fiscal-years
+ */
+export const createFiscalYear = async (data: {
+  name: string
+  start_date: string
+  end_date: string
+  is_active?: boolean
+  notes?: string
+}) => {
+  const response = await api.post('finance/fiscal-years', data)
+  return response.data
+}
+
+/**
+ * Update fiscal year
+ * PUT /api/v2/finance/fiscal-years/{id}
+ */
+export const updateFiscalYear = async (id: number, data: {
+  name?: string
+  start_date?: string
+  end_date?: string
+  is_active?: boolean
+  notes?: string
+}) => {
+  const response = await api.put(`finance/fiscal-years/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete fiscal year
+ * DELETE /api/v2/finance/fiscal-years/{id}
+ */
+export const deleteFiscalYear = async (id: number) => {
+  const response = await api.delete(`finance/fiscal-years/${id}`)
+  return response.data
+}
+
+/**
+ * Close fiscal year
+ * POST /api/v2/finance/fiscal-years/{id}/close
+ */
+export const closeFiscalYear = async (id: number) => {
+  const response = await api.post(`finance/fiscal-years/${id}/close`)
+  return response.data
+}
+
+/**
+ * Reopen fiscal year
+ * POST /api/v2/finance/fiscal-years/{id}/reopen
+ */
+export const reopenFiscalYear = async (id: number) => {
+  const response = await api.post(`finance/fiscal-years/${id}/reopen`)
+  return response.data
+}
+
+/**
+ * Get fiscal year summary with financial data
+ * GET /api/v2/finance/fiscal-years/{id}/summary
+ */
+export const getFiscalYearSummary = async (id: number) => {
+  const response = await api.get(`finance/fiscal-years/${id}/summary`)
+  return response.data
+}
+
+/**
+ * Get current active fiscal year
+ * GET /api/v2/finance/fiscal-years/current
+ */
+export const getCurrentFiscalYear = async () => {
+  const response = await api.get('finance/fiscal-years/current')
+  return response.data
+}
+
+/**
+ * Get fiscal year statistics
+ * GET /api/v2/finance/fiscal-years/statistics
+ */
+export const getFiscalYearStatistics = async () => {
+  const response = await api.get('finance/fiscal-years/statistics')
+  return response.data
+}
+
+/**
+ * Check if date is in closed period
+ * GET /api/v2/finance/fiscal-years/check-date
+ */
+export const checkFiscalYearDate = async (date: string) => {
+  const response = await api.get(`finance/fiscal-years/check-date?date=${date}`)
+  return response.data
+}
+
+// ============================================
+// USERS API METHODS
+// ============================================
+
+export type User = {
+  id: number
+  name: string
+  email: string
+  phone?: string | null
+}
+
+/**
+ * Get all users
+ * GET /api/v2/user-management/users?user_type=staff
+ */
+export const getUsers = async () => {
+  const response = await api.get('user-management/users?type=staff')
   return response.data
 }
 
@@ -602,6 +2802,290 @@ export const updateBrand = async (id: number, data: {
  */
 export const deleteBrand = async (id: number) => {
   const response = await api.delete(`catalog/brands/${id}`)
+  return response.data
+}
+
+// ============================================
+// CATEGORIES API METHODS
+// ============================================
+
+export type Category = {
+  id: number
+  name: string
+  slug: string
+  parent_id?: number | null
+  image_id?: number | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  parent?: Category
+  children?: Category[]
+}
+
+export type CategoryFilters = {
+  search?: string
+  page?: number
+  per_page?: number
+}
+
+/**
+ * Get all categories with optional filters
+ * GET /api/v2/catalog/categories
+ */
+export const getCategories = async (filters?: CategoryFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.page) params.append('page', filters.page.toString())
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+
+  const response = await api.get(`catalog/categories?${params}`)
+  return response.data
+}
+
+/**
+ * Get single category by ID
+ * GET /api/v2/catalog/categories/{id}
+ */
+export const getCategory = async (id: number) => {
+  const response = await api.get(`catalog/categories/${id}`)
+  return response.data
+}
+
+/**
+ * Get category tree structure for dropdowns/menus
+ * GET /api/v2/catalog/helpers/categories/tree
+ */
+export const getCategoryTree = async () => {
+  const response = await api.get('catalog/helpers/categories/tree')
+  return response.data
+}
+
+/**
+ * Create new category
+ * POST /api/v2/catalog/categories
+ */
+export const createCategory = async (data: {
+  name: string
+  parent_id?: number | null
+  image_id?: number | null
+}) => {
+  const response = await api.post('catalog/categories', {
+    name: data.name,
+    parent_id: data.parent_id,
+    image_id: data.image_id,
+  })
+  return response.data
+}
+
+/**
+ * Update category
+ * PUT/PATCH /api/v2/catalog/categories/{id}
+ */
+export const updateCategory = async (id: number, data: {
+  name?: string
+  parent_id?: number | null
+  image_id?: number | null
+  is_active?: boolean
+}) => {
+  const response = await api.put(`catalog/categories/${id}`, {
+    name: data.name,
+    parent_id: data.parent_id,
+    image_id: data.image_id,
+    is_active: data.is_active,
+  })
+  return response.data
+}
+
+/**
+ * Delete category
+ * DELETE /api/v2/catalog/categories/{id}
+ */
+export const deleteCategory = async (id: number) => {
+  const response = await api.delete(`catalog/categories/${id}`)
+  return response.data
+}
+
+// ============================================
+// UNITS API METHODS
+// ============================================
+
+export type Unit = {
+  id: number
+  name: string
+  symbol: string
+  allowDecimal: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export type UnitFilters = {
+  search?: string
+}
+
+/**
+ * Get all units
+ * GET /api/v2/system/units
+ */
+export const getUnits = async (filters?: UnitFilters) => {
+  const response = await api.get('system/units')
+  return response.data
+}
+
+/**
+ * Get units for dropdown (lightweight)
+ * GET /api/v2/system/helpers/units
+ */
+export const getUnitsDropdown = async () => {
+  const response = await api.get('system/helpers/units')
+  return response.data
+}
+
+/**
+ * Get single unit by ID
+ * GET /api/v2/system/units/{id}
+ */
+export const getUnit = async (id: number) => {
+  const response = await api.get(`system/units/${id}`)
+  return response.data
+}
+
+/**
+ * Create new unit
+ * POST /api/v2/system/units
+ */
+export const createUnit = async (data: {
+  name: string
+  symbol: string
+  allow_decimal?: boolean
+}) => {
+  const response = await api.post('system/units', data)
+  return response.data
+}
+
+/**
+ * Update unit
+ * PUT/PATCH /api/v2/system/units/{id}
+ */
+export const updateUnit = async (id: number, data: {
+  name?: string
+  symbol?: string
+  allow_decimal?: boolean
+}) => {
+  const response = await api.put(`system/units/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete unit
+ * DELETE /api/v2/system/units/{id}
+ */
+export const deleteUnit = async (id: number) => {
+  const response = await api.delete(`system/units/${id}`)
+  return response.data
+}
+
+// ============================================
+// ATTRIBUTES API METHODS
+// ============================================
+
+export type AttributeOption = {
+  id: number
+  attributeId: number
+  value: string
+  label?: string | null
+  swatchValue?: string | null
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type Attribute = {
+  id: number
+  name: string
+  displayName: string
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'color' | 'date' | 'boolean'
+  isRequired: boolean
+  isVisible: boolean
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+  options?: AttributeOption[]
+}
+
+export type AttributeFilters = {
+  search?: string
+}
+
+/**
+ * Get all attributes with options
+ * GET /api/v2/catalog/attributes
+ */
+export const getAttributes = async (filters?: AttributeFilters) => {
+  const response = await api.get('catalog/attributes')
+  return response.data
+}
+
+/**
+ * Get single attribute by ID
+ * GET /api/v2/catalog/attributes/{id}
+ */
+export const getAttribute = async (id: number) => {
+  const response = await api.get(`catalog/attributes/${id}`)
+  return response.data
+}
+
+/**
+ * Create new attribute
+ * POST /api/v2/catalog/attributes
+ */
+export const createAttribute = async (data: {
+  name: string
+  displayName: string
+  type: 'text' | 'number' | 'select' | 'multiselect' | 'color' | 'date' | 'boolean'
+  isRequired?: boolean
+  isVisible?: boolean
+  sortOrder?: number
+  options?: Array<{
+    value: string
+    label?: string
+    swatchValue?: string
+    sortOrder?: number
+  }>
+}) => {
+  const response = await api.post('catalog/attributes', data)
+  return response.data
+}
+
+/**
+ * Update attribute
+ * PUT/PATCH /api/v2/catalog/attributes/{id}
+ */
+export const updateAttribute = async (id: number, data: {
+  name?: string
+  displayName?: string
+  type?: 'text' | 'number' | 'select' | 'multiselect' | 'color' | 'date' | 'boolean'
+  isRequired?: boolean
+  isVisible?: boolean
+  sortOrder?: number
+  options?: Array<{
+    id?: number
+    value: string
+    label?: string
+    swatchValue?: string
+    sortOrder?: number
+  }>
+}) => {
+  const response = await api.put(`catalog/attributes/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete attribute
+ * DELETE /api/v2/catalog/attributes/{id}
+ */
+export const deleteAttribute = async (id: number) => {
+  const response = await api.delete(`catalog/attributes/${id}`)
   return response.data
 }
 

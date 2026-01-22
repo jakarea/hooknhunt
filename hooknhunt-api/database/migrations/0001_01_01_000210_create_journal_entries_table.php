@@ -15,6 +15,7 @@ return new class extends Migration
             $table->text('description')->nullable();
             $table->nullableMorphs('reference');
             $table->foreignId('created_by')->constrained('users');
+            $table->boolean('is_reversed')->default(false);
             $table->timestamps();
         });
     }

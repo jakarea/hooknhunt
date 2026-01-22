@@ -15,7 +15,16 @@ class AttributeOption extends Model
      *
      * @var array<int, string>
      */
-    protected $fillable = ['attribute_id', 'value'];
+    protected $fillable = ['attribute_id', 'value', 'label', 'swatch_value', 'sort_order'];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
+    protected $casts = [
+        'sort_order' => 'integer',
+    ];
 
     /**
      * Get the attribute that owns the option.

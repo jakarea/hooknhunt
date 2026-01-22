@@ -13,6 +13,10 @@ import {
   IconShoppingCart,
   IconPackage,
   IconPhoto,
+  IconBook,
+  IconChartBar,
+  IconReceipt,
+  IconChartPie,
 } from "@tabler/icons-react"
 import {
   Box,
@@ -207,9 +211,36 @@ export function AppSidebarMantine({
               { title: t("finance.banks"), url: "/finance/banks" },
               { title: t("finance.transactions"), url: "/finance/transactions" },
               { title: t("finance.expenses"), url: "/finance/expenses" },
-              { title: t("finance.accounts"), url: "/finance/accounts" },
+              {
+                title: t("finance.chartOfAccounts"),
+                icon: IconBook,
+                url: "/finance/accounts",
+              },
+              { title: t("finance.journalEntries"), url: "/finance/journal-entries" },
+              { title: t("finance.vatTax"), url: "/finance/vat-tax" },
+              { title: t("finance.fixedAssets"), url: "/finance/fixed-assets" },
+              { title: t("finance.cheques"), url: "/finance/cheques" },
+              {
+                title: t("finance.budgetingPlanning"),
+                icon: IconChartBar,
+                children: [
+                  { title: t("finance.budgets"), url: "/finance/budgets" },
+                  { title: t("finance.costCenters"), url: "/finance/cost-centers" },
+                  { title: t("finance.projects"), url: "/finance/projects" },
+                  { title: t("finance.fiscalYears"), url: "/finance/fiscal-years" },
+                ]
+              },
+              {
+                title: t("finance.accountsPayableReceivable"),
+                icon: IconReceipt,
+                children: [
+                  { title: t("finance.accountsPayable"), url: "/finance/accounts-payable" },
+                  { title: t("finance.accountsReceivable"), url: "/finance/accounts-receivable" },
+                ]
+              },
               {
                 title: t("finance.reports"),
+                icon: IconChartPie,
                 url: "/finance/reports",
                 children: [
                   { title: t("finance.profitLoss"), url: "/finance/reports/profit-loss" },

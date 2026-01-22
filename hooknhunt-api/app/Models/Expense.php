@@ -25,6 +25,20 @@ class Expense extends Model
         'notes',
         'attachment',
         'is_approved',
+        // VAT (Value Added Tax) fields
+        'vat_percentage',
+        'vat_amount',
+        'vat_challan_no',
+        // Tax (AIT) fields
+        'tax_percentage',
+        'tax_amount',
+        'tax_challan_no',
+        // Cost Center & Project Tracking
+        'project_id',
+        'cost_center_id',
+        'expense_department_id',
+        // Multi-Currency
+        'currency_id',
     ];
 
     /**
@@ -34,6 +48,10 @@ class Expense extends Model
      */
     protected $casts = [
         'amount' => 'decimal:2',
+        'vat_percentage' => 'decimal:2',
+        'vat_amount' => 'decimal:2',
+        'tax_percentage' => 'decimal:2',
+        'tax_amount' => 'decimal:2',
         'expense_date' => 'date',
         'is_approved' => 'boolean',
         'created_at' => 'datetime',
@@ -61,6 +79,38 @@ class Expense extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * Relationship: Expense belongs to a Project
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    /**
+     * Relationship: Expense belongs to a Cost Center
+     */
+    public function costCenter(): BelongsTo
+    {
+        return $this->belongsTo(CostCenter::class, 'cost_center_id');
+    }
+
+    /**
+     * Relationship: Expense belongs to a Department
+     */
+    public function expenseDepartment(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'expense_department_id');
+    }
+
+    /**
+     * Relationship: Expense currency
+     */
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 
     /**

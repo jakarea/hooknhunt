@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Stack,
@@ -11,11 +11,13 @@ import {
   NumberInput,
   Select,
   Textarea,
-  Button,
   Paper,
   Alert,
   FileInput,
   Divider,
+  Skeleton,
+  SimpleGrid,
+  Button,
 } from '@mantine/core'
 import {
   IconArrowLeft,
@@ -27,57 +29,108 @@ import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { useTranslation } from 'react-i18next'
-
-interface ExpenseAccount {
-  id: number
-  name: string
-  code: string
-}
-
-interface PaidBy {
-  id: number
-  name: string
-}
-
-// Mock data for development
-const mockExpenseAccounts: ExpenseAccount[] = [
-  { id: 1, name: 'Office Supplies', code: 'OS' },
-  { id: 2, name: 'Utilities', code: 'UTIL' },
-  { id: 3, name: 'Rent', code: 'RENT' },
-  { id: 4, name: 'Salaries', code: 'SAL' },
-  { id: 5, name: 'Marketing', code: 'MKT' },
-  { id: 6, name: 'Travel', code: 'TRV' },
-  { id: 7, name: 'Maintenance', code: 'MAINT' },
-  { id: 8, name: 'Miscellaneous', code: 'MISC' },
-  { id: 9, name: 'Repairs', code: 'REP' },
-  { id: 10, name: 'Insurance', code: 'INS' },
-  { id: 11, name: 'Professional Fees', code: 'PROF' },
-  { id: 12, name: 'Training', code: 'TRN' },
-]
-
-const mockPaidBy: PaidBy[] = [
-  { id: 1, name: 'Ahmed Hassan' },
-  { id: 2, name: 'Fatima Rahman' },
-  { id: 3, name: 'Karim Uddin' },
-  { id: 4, name: 'Ayesha Khan' },
-  { id: 5, name: 'Rahim Ali' },
-]
+import {
+  createExpense,
+  getAccounts,
+  getUsers,
+  type ChartOfAccount,
+  type User,
+} from '@/utils/api'
 
 export default function CreateExpensePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+
+  const [accounts, setAccounts] = useState<ChartOfAccount[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [formData, setFormData] = useState({
     title: '',
     amount: '',
-    account_id: '',
-    expense_date: new Date(),
-    reference_number: '',
-    paid_by_id: '',
+    accountId: '',
+    expenseDate: new Date(),
+    referenceNumber: '',
+    paidById: '',
     notes: '',
     attachment: null as File | null,
+    // VAT (Value Added Tax) fields - optional
+    vatPercentage: '',
+    vatAmount: '',
+    vatChallanNo: '',
+    // Tax (AIT) fields - optional
+    taxPercentage: '',
+    taxAmount: '',
+    taxChallanNo: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Fetch accounts and users
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+
+        // Fetch accounts
+        const accountsResponse = await getAccounts()
+        console.log('Accounts response:', accountsResponse)
+
+        let accountsData: ChartOfAccount[] = []
+        if (accountsResponse && typeof accountsResponse === 'object') {
+          if ('data' in accountsResponse) {
+            const innerData = accountsResponse.data
+            if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+              accountsData = innerData.data
+            } else if (Array.isArray(innerData)) {
+              accountsData = innerData
+            }
+          } else if (Array.isArray(accountsResponse)) {
+            accountsData = accountsResponse
+          }
+        }
+        console.log('Processed accounts data:', accountsData)
+
+        // Filter only expense accounts (case-insensitive)
+        const expenseAccounts = accountsData.filter((acc) => {
+          const accountType = typeof acc.type === 'string' ? acc.type.toLowerCase() : ''
+          return accountType === 'expense'
+        })
+        console.log('Filtered expense accounts:', expenseAccounts)
+        setAccounts(expenseAccounts)
+
+        // Fetch users
+        const usersResponse = await getUsers()
+        console.log('Users response:', usersResponse)
+
+        let usersData: User[] = []
+        if (usersResponse && typeof usersResponse === 'object') {
+          if ('data' in usersResponse) {
+            const innerData = usersResponse.data
+            if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+              usersData = innerData.data
+            } else if (Array.isArray(innerData)) {
+              usersData = innerData
+            }
+          } else if (Array.isArray(usersResponse)) {
+            usersData = usersResponse
+          }
+        }
+        console.log('Processed users data:', usersData)
+        setUsers(usersData)
+      } catch (error) {
+        console.error('Failed to fetch data:', error)
+        notifications.show({
+          title: t('common.error'),
+          message: t('common.somethingWentWrong'),
+          color: 'red',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [t])
 
   const handleChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -88,6 +141,36 @@ export default function CreateExpensePage() {
         delete newErrors[field]
         return newErrors
       })
+    }
+  }
+
+  // Auto-calculate VAT amount when percentage changes
+  const handleVatPercentageChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, vatPercentage: value }))
+    if (value && formData.amount) {
+      const amount = parseFloat(formData.amount as string)
+      const percentage = parseFloat(value)
+      if (!isNaN(amount) && !isNaN(percentage)) {
+        const vatAmount = (amount * percentage) / 100
+        setFormData((prev) => ({ ...prev, vatPercentage: value, vatAmount: vatAmount.toString() }))
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, vatPercentage: value, vatAmount: '' }))
+    }
+  }
+
+  // Auto-calculate Tax amount when percentage changes
+  const handleTaxPercentageChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, taxPercentage: value }))
+    if (value && formData.amount) {
+      const amount = parseFloat(formData.amount as string)
+      const percentage = parseFloat(value)
+      if (!isNaN(amount) && !isNaN(percentage)) {
+        const taxAmount = (amount * percentage) / 100
+        setFormData((prev) => ({ ...prev, taxPercentage: value, taxAmount: taxAmount.toString() }))
+      }
+    } else {
+      setFormData((prev) => ({ ...prev, taxPercentage: value, taxAmount: '' }))
     }
   }
 
@@ -102,12 +185,12 @@ export default function CreateExpensePage() {
       newErrors.amount = t('finance.banksPage.expensesCreatePage.validation.amountRequired')
     }
 
-    if (!formData.account_id) {
-      newErrors.account_id = t('finance.banksPage.expensesCreatePage.validation.accountRequired')
+    if (!formData.accountId) {
+      newErrors.accountId = t('finance.banksPage.expensesCreatePage.validation.accountRequired')
     }
 
-    if (!formData.expense_date) {
-      newErrors.expense_date = t('finance.banksPage.expensesCreatePage.validation.dateRequired')
+    if (!formData.expenseDate) {
+      newErrors.expenseDate = t('finance.banksPage.expensesCreatePage.validation.dateRequired')
     }
 
     if (formData.attachment) {
@@ -121,7 +204,7 @@ export default function CreateExpensePage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
@@ -135,16 +218,57 @@ export default function CreateExpensePage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const payload = {
+        title: formData.title,
+        amount: parseFloat(formData.amount as string),
+        accountId: parseInt(formData.accountId),
+        expenseDate: formData.expenseDate ? formData.expenseDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        referenceNumber: formData.referenceNumber || undefined,
+        paidById: formData.paidById ? parseInt(formData.paidById) : undefined,
+        notes: formData.notes || undefined,
+        attachment: formData.attachment || undefined,
+        // VAT fields (optional)
+        vatPercentage: formData.vatPercentage ? parseFloat(formData.vatPercentage as string) : undefined,
+        vatAmount: formData.vatAmount ? parseFloat(formData.vatAmount as string) : undefined,
+        vatChallanNo: formData.vatChallanNo || undefined,
+        // Tax fields (optional)
+        taxPercentage: formData.taxPercentage ? parseFloat(formData.taxPercentage as string) : undefined,
+        taxAmount: formData.taxAmount ? parseFloat(formData.taxAmount as string) : undefined,
+        taxChallanNo: formData.taxChallanNo || undefined,
+      }
+
+      await createExpense(payload)
+
       notifications.show({
         title: t('finance.banksPage.expensesCreatePage.notification.success'),
         message: t('finance.banksPage.expensesCreatePage.notification.successMessage', { title: formData.title }),
         color: 'green',
       })
+
       navigate('/finance/expenses')
-    }, 1000)
+    } catch (error) {
+      console.error('Failed to create expense:', error)
+      notifications.show({
+        title: t('common.error'),
+        message: t('common.somethingWentWrong'),
+        color: 'red',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack>
+          <Skeleton height={40} width="100%" />
+          <Skeleton height={500} radius="md" />
+        </Stack>
+      </Box>
+    )
   }
 
   return (
@@ -211,18 +335,18 @@ export default function CreateExpensePage() {
                 label={t('finance.banksPage.expensesCreatePage.expenseAccount')}
                 placeholder={t('finance.banksPage.expensesCreatePage.selectAccount')}
                 description={t('finance.banksPage.expensesCreatePage.expenseAccountDescription')}
-                data={mockExpenseAccounts.map((account) => ({
+                data={accounts.map((account) => ({
                   value: account.id.toString(),
                   label: `${account.name} (${account.code})`,
                 }))}
-                value={formData.account_id}
-                onChange={(value) => handleChange('account_id', value || '')}
-                error={errors.account_id}
+                value={formData.accountId}
+                onChange={(value) => handleChange('accountId', value || '')}
+                error={errors.accountId}
                 searchable
               />
 
               {/* Payroll Warning */}
-              {formData.account_id && mockExpenseAccounts.find((acc) => acc.id === parseInt(formData.account_id as string))?.name === 'Salaries' && (
+              {formData.accountId && accounts.find((acc) => acc.id === parseInt(formData.accountId as string))?.name.toLowerCase().includes('salaries') && (
                 <Alert variant="light" color="yellow" title={t('finance.banksPage.expensesCreatePage.payrollWarning.title')}>
                   <Stack gap="xs">
                     <Text className="text-sm md:text-base">
@@ -250,9 +374,9 @@ export default function CreateExpensePage() {
                 label={t('finance.banksPage.expensesCreatePage.expenseDate')}
                 placeholder={t('finance.banksPage.expensesCreatePage.selectDate')}
                 description={t('finance.banksPage.expensesCreatePage.expenseDateDescription')}
-                value={formData.expense_date}
-                onChange={(value) => handleChange('expense_date', value)}
-                error={errors.expense_date}
+                value={formData.expenseDate}
+                onChange={(value) => handleChange('expenseDate', value)}
+                error={errors.expenseDate}
                 maxDate={new Date()}
                 clearable
               />
@@ -262,8 +386,8 @@ export default function CreateExpensePage() {
                 label={t('finance.banksPage.expensesCreatePage.referenceNumber')}
                 placeholder={t('finance.banksPage.expensesCreatePage.referenceNumberPlaceholder')}
                 description={t('finance.banksPage.expensesCreatePage.referenceNumberDescription')}
-                value={formData.reference_number}
-                onChange={(e) => handleChange('reference_number', e.currentTarget.value)}
+                value={formData.referenceNumber}
+                onChange={(e) => handleChange('referenceNumber', e.currentTarget.value)}
               />
 
               {/* Paid By */}
@@ -271,12 +395,12 @@ export default function CreateExpensePage() {
                 label={t('finance.banksPage.expensesCreatePage.paidBy')}
                 placeholder={t('finance.banksPage.expensesCreatePage.selectPerson')}
                 description={t('finance.banksPage.expensesCreatePage.paidByDescription')}
-                data={mockPaidBy.map((person) => ({
+                data={users.map((person) => ({
                   value: person.id.toString(),
                   label: person.name,
                 }))}
-                value={formData.paid_by_id}
-                onChange={(value) => handleChange('paid_by_id', value || '')}
+                value={formData.paidById}
+                onChange={(value) => handleChange('paidById', value || '')}
                 searchable
                 clearable
               />
@@ -304,6 +428,93 @@ export default function CreateExpensePage() {
                 minRows={3}
                 maxRows={6}
               />
+
+              {/* VAT & Tax Section (Optional) */}
+              <Divider label="VAT & Tax (Optional)" labelPosition="left" />
+
+              <Alert variant="light" color="blue" icon={<IconInfoCircle size={16} />}>
+                <Text size="sm">VAT (Value Added Tax) and Tax fields are optional. Only fill these if your expense includes VAT or Tax deductions.</Text>
+              </Alert>
+
+              {/* VAT Fields */}
+              <SimpleGrid cols={{ base: 1, md: 3 }}>
+                <NumberInput
+                  label="VAT %"
+                  placeholder="e.g., 15"
+                  description="VAT percentage (if applicable)"
+                  value={formData.vatPercentage}
+                  onChange={(value) => handleVatPercentageChange(value as string)}
+                  decimalScale={2}
+                  min={0}
+                  max={100}
+                  leftSection={<Text size="sm">%</Text>}
+                  clearable
+                />
+                <NumberInput
+                  label="VAT Amount"
+                  placeholder="Auto-calculated"
+                  description="VAT amount in Taka"
+                  value={formData.vatAmount}
+                  onChange={(value) => handleChange('vatAmount', value)}
+                  decimalScale={2}
+                  min={0}
+                  precision={2}
+                  thousandSeparator=","
+                  prefix="৳"
+                  hideControls
+                  leftSection={<Text size="sm">৳</Text>}
+                  readOnly={!!formData.vatPercentage}
+                  clearable
+                />
+                <TextInput
+                  label="VAT Challan No"
+                  placeholder="Optional"
+                  description="VAT challan number"
+                  value={formData.vatChallanNo}
+                  onChange={(e) => handleChange('vatChallanNo', e.currentTarget.value)}
+                  clearable
+                />
+              </SimpleGrid>
+
+              {/* Tax Fields */}
+              <SimpleGrid cols={{ base: 1, md: 3 }}>
+                <NumberInput
+                  label="Tax % (AIT)"
+                  placeholder="e.g., 3"
+                  description="Tax/AIT percentage (if applicable)"
+                  value={formData.taxPercentage}
+                  onChange={(value) => handleTaxPercentageChange(value as string)}
+                  decimalScale={2}
+                  min={0}
+                  max={100}
+                  leftSection={<Text size="sm">%</Text>}
+                  clearable
+                />
+                <NumberInput
+                  label="Tax Amount"
+                  placeholder="Auto-calculated"
+                  description="Tax amount in Taka"
+                  value={formData.taxAmount}
+                  onChange={(value) => handleChange('taxAmount', value)}
+                  decimalScale={2}
+                  min={0}
+                  precision={2}
+                  thousandSeparator=","
+                  prefix="৳"
+                  hideControls
+                  leftSection={<Text size="sm">৳</Text>}
+                  readOnly={!!formData.taxPercentage}
+                  clearable
+                />
+                <TextInput
+                  label="Tax Challan No"
+                  placeholder="Optional"
+                  description="Tax challan number"
+                  value={formData.taxChallanNo}
+                  onChange={(e) => handleChange('taxChallanNo', e.currentTarget.value)}
+                  clearable
+                />
+              </SimpleGrid>
             </Stack>
 
             {/* Form Actions */}

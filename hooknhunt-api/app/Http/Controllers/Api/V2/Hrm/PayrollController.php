@@ -222,6 +222,12 @@ class PayrollController extends Controller
                     'debit' => 0,
                     'credit' => $payroll->net_payable
                 ]);
+
+                // Validate balance (critical for double-entry)
+                if (!$je->isBalanced()) {
+                    DB::rollBack();
+                    return $this->sendError('Journal entry is not balanced. Debit: ' . $je->getTotalDebitAttribute . ', Credit: ' . $je->getTotalCreditAttribute);
+                }
             }
 
             DB::commit();

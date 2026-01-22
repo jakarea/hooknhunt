@@ -158,6 +158,196 @@
         "deleteConfirm": "Delete Brand?",
         "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
       }
+    },
+    "categoriesPage": {
+      "title": "Categories",
+      "subtitle": "Manage product categories (hierarchical structure)",
+      "addCategory": "Add Category",
+      "searchPlaceholder": "Search categories by name...",
+      "noCategoriesFound": "No categories found",
+      "active": "Active",
+      "inactive": "Inactive",
+      "parent": "Parent",
+      "noParent": "No Parent (Root)",
+      "tableHeaders": {
+        "name": "Name",
+        "slug": "Slug",
+        "parent": "Parent",
+        "products": "Products",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "create": "Create Category",
+        "update": "Update Category",
+        "cancel": "Cancel",
+        "name": "Category Name",
+        "namePlaceholder": "e.g., Electronics, Clothing, Sports",
+        "nameDescription": "Official category name",
+        "parent": "Parent Category",
+        "parentPlaceholder": "Select parent category (optional)",
+        "parentDescription": "Leave empty for root-level category",
+        "imageId": "Category Image",
+        "imageIdDescription": "Select image from media library",
+        "isActive": "Active",
+        "isActiveDescription": "Enable this category for products",
+        "validation": {
+          "nameRequired": "Category name is required",
+          "nameUnique": "Category name already exists"
+        }
+      },
+      "notifications": {
+        "loading": "Loading categories...",
+        "refreshed": "Refreshed",
+        "refreshedMessage": "Categories list refreshed",
+        "created": "Category Created",
+        "createdMessage": "{{name}} has been successfully created",
+        "updated": "Category Updated",
+        "updatedMessage": "{{name}} has been successfully updated",
+        "deleted": "Category Deleted",
+        "deletedMessage": "{{name}} has been successfully deleted",
+        "errorLoading": "Failed to load categories. Please try again.",
+        "errorCreating": "Failed to create category. Please try again.",
+        "errorUpdating": "Failed to update category. Please try again.",
+        "errorDeleting": "Failed to delete category. Please try again.",
+        "deleteConfirm": "Delete Category?",
+        "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+        "hasProductsError": "Cannot delete category containing products."
+      }
+    },
+    "unitsPage": {
+      "title": "Units",
+      "subtitle": "Manage measurement units (Kg, Pcs, Box, etc.)",
+      "addUnit": "Add Unit",
+      "searchPlaceholder": "Search units by name or symbol...",
+      "noUnitsFound": "No units found",
+      "tableHeaders": {
+        "name": "Name",
+        "symbol": "Symbol",
+        "allowDecimal": "Allow Decimal",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "create": "Create Unit",
+        "update": "Update Unit",
+        "cancel": "Cancel",
+        "name": "Unit Name",
+        "namePlaceholder": "e.g., Kilogram, Piece, Box",
+        "nameDescription": "Full name of the measurement unit",
+        "symbol": "Symbol",
+        "symbolPlaceholder": "e.g., kg, pcs, box",
+        "symbolDescription": "Short abbreviation or symbol",
+        "allowDecimal": "Allow Decimal",
+        "allowDecimalDescription": "Allow decimal values (e.g., 1.5 kg) or integers only (e.g., 5 pcs)",
+        "yes": "Yes",
+        "no": "No",
+        "validation": {
+          "nameRequired": "Unit name is required",
+          "nameUnique": "Unit name already exists",
+          "symbolRequired": "Symbol is required"
+        }
+      },
+      "notifications": {
+        "loading": "Loading units...",
+        "refreshed": "Refreshed",
+        "refreshedMessage": "Units list refreshed",
+        "created": "Unit Created",
+        "createdMessage": "{{name}} has been successfully created",
+        "updated": "Unit Updated",
+        "updatedMessage": "{{name}} has been successfully updated",
+        "deleted": "Unit Deleted",
+        "deletedMessage": "{{name}} has been successfully deleted",
+        "errorLoading": "Failed to load units. Please try again.",
+        "errorCreating": "Failed to create unit. Please try again.",
+        "errorUpdating": "Failed to update unit. Please try again.",
+        "errorDeleting": "Failed to delete unit. Please try again.",
+        "deleteConfirm": "Delete Unit?",
+        "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
+      }
+    },
+    "attributesPage": {
+      "title": "Attributes",
+      "subtitle": "Manage product attributes (Warranty, Origin, Dimensions, etc.)",
+      "addAttribute": "Add Attribute",
+      "searchPlaceholder": "Search attributes by name...",
+      "noAttributesFound": "No attributes found",
+      "tableHeaders": {
+        "name": "Name",
+        "displayName": "Display Name",
+        "type": "Type",
+        "options": "Options",
+        "isRequired": "Required",
+        "isVisible": "Visible",
+        "sortOrder": "Sort",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "form": {
+        "create": "Create Attribute",
+        "update": "Update Attribute",
+        "cancel": "Cancel",
+        "name": "Attribute Name",
+        "namePlaceholder": "e.g., warranty, origin, certification",
+        "nameDescription": "Unique identifier for this attribute (use lowercase, no spaces)",
+        "displayName": "Display Name",
+        "displayNamePlaceholder": "e.g., Warranty Period, Country of Origin",
+        "displayNameDescription": "User-friendly name shown on forms and storefront",
+        "type": "Attribute Type",
+        "typeDescription": "Type of input for this attribute",
+        "typeText": "Text",
+        "typeNumber": "Number",
+        "typeSelect": "Select (Dropdown)",
+        "typeMultiselect": "Multi Select",
+        "typeColor": "Color (with Swatch)",
+        "typeDate": "Date",
+        "typeBoolean": "Boolean (Yes/No)",
+        "isRequired": "Required",
+        "isRequiredDescription": "Whether this attribute must have a value",
+        "isVisible": "Visible on Storefront",
+        "isVisibleDescription": "Show this attribute to customers",
+        "sortOrder": "Sort Order",
+        "sortOrderDescription": "Lower numbers appear first",
+        "options": "Attribute Options",
+        "optionsDescription": "Add options for select/multiselect/color types",
+        "addOption": "Add Option",
+        "optionValue": "Value",
+        "optionLabel": "Label",
+        "optionSwatch": "Swatch (Hex Color)",
+        "validation": {
+          "nameRequired": "Attribute name is required",
+          "nameUnique": "Attribute name already exists",
+          "displayNameRequired": "Display name is required",
+          "typeRequired": "Attribute type is required",
+          "optionValueRequired": "Option value is required"
+        }
+      },
+      "notifications": {
+        "loading": "Loading attributes...",
+        "refreshed": "Refreshed",
+        "refreshedMessage": "Attributes list refreshed",
+        "created": "Attribute Created",
+        "createdMessage": "{{name}} has been successfully created",
+        "updated": "Attribute Updated",
+        "updatedMessage": "{{name}} has been successfully updated",
+        "deleted": "Attribute Deleted",
+        "deletedMessage": "{{name}} has been successfully deleted",
+        "errorLoading": "Failed to load attributes. Please try again.",
+        "errorCreating": "Failed to create attribute. Please try again.",
+        "errorUpdating": "Failed to update attribute. Please try again.",
+        "errorDeleting": "Failed to delete attribute. Please try again.",
+        "deleteConfirm": "Delete Attribute?",
+        "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
+      }
     }
   },
   "procurement": {
@@ -782,6 +972,19 @@
     "cashFlow": "Cash Flow",
     "trialBalance": "Trial Balance",
     "generalLedger": "General Ledger",
+    "fixedAssets": "Fixed Assets",
+    "cheques": "Cheques/PDC",
+    "vatTax": "VAT/Tax Ledger",
+    "journalEntries": "Journal Entries",
+    "budgets": "Budgets",
+    "costCenters": "Cost Centers",
+    "projects": "Projects",
+    "fiscalYears": "Fiscal Years",
+    "accountsPayable": "Accounts Payable",
+    "accountsReceivable": "Accounts Receivable",
+    "chartOfAccounts": "Chart of Accounts",
+    "budgetingPlanning": "Budgeting & Planning",
+    "accountsPayableReceivable": "Accounts Payable/Receivable",
     "dashboardPage": {
       "title": "Finance Dashboard",
       "subtitle": "Overview of financial position and quick actions",
@@ -820,7 +1023,6 @@
       "withdrawal": "WITHDRAWAL",
       "pendingExpenses": "Pending Expenses",
       "pending": "pending",
-      "title": "Title",
       "category": "Category",
       "paidBy": "Paid By",
       "action": "Action",
@@ -961,6 +1163,7 @@
           "type": "Type",
           "description": "Description",
           "reference": "Reference",
+          "balanceBefore": "Balance Before",
           "amount": "Amount",
           "balanceAfter": "Balance After"
         },
@@ -983,7 +1186,15 @@
           "refreshed": "Refreshed",
           "refreshedMessage": "Transactions list refreshed",
           "exportSuccess": "Export Successful",
-          "exportSuccessMessage": "Transactions exported to CSV"
+          "exportSuccessMessage": "Transactions exported to CSV",
+          "errorLoading": "Failed to load transactions"
+        },
+        "notifications": {
+          "refreshed": "Refreshed",
+          "refreshedMessage": "Transactions list refreshed",
+          "exportSuccess": "Export Successful",
+          "exportSuccessMessage": "Transactions exported to CSV",
+          "errorLoading": "Failed to load transactions"
         }
       },
       "expensesPage": {

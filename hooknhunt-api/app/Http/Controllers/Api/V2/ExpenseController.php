@@ -24,7 +24,14 @@ class ExpenseController extends Controller
             'title' => 'required|string',
             'amount' => 'required|numeric|min:1',
             'account_id' => 'required|exists:chart_of_accounts,id', // Expense Head
-            'expense_date' => 'required|date'
+            'expense_date' => 'required|date',
+            // VAT and Tax fields - optional
+            'vat_percentage' => 'nullable|numeric|min:0|max:100',
+            'vat_amount' => 'nullable|numeric|min:0',
+            'vat_challan_no' => 'nullable|string|max:255',
+            'tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'tax_amount' => 'nullable|numeric|min:0',
+            'tax_challan_no' => 'nullable|string|max:255',
         ]);
 
         $expense = Expense::create([
@@ -33,7 +40,14 @@ class ExpenseController extends Controller
             'expense_date' => $request->expense_date,
             'account_id' => $request->account_id,
             'paid_by' => auth()->id(),
-            'is_approved' => false
+            'is_approved' => false,
+            // VAT and Tax fields
+            'vat_percentage' => $request->vat_percentage,
+            'vat_amount' => $request->vat_amount,
+            'vat_challan_no' => $request->vat_challan_no,
+            'tax_percentage' => $request->tax_percentage,
+            'tax_amount' => $request->tax_amount,
+            'tax_challan_no' => $request->tax_challan_no,
         ]);
 
         return $this->sendSuccess($expense, 'Expense submitted for approval.');
@@ -109,6 +123,13 @@ class ExpenseController extends Controller
             'reference_number' => 'sometimes|nullable|string',
             'notes' => 'sometimes|nullable|string',
             'attachment' => 'sometimes|nullable|string',
+            // VAT and Tax fields - optional
+            'vat_percentage' => 'nullable|numeric|min:0|max:100',
+            'vat_amount' => 'nullable|numeric|min:0',
+            'vat_challan_no' => 'nullable|string|max:255',
+            'tax_percentage' => 'nullable|numeric|min:0|max:100',
+            'tax_amount' => 'nullable|numeric|min:0',
+            'tax_challan_no' => 'nullable|string|max:255',
         ]);
 
         $expense = Expense::findOrFail($id);
@@ -127,6 +148,13 @@ class ExpenseController extends Controller
             'reference_number',
             'notes',
             'attachment',
+            // VAT and Tax fields
+            'vat_percentage',
+            'vat_amount',
+            'vat_challan_no',
+            'tax_percentage',
+            'tax_amount',
+            'tax_challan_no',
         ]));
 
         return $this->sendSuccess($expense->load(['account', 'user']), 'Expense updated successfully.');
@@ -157,7 +185,7 @@ class ExpenseController extends Controller
     public function approve(Request $request, $id)
     {
         $expense = Expense::findOrFail($id);
-        
+
         if ($expense->is_approved) {
             return $this->sendError('Already approved');
         }
@@ -168,8 +196,26 @@ class ExpenseController extends Controller
             $expense->update(['is_approved' => true]);
 
             // B. Find "Cash" or "Bank" Account for Credit
-            // (Assuming ID 1 is Cash, needs dynamic setting in real app)
-            $cashAccount = ChartOfAccount::where('name', 'Cash on Hand')->first(); 
+            // Try multiple patterns to find a cash/bank account
+            $cashAccount = ChartOfAccount::where('type', 'asset')
+                ->where(function ($query) {
+                    $query->where('name', 'like', '%Cash%')
+                          ->orWhere('name', 'like', '%cash%')
+                          ->orWhere('name', 'Cash on Hand')
+                          ->orWhere('name', 'Petty Cash');
+                })
+                ->where('is_active', true)
+                ->first();
+
+            // If no cash account found, throw error instead of using unsafe default
+            if (!$cashAccount) {
+                DB::rollBack();
+                return $this->sendError(
+                    'Payment account not configured. Please create a Cash or Bank account (Asset type) with "Cash" in the name.',
+                    null,
+                    400
+                );
+            }
 
             // C. Create Journal Entry (Double Entry)
             $je = JournalEntry::create([
@@ -192,10 +238,20 @@ class ExpenseController extends Controller
             // Credit: Cash Account
             JournalItem::create([
                 'journal_entry_id' => $je->id,
-                'account_id' => $cashAccount->id ?? 1,
+                'account_id' => $cashAccount->id,
                 'debit' => 0,
                 'credit' => $expense->amount
             ]);
+
+            // D. Validate balance (critical for double-entry)
+            if (!$je->isBalanced()) {
+                DB::rollBack();
+                return $this->sendError(
+                    'Journal entry is not balanced. Debit: ' . $je->getTotalDebitAttribute . ', Credit: ' . $je->getTotalCreditAttribute,
+                    null,
+                    500
+                );
+            }
 
             DB::commit();
             return $this->sendSuccess(null, 'Expense approved and posted to Ledger.');
