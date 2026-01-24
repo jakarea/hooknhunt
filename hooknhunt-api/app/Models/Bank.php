@@ -27,6 +27,7 @@ class Bank extends Model
         'phone',
         'status',
         'notes',
+        'currency_id',
         'created_by',
         'updated_by',
     ];
@@ -58,6 +59,14 @@ class Bank extends Model
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Get the currency for this bank account.
+     */
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
     }
 
     /**

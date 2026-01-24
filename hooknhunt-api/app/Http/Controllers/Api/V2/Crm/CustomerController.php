@@ -21,6 +21,11 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.customers.create')) {
+            return $this->sendError('You do not have permission to create customers.', null, 403);
+        }
+
         $request->validate([
             // User Info
             'name' => 'required|string|max:255',
@@ -141,6 +146,11 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.customers.edit')) {
+            return $this->sendError('You do not have permission to edit customers.', null, 403);
+        }
+
         $user = User::with(['customerProfile', 'addresses'])->findOrFail($id);
 
         $request->validate([
@@ -197,6 +207,11 @@ class CustomerController extends Controller
      */
     public function index(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.customers.index')) {
+            return $this->sendError('You do not have permission to view customers.', null, 403);
+        }
+
         $query = User::with(['customerProfile', 'addresses'])
             ->whereIn('role_id', [10, 11]); // Only customers
 
@@ -238,6 +253,11 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('crm.customers.view')) {
+            return $this->sendError('You do not have permission to view customer details.', null, 403);
+        }
+
         $user = User::with(['customerProfile', 'addresses'])
             ->whereIn('role_id', [10, 11])
             ->findOrFail($id);

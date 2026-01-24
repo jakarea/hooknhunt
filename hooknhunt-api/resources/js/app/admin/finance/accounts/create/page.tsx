@@ -14,6 +14,7 @@ import {
   Paper,
   Alert,
   Badge,
+  Skeleton,
 } from '@mantine/core'
 import {
   IconArrowLeft,
@@ -24,15 +25,12 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
-
-// Mock existing accounts for validation
-const mockExistingCodes = [
-  '1000', '1010', '1020', '1100', '1200', '1300', '1500', '1510', '1520', '1530', '1540', '1600',
-  '2000', '2100', '2200', '2300', '2500', '2510', '2520',
-  '3000', '3100', '3200', '3300',
-  '4000', '4100', '4200', '4300', '4310', '4320',
-  '5000', '5100', '5110', '5120', '5130', '5140', '5150', '5200', '5300', '5400',
-]
+import { usePermissions } from '@/hooks/usePermissions'
+import {
+  createAccount,
+  getAccounts,
+  type ChartOfAccount,
+} from '@/utils/api'
 
 // Generate next available code for a type
 const generateNextCode = (type: string, existingCodes: string[]): string => {
@@ -60,7 +58,32 @@ const generateNextCode = (type: string, existingCodes: string[]): string => {
 
 export default function CreateAccountPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
   const navigate = useNavigate()
+
+  const [existingCodes, setExistingCodes] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Permission check - user needs finance accounts create permission
+  if (!hasPermission('finance_accounts_create')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to create Chart of Accounts.</Text>
+          <Button
+            component={Link}
+            to="/finance"
+            leftSection={<IconArrowLeft size={16} />}
+            mt="md"
+          >
+            Back to Finance
+          </Button>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -79,13 +102,41 @@ export default function CreateAccountPage() {
     { value: 'expense', label: t('finance.accountsCreatePage.accountTypes.expense'), codePrefix: '5', color: 'orange' },
   ]
 
+  // Fetch existing codes on mount
+  useEffect(() => {
+    const fetchExistingCodes = async () => {
+      try {
+        const response = await getAccounts()
+        let accountsData: ChartOfAccount[] = []
+        if (response && typeof response === 'object') {
+          if ('data' in response) {
+            const innerData = response.data
+            if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+              accountsData = innerData.data
+            } else if (Array.isArray(innerData)) {
+              accountsData = innerData
+            }
+          } else if (Array.isArray(response)) {
+            accountsData = response
+          }
+        }
+        setExistingCodes(accountsData.map((acc) => acc.code))
+      } catch (error) {
+        console.error('Failed to fetch existing codes:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchExistingCodes()
+  }, [])
+
   // Auto-generate code when type changes
   useEffect(() => {
-    if (formData.type && !formData.code) {
-      const nextCode = generateNextCode(formData.type, mockExistingCodes)
+    if (formData.type && !formData.code && existingCodes.length > 0) {
+      const nextCode = generateNextCode(formData.type, existingCodes)
       setFormData((prev) => ({ ...prev, code: nextCode }))
     }
-  }, [formData.type])
+  }, [formData.type, existingCodes])
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -108,7 +159,7 @@ export default function CreateAccountPage() {
 
     if (!formData.code.trim()) {
       newErrors.code = t('finance.accountsCreatePage.validation.codeRequired')
-    } else if (mockExistingCodes.includes(formData.code)) {
+    } else if (existingCodes.includes(formData.code)) {
       newErrors.code = t('finance.accountsCreatePage.validation.codeExists')
     } else if (!/^\d{4}$/.test(formData.code)) {
       newErrors.code = t('finance.accountsCreatePage.validation.codeFormat')
@@ -130,7 +181,7 @@ export default function CreateAccountPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!validateForm()) {
@@ -144,19 +195,44 @@ export default function CreateAccountPage() {
 
     setIsSubmitting(true)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      await createAccount({
+        name: formData.name,
+        code: formData.code,
+        type: formData.type as any,
+        description: formData.description || undefined,
+      })
+
       notifications.show({
         title: t('finance.accountsCreatePage.notification.success'),
         message: t('finance.accountsCreatePage.notification.successMessage', { name: formData.name, code: formData.code }),
         color: 'green',
       })
+
       navigate('/finance/accounts')
-    }, 1000)
+    } catch (error: any) {
+      setIsSubmitting(false)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || error.response?.data?.errors?.code?.[0] || t('common.somethingWentWrong'),
+        color: 'red',
+      })
+    }
   }
 
   const selectedTypeConfig = accountTypes.find((t) => t.value === formData.type)
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack>
+          <Skeleton height={40} width="100%" />
+          <Skeleton height={500} radius="md" />
+        </Stack>
+      </Box>
+    )
+  }
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
@@ -183,13 +259,13 @@ export default function CreateAccountPage() {
         <Paper withBorder p="xl" radius="md" shadow="sm" component="form" onSubmit={handleSubmit}>
           <Stack>
             <Alert variant="light" color="blue" title={t('finance.accountsCreatePage.accountInformation')} mb="md">
-              <Text size="sm">{t('finance.accountsCreatePage.description')}</Text>
+              <Text className="text-sm md:text-base">{t('finance.accountsCreatePage.description')}</Text>
             </Alert>
 
             {/* Code Format Guide */}
             <Alert variant="light" color="grape" icon={<IconInfoCircle size={16} />}>
               <Stack gap="xs">
-                <Text size="sm" fw={600}>{t('finance.accountsCreatePage.codeFormatTitle')}</Text>
+                <Text className="text-sm md:text-base" fw={600}>{t('finance.accountsCreatePage.codeFormatTitle')}</Text>
                 <Group>
                   <Badge color="green" variant="light">{t('finance.accountsCreatePage.codeRanges.assets')}</Badge>
                   <Badge color="red" variant="light">{t('finance.accountsCreatePage.codeRanges.liabilities')}</Badge>
@@ -239,13 +315,13 @@ export default function CreateAccountPage() {
                 value={formData.code}
                 onChange={(e) => handleChange('code', e.currentTarget.value)}
                 error={errors.code}
-                leftSection={<Text size="sm" fw={700}>#</Text>}
+                leftSection={<Text className="text-sm md:text-base" fw={700}>#</Text>}
               />
 
               {/* Auto-generated code notice */}
               {formData.type && formData.code && !errors.code && (
                 <Alert variant="light" color="teal">
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     ✓ {t('finance.accountsCreatePage.codeAvailable', { code: formData.code })}{' '}
                     <Text span fw={600} c={selectedTypeConfig?.color as any}>{selectedTypeConfig?.label}</Text>
                   </Text>

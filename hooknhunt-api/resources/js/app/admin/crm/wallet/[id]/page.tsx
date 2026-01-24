@@ -259,7 +259,7 @@ export default function CustomerWalletPage() {
           <Group>
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               component={Link}
               to="/crm/wallet"
               leftSection={<IconArrowLeft size={16} />}
@@ -273,7 +273,7 @@ export default function CustomerWalletPage() {
           <Group>
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               onClick={handleRefresh}
               loading={refreshing}
               leftSection={<IconRefresh size={16} />}
@@ -282,7 +282,7 @@ export default function CustomerWalletPage() {
             </Button>
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               onClick={exportToCSV}
               leftSection={<IconDownload size={16} />}
             >
@@ -298,26 +298,26 @@ export default function CustomerWalletPage() {
               src={null}
               alt={wallet.customerName}
               radius="xl"
-              size="lg"
+              className="text-lg md:text-xl lg:text-2xl"
               color="red"
             >
               {(wallet.customerName || 'N').charAt(0)}
             </Avatar>
-            <Box style={{ flex: 1 }}>
+            <Box className="flex-1">
               <Group mb="xs">
-                <Text fw={700} size="xl">{wallet.customerName || 'Unknown Customer'}</Text>
+                <Text fw={700} className="text-xl md:text-2xl lg:text-3xl">{wallet.customerName || 'Unknown Customer'}</Text>
                 <Badge
                   color={wallet.balance >= 0 ? 'green' : 'red'}
                   variant="light"
-                  size="lg"
+                  className="text-lg md:text-xl lg:text-2xl"
                 >
                   {wallet.balance >= 0 ? 'Active' : 'Due'}
                 </Badge>
               </Group>
-              <Text size="sm" c="dimmed">
+              <Text className="text-sm md:text-base" c="dimmed">
                 {wallet.customerPhone || 'N/A'} {wallet.customerEmail && `• ${wallet.customerEmail}`}
               </Text>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 Customer ID: {wallet.customerId}
               </Text>
             </Box>
@@ -329,10 +329,10 @@ export default function CustomerWalletPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-              <Text size="xs" c="dimmed">Current Balance</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Current Balance</Text>
             </Group>
             <Text
-              size="xl"
+              className="text-xl md:text-2xl lg:text-3xl"
               fw={700}
               c={wallet.balance >= 0 ? 'green' : 'red'}
             >
@@ -343,9 +343,9 @@ export default function CustomerWalletPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="xs" c="dimmed">Total Credits</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Credits</Text>
             </Group>
-            <Text size="xl" fw={700} c="green">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               {formatCurrency(wallet.totalCredits)}
             </Text>
           </Card>
@@ -353,9 +353,9 @@ export default function CustomerWalletPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconTrendingDown size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text size="xs" c="dimmed">Total Debits</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Debits</Text>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
               {formatCurrency(wallet.totalDebits)}
             </Text>
           </Card>
@@ -363,9 +363,9 @@ export default function CustomerWalletPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconReceipt size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-              <Text size="xs" c="dimmed">Total Transactions</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Transactions</Text>
             </Group>
-            <Text size="xl" fw={700}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               {transactions.length}
             </Text>
           </Card>
@@ -374,7 +374,7 @@ export default function CustomerWalletPage() {
         {/* Transactions Section */}
         <Stack>
           <Group justify="space-between">
-            <Title order={2} size="lg">Transaction History</Title>
+            <Title order={2} className="text-lg md:text-xl lg:text-2xl">Transaction History</Title>
           </Group>
 
           {/* Filters */}
@@ -385,7 +385,7 @@ export default function CustomerWalletPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               style={{ flex: 1, maxWidth: '300px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             <Select
               placeholder="Filter by type"
@@ -396,7 +396,7 @@ export default function CustomerWalletPage() {
                 { value: 'credit', label: 'Credits (Add Funds)' },
                 { value: 'debit', label: 'Debits (Reduce Funds)' },
               ]}
-              size="md"
+              className="text-base md:text-lg"
               style={{ minWidth: '180px' }}
               clearable
             />
@@ -415,7 +415,7 @@ export default function CustomerWalletPage() {
                     <Badge
                       color={txn.type === 'credit' ? 'green' : 'red'}
                       variant="light"
-                      size="sm"
+                      className="text-sm md:text-base"
                       leftSection={
                         txn.type === 'credit' ? (
                           <IconArrowUp size={12} />
@@ -426,29 +426,29 @@ export default function CustomerWalletPage() {
                     >
                       {txn.type === 'credit' ? 'Credit (Add)' : 'Debit (Reduce)'}
                     </Badge>
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       {formatDateTime(txn.createdAt)}
                     </Text>
                   </Group>
-                  <Text size="sm" mb="xs">{txn.description}</Text>
+                  <Text className="text-sm md:text-base" mb="xs">{txn.description}</Text>
                   <Group justify="space-between" mb="xs">
                     <Text
                       fw={700}
-                      size="lg"
+                      className="text-lg md:text-xl lg:text-2xl"
                       c={txn.type === 'credit' ? 'green' : 'red'}
                     >
                       {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                     </Text>
                     <Group>
-                      <Text size="xs" c="dimmed">Balance: </Text>
-                      <Text fw={600} size="sm">{formatCurrency(txn.balanceAfter)}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">Balance: </Text>
+                      <Text fw={600} className="text-sm md:text-base">{formatCurrency(txn.balanceAfter)}</Text>
                     </Group>
                   </Group>
                   <Group justify="space-between">
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       Before: {formatCurrency(txn.balanceBefore)}
                     </Text>
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       By {txn.createdBy}
                     </Text>
                   </Group>
@@ -486,13 +486,13 @@ export default function CustomerWalletPage() {
                     transactions.map((txn) => (
                       <Table.Tr key={txn.id}>
                         <Table.Td>
-                          <Text size="sm">{formatDateTime(txn.createdAt)}</Text>
+                          <Text className="text-sm md:text-base">{formatDateTime(txn.createdAt)}</Text>
                         </Table.Td>
                         <Table.Td>
                           <Badge
                             color={txn.type === 'credit' ? 'green' : 'red'}
                             variant="light"
-                            size="sm"
+                            className="text-sm md:text-base"
                             leftSection={
                               txn.type === 'credit' ? (
                                 <IconArrowUp size={12} />
@@ -505,28 +505,28 @@ export default function CustomerWalletPage() {
                           </Badge>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">{txn.description}</Text>
+                          <Text className="text-sm md:text-base">{txn.description}</Text>
                         </Table.Td>
                         <Table.Td>
                           <Text
                             fw={700}
-                            size="sm"
+                            className="text-sm md:text-base"
                             c={txn.type === 'credit' ? 'green' : 'red'}
                           >
                             {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                           </Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" c="dimmed">{formatCurrency(txn.balanceBefore)}</Text>
+                          <Text className="text-sm md:text-base" c="dimmed">{formatCurrency(txn.balanceBefore)}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text fw={600} size="sm">{formatCurrency(txn.balanceAfter)}</Text>
+                          <Text fw={600} className="text-sm md:text-base">{formatCurrency(txn.balanceAfter)}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm" c="dimmed">{txn.sourceType}</Text>
+                          <Text className="text-sm md:text-base" c="dimmed">{txn.sourceType}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text size="sm">{txn.createdBy}</Text>
+                          <Text className="text-sm md:text-base">{txn.createdBy}</Text>
                         </Table.Td>
                       </Table.Tr>
                     ))

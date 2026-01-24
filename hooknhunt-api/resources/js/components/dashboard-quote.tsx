@@ -13,7 +13,6 @@ export function DashboardQuote() {
   const quoteIndex = Math.min(dayOfMonth - 1, quotes.length - 1)
   const quote = quotes[quoteIndex]
 
-  console.log(`📅 Day ${dayOfMonth}: Showing quote ${quoteIndex + 1} of ${quotes.length}`)
 
   return (
     <Paper

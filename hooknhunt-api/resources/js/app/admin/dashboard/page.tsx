@@ -99,7 +99,6 @@ export default function AdminDashboardPage() {
         const staffData = staffResponse.data?.data?.data || []
         totalStaff = Array.isArray(staffData) ? staffData.length : (staffData.data?.length || 0)
       } catch (error) {
-        console.log('Staff count not available (requires admin permission)')
       }
 
       // Fetch departments count (optional - only for admins)
@@ -109,7 +108,6 @@ export default function AdminDashboardPage() {
         const deptData = deptResponse.data?.data || []
         totalDepts = Array.isArray(deptData) ? deptData.length : (deptData.data?.length || 0)
       } catch (error) {
-        console.log('Department count not available (requires admin permission)')
       }
 
       // Build stats object
@@ -136,8 +134,6 @@ export default function AdminDashboardPage() {
         try {
           // Fetch all attendance for today (without user filter to avoid permission issues)
           const myAttendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
-          console.log('=== ATTENDANCE API RESPONSE ===')
-          console.log('Full response:', JSON.stringify(myAttendanceResponse.data, null, 2))
 
           // Extract data array - handle different response structures
           let myAttendanceData: any[] = []
@@ -155,21 +151,12 @@ export default function AdminDashboardPage() {
             myAttendanceData = myAttendanceResponse.data.data
           }
 
-          console.log('Extracted attendance data:', myAttendanceData)
-          console.log('Current user ID:', user.id, typeof user.id)
-          console.log('Available records:', myAttendanceData.map((a: any) => ({
-            id: a.id,
-            userId: a.userId,
-            user_id: a.user_id,
-          })))
-
           // Find my attendance - handle both camelCase/snake_case and string/number
           const myRecord = myAttendanceData.find((a: any) => {
             const recordUserId = a.userId || a.user_id
             return String(recordUserId) === String(user.id)
           })
 
-          console.log('Found my attendance record:', myRecord)
 
           if (myRecord) {
             // Normalize to snake_case format
@@ -184,10 +171,8 @@ export default function AdminDashboardPage() {
               status: myRecord.status,
               note: myRecord.note,
             }
-            console.log('Normalized attendance:', normalizedRecord)
             setMyAttendance(normalizedRecord)
           } else {
-            console.log('No attendance found - setting to null')
             setMyAttendance(null)
           }
         } catch (error) {
@@ -200,7 +185,6 @@ export default function AdminDashboardPage() {
           const endDate = new Date().toISOString().split('T')[0]
           const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
           const historyResponse = await api.get(`/hrm/attendance?start_date=${startDate}&end_date=${endDate}`)
-          console.log('Attendance history response:', historyResponse)
 
           let historyData = []
           if (historyResponse.data?.data?.data) {
@@ -209,7 +193,6 @@ export default function AdminDashboardPage() {
             historyData = Array.isArray(historyResponse.data.data) ? historyResponse.data.data : []
           }
 
-          console.log('Raw history data:', historyData)
 
           // Filter to current user's records and normalize
           const userHistory = historyData
@@ -227,7 +210,6 @@ export default function AdminDashboardPage() {
             }))
             .sort((a: MyAttendance, b: MyAttendance) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
-          console.log('User attendance history:', userHistory)
           setAttendanceHistory(userHistory)
         } catch (error) {
           console.error('Error fetching attendance history:', error)
@@ -446,7 +428,6 @@ export default function AdminDashboardPage() {
                         totalHours = `${hours}h ${minutes}m`
                       }
                     } catch (error) {
-                      console.log('Error calculating hours:', error)
                       totalHours = '--'
                     }
                   }

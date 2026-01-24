@@ -131,14 +131,11 @@ export default function EditCustomerPage() {
         setLoading(true)
         const response = await api.get(`/user-management/users/${id}`)
 
-        console.log('Customer edit response:', response.data)
 
         if (response.data?.status && response.data?.data?.user) {
           const user = response.data.data.user
           const profile = response.data.data.user.customerProfile
 
-          console.log('User data:', user)
-          console.log('Customer profile:', profile)
 
           setCustomerName(user.name)
 
@@ -249,8 +246,6 @@ export default function EditCustomerPage() {
 
     try {
       // Log for debugging
-      console.log('Form data:', formData)
-      console.log('Selected role_id:', roleId)
 
       const updateData: any = {
         name: formData.name.trim(),
@@ -437,7 +432,7 @@ export default function EditCustomerPage() {
                   />
                 </Group>
               </Radio.Group>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 Customer type cannot be changed after creation.
               </Text>
             </Box>
@@ -487,7 +482,7 @@ export default function EditCustomerPage() {
                     error={fieldErrors.password}
                     rightSection={
                       <Button
-                        size="xs"
+                        className="text-xs md:text-sm"
                         variant="subtle"
                         onClick={generatePassword}
                         leftSection={<IconDeviceMobile size={14} />}
@@ -607,7 +602,7 @@ export default function EditCustomerPage() {
                   error={fieldErrors.tax_id}
                 />
               </SimpleGrid>
-              <Text size="xs" c="dimmed" mt="xs">
+              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
                 These fields are optional for all customers. Required for wholesale business accounts.
               </Text>
             </Box>

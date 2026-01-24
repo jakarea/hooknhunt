@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Box,
   Stack,
@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   Card,
+  Paper,
   Table,
   Tabs,
   Badge,
@@ -16,7 +17,12 @@ import {
   ActionIcon,
   Switch,
   NumberFormatter,
+  Skeleton,
+  Select,
+  Loader,
+  SimpleGrid,
 } from '@mantine/core'
+import { DatePickerInput } from '@mantine/dates'
 import {
   IconSearch,
   IconRefresh,
@@ -24,88 +30,183 @@ import {
   IconPencil,
   IconCheck,
   IconX,
+  IconScale,
+  IconChevronRight,
+  IconBook,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-
-interface Account {
-  id: number
-  code: string
-  name: string
-  type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
-  balance: number
-  is_active: boolean
-  parent_id?: number
-  description?: string
-}
+import { usePermissions } from '@/hooks/usePermissions'
+import { useFinanceStore } from '@/stores/financeStore'
+import { modals } from '@mantine/modals'
+import {
+  getAccounts,
+  deleteAccount,
+  getAccountBalanceSummary,
+  getTrialBalance,
+  getAccountStatistics,
+  type ChartOfAccount,
+} from '@/utils/api'
 
 type AccountType = 'all' | 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
 
-// Mock data for development
-const mockAccounts: Account[] = [
-  // Assets
-  { id: 1, code: '1000', name: 'Cash and Cash Equivalents', type: 'asset', balance: 1250000, is_active: true },
-  { id: 2, code: '1010', name: 'Cash on Hand', type: 'asset', balance: 150000, is_active: true, parent_id: 1 },
-  { id: 3, code: '1020', name: 'Bank Accounts', type: 'asset', balance: 1100000, is_active: true, parent_id: 1 },
-  { id: 4, code: '1100', name: 'Accounts Receivable', type: 'asset', balance: 450000, is_active: true },
-  { id: 5, code: '1200', name: 'Inventory', type: 'asset', balance: 890000, is_active: true },
-  { id: 6, code: '1300', name: 'Prepaid Expenses', type: 'asset', balance: 75000, is_active: true },
-  { id: 7, code: '1500', name: 'Fixed Assets', type: 'asset', balance: 2500000, is_active: true },
-  { id: 8, code: '1510', name: 'Office Equipment', type: 'asset', balance: 350000, is_active: true, parent_id: 7 },
-  { id: 9, code: '1520', name: 'Computer Equipment', type: 'asset', balance: 450000, is_active: true, parent_id: 7 },
-  { id: 10, code: '1530', name: 'Furniture and Fixtures', type: 'asset', balance: 275000, is_active: true, parent_id: 7 },
-  { id: 11, code: '1540', name: 'Vehicles', type: 'asset', balance: 850000, is_active: true, parent_id: 7 },
-  { id: 12, code: '1600', name: 'Accumulated Depreciation', type: 'asset', balance: -450000, is_active: true },
-
-  // Liabilities
-  { id: 13, code: '2000', name: 'Accounts Payable', type: 'liability', balance: 320000, is_active: true },
-  { id: 14, code: '2100', name: 'Accrued Expenses', type: 'liability', balance: 85000, is_active: true },
-  { id: 15, code: '2200', name: 'Taxes Payable', type: 'liability', balance: 125000, is_active: true },
-  { id: 16, code: '2300', name: 'Short-term Loans', type: 'liability', balance: 500000, is_active: true },
-  { id: 17, code: '2500', name: 'Long-term Liabilities', type: 'liability', balance: 1500000, is_active: true },
-  { id: 18, code: '2510', name: 'Bank Loans', type: 'liability', balance: 1200000, is_active: true, parent_id: 17 },
-  { id: 19, code: '2520', name: 'Lease Obligations', type: 'liability', balance: 300000, is_active: true, parent_id: 17 },
-
-  // Equity
-  { id: 20, code: '3000', name: 'Owner\'s Equity', type: 'equity', balance: 3500000, is_active: true },
-  { id: 21, code: '3100', name: 'Share Capital', type: 'equity', balance: 2000000, is_active: true },
-  { id: 22, code: '3200', name: 'Retained Earnings', type: 'equity', balance: 1200000, is_active: true },
-  { id: 23, code: '3300', name: 'Current Year Earnings', type: 'equity', balance: 300000, is_active: true },
-
-  // Revenue
-  { id: 24, code: '4000', name: 'Sales Revenue', type: 'revenue', balance: 8500000, is_active: true },
-  { id: 25, code: '4100', name: 'Product Sales', type: 'revenue', balance: 7200000, is_active: true },
-  { id: 26, code: '4200', name: 'Service Revenue', type: 'revenue', balance: 1300000, is_active: true },
-  { id: 27, code: '4300', name: 'Other Income', type: 'revenue', balance: 250000, is_active: true },
-  { id: 28, code: '4310', name: 'Interest Income', type: 'revenue', balance: 45000, is_active: true, parent_id: 27 },
-  { id: 29, code: '4320', name: 'Discount Received', type: 'revenue', balance: 85000, is_active: true, parent_id: 27 },
-
-  // Expenses
-  { id: 30, code: '5000', name: 'Cost of Goods Sold', type: 'expense', balance: 5200000, is_active: true },
-  { id: 31, code: '5100', name: 'Operating Expenses', type: 'expense', balance: 1850000, is_active: true },
-  { id: 32, code: '5110', name: 'Rent Expense', type: 'expense', balance: 600000, is_active: true, parent_id: 31 },
-  { id: 33, code: '5120', name: 'Utilities Expense', type: 'expense', balance: 150000, is_active: true, parent_id: 31 },
-  { id: 34, code: '5130', name: 'Salaries and Wages', type: 'expense', balance: 800000, is_active: true, parent_id: 31 },
-  { id: 35, code: '5140', name: 'Office Supplies', type: 'expense', balance: 85000, is_active: true, parent_id: 31 },
-  { id: 36, code: '5150', name: 'Marketing Expenses', type: 'expense', balance: 150000, is_active: true, parent_id: 31 },
-  { id: 37, code: '5200', name: 'Depreciation Expense', type: 'expense', balance: 275000, is_active: true },
-  { id: 38, code: '5300', name: 'Interest Expense', type: 'expense', balance: 95000, is_active: true },
-  { id: 39, code: '5400', name: 'Tax Expense', type: 'expense', balance: 450000, is_active: true },
-
-  // Inactive accounts
-  { id: 40, code: '6000', name: 'Old Bank Account', type: 'asset', balance: 0, is_active: false },
-  { id: 41, code: '6100', name: 'Deprecated Expense Category', type: 'expense', balance: 0, is_active: false },
-]
-
 export default function AccountsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+  const addRecentAccount = useFinanceStore((state) => state.addRecentAccount)
+
+  // Permission check - user needs finance accounts view permission
+  if (!hasPermission('finance_accounts_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Chart of Accounts.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
+  const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [accounts, setAccounts] = useState<ChartOfAccount[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [activeTab, setActiveTab] = useState<AccountType>('all')
   const [showInactive, setShowInactive] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'trial-balance' | 'summary'>('list')
+  const [trialBalanceData, setTrialBalanceData] = useState<any>(null)
+  const [trialBalanceLoading, setTrialBalanceLoading] = useState(false)
+  const [balanceSummary, setBalanceSummary] = useState<any>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [trialBalanceDate, setTrialBalanceDate] = useState<Date | null>(new Date())
+
+  // Fetch accounts
+  const fetchAccounts = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true)
+      } else {
+        setRefreshing(true)
+      }
+
+      const response = await getAccounts()
+
+      // Handle nested response structure - try multiple patterns
+      let accountsData: ChartOfAccount[] = []
+
+      if (Array.isArray(response)) {
+        accountsData = response
+      } else if (response && typeof response === 'object') {
+        // Pattern 1: { data: [...] }
+        if ('data' in response && Array.isArray(response.data)) {
+          accountsData = response.data
+        }
+        // Pattern 2: { data: { data: [...] } }
+        else if ('data' in response && response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray(response.data.data)) {
+          accountsData = response.data.data
+        }
+        // Pattern 3: { data: { status: true, data: [...] } }
+        else if ('data' in response && response.data && typeof response.data === 'object' && 'status' in response.data && Array.isArray(response.data.data)) {
+          accountsData = response.data.data
+        }
+      }
+
+
+      // Convert 'income' to 'revenue' and handle field naming
+      accountsData = accountsData.map((acc: any) => {
+        const processed: any = {
+          id: acc.id,
+          name: acc.name,
+          code: acc.code,
+          type: acc.type === 'income' ? 'revenue' : acc.type,
+          balance: acc.balance || 0,
+          // Handle both camelCase (from API) and snake_case (if backend changes)
+          isActive: acc.isActive ?? acc.is_active ?? true,
+          parent_id: acc.parent_id ?? null,
+          description: acc.description ?? null,
+        }
+        return processed
+      })
+
+      setAccounts(accountsData)
+    } catch (error) {
+      console.error('Error fetching accounts:', error)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: t('common.somethingWentWrong') || 'Failed to load accounts',
+        color: 'red',
+      })
+      setAccounts([])
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [t])
+
+  // Fetch trial balance
+  const fetchTrialBalance = useCallback(async () => {
+    try {
+      setTrialBalanceLoading(true)
+      const params: any = {
+        include_zero_balance: false,
+      }
+      if (trialBalanceDate) {
+        params.as_of_date = trialBalanceDate.toISOString().split('T')[0]
+      }
+      const response = await getTrialBalance(params)
+      setTrialBalanceData(response.data)
+    } catch (error) {
+      console.error('Error fetching trial balance:', error)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: t('common.somethingWentWrong') || 'Failed to load trial balance',
+        color: 'red',
+      })
+    } finally {
+      setTrialBalanceLoading(false)
+    }
+  }, [t, trialBalanceDate])
+
+  // Fetch balance summary
+  const fetchBalanceSummary = useCallback(async () => {
+    try {
+      setSummaryLoading(true)
+      const response = await getAccountBalanceSummary()
+      setBalanceSummary(response.data)
+    } catch (error) {
+      console.error('Error fetching balance summary:', error)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: t('common.somethingWentWrong') || 'Failed to load balance summary',
+        color: 'red',
+      })
+    } finally {
+      setSummaryLoading(false)
+    }
+  }, [t])
+
+  // Initial load
+  useEffect(() => {
+    fetchAccounts(true)
+  }, [])
+
+  // Fetch trial balance when switching to that view
+  useEffect(() => {
+    if (viewMode === 'trial-balance' && !trialBalanceData) {
+      fetchTrialBalance()
+    }
+  }, [viewMode, trialBalanceData, fetchTrialBalance])
+
+  // Fetch balance summary when switching to that view
+  useEffect(() => {
+    if (viewMode === 'summary' && !balanceSummary) {
+      fetchBalanceSummary()
+    }
+  }, [viewMode, balanceSummary, fetchBalanceSummary])
 
   // Get account type configuration
-  const getTypeConfig = (type: Account['type']) => {
+  const getTypeConfig = (type: ChartOfAccount['type']) => {
     const configs = {
       asset: { color: 'green', label: t('finance.accountsPage.types.asset') },
       liability: { color: 'red', label: t('finance.accountsPage.types.liability') },
@@ -118,7 +219,7 @@ export default function AccountsPage() {
 
   // Filter accounts based on current filters
   const filteredAccounts = useMemo(() => {
-    return mockAccounts.filter((account) => {
+    return accounts.filter((account) => {
       // Search filter
       if (searchQuery) {
         const searchLower = searchQuery.toLowerCase()
@@ -134,13 +235,13 @@ export default function AccountsPage() {
       }
 
       // Active status filter
-      if (!showInactive && !account.is_active) {
+      if (!showInactive && !account.isActive) {
         return false
       }
 
       return true
     })
-  }, [searchQuery, activeTab, showInactive])
+  }, [accounts, searchQuery, activeTab, showInactive])
 
   // Calculate statistics
   const statistics = useMemo(() => {
@@ -171,8 +272,24 @@ export default function AccountsPage() {
     }
   }, [filteredAccounts])
 
+  // Track recent accounts in Zustand store
+  useEffect(() => {
+    if (filteredAccounts.length > 0 && !loading) {
+      filteredAccounts.slice(0, 5).forEach(account => {
+        addRecentAccount({
+          id: account.id,
+          name: account.name,
+          code: account.code,
+          type: account.type,
+          viewedAt: new Date().toISOString()
+        })
+      })
+    }
+  }, [filteredAccounts, loading, addRecentAccount])
+
   // Handle refresh
   const handleRefresh = () => {
+    fetchAccounts(false)
     notifications.show({
       title: t('finance.accountsPage.notification.refreshed'),
       message: t('finance.accountsPage.notification.refreshedMessage'),
@@ -182,6 +299,7 @@ export default function AccountsPage() {
 
   // Handle edit
   const handleEdit = (accountId: number) => {
+    // TODO: Navigate to edit page or open modal
     notifications.show({
       title: t('finance.accountsPage.notification.edit'),
       message: t('finance.accountsPage.notification.editMessage', { id: accountId }),
@@ -189,9 +307,66 @@ export default function AccountsPage() {
     })
   }
 
+  // Handle delete
+  const handleDelete = async (accountId: number, accountName: string, accountCode: string) => {
+    modals.openConfirmModal({
+      title: 'Delete Account',
+      children: (
+        <Text className="text-sm md:text-base">
+          Are you sure you want to delete account{' '}
+          <Text span fw={600} c="blue">
+            {accountCode} - {accountName}
+          </Text>
+          ? This action cannot be undone.
+        </Text>
+      ),
+      labels: {
+        confirm: 'Delete',
+        cancel: 'Cancel',
+      },
+      confirmProps: { color: 'red' },
+      onCancel: () => {},
+      onConfirm: async () => {
+        try {
+          await deleteAccount(accountId)
+          notifications.show({
+            title: 'Account Deleted',
+            message: `Account ${accountCode} - ${accountName} has been deleted.`,
+            color: 'green',
+          })
+          fetchAccounts(false)
+        } catch (error: any) {
+          notifications.show({
+            title: t('common.error'),
+            message: error.response?.data?.message || 'Failed to delete account. It may have existing transactions.',
+            color: 'red',
+          })
+        }
+      },
+    })
+  }
+
   // Format account code with monospace
   const formatCode = (code: string) => {
-    return <Text style={{ fontFamily: 'monospace' }} fw={600}>{code}</Text>
+    return <Text className="font-mono" fw={600}>{code}</Text>
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack>
+          <Skeleton height={40} width="100%" />
+          <Group>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} height={100} style={{ flex: 1 }} />
+            ))}
+          </Group>
+          <Skeleton height={60} radius="md" />
+          <Skeleton height={400} radius="md" />
+        </Stack>
+      </Box>
+    )
   }
 
   return (
@@ -205,7 +380,7 @@ export default function AccountsPage() {
               <Text c="dimmed" className="text-sm md:text-base">{t('finance.accountsPage.subtitle')}</Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" size="lg" onClick={handleRefresh}>
+              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh} loading={refreshing}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button
@@ -219,49 +394,82 @@ export default function AccountsPage() {
           </Group>
         </Box>
 
-        {/* Statistics Cards */}
-        <Group>
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
-            <Group mb="xs">
-              <Badge color="green" size="sm" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
+        {/* View Mode Selector */}
+        <Card withBorder p="sm" radius="md">
+          <Group>
+            <Text className="text-sm md:text-base" fw={600}>View:</Text>
+            <Group gap="xs">
+              <Button
+                variant={viewMode === 'list' ? 'filled' : 'light'}
+                size="sm"
+                leftSection={<IconBook size={14} />}
+                onClick={() => setViewMode('list')}
+              >
+                Accounts List
+              </Button>
+              <Button
+                variant={viewMode === 'trial-balance' ? 'filled' : 'light'}
+                size="sm"
+                leftSection={<IconScale size={14} />}
+                onClick={() => setViewMode('trial-balance')}
+              >
+                Trial Balance
+              </Button>
+              <Button
+                variant={viewMode === 'summary' ? 'filled' : 'light'}
+                size="sm"
+                leftSection={<IconChevronRight size={14} />}
+                onClick={() => setViewMode('summary')}
+              >
+                Balance Summary
+              </Button>
             </Group>
-            <Text size="xl" fw={700} c="green">
+          </Group>
+        </Card>
+
+        {/* Statistics Cards - Only show in list view */}
+        <Group>
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="green" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
               <NumberFormatter value={statistics.total_assets} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="red" size="sm" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
+              <Badge color="red" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="red">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
               <NumberFormatter value={statistics.total_liabilities} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="blue" size="sm" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
+              <Badge color="blue" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="blue">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
               <NumberFormatter value={statistics.total_equity} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="cyan" size="sm" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
+              <Badge color="cyan" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="cyan">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="cyan">
               <NumberFormatter value={statistics.total_revenue} prefix="৳" thousandSeparator />
             </Text>
           </Card>
 
-          <Card withBorder p="md" radius="md" style={{ flex: 1 }}>
+          <Card withBorder p="md" radius="md" className="flex-1">
             <Group mb="xs">
-              <Badge color="orange" size="sm" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
+              <Badge color="orange" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
             </Group>
-            <Text size="xl" fw={700} c="orange">
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">
               <NumberFormatter value={statistics.total_expenses} prefix="৳" thousandSeparator />
             </Text>
           </Card>
@@ -274,7 +482,78 @@ export default function AccountsPage() {
             leftSection={<IconSearch size={16} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.currentTarget.value)}
-            style={{ flex: 1 }}
+            className="flex-1"
+          />
+
+          <Group gap="sm">
+            <Switch
+              label={t('finance.accountsPage.showInactive')}
+              checked={showInactive}
+              onChange={(event) => setShowInactive(event.currentTarget.checked)}
+              color="gray"
+            />
+          </Group>
+        </Group>
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <>
+        {/* Statistics Cards - Only show in list view */}
+        <Group>
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="green" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.assets')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
+              <NumberFormatter value={statistics.total_assets} prefix="৳" thousandSeparator />
+            </Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="red" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.liabilities')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">
+              <NumberFormatter value={statistics.total_liabilities} prefix="৳" thousandSeparator />
+            </Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="blue" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.equity')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
+              <NumberFormatter value={statistics.total_equity} prefix="৳" thousandSeparator />
+            </Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="cyan" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.revenue')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="cyan">
+              <NumberFormatter value={statistics.total_revenue} prefix="৳" thousandSeparator />
+            </Text>
+          </Card>
+
+          <Card withBorder p="md" radius="md" className="flex-1">
+            <Group mb="xs">
+              <Badge color="orange" className="text-sm md:text-base" variant="light">{t('finance.accountsPage.types.expenses')}</Badge>
+            </Group>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">
+              <NumberFormatter value={statistics.total_expenses} prefix="৳" thousandSeparator />
+            </Text>
+          </Card>
+        </Group>
+
+        {/* Filters */}
+        <Group>
+          <TextInput
+            placeholder={t('finance.accountsPage.searchPlaceholder')}
+            leftSection={<IconSearch size={16} />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
+            className="flex-1"
           />
 
           <Group gap="sm">
@@ -299,7 +578,8 @@ export default function AccountsPage() {
           </Tabs.List>
 
           <Tabs.Panel value={activeTab}>
-            <Card withBorder p="0" radius="md" mt="md" shadow="sm">
+            {/* Desktop Table View */}
+            <Card withBorder p="0" radius="md" mt="md" shadow="sm" display={{ base: 'none', md: 'block' }}>
               <Table.ScrollContainer minWidth={1000}>
                 <Table striped highlightOnHover>
                   <Table.Thead>
@@ -328,23 +608,23 @@ export default function AccountsPage() {
                           <Table.Tr key={account.id}>
                             <Table.Td>{formatCode(account.code)}</Table.Td>
                             <Table.Td>
-                              <Text size="sm" fw={500}>
+                              <Text className="text-sm md:text-base" fw={500}>
                                 {account.name}
                                 {account.parent_id && (
-                                  <Text size="xs" c="dimmed" mt={2}>
+                                  <Text className="text-xs md:text-sm" c="dimmed" mt={2}>
                                     {t('finance.accountsPage.subAccount')}
                                   </Text>
                                 )}
                               </Text>
                             </Table.Td>
                             <Table.Td>
-                              <Badge color={typeConfig.color} variant="light" size="sm">
+                              <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
                                 {typeConfig.label}
                               </Badge>
                             </Table.Td>
                             <Table.Td>
                               <Text
-                                size="sm"
+                                className="text-sm md:text-base"
                                 fw={600}
                                 ta="right"
                                 c={account.balance >= 0 ? 'green' : 'red'}
@@ -354,12 +634,12 @@ export default function AccountsPage() {
                               </Text>
                             </Table.Td>
                             <Table.Td>
-                              {account.is_active ? (
-                                <Badge color="green" variant="light" size="sm" leftSection={<IconCheck size={12} />}>
+                              {account.isActive ? (
+                                <Badge color="green" variant="light" className="text-sm md:text-base" leftSection={<IconCheck size={12} />}>
                                   {t('finance.accountsPage.active')}
                                 </Badge>
                               ) : (
-                                <Badge color="gray" variant="light" size="sm" leftSection={<IconX size={12} />}>
+                                <Badge color="gray" variant="light" className="text-sm md:text-base" leftSection={<IconX size={12} />}>
                                   {t('finance.accountsPage.inactive')}
                                 </Badge>
                               )}
@@ -367,13 +647,22 @@ export default function AccountsPage() {
                             <Table.Td>
                               <Group gap="xs" justify="center">
                                 <ActionIcon
-                                  size="sm"
+                                  className="text-sm md:text-base"
                                   color="blue"
                                   variant="light"
                                   onClick={() => handleEdit(account.id)}
                                   title={t('common.edit')}
                                 >
                                   <IconPencil size={14} />
+                                </ActionIcon>
+                                <ActionIcon
+                                  className="text-sm md:text-base"
+                                  color="red"
+                                  variant="light"
+                                  onClick={() => handleDelete(account.id, account.name, account.code)}
+                                  title={t('common.delete')}
+                                >
+                                  <IconX size={14} />
                                 </ActionIcon>
                               </Group>
                             </Table.Td>
@@ -385,24 +674,295 @@ export default function AccountsPage() {
                 </Table>
               </Table.ScrollContainer>
             </Card>
+
+            {/* Mobile Card View */}
+            <Stack display={{ base: 'block', md: 'none' }} mt="md">
+              {filteredAccounts.length === 0 ? (
+                <Card withBorder p="xl" ta="center" shadow="sm">
+                  <Text c="dimmed">{t('finance.accountsPage.noAccounts')}</Text>
+                </Card>
+              ) : (
+                filteredAccounts.map((account) => {
+                  const typeConfig = getTypeConfig(account.type)
+                  return (
+                    <Card key={account.id} shadow="sm" p="sm" radius="md" withBorder>
+                      {/* Header: Code + Status Badge */}
+                      <Group justify="space-between" mb="xs">
+                        <Text fw={700} className="font-mono">
+                          {account.code}
+                        </Text>
+                        {account.isActive ? (
+                          <Badge color="green" variant="light" className="text-sm md:text-base" leftSection={<IconCheck size={12} />}>
+                            {t('finance.accountsPage.active')}
+                          </Badge>
+                        ) : (
+                          <Badge color="gray" variant="light" className="text-sm md:text-base" leftSection={<IconX size={12} />}>
+                            {t('finance.accountsPage.inactive')}
+                          </Badge>
+                        )}
+                      </Group>
+
+                      {/* Account Name */}
+                      <Group justify="space-between" mb="xs">
+                        <Text className="text-sm md:text-base" fw={500}>
+                          {account.name}
+                        </Text>
+                        <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
+                          {typeConfig.label}
+                        </Badge>
+                      </Group>
+
+                      {/* Sub-account indicator */}
+                      {account.parent_id && (
+                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
+                          {t('finance.accountsPage.subAccount')}
+                        </Text>
+                      )}
+
+                      {/* Balance */}
+                      <Group justify="space-between" mb="xs">
+                        <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPage.tableHeaders.balance')}</Text>
+                        <Text
+                          className="text-sm md:text-base"
+                          fw={700}
+                          c={account.balance >= 0 ? 'green' : 'red'}
+                        >
+                          <NumberFormatter value={Math.abs(account.balance)} prefix="৳" thousandSeparator />
+                          {account.balance < 0 && ' (Cr)'}
+                        </Text>
+                      </Group>
+
+                      {/* Actions */}
+                      <Group justify="flex-end" mt="xs">
+                        <ActionIcon
+                          className="text-sm md:text-base"
+                          color="blue"
+                          variant="light"
+                          onClick={() => handleEdit(account.id)}
+                        >
+                          <IconPencil size={14} />
+                        </ActionIcon>
+                        <ActionIcon
+                          className="text-sm md:text-base"
+                          color="red"
+                          variant="light"
+                          onClick={() => handleDelete(account.id, account.name, account.code)}
+                        >
+                          <IconX size={14} />
+                        </ActionIcon>
+                      </Group>
+                    </Card>
+                  )
+                })
+              )}
+            </Stack>
           </Tabs.Panel>
         </Tabs>
 
         {/* Summary Stats */}
         <Card withBorder p="md" radius="md">
           <Group justify="space-between">
-            <Text size="sm" c="dimmed">
+            <Text className="text-sm md:text-base" c="dimmed">
               {t('finance.accountsPage.totalAccounts')}: {statistics.total_count}
             </Text>
             {activeTab === 'all' && (
               <Group gap="xl">
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   <Text span fw={600} c="green">{t('finance.accountsPage.netIncome')}:</Text> ৳{statistics.net_income.toLocaleString()}
                 </Text>
               </Group>
             )}
           </Group>
         </Card>
+          </>
+        )}
+
+        {/* Trial Balance View */}
+        {viewMode === 'trial-balance' && (
+          <Stack>
+            <Group justify="space-between">
+              <Title order={2} className="text-base md:text-lg lg:text-xl">Trial Balance Report</Title>
+              <Group>
+                <DatePickerInput
+                  placeholder="As of date"
+                  value={trialBalanceDate}
+                  onChange={setTrialBalanceDate}
+                  clearable
+                />
+                <Button onClick={fetchTrialBalance} loading={trialBalanceLoading}>
+                  <IconRefresh size={16} />
+                </Button>
+              </Group>
+            </Group>
+
+            {trialBalanceLoading ? (
+              <Card withBorder p="xl">
+                <Loader />
+              </Card>
+            ) : trialBalanceData ? (
+              <>
+                {/* Trial Balance Summary */}
+                <Group>
+                  <Card withBorder p="md" className="flex-1">
+                    <Text className="text-sm md:text-base" c="dimmed">Total Debit</Text>
+                    <Text className="text-xl md:text-2xl" fw={700} c="blue">
+                      ৳{(trialBalanceData.total_debit || trialBalanceData.totalDebit || 0)?.toLocaleString()}
+                    </Text>
+                  </Card>
+                  <Card withBorder p="md" className="flex-1">
+                    <Text className="text-sm md:text-base" c="dimmed">Total Credit</Text>
+                    <Text className="text-xl md:text-2xl" fw={700} c="orange">
+                      ৳{(trialBalanceData.total_credit || trialBalanceData.totalCredit || 0)?.toLocaleString()}
+                    </Text>
+                  </Card>
+                  <Card withBorder p="md" className="flex-1">
+                    <Text className="text-sm md:text-base" c="dimmed">Difference</Text>
+                    <Text className="text-xl md:text-2xl" fw={700} c={trialBalanceData.difference === 0 ? 'green' : 'red'}>
+                      ৳{Math.abs(trialBalanceData.difference || 0).toLocaleString()}
+                    </Text>
+                  </Card>
+                  <Card withBorder p="md" className="flex-1">
+                    <Text className="text-sm md:text-base" c="dimmed">Status</Text>
+                    <Badge
+                      color={trialBalanceData.is_balanced ? 'green' : 'red'}
+                      className="text-sm md:text-base"
+                      variant="light"
+                    >
+                      {trialBalanceData.is_balanced ? 'Balanced' : 'Not Balanced'}
+                    </Badge>
+                  </Card>
+                </Group>
+
+                {/* Trial Balance Table */}
+                <Card withBorder p="0" radius="md">
+                  <Table.ScrollContainer minWidth={800}>
+                    <Table striped highlightOnHover>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>Code</Table.Th>
+                          <Table.Th>Account Name</Table.Th>
+                          <Table.Th>Type</Table.Th>
+                          <Table.Th ta="right">Debit</Table.Th>
+                          <Table.Th ta="right">Credit</Table.Th>
+                          <Table.Th ta="right">Balance</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {trialBalanceData.accounts?.map((account: any) => (
+                          <Table.Tr key={account.id}>
+                            <Table.Td><Text className="font-mono">{account.code}</Text></Table.Td>
+                            <Table.Td>{account.name}</Table.Td>
+                            <Table.Td>
+                              <Badge color={
+                                account.type === 'asset' ? 'green' :
+                                account.type === 'liability' ? 'red' :
+                                account.type === 'equity' ? 'blue' :
+                                account.type === 'income' ? 'cyan' : 'orange'
+                              } variant="light">
+                                {account.type_label || account.type}
+                              </Badge>
+                            </Table.Td>
+                            <Table.Td ta="right">
+                              {account.debit > 0 && (
+                                <NumberFormatter value={account.debit} prefix="৳" thousandSeparator />
+                              )}
+                            </Table.Td>
+                            <Table.Td ta="right">
+                              {account.credit > 0 && (
+                                <NumberFormatter value={account.credit} prefix="৳" thousandSeparator />
+                              )}
+                            </Table.Td>
+                            <Table.Td ta="right">
+                              <Text fw={600} c={account.balance >= 0 ? 'green' : 'red'}>
+                                <NumberFormatter value={Math.abs(account.balance)} prefix="৳" thousandSeparator />
+                              </Text>
+                            </Table.Td>
+                          </Table.Tr>
+                        ))}
+                      </Table.Tbody>
+                    </Table>
+                  </Table.ScrollContainer>
+                </Card>
+              </>
+            ) : null}
+          </Stack>
+        )}
+
+        {/* Balance Summary View */}
+        {viewMode === 'summary' && (
+          <Stack>
+            <Title order={2} className="text-base md:text-lg lg:text-xl">Balance Summary</Title>
+
+            {summaryLoading ? (
+              <Card withBorder p="xl">
+                <Loader />
+              </Card>
+            ) : balanceSummary ? (
+              <>
+                {/* Accounting Equation */}
+                <Card withBorder p="md" radius="md">
+                  <Group mb="md">
+                    <IconScale size={20} />
+                    <Text className="text-base md:text-lg" fw={600}>Accounting Equation</Text>
+                  </Group>
+                  <Group>
+                    <Text className="text-sm md:text-base">
+                      Assets (৳{balanceSummary.accounting_equation?.assets?.toLocaleString() || 0}) ={' '}
+                      Liabilities (৳{balanceSummary.accounting_equation?.liabilities?.toLocaleString() || 0}) +{' '}
+                      Equity (৳{balanceSummary.accounting_equation?.equity?.toLocaleString() || 0})
+                    </Text>
+                  </Group>
+                  {balanceSummary.accounting_equation && (
+                    <Badge
+                      color={balanceSummary.accounting_equation.is_balanced ? 'green' : 'red'}
+                      className="text-sm md:text-base"
+                      mt="sm"
+                    >
+                      {balanceSummary.accounting_equation.is_balanced ? 'Balanced ✓' : 'Not Balanced ✗'}
+                    </Badge>
+                  )}
+                </Card>
+
+                {/* Totals by Type */}
+                <Title order={3} className="text-sm md:text-base">Totals by Account Type</Title>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                  {balanceSummary.totals_by_type?.map((item: any) => (
+                    <Card key={item.type} withBorder p="md" radius="md">
+                      <Group mb="xs">
+                        <Badge
+                          color={
+                            item.type === 'asset' ? 'green' :
+                            item.type === 'liability' ? 'red' :
+                            item.type === 'equity' ? 'blue' :
+                            item.type === 'income' ? 'cyan' : 'orange'
+                          }
+                          variant="light"
+                        >
+                          {item.label}
+                        </Badge>
+                      </Group>
+                      <Text className="text-xl md:text-2xl" fw={700}>
+                        <NumberFormatter value={item.amount} prefix="৳" thousandSeparator />
+                      </Text>
+                    </Card>
+                  ))}
+                </SimpleGrid>
+
+                {/* Summary Stats */}
+                <Card withBorder p="md" radius="md">
+                  <Group justify="space-between">
+                    <Text className="text-sm md:text-base">Total Accounts: {balanceSummary.total_accounts}</Text>
+                    {balanceSummary.net_income !== undefined && (
+                      <Text className="text-sm md:text-base">
+                        <Text span fw={600} c="green">Net Income:</Text> ৳{balanceSummary.net_income?.toLocaleString() || 0}
+                      </Text>
+                    )}
+                  </Group>
+                </Card>
+              </>
+            ) : null}
+          </Stack>
+        )}
       </Stack>
     </Box>
   )

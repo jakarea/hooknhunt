@@ -24,8 +24,13 @@ class UnitController extends Controller
         $validated = $request->validate([
             'name' => 'required|unique:units,name',
             'symbol' => 'required',
-            'allow_decimal' => 'boolean'
+            'allow_decimal' => 'sometimes|boolean'
         ]);
+
+        // Set default value for allow_decimal if not provided
+        if (!isset($validated['allow_decimal'])) {
+            $validated['allow_decimal'] = false;
+        }
 
         $unit = Unit::create($validated);
         return response()->json($unit, 201);
@@ -34,7 +39,27 @@ class UnitController extends Controller
     public function update(Request $request, $id)
     {
         $unit = Unit::findOrFail($id);
-        $unit->update($request->all());
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|unique:units,name,' . $id,
+            'symbol' => 'sometimes|required',
+            'allow_decimal' => 'sometimes|boolean'
+        ]);
+
+        // Only update fields that were provided
+        if (isset($validated['allow_decimal'])) {
+            $unit->allow_decimal = $validated['allow_decimal'];
+        }
+
+        if ($request->has('name')) {
+            $unit->name = $request->input('name');
+        }
+
+        if ($request->has('symbol')) {
+            $unit->symbol = $request->input('symbol');
+        }
+
+        $unit->save();
         return response()->json($unit);
     }
 

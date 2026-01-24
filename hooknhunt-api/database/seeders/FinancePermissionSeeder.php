@@ -45,6 +45,17 @@ class FinancePermissionSeeder extends Seeder
                             ['label' => 'Transfer Funds', 'key' => 'finance_banks_transfer', 'slug' => 'finance.banks.transfer'],
                         ],
                     ],
+                    // ==================== NEWLY ADDED: Currencies Module ====================
+                    [
+                        'name' => 'Currencies',
+                        'permissions' => [
+                            ['label' => 'View Currencies', 'key' => 'finance_currencies_view', 'slug' => 'finance.currencies.index'],
+                            ['label' => 'Create Currency', 'key' => 'finance_currencies_create', 'slug' => 'finance.currencies.create'],
+                            ['label' => 'Edit Currency', 'key' => 'finance_currencies_edit', 'slug' => 'finance.currencies.edit'],
+                            ['label' => 'Delete Currency', 'key' => 'finance_currencies_delete', 'slug' => 'finance.currencies.delete'],
+                            ['label' => 'Update Exchange Rate', 'key' => 'finance_currencies_update_rate', 'slug' => 'finance.currencies.update-rate'],
+                        ],
+                    ],
                     [
                         'name' => 'Transactions',
                         'permissions' => [
@@ -94,6 +105,147 @@ class FinancePermissionSeeder extends Seeder
                             ['label' => 'Generate Daily Report', 'key' => 'finance_daily_reports_generate', 'slug' => 'finance.daily-reports.generate'],
                             ['label' => 'Regenerate Daily Report', 'key' => 'finance_daily_reports_regenerate', 'slug' => 'finance.daily-reports.regenerate'],
                             ['label' => 'Delete Daily Report', 'key' => 'finance_daily_reports_delete', 'slug' => 'finance.daily-reports.delete'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Budgeting & Planning Module ====================
+                    [
+                        'name' => 'Budgets',
+                        'permissions' => [
+                            ['label' => 'View Budgets', 'key' => 'finance_budgets_view', 'slug' => 'finance.budgets.index'],
+                            ['label' => 'Create Budget', 'key' => 'finance_budgets_create', 'slug' => 'finance.budgets.create'],
+                            ['label' => 'Edit Budget', 'key' => 'finance_budgets_edit', 'slug' => 'finance.budgets.edit'],
+                            ['label' => 'Delete Budget', 'key' => 'finance_budgets_delete', 'slug' => 'finance.budgets.delete'],
+                            ['label' => 'Approve Budget', 'key' => 'finance_budgets_approve', 'slug' => 'finance.budgets.approve'],
+                        ],
+                    ],
+                    [
+                        'name' => 'Cost Centers',
+                        'permissions' => [
+                            ['label' => 'View Cost Centers', 'key' => 'finance_cost_centers_view', 'slug' => 'finance.cost-centers.index'],
+                            ['label' => 'Create Cost Center', 'key' => 'finance_cost_centers_create', 'slug' => 'finance.cost-centers.create'],
+                            ['label' => 'Edit Cost Center', 'key' => 'finance_cost_centers_edit', 'slug' => 'finance.cost-centers.edit'],
+                            ['label' => 'Delete Cost Center', 'key' => 'finance_cost_centers_delete', 'slug' => 'finance.cost-centers.delete'],
+                        ],
+                    ],
+                    [
+                        'name' => 'Projects',
+                        'permissions' => [
+                            ['label' => 'View Projects', 'key' => 'finance_projects_view', 'slug' => 'finance.projects.index'],
+                            ['label' => 'Create Project', 'key' => 'finance_projects_create', 'slug' => 'finance.projects.create'],
+                            ['label' => 'Edit Project', 'key' => 'finance_projects_edit', 'slug' => 'finance.projects.edit'],
+                            ['label' => 'Delete Project', 'key' => 'finance_projects_delete', 'slug' => 'finance.projects.delete'],
+                        ],
+                    ],
+                    [
+                        'name' => 'Fiscal Years',
+                        'permissions' => [
+                            ['label' => 'View Fiscal Years', 'key' => 'finance_fiscal_years_view', 'slug' => 'finance.fiscal-years.index'],
+                            ['label' => 'Create Fiscal Year', 'key' => 'finance_fiscal_years_create', 'slug' => 'finance.fiscal-years.create'],
+                            ['label' => 'Edit Fiscal Year', 'key' => 'finance_fiscal_years_edit', 'slug' => 'finance.fiscal-years.edit'],
+                            ['label' => 'Delete Fiscal Year', 'key' => 'finance_fiscal_years_delete', 'slug' => 'finance.fiscal-years.delete'],
+                            ['label' => 'Close Fiscal Year', 'key' => 'finance_fiscal_years_close', 'slug' => 'finance.fiscal-years.close'],
+                            ['label' => 'Reopen Fiscal Year', 'key' => 'finance_fiscal_years_reopen', 'slug' => 'finance.fiscal-years.reopen'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Fixed Assets Module ====================
+                    [
+                        'name' => 'Fixed Assets',
+                        'permissions' => [
+                            ['label' => 'View Fixed Assets', 'key' => 'finance_fixed_assets_view', 'slug' => 'finance.fixed-assets.index'],
+                            ['label' => 'Create Fixed Asset', 'key' => 'finance_fixed_assets_create', 'slug' => 'finance.fixed-assets.create'],
+                            ['label' => 'Edit Fixed Asset', 'key' => 'finance_fixed_assets_edit', 'slug' => 'finance.fixed-assets.edit'],
+                            ['label' => 'Delete Fixed Asset', 'key' => 'finance_fixed_assets_delete', 'slug' => 'finance.fixed-assets.delete'],
+                            ['label' => 'Dispose Fixed Asset', 'key' => 'finance_fixed_assets_dispose', 'slug' => 'finance.fixed-assets.dispose'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Cheque/PDC Management Module ====================
+                    [
+                        'name' => 'Cheques/PDC',
+                        'permissions' => [
+                            ['label' => 'View Cheques', 'key' => 'finance_cheques_view', 'slug' => 'finance.cheques.index'],
+                            ['label' => 'Create Cheque', 'key' => 'finance_cheques_create', 'slug' => 'finance.cheques.create'],
+                            ['label' => 'Edit Cheque', 'key' => 'finance_cheques_edit', 'slug' => 'finance.cheques.edit'],
+                            ['label' => 'Delete Cheque', 'key' => 'finance_cheques_delete', 'slug' => 'finance.cheques.delete'],
+                            ['label' => 'Deposit Cheque', 'key' => 'finance_cheques_deposit', 'slug' => 'finance.cheques.deposit'],
+                            ['label' => 'Clear Cheque', 'key' => 'finance_cheques_clear', 'slug' => 'finance.cheques.clear'],
+                            ['label' => 'Bounce Cheque', 'key' => 'finance_cheques_bounce', 'slug' => 'finance.cheques.bounce'],
+                            ['label' => 'Cancel Cheque', 'key' => 'finance_cheques_cancel', 'slug' => 'finance.cheques.cancel'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: VAT/Tax Ledger Module ====================
+                    [
+                        'name' => 'VAT/Tax Ledger',
+                        'permissions' => [
+                            ['label' => 'View VAT/Tax Ledger', 'key' => 'finance_vat_tax_view', 'slug' => 'finance.vat-tax.index'],
+                            ['label' => 'Create VAT/Tax Entry', 'key' => 'finance_vat_tax_create', 'slug' => 'finance.vat-tax.create'],
+                            ['label' => 'Edit VAT/Tax Entry', 'key' => 'finance_vat_tax_edit', 'slug' => 'finance.vat-tax.edit'],
+                            ['label' => 'Delete VAT/Tax Entry', 'key' => 'finance_vat_tax_delete', 'slug' => 'finance.vat-tax.delete'],
+                            ['label' => 'Mark as Paid', 'key' => 'finance_vat_tax_mark_paid', 'slug' => 'finance.vat-tax.mark-paid'],
+                            ['label' => 'Mark as Filed', 'key' => 'finance_vat_tax_mark_filed', 'slug' => 'finance.vat-tax.mark-filed'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Journal Entries Module ====================
+                    [
+                        'name' => 'Journal Entries',
+                        'permissions' => [
+                            ['label' => 'View Journal Entries', 'key' => 'finance_journal_view', 'slug' => 'finance.journal-entries.index'],
+                            ['label' => 'Create Journal Entry', 'key' => 'finance_journal_create', 'slug' => 'finance.journal-entries.create'],
+                            ['label' => 'Edit Journal Entry', 'key' => 'finance_journal_edit', 'slug' => 'finance.journal-entries.edit'],
+                            ['label' => 'Delete Journal Entry', 'key' => 'finance_journal_delete', 'slug' => 'finance.journal-entries.delete'],
+                            ['label' => 'Reverse Journal Entry', 'key' => 'finance_journal_reverse', 'slug' => 'finance.journal-entries.reverse'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Accounts Payable/Receivable Module ====================
+                    [
+                        'name' => 'Accounts Payable',
+                        'permissions' => [
+                            ['label' => 'View Accounts Payable', 'key' => 'finance_ap_view', 'slug' => 'finance.accounts-payable.index'],
+                            ['label' => 'Create Accounts Payable', 'key' => 'finance_ap_create', 'slug' => 'finance.accounts-payable.create'],
+                            ['label' => 'Edit Accounts Payable', 'key' => 'finance_ap_edit', 'slug' => 'finance.accounts-payable.edit'],
+                            ['label' => 'Delete Accounts Payable', 'key' => 'finance_ap_delete', 'slug' => 'finance.accounts-payable.delete'],
+                        ],
+                    ],
+                    [
+                        'name' => 'Accounts Receivable',
+                        'permissions' => [
+                            ['label' => 'View Accounts Receivable', 'key' => 'finance_ar_view', 'slug' => 'finance.accounts-receivable.index'],
+                            ['label' => 'Create Accounts Receivable', 'key' => 'finance_ar_create', 'slug' => 'finance.accounts-receivable.create'],
+                            ['label' => 'Edit Accounts Receivable', 'key' => 'finance_ar_edit', 'slug' => 'finance.accounts-receivable.edit'],
+                            ['label' => 'Delete Accounts Receivable', 'key' => 'finance_ar_delete', 'slug' => 'finance.accounts-receivable.delete'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Bank Reconciliations Module ====================
+                    [
+                        'name' => 'Bank Reconciliations',
+                        'permissions' => [
+                            ['label' => 'View Bank Reconciliations', 'key' => 'finance_reconciliations_view', 'slug' => 'finance.bank-reconciliations.index'],
+                            ['label' => 'Create Bank Reconciliation', 'key' => 'finance_reconciliations_create', 'slug' => 'finance.bank-reconciliations.create'],
+                            ['label' => 'Edit Bank Reconciliation', 'key' => 'finance_reconciliations_edit', 'slug' => 'finance.bank-reconciliations.edit'],
+                            ['label' => 'Delete Bank Reconciliation', 'key' => 'finance_reconciliations_delete', 'slug' => 'finance.bank-reconciliations.delete'],
+                            ['label' => 'Reconcile Bank Account', 'key' => 'finance_reconciliations_reconcile', 'slug' => 'finance.bank-reconciliations.reconcile'],
+                            ['label' => 'Reset Bank Reconciliation', 'key' => 'finance_reconciliations_reset', 'slug' => 'finance.bank-reconciliations.reset'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Advanced Financial Reports Module ====================
+                    [
+                        'name' => 'Advanced Reports',
+                        'permissions' => [
+                            ['label' => 'View Advanced Reports', 'key' => 'finance_advanced_reports_view', 'slug' => 'finance.reports.custom.index'],
+                            ['label' => 'Create Advanced Report', 'key' => 'finance_advanced_reports_create', 'slug' => 'finance.reports.custom.create'],
+                            ['label' => 'Edit Advanced Report', 'key' => 'finance_advanced_reports_edit', 'slug' => 'finance.reports.custom.edit'],
+                            ['label' => 'Delete Advanced Report', 'key' => 'finance_advanced_reports_delete', 'slug' => 'finance.reports.custom.delete'],
+                            ['label' => 'Generate Advanced Report', 'key' => 'finance_advanced_reports_generate', 'slug' => 'finance.reports.custom.generate'],
+                            ['label' => 'Export Advanced Report', 'key' => 'finance_advanced_reports_export', 'slug' => 'finance.reports.custom.export'],
+                        ],
+                    ],
+                    // ==================== NEWLY ADDED: Finance Audit Trail Module ====================
+                    [
+                        'name' => 'Audit Trail',
+                        'permissions' => [
+                            ['label' => 'View Audit Logs', 'key' => 'finance_audit_view', 'slug' => 'finance.audit.index'],
+                            ['label' => 'View Audit Statistics', 'key' => 'finance_audit_statistics', 'slug' => 'finance.audit.statistics'],
+                            ['label' => 'View Entity History', 'key' => 'finance_audit_history', 'slug' => 'finance.audit.history'],
+                            ['label' => 'View Entity Timeline', 'key' => 'finance_audit_timeline', 'slug' => 'finance.audit.timeline'],
                         ],
                     ],
                 ],

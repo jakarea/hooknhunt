@@ -181,10 +181,10 @@ export default function CreateStaffPage() {
                 <Title order={3} c="red.6">
                   Access Denied
                 </Title>
-                <Text size="lg" c="dimmed">
+                <Text className="text-lg md:text-xl lg:text-2xl" c="dimmed">
                   You don't have permission to create staff.
                 </Text>
-                <Text size="sm" c="dimmed" mt="xs">
+                <Text className="text-sm md:text-base" c="dimmed" mt="xs">
                   Please contact your administrator if you believe this is an error.
                 </Text>
               </Stack>

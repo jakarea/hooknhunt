@@ -212,7 +212,7 @@ export default function LeadsPage() {
       title: t('crm.leads.delete'),
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           {t('crm.leads.deleteConfirm', { name })}
         </Text>
       ),
@@ -287,7 +287,7 @@ export default function LeadsPage() {
               {dateFilter && (
                 <Button
                   variant="light"
-                  size="md"
+                  className="text-base md:text-lg"
                   color="red"
                   onClick={clearDateFilter}
                   leftSection={<IconRefresh size={16} />}
@@ -297,7 +297,7 @@ export default function LeadsPage() {
               )}
               <Button
                 variant="light"
-                size="md"
+                className="text-base md:text-lg"
                 onClick={() => {
                   setRefreshing(true)
                   fetchLeads()
@@ -309,7 +309,7 @@ export default function LeadsPage() {
               </Button>
               <Button
                 variant="light"
-                size="md"
+                className="text-base md:text-lg"
                 leftSection={<IconCalendar size={16} />}
                 onClick={() => setCalendarModalOpen(true)}
               >
@@ -329,24 +329,24 @@ export default function LeadsPage() {
         {/* Stats */}
         <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">{t('crm.leads.total')}</Text>
-            <Text size="xl" fw={700}>{leads.length}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('crm.leads.total')}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{leads.length}</Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">{t('crm.leads.status.new')}</Text>
-            <Text size="xl" fw={700} c="blue">
+            <Text className="text-xs md:text-sm" c="dimmed">{t('crm.leads.status.new')}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
               {leads.filter((l) => l.status === 'new').length}
             </Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">{t('crm.leads.status.contacted')}</Text>
-            <Text size="xl" fw={700} c="cyan">
+            <Text className="text-xs md:text-sm" c="dimmed">{t('crm.leads.status.contacted')}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="cyan">
               {leads.filter((l) => l.status === 'contacted').length}
             </Text>
           </Card>
           <Card withBorder p="md" radius="md">
-            <Text size="xs" c="dimmed">{t('crm.leads.status.converted')}</Text>
-            <Text size="xl" fw={700} c="teal">
+            <Text className="text-xs md:text-sm" c="dimmed">{t('crm.leads.status.converted')}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="teal">
               {leads.filter((l) => l.status === 'converted').length}
             </Text>
           </Card>
@@ -361,14 +361,14 @@ export default function LeadsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               style={{ flex: 1, maxWidth: '400px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             <Select
               placeholder={t('crm.leads.filterByStatus')}
               value={statusFilter}
               onChange={setStatusFilter}
               data={statusConfig}
-              size="md"
+              className="text-base md:text-lg"
               style={{ minWidth: '150px' }}
               clearable
             />
@@ -377,7 +377,7 @@ export default function LeadsPage() {
               value={sourceFilter}
               onChange={setSourceFilter}
               data={sourceConfig}
-              size="md"
+              className="text-base md:text-lg"
               style={{ minWidth: '150px' }}
               clearable
             />
@@ -421,12 +421,12 @@ export default function LeadsPage() {
                         >
                           <Table.Td>
                             <Group gap="sm">
-                              <Avatar size="sm" radius="xl" color="red">
+                              <Avatar className="text-sm md:text-base" radius="xl" color="red">
                                 {name.charAt(0).toUpperCase()}
                               </Avatar>
                               <div>
                                 <Group gap={4} align="center">
-                                  <Text fw={500} size="sm">
+                                  <Text fw={500} className="text-sm md:text-base">
                                     {name}
                                   </Text>
                                   {isTodayActivity && (
@@ -444,12 +444,12 @@ export default function LeadsPage() {
                             <Stack gap={2}>
                               <Group gap={4} style={{ flexWrap: 'wrap' }}>
                                 <IconPhone size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                                <Text size="xs">{lead.phone}</Text>
+                                <Text className="text-xs md:text-sm">{lead.phone}</Text>
                               </Group>
                               {lead.email && (
                                 <Group gap={4} style={{ flexWrap: 'wrap' }}>
                                   <IconMail size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                                  <Text size="xs" truncate style={{ maxWidth: '200px' }}>
+                                  <Text className="text-xs md:text-sm" truncate style={{ maxWidth: '200px' }}>
                                     {lead.email}
                                   </Text>
                                 </Group>
@@ -457,13 +457,13 @@ export default function LeadsPage() {
                             </Stack>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{getSourceLabel(lead.source)}</Text>
+                            <Text className="text-sm md:text-base">{getSourceLabel(lead.source)}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Badge
                               color={getStatusColor(lead.status)}
                               variant="light"
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               {t(`crm.leads.status.${lead.status}`)}
                             </Badge>
@@ -472,19 +472,19 @@ export default function LeadsPage() {
                             {lead.assignedAgent ? (
                               <Group gap={4}>
                                 <IconUser size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                                <Text size="xs">{lead.assignedAgent.name}</Text>
+                                <Text className="text-xs md:text-sm">{lead.assignedAgent.name}</Text>
                               </Group>
                             ) : (
-                              <Text size="xs" c="dimmed">{t('crm.leads.unassigned')}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.leads.unassigned')}</Text>
                             )}
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{formatDate(lead.created_at)}</Text>
+                            <Text className="text-sm md:text-base">{formatDate(lead.created_at)}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Menu shadow="md" width={160} position="bottom-end">
                               <Menu.Target>
-                                <ActionIcon variant="subtle" size="sm">
+                                <ActionIcon variant="subtle" className="text-lg md:text-xl lg:text-2xl">
                                   <IconDots size={16} />
                                 </ActionIcon>
                               </Menu.Target>
@@ -547,10 +547,10 @@ export default function LeadsPage() {
         onClose={() => setCalendarModalOpen(false)}
         title={t('crm.leads.calendarModalTitle')}
         centered
-        size="md"
+        className="text-base md:text-lg"
       >
         <Stack>
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             {t('crm.leads.calendarModalDescription')}
           </Text>
           <DateInput

@@ -8,6 +8,7 @@ import {
   Card,
   SimpleGrid,
   Button,
+  Paper,
 } from '@mantine/core'
 import {
   IconTrendingUp,
@@ -17,9 +18,23 @@ import {
   IconFileDescription,
 } from '@tabler/icons-react'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
 
 export default function ReportsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports view permission
+  if (!hasPermission('finance_reports_view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Finance Reports.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
 
   const reportCards = [
     {
@@ -100,7 +115,7 @@ export default function ReportsPage() {
                     <Title order={3}>{report.title}</Title>
                   </Group>
 
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {report.description}
                   </Text>
 
@@ -119,7 +134,7 @@ export default function ReportsPage() {
 
         {/* Info Card */}
         <Card withBorder p="md" radius="md" mt="xl">
-          <Text size="sm" c="dimmed">
+          <Text className="text-sm md:text-base" c="dimmed">
             {t('finance.reportsHubPage.infoText')}
           </Text>
         </Card>

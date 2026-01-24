@@ -41,7 +41,6 @@ export function LoginForm() {
       newErrors.password = 'Password is required'
     }
 
-    console.log('Validation errors:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -49,28 +48,22 @@ export function LoginForm() {
   const handleSubmit = async () => {
     // Prevent double submission
     if (loading) {
-      console.log('Already loading, ignoring submit')
       return
     }
 
-    console.log('Login triggered, phone:', phoneNumber, 'password:', password ? '***' : 'empty')
 
     if (!validateForm()) {
-      console.log('Validation failed')
       return
     }
 
     setLoading(true)
 
     try {
-      console.log('Attempting login with:', { login_id: phoneNumber })
       const response = await api.post('/auth/login', {
         login_id: phoneNumber,
         password,
       })
 
-      console.log('Login response status:', response.data?.status)
-      console.log('Full login response:', JSON.stringify(response.data, null, 2))
 
       // Check response status
       if (!response.data?.status) {
@@ -79,7 +72,6 @@ export function LoginForm() {
 
       // API V2 response structure: { status, message, data: { token/accessToken, user } }
       const { data } = response.data
-      console.log('Response data object:', JSON.stringify(data, null, 2))
 
       // Handle different token field names (token, accessToken, access_token)
       const token = data.token || data.accessToken || data.access_token
@@ -90,25 +82,17 @@ export function LoginForm() {
         throw new Error('Token not found in login response')
       }
 
-      console.log('User logged in:', user?.name)
-      console.log('Token received:', token ? 'Yes' : 'No')
 
       // Store token immediately
       localStorage.setItem('token', token)
-      console.log('Token stored in localStorage:', localStorage.getItem('token'))
 
       // Extract permissions from login response (user.role.permissions is already included)
       const rolePermissions = user?.role?.permissions || []
       const permissions = rolePermissions.map((p: { slug: string }) => p.slug)
 
-      console.log('User permissions:', permissions.length)
 
-      console.log('About to call login() function...')
       login(token, user, permissions, rolePermissions)
 
-      console.log('Login function completed. Checking localStorage...')
-      console.log('Token in localStorage after login():', localStorage.getItem('token'))
-      console.log('User in localStorage:', localStorage.getItem('user'))
 
       notifications.show({
         title: 'Success',
@@ -118,8 +102,6 @@ export function LoginForm() {
 
       // Small delay to ensure localStorage is written before navigation
       setTimeout(() => {
-        console.log('Navigating to dashboard...')
-        console.log('Final check - Token:', localStorage.getItem('token'))
         navigate('/dashboard')
       }, 300)
     } catch (error) {
@@ -131,7 +113,6 @@ export function LoginForm() {
 
       if (apiError?.response?.data) {
         const responseData = apiError.response.data
-        console.log('Error response data:', responseData)
 
         // Check for message in different possible locations
         if (responseData.message) {
@@ -145,7 +126,6 @@ export function LoginForm() {
         errorMessage = apiError.message
       }
 
-      console.log('Showing error:', errorMessage)
 
       // Show error notification
       notifications.show({
@@ -249,7 +229,6 @@ export function LoginForm() {
             disabled={loading}
             mt="sm"
             onClick={(e) => {
-              console.log('Button clicked')
               e.preventDefault()
               handleSubmit()
             }}

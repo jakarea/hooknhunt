@@ -244,7 +244,7 @@ export default function CustomerDetailsPage() {
                 src={null}
                 alt={name}
                 radius="xl"
-                size="xl"
+                className="text-xl md:text-2xl lg:text-3xl"
                 color="red"
               >
                 {name.charAt(0).toUpperCase()}
@@ -255,7 +255,7 @@ export default function CustomerDetailsPage() {
                   <Badge
                     color={isActive ? 'green' : 'gray'}
                     variant="light"
-                    size="lg"
+                    className="text-lg md:text-xl lg:text-2xl"
                   >
                     {isActive ? 'Active' : 'Inactive'}
                   </Badge>
@@ -267,20 +267,20 @@ export default function CustomerDetailsPage() {
                   {email && (
                     <Group>
                       <IconMail size={16} />
-                      <Text size="sm">{email}</Text>
+                      <Text className="text-sm md:text-base">{email}</Text>
                     </Group>
                   )}
                   <Group>
                     <IconPhone size={16} />
-                    <Text size="sm">{phone}</Text>
+                    <Text className="text-sm md:text-base">{phone}</Text>
                   </Group>
                 </Group>
                 <Group>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     Member since {formatDate(createdAt)}
                   </Text>
                   {phoneVerifiedAt && (
-                    <Badge size="xs" color="green" variant="light">
+                    <Badge className="text-xs md:text-sm" color="green" variant="light">
                       <IconCheck size={10} style={{ marginRight: 4 }} />
                       Verified
                     </Badge>
@@ -291,7 +291,7 @@ export default function CustomerDetailsPage() {
             <Group>
               <Button
                 variant="default"
-                size="sm"
+                className="text-sm md:text-base"
                 component={Link}
                 to="/crm/customers"
                 leftSection={<IconArrowLeft size={16} />}
@@ -314,37 +314,37 @@ export default function CustomerDetailsPage() {
           <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
             <Group mb="xs">
               <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-              <Text size="xs" c="dimmed">Wallet Balance</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Wallet Balance</Text>
             </Group>
-            <Text size="xl" fw={700}>৳0.00</Text>
-            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>৳0.00</Text>
+            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>Coming Soon</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconShoppingBag size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="xs" c="dimmed">Total Orders</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Orders</Text>
             </Group>
-            <Text size="xl" fw={700}>{customer.customerProfile?.total_orders || customer.customerProfile?.totalOrders || 0}</Text>
-            <Text size="xs" c="dimmed" mt={2}>All time</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{customer.customerProfile?.total_orders || customer.customerProfile?.totalOrders || 0}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>All time</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconCoin size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text size="xs" c="dimmed">Total Spent</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Spent</Text>
             </Group>
-            <Text size="md" fw={700}>{formatCurrency(customer.customerProfile?.total_spent || customer.customerProfile?.totalSpent || 0)}</Text>
-            <Text size="xs" c="dimmed" mt={2}>All time</Text>
+            <Text className="text-base md:text-lg" fw={700}>{formatCurrency(customer.customerProfile?.total_spent || customer.customerProfile?.totalSpent || 0)}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>All time</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconPackage size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-              <Text size="xs" c="dimmed">Loyalty Points</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Loyalty Points</Text>
             </Group>
-            <Text size="xl" fw={700}>{customer.customerProfile?.loyalty_points || customer.customerProfile?.loyaltyPoints || 0}</Text>
-            <Badge size="xs" color="grape" variant="light" mt={2}>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{customer.customerProfile?.loyalty_points || customer.customerProfile?.loyaltyPoints || 0}</Text>
+            <Badge className="text-xs md:text-sm" color="grape" variant="light" mt={2}>
               {customer.customerProfile?.loyalty_tier || customer.customerProfile?.loyaltyTier || 'Bronze'}
             </Badge>
           </Card>
@@ -352,21 +352,21 @@ export default function CustomerDetailsPage() {
           <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
             <Group mb="xs">
               <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-cyan-filled)' }} />
-              <Text size="xs" c="dimmed">Avg Order Value</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Avg Order Value</Text>
             </Group>
-            <Text size="xl" fw={700}>৳0.00</Text>
-            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>৳0.00</Text>
+            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>Coming Soon</Text>
           </Card>
 
           <Card withBorder p="md" radius="md" style={{ opacity: 0.5 }}>
             <Group mb="xs">
               <IconCalendar size={20} style={{ color: 'var(--mantine-color-violet-filled)' }} />
-              <Text size="xs" c="dimmed">Last Order</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Last Order</Text>
             </Group>
-            <Text size="sm" fw={700} lineClamp={1}>
+            <Text className="text-sm md:text-base" fw={700} lineClamp={1}>
               Never
             </Text>
-            <Text size="xs" c="dimmed" mt={2}>Coming Soon</Text>
+            <Text className="text-xs md:text-sm" c="dimmed" mt={2}>Coming Soon</Text>
           </Card>
         </SimpleGrid>
 
@@ -402,8 +402,8 @@ export default function CustomerDetailsPage() {
                     <Group>
                       <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Email</Text>
-                        <Text fw={500} size="sm">
+                        <Text className="text-xs md:text-sm" c="dimmed">Email</Text>
+                        <Text fw={500} className="text-sm md:text-base">
                           {email || 'Not provided'}
                         </Text>
                       </Box>
@@ -411,25 +411,25 @@ export default function CustomerDetailsPage() {
                     <Group>
                       <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Phone</Text>
-                        <Text fw={500} size="sm">{phone}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Phone</Text>
+                        <Text fw={500} className="text-sm md:text-base">{phone}</Text>
                       </Box>
                     </Group>
                     <Group>
                       <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Member Since</Text>
-                        <Text fw={500} size="sm">{formatDate(createdAt)}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Member Since</Text>
+                        <Text fw={500} className="text-sm md:text-base">{formatDate(createdAt)}</Text>
                       </Box>
                     </Group>
                     <Group>
                       <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Account Status</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Account Status</Text>
                         <Badge
                           color={isActive ? 'green' : 'gray'}
                           variant="light"
-                          size="sm"
+                          className="text-sm md:text-base"
                         >
                           {isActive ? 'Active' : 'Inactive'}
                         </Badge>
@@ -438,15 +438,15 @@ export default function CustomerDetailsPage() {
                     <Group>
                       <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Last Login</Text>
-                        <Text fw={500} size="sm">{formatDateTime(lastLoginAt)}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Last Login</Text>
+                        <Text fw={500} className="text-sm md:text-base">{formatDateTime(lastLoginAt)}</Text>
                       </Box>
                     </Group>
                     <Group>
                       <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                       <Box>
-                        <Text size="xs" c="dimmed">Phone Verified</Text>
-                        <Text fw={500} size="sm">{formatDate(phoneVerifiedAt)}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Phone Verified</Text>
+                        <Text fw={500} className="text-sm md:text-base">{formatDate(phoneVerifiedAt)}</Text>
                       </Box>
                     </Group>
                   </SimpleGrid>
@@ -464,8 +464,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Date of Birth</Text>
-                                  <Text fw={500} size="sm">{formatDate(customer.customerProfile.dob)}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Date of Birth</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{formatDate(customer.customerProfile.dob)}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -473,8 +473,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Gender</Text>
-                                  <Text fw={500} size="sm" style={{ textTransform: 'capitalize' }}>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Gender</Text>
+                                  <Text fw={500} className="text-sm md:text-base" style={{ textTransform: 'capitalize' }}>
                                     {customer.customerProfile.gender}
                                   </Text>
                                 </Box>
@@ -487,8 +487,8 @@ export default function CustomerDetailsPage() {
                           <Group style={{ gridColumn: '1 / -1' }}>
                             <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Address</Text>
-                              <Text fw={500} size="sm">{customer.customerProfile.address}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Address</Text>
+                              <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.address}</Text>
                             </Box>
                           </Group>
                         )}
@@ -499,8 +499,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Division</Text>
-                                  <Text fw={500} size="sm">{customer.customerProfile.division}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Division</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.division}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -508,8 +508,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">District</Text>
-                                  <Text fw={500} size="sm">{customer.customerProfile.district}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">District</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.district}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -517,8 +517,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Thana</Text>
-                                  <Text fw={500} size="sm">{customer.customerProfile.thana}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Thana</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.thana}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -531,8 +531,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Trade License No.</Text>
-                                  <Text fw={500} size="sm">{customer.customerProfile.trade_license_no}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Trade License No.</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.trade_license_no}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -540,8 +540,8 @@ export default function CustomerDetailsPage() {
                               <Group>
                                 <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
                                 <Box>
-                                  <Text size="xs" c="dimmed">Tax ID</Text>
-                                  <Text fw={500} size="sm">{customer.customerProfile.tax_id}</Text>
+                                  <Text className="text-xs md:text-sm" c="dimmed">Tax ID</Text>
+                                  <Text fw={500} className="text-sm md:text-base">{customer.customerProfile.tax_id}</Text>
                                 </Box>
                               </Group>
                             )}
@@ -552,8 +552,8 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Preferred Language</Text>
-                              <Text fw={500} size="sm">
+                              <Text className="text-xs md:text-sm" c="dimmed">Preferred Language</Text>
+                              <Text fw={500} className="text-sm md:text-base">
                                 {customer.customerProfile.preferred_language === 'en' ? 'English' : 'বাংলা (Bengali)'}
                               </Text>
                             </Box>
@@ -564,11 +564,11 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconCheck size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Marketing Consent</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Marketing Consent</Text>
                               <Badge
                                 color={customer.customerProfile.marketing_consent ? 'green' : 'gray'}
                                 variant="light"
-                                size="sm"
+                                className="text-sm md:text-base"
                               >
                                 {customer.customerProfile.marketing_consent ? 'Accepted' : 'Declined'}
                               </Badge>
@@ -590,8 +590,8 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconInfoCircle size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Designation</Text>
-                              <Text fw={500} size="sm">{profile.designation}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Designation</Text>
+                              <Text fw={500} className="text-sm md:text-base">{profile.designation}</Text>
                             </Box>
                           </Group>
                         )}
@@ -599,8 +599,8 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">City</Text>
-                              <Text fw={500} size="sm">{profile.city}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">City</Text>
+                              <Text fw={500} className="text-sm md:text-base">{profile.city}</Text>
                             </Box>
                           </Group>
                         )}
@@ -608,8 +608,8 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Address</Text>
-                              <Text fw={500} size="sm">{profile.address}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Address</Text>
+                              <Text fw={500} className="text-sm md:text-base">{profile.address}</Text>
                             </Box>
                           </Group>
                         )}
@@ -617,8 +617,8 @@ export default function CustomerDetailsPage() {
                           <Group>
                             <IconCoin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
                             <Box>
-                              <Text size="xs" c="dimmed">Base Salary</Text>
-                              <Text fw={500} size="sm">{formatCurrency(profile.baseSalary)}</Text>
+                              <Text className="text-xs md:text-sm" c="dimmed">Base Salary</Text>
+                              <Text fw={500} className="text-sm md:text-base">{formatCurrency(profile.baseSalary)}</Text>
                             </Box>
                           </Group>
                         )}
@@ -633,10 +633,10 @@ export default function CustomerDetailsPage() {
                     Notes
                   </Title>
                   {customer.customerProfile?.notes ? (
-                    <Text size="sm">{customer.customerProfile.notes}</Text>
+                    <Text className="text-sm md:text-base">{customer.customerProfile.notes}</Text>
                   ) : (
                     <Alert icon={<IconInfoCircle size={16} />} color="blue">
-                      <Text size="sm">No notes added for this customer.</Text>
+                      <Text className="text-sm md:text-base">No notes added for this customer.</Text>
                     </Alert>
                   )}
                 </Card>
@@ -650,7 +650,7 @@ export default function CustomerDetailsPage() {
                   </Title>
                 </Group>
                 <Alert icon={<IconInfoCircle size={16} />} color="blue">
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     Order history will be displayed here once the sales module is fully integrated.
                   </Text>
                 </Alert>
@@ -666,7 +666,7 @@ export default function CustomerDetailsPage() {
                   Wallet Transactions
                 </Title>
                 <Alert icon={<IconInfoCircle size={16} />} color="blue">
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     The wallet system is coming soon. Customers will be able to maintain a balance
                     and use it for purchases.
                   </Text>
@@ -684,22 +684,22 @@ export default function CustomerDetailsPage() {
                 </Title>
                 <Timeline bulletSize={24}>
                   <Timeline.Item bullet={<IconClock size={12} />} color="red">
-                    <Text fw={600} size="sm">Account Created</Text>
-                    <Text size="sm" c="dimmed">Customer account was created</Text>
-                    <Text size="xs" c="dimmed">{formatDateTime(createdAt)}</Text>
+                    <Text fw={600} className="text-sm md:text-base">Account Created</Text>
+                    <Text className="text-sm md:text-base" c="dimmed">Customer account was created</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">{formatDateTime(createdAt)}</Text>
                   </Timeline.Item>
                   {phoneVerifiedAt && (
                     <Timeline.Item bullet={<IconCheck size={12} />} color="green">
-                      <Text fw={600} size="sm">Phone Verified</Text>
-                      <Text size="sm" c="dimmed">Phone number was verified</Text>
-                      <Text size="xs" c="dimmed">{formatDateTime(phoneVerifiedAt)}</Text>
+                      <Text fw={600} className="text-sm md:text-base">Phone Verified</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">Phone number was verified</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{formatDateTime(phoneVerifiedAt)}</Text>
                     </Timeline.Item>
                   )}
                   {lastLoginAt && (
                     <Timeline.Item bullet={<IconCalendar size={12} />} color="blue">
-                      <Text fw={600} size="sm">Last Login</Text>
-                      <Text size="sm" c="dimmed">Last logged into the system</Text>
-                      <Text size="xs" c="dimmed">{formatDateTime(lastLoginAt)}</Text>
+                      <Text fw={600} className="text-sm md:text-base">Last Login</Text>
+                      <Text className="text-sm md:text-base" c="dimmed">Last logged into the system</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{formatDateTime(lastLoginAt)}</Text>
                     </Timeline.Item>
                   )}
                 </Timeline>

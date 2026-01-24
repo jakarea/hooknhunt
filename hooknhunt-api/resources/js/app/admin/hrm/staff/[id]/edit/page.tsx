@@ -518,10 +518,10 @@ export default function EditStaffPage() {
                 <Title order={3} c="red.6">
                   Access Denied
                 </Title>
-                <Text size="lg" c="dimmed">
+                <Text className="text-lg md:text-xl lg:text-2xl" c="dimmed">
                   You don't have permission to edit this staff profile.
                 </Text>
-                <Text size="sm" c="dimmed" mt="xs">
+                <Text className="text-sm md:text-base" c="dimmed" mt="xs">
                   Please contact your administrator if you believe this is an error.
                 </Text>
               </Stack>
@@ -567,7 +567,7 @@ export default function EditStaffPage() {
           <Group >
             <Button
               variant="subtle"
-              size="sm"
+              className="text-sm md:text-base"
               component={Link}
               to={`/hrm/staff/${id}`}
               leftSection={<IconArrowLeft size={16} />}
@@ -596,7 +596,7 @@ export default function EditStaffPage() {
                     onChange={(e) => setName(e.currentTarget.value)}
                     error={validationErrors.name}
                     required
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -607,7 +607,7 @@ export default function EditStaffPage() {
                     onChange={(e) => setPhone(e.currentTarget.value)}
                     error={validationErrors.phone}
                     required
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -617,7 +617,7 @@ export default function EditStaffPage() {
                     value={email}
                     onChange={(e) => setEmail(e.currentTarget.value)}
                     error={validationErrors.email}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -629,7 +629,7 @@ export default function EditStaffPage() {
                     onChange={(value) => setRoleId(value as string)}
                     error={validationErrors.roleId}
                     required
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -642,7 +642,7 @@ export default function EditStaffPage() {
                     ]}
                     value={String(isActive)}
                     onChange={(value) => setIsActive(value === 'true')}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
               </Grid>
@@ -663,7 +663,7 @@ export default function EditStaffPage() {
                     data={departments}
                     value={departmentId}
                     onChange={(value) => setDepartmentId(value as string)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -673,7 +673,7 @@ export default function EditStaffPage() {
                     value={designation}
                     onChange={(e) => setDesignation(e.currentTarget.value)}
                     error={validationErrors.designation}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -684,7 +684,7 @@ export default function EditStaffPage() {
                     value={joiningDate}
                     onChange={(e) => setJoiningDate(e.currentTarget.value)}
                     error={validationErrors.joiningDate}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -695,7 +695,7 @@ export default function EditStaffPage() {
                     onChange={(value) => setBaseSalary(value as number)}
                     error={validationErrors.baseSalary}
                     min={0}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -705,7 +705,7 @@ export default function EditStaffPage() {
                     value={houseRent}
                     onChange={(value) => setHouseRent(value as number)}
                     min={0}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -715,7 +715,7 @@ export default function EditStaffPage() {
                     value={medicalAllowance}
                     onChange={(value) => setMedicalAllowance(value as number)}
                     min={0}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -725,7 +725,7 @@ export default function EditStaffPage() {
                     value={conveyanceAllowance}
                     onChange={(value) => setConveyanceAllowance(value as number)}
                     min={0}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -735,7 +735,7 @@ export default function EditStaffPage() {
                     value={overtimeHourlyRate}
                     onChange={(value) => setOvertimeHourlyRate(value as number)}
                     min={0}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
               </Grid>
@@ -756,7 +756,7 @@ export default function EditStaffPage() {
                     placeholder="Select date of birth"
                     value={dob}
                     onChange={(e) => setDob(e.currentTarget.value)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -770,7 +770,7 @@ export default function EditStaffPage() {
                     ]}
                     value={gender}
                     onChange={(value) => setGender(value as string)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12 }}>
@@ -779,7 +779,7 @@ export default function EditStaffPage() {
                     placeholder="Enter full address"
                     value={address}
                     onChange={(e) => setAddress(e.currentTarget.value)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
@@ -791,7 +791,7 @@ export default function EditStaffPage() {
                     onChange={(value) => handleDivisionChange(value || '')}
                     searchable
                     clearable
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
@@ -804,7 +804,7 @@ export default function EditStaffPage() {
                     searchable
                     clearable
                     disabled={!division}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 4 }}>
@@ -817,7 +817,7 @@ export default function EditStaffPage() {
                     searchable
                     clearable
                     disabled={!district}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -826,7 +826,7 @@ export default function EditStaffPage() {
                     placeholder="01XXXXXXXXX"
                     value={whatsappNumber}
                     onChange={(e) => setWhatsappNumber(e.currentTarget.value)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -836,7 +836,7 @@ export default function EditStaffPage() {
                     placeholder="staff@company.com"
                     value={officeEmail}
                     onChange={(e) => setOfficeEmail(e.currentTarget.value)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
@@ -845,7 +845,7 @@ export default function EditStaffPage() {
                     placeholder="Enter office email password"
                     value={officeEmailPassword}
                     onChange={(e) => setOfficeEmailPassword(e.currentTarget.value)}
-                    size="md"
+                    className="text-base md:text-lg"
                   />
                 </Grid.Col>
               </Grid>
@@ -863,7 +863,7 @@ export default function EditStaffPage() {
                 </Group>
 
                 <Alert variant="light" color="blue" icon={<IconLock size={16} />}>
-                  <Text size="sm">
+                  <Text className="text-sm md:text-base">
                     Leave password fields empty to keep the current password. Only fill them if you want to change the password.
                   </Text>
                 </Alert>
@@ -876,7 +876,7 @@ export default function EditStaffPage() {
                       value={password}
                       onChange={(e) => setPassword(e.currentTarget.value)}
                       error={validationErrors.password}
-                      size="md"
+                      className="text-base md:text-lg"
                     />
                   </Grid.Col>
                   <Grid.Col span={{ base: 12, md: 6 }}>
@@ -886,7 +886,7 @@ export default function EditStaffPage() {
                       value={passwordConfirmation}
                       onChange={(e) => setPasswordConfirmation(e.currentTarget.value)}
                       error={password && passwordConfirmation && password !== passwordConfirmation ? 'Passwords do not match' : undefined}
-                      size="md"
+                      className="text-base md:text-lg"
                     />
                   </Grid.Col>
                 </Grid>
@@ -901,13 +901,13 @@ export default function EditStaffPage() {
               {/* <Group justify="space-between">
                 <Title order={3} className="text-base md:text-lg lg:text-xl">User-Level Permissions</Title>
                 <Group >
-                  <Badge color="green" size="lg">{grantedPermissions.length} granted</Badge>
-                  <Badge color="red" size="lg">{blockedPermissions.length} blocked</Badge>
+                  <Badge color="green" className="text-lg md:text-xl lg:text-2xl">{grantedPermissions.length} granted</Badge>
+                  <Badge color="red" className="text-lg md:text-xl lg:text-2xl">{blockedPermissions.length} blocked</Badge>
                 </Group>
               </Group> */}
 
               {/* <Alert variant="light" color="blue" icon={<IconRefresh size={16} />}>
-                <Text size="sm">
+                <Text className="text-sm md:text-base">
                   <strong>Granted:</strong> User gets permission even if role doesn't have it.{' '}
                   <strong>Blocked:</strong> User is denied permission even if role has it.{' '}
                   <strong>Inherit:</strong> Permission comes from role.
@@ -921,7 +921,7 @@ export default function EditStaffPage() {
                   leftSection={<IconSearch size={16} />}
                   value={permissionSearch}
                   onChange={(e) => setPermissionSearch(e.currentTarget.value)}
-                  size="md"
+                  className="text-base md:text-lg"
                 />
 
                 {/* Search Results Dropdown */}
@@ -938,7 +938,7 @@ export default function EditStaffPage() {
                     <Stack >
                       {searchResults.map((group) => (
                         <Box key={group.module}>
-                          <Text size="xs" fw={700} c="dimmed" mb="xs" px="sm">
+                          <Text className="text-xs md:text-sm" fw={700} c="dimmed" mb="xs" px="sm">
                             {group.module}
                           </Text>
                           <Stack gap={2}>
@@ -956,9 +956,9 @@ export default function EditStaffPage() {
                                 }}
                                 onClick={() => addPermissionFromSearch(permission.id)}
                               >
-                                <Text size="sm">{permission.name}</Text>
+                                <Text className="text-sm md:text-base">{permission.name}</Text>
                                 <Badge
-                                  size="xs"
+                                  className="text-xs md:text-sm"
                                   variant="light"
                                   color={activePermissionTab === 'granted' ? 'green' : 'red'}
                                 >
@@ -983,7 +983,7 @@ export default function EditStaffPage() {
                     w="100%"
                     style={{ zIndex: 1000 }}
                   >
-                    <Text size="sm" c="dimmed" ta="center">
+                    <Text className="text-sm md:text-base" c="dimmed" ta="center">
                       No permissions found
                     </Text>
                   </Paper>
@@ -1012,23 +1012,23 @@ export default function EditStaffPage() {
                           return (
                             <Paper key={permId} withBorder p="sm" radius="md">
                               <Group justify="space-between" align="center">
-                                <Group  style={{ flex: 1 }}>
+                                <Group  className="flex-1">
                                   <Checkbox
                                     checked={true}
                                     onChange={() => setGrantedPermissions(grantedPermissions.filter(id => id !== permId))}
                                     color="green"
                                     label=""
-                                    size="sm"
+                                    className="text-sm md:text-base"
                                   />
-                                  <Box style={{ flex: 1 }}>
-                                    <Text size="sm" fw={500}>{perm.name}</Text>
-                                    <Text size="xs" c="dimmed">{perm.module}</Text>
+                                  <Box className="flex-1">
+                                    <Text className="text-sm md:text-base" fw={500}>{perm.name}</Text>
+                                    <Text className="text-xs md:text-sm" c="dimmed">{perm.module}</Text>
                                   </Box>
                                 </Group>
                                 <ActionIcon
                                   variant="subtle"
                                   color="red"
-                                  size="sm"
+                                  className="text-sm md:text-base"
                                   onClick={() => setGrantedPermissions(grantedPermissions.filter(id => id !== permId))}
                                 >
                                   <IconX size={14} />
@@ -1040,7 +1040,7 @@ export default function EditStaffPage() {
                       </SimpleGrid>
                     ) : (
                       <Box py="xl">
-                        <Text c="dimmed" ta="center" size="sm">
+                        <Text c="dimmed" ta="center" className="text-sm md:text-base">
                           No granted permissions. Use the search above to add permissions.
                         </Text>
                       </Box>
@@ -1059,23 +1059,23 @@ export default function EditStaffPage() {
                           return (
                             <Paper key={permId} withBorder p="sm" radius="md">
                               <Group justify="space-between" align="center">
-                                <Group  style={{ flex: 1 }}>
+                                <Group  className="flex-1">
                                   <Checkbox
                                     checked={true}
                                     onChange={() => setBlockedPermissions(blockedPermissions.filter(id => id !== permId))}
                                     color="red"
                                     label=""
-                                    size="sm"
+                                    className="text-sm md:text-base"
                                   />
-                                  <Box style={{ flex: 1 }}>
-                                    <Text size="sm" fw={500}>{perm.name}</Text>
-                                    <Text size="xs" c="dimmed">{perm.module}</Text>
+                                  <Box className="flex-1">
+                                    <Text className="text-sm md:text-base" fw={500}>{perm.name}</Text>
+                                    <Text className="text-xs md:text-sm" c="dimmed">{perm.module}</Text>
                                   </Box>
                                 </Group>
                                 <ActionIcon
                                   variant="subtle"
                                   color="green"
-                                  size="sm"
+                                  className="text-sm md:text-base"
                                   onClick={() => setBlockedPermissions(blockedPermissions.filter(id => id !== permId))}
                                 >
                                   <IconX size={14} />
@@ -1087,7 +1087,7 @@ export default function EditStaffPage() {
                       </SimpleGrid>
                     ) : (
                       <Box py="xl">
-                        <Text c="dimmed" ta="center" size="sm">
+                        <Text c="dimmed" ta="center" className="text-sm md:text-base">
                           No blocked permissions. Use the search above to add permissions.
                         </Text>
                       </Box>
@@ -1100,7 +1100,7 @@ export default function EditStaffPage() {
               {/* <Group >
                 <Button
                   variant="light"
-                  size="xs"
+                  className="text-xs md:text-sm"
                   onClick={() => {
                     setGrantedPermissions([])
                     setBlockedPermissions([])
@@ -1117,7 +1117,7 @@ export default function EditStaffPage() {
             <Button
               variant="default"
               onClick={handleCancel}
-              size="md"
+              className="text-base md:text-lg"
               disabled={saving}
             >
               Cancel
@@ -1126,7 +1126,7 @@ export default function EditStaffPage() {
               onClick={handleSave}
               leftSection={<IconDeviceFloppy size={16} />}
               disabled={saving}
-              size="md"
+              className="text-base md:text-lg"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>

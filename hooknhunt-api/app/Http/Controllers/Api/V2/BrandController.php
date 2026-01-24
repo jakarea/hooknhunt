@@ -28,22 +28,45 @@ class BrandController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|unique:brands,name']);
+        $validated = $request->validate([
+            'name' => 'required|unique:brands,name',
+            'logo_id' => 'nullable|exists:media_files,id',
+            'website' => 'nullable|url'
+        ]);
 
         $brand = Brand::create([
-            'name' => $request->name,
-            'slug' => Str::slug($request->name),
-            'logo_id' => $request->logo_id ?? null, // Media File ID
-            'website' => $request->website
+            'name' => $validated['name'],
+            'slug' => Str::slug($validated['name']),
+            'logo_id' => $validated['logo_id'] ?? null,
+            'website' => $validated['website'] ?? null
         ]);
 
         return $this->sendSuccess($brand, 'Brand created', 201);
     }
 
+    public function show($id)
+    {
+        $brand = Brand::findOrFail($id);
+        return $this->sendSuccess($brand);
+    }
+
     public function update(Request $request, $id)
     {
         $brand = Brand::findOrFail($id);
-        $brand->update($request->all());
+
+        $validated = $request->validate([
+            'name' => 'sometimes|required|unique:brands,name,' . $id,
+            'logo_id' => 'nullable|exists:media_files,id',
+            'website' => 'nullable|url'
+        ]);
+
+        // If name is being updated, regenerate slug
+        if (isset($validated['name'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+        }
+
+        $brand->update($validated);
+
         return $this->sendSuccess($brand, 'Brand updated');
     }
 

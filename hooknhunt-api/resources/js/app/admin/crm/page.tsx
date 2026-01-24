@@ -210,59 +210,59 @@ export default function CRMDashboardPage() {
           {/* Total Leads */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="blue" size="md" radius="md">
+              <ThemeIcon color="blue" className="text-base md:text-lg" radius="md">
                 <IconUserCircle size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('crm.dashboard.totalLeads')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.dashboard.totalLeads')}</Text>
             </Group>
-            <Text size="xl" fw={700}>{stats.leads.total}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats.leads.total}</Text>
             <Group mt="xs" gap={4}>
               <IconTrendingUp size={14} color="var(--mantine-color-green-6)" />
-              <Text size="xs" c="green">{stats.leads.thisMonth} {t('crm.dashboard.thisMonth')}</Text>
+              <Text className="text-xs md:text-sm" c="green">{stats.leads.thisMonth} {t('crm.dashboard.thisMonth')}</Text>
             </Group>
           </Card>
 
           {/* Converted */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="teal" size="md" radius="md">
+              <ThemeIcon color="teal" className="text-base md:text-lg" radius="md">
                 <IconCheck size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('crm.dashboard.converted')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.dashboard.converted')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="teal">{stats.leads.converted}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="teal">{stats.leads.converted}</Text>
             <Group mt="xs" gap={4}>
               <IconTrendingUp size={14} color="var(--mantine-color-teal-6)" />
-              <Text size="xs" c="teal">{stats.leads.conversionRate}% {t('crm.dashboard.conversionRate')}</Text>
+              <Text className="text-xs md:text-sm" c="teal">{stats.leads.conversionRate}% {t('crm.dashboard.conversionRate')}</Text>
             </Group>
           </Card>
 
           {/* Total Customers */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="grape" size="md" radius="md">
+              <ThemeIcon color="grape" className="text-base md:text-lg" radius="md">
                 <IconUsers size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('crm.customers.title')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.customers.title')}</Text>
             </Group>
-            <Text size="xl" fw={700}>{stats.customers.total}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats.customers.total}</Text>
             <Group mt="xs" gap={4}>
               <IconTrendingUp size={14} color="var(--mantine-color-green-6)" />
-              <Text size="xs" c="green">{stats.customers.active} {t('hrm.staff.active')}</Text>
+              <Text className="text-xs md:text-sm" c="green">{stats.customers.active} {t('hrm.staff.active')}</Text>
             </Group>
           </Card>
 
           {/* Wallet Balance */}
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
-              <ThemeIcon color="orange" size="md" radius="md">
+              <ThemeIcon color="orange" className="text-base md:text-lg" radius="md">
                 <IconWallet size={20} />
               </ThemeIcon>
-              <Text size="xs" c="dimmed">{t('crm.wallet.balance')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('crm.wallet.balance')}</Text>
             </Group>
-            <Text size="xl" fw={700} c="orange">{formatCurrency(stats.wallet.totalBalance)}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">{formatCurrency(stats.wallet.totalBalance)}</Text>
             <Group mt="xs" gap={4}>
-              <Text size="xs" c="dimmed">{stats.wallet.activeWallets} {t('crm.dashboard.wallets')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{stats.wallet.activeWallets} {t('crm.dashboard.wallets')}</Text>
             </Group>
           </Card>
         </SimpleGrid>
@@ -282,19 +282,19 @@ export default function CRMDashboardPage() {
                 <Box key={status.label}>
                   <Group justify="space-between" mb={4}>
                     <Group gap="xs">
-                      <Badge color={status.color} variant="light" size="xs">
+                      <Badge color={status.color} variant="light" className="text-xs md:text-sm">
                         {status.label}
                       </Badge>
-                      <Text size="sm" fw={600}>{status.value}</Text>
+                      <Text className="text-sm md:text-base" fw={600}>{status.value}</Text>
                     </Group>
-                    <Text size="xs" c="dimmed">
+                    <Text className="text-xs md:text-sm" c="dimmed">
                       {maxLeadsInStatus > 0 ? `${Math.round((status.value / stats.leads.total) * 100)}%` : '0%'}
                     </Text>
                   </Group>
                   <Progress
                     value={maxLeadsInStatus > 0 ? (status.value / maxLeadsInStatus) * 100 : 0}
                     color={status.color}
-                    size="sm"
+                    className="text-sm md:text-base"
                     radius="md"
                   />
                 </Box>
@@ -310,20 +310,20 @@ export default function CRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               <Group justify="space-between">
-                <Text size="sm">{t('crm.dashboard.todaysLeads')}</Text>
+                <Text className="text-sm md:text-base">{t('crm.dashboard.todaysLeads')}</Text>
                 <Badge color="blue" variant="light">{stats.leads.today}</Badge>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('crm.dashboard.thisMonth')}</Text>
+                <Text className="text-sm md:text-base">{t('crm.dashboard.thisMonth')}</Text>
                 <Badge color="green" variant="light">{stats.leads.thisMonth}</Badge>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('crm.wallet.totalCredits')}</Text>
-                <Text size="sm" fw={600} c="green">{formatCurrency(stats.wallet.totalCredits)}</Text>
+                <Text className="text-sm md:text-base">{t('crm.wallet.totalCredits')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="green">{formatCurrency(stats.wallet.totalCredits)}</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="sm">{t('crm.wallet.totalDebits')}</Text>
-                <Text size="sm" fw={600} c="red">{formatCurrency(stats.wallet.totalDebits)}</Text>
+                <Text className="text-sm md:text-base">{t('crm.wallet.totalDebits')}</Text>
+                <Text className="text-sm md:text-base" fw={600} c="red">{formatCurrency(stats.wallet.totalDebits)}</Text>
               </Group>
             </Stack>
           </Card>
@@ -342,7 +342,7 @@ export default function CRMDashboardPage() {
                 component={Link}
                 to="/crm/leads"
                 variant="light"
-                size="xs"
+                className="text-xs md:text-sm"
                 rightSection={<IconArrowRight size={14} />}
               >
                 {t('crm.dashboard.viewAll')}
@@ -350,36 +350,36 @@ export default function CRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               {stats.recentLeads.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center">{t('crm.dashboard.noRecentLeads')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed" ta="center">{t('crm.dashboard.noRecentLeads')}</Text>
               ) : (
                 stats.recentLeads.map((lead) => (
                   <Paper key={lead.id} withBorder p="sm" radius="md">
                     <Group justify="space-between" mb="xs">
                       <Group gap="xs">
-                        <Avatar size="xs" radius="xl" color="blue">
+                        <Avatar className="text-xs md:text-sm" radius="xl" color="blue">
                           {lead.name.charAt(0)}
                         </Avatar>
-                        <Text fw={600} size="sm">{lead.name}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{lead.name}</Text>
                       </Group>
-                      <Badge color={getStatusColor(lead.status)} variant="light" size="xs">
+                      <Badge color={getStatusColor(lead.status)} variant="light" className="text-xs md:text-sm">
                         {t(`crm.leads.status.${lead.status}`)}
                       </Badge>
                     </Group>
                     <Group gap="md" mb="xs">
                       <Group gap={4}>
                         <IconPhone size={12} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                        <Text size="xs">{lead.phone}</Text>
+                        <Text className="text-xs md:text-sm">{lead.phone}</Text>
                       </Group>
                       {lead.email && (
                         <Group gap={4}>
                           <IconMail size={12} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                          <Text size="xs" truncate>{lead.email}</Text>
+                          <Text className="text-xs md:text-sm" truncate>{lead.email}</Text>
                         </Group>
                       )}
                     </Group>
                     <Group justify="space-between">
-                      <Text size="xs" c="dimmed">{getLeadSourceLabel(lead.source)}</Text>
-                      <Text size="xs" c="dimmed">{formatDate(lead.createdAt)}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{getLeadSourceLabel(lead.source)}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{formatDate(lead.createdAt)}</Text>
                     </Group>
                   </Paper>
                 ))
@@ -397,26 +397,26 @@ export default function CRMDashboardPage() {
             </Group>
             <Stack gap="sm">
               {stats.recentActivities.length === 0 ? (
-                <Text size="sm" c="dimmed" ta="center">{t('crm.dashboard.noRecentActivities')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed" ta="center">{t('crm.dashboard.noRecentActivities')}</Text>
               ) : (
                 stats.recentActivities.map((activity) => (
                   <Paper key={activity.id} withBorder p="sm" radius="md">
                     <Group justify="space-between" mb="xs">
                       <Group gap="xs">
-                        <ThemeIcon size="xs" radius="md" color={activity.type === 'call' ? 'blue' : 'gray'}>
+                        <ThemeIcon className="text-xs md:text-sm" radius="md" color={activity.type === 'call' ? 'blue' : 'gray'}>
                           <IconPhone size={12} />
                         </ThemeIcon>
-                        <Text fw={600} size="sm">{activity.leadName}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{activity.leadName}</Text>
                       </Group>
-                      <Badge size="xs" variant="light">{activity.type}</Badge>
+                      <Badge className="text-xs md:text-sm" variant="light">{activity.type}</Badge>
                     </Group>
-                    <Text size="sm" mb="xs" lineClamp={2}>{activity.summary}</Text>
+                    <Text className="text-sm md:text-base" mb="xs" lineClamp={2}>{activity.summary}</Text>
                     <Group justify="space-between">
-                      <Text size="xs" c="dimmed">{formatDate(activity.createdAt)}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{formatDate(activity.createdAt)}</Text>
                       {activity.scheduleAt && (
                         <Group gap={4}>
                           <IconCalendar size={12} style={{ color: 'var(--mantine-color-orange-6)' }} />
-                          <Text size="xs" c="orange">
+                          <Text className="text-xs md:text-sm" c="orange">
                             {dayjs(activity.scheduleAt).format('MMM D')}
                           </Text>
                         </Group>

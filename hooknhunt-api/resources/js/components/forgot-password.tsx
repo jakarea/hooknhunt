@@ -15,7 +15,6 @@ export function ForgotPasswordForm({ className, ...props }: ForgotPasswordFormPr
 
     // Simulate API call
     setTimeout(() => {
-      console.log('Reset password for:', phone)
       setLoading(false)
     }, 1000)
   }

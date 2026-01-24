@@ -17,6 +17,11 @@ class DepartmentController extends Controller
      */
     public function index(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.department.index')) {
+            return $this->sendError('You do not have permission to view departments.', null, 403);
+        }
+
         $query = Department::query();
 
         // Filter by active status if requested
@@ -40,6 +45,11 @@ class DepartmentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.department.create')) {
+            return $this->sendError('You do not have permission to create departments.', null, 403);
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255|unique:departments,name',
             'is_active' => 'sometimes|boolean',
@@ -58,6 +68,11 @@ class DepartmentController extends Controller
      */
     public function show($id): JsonResponse
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.department.view')) {
+            return $this->sendError('You do not have permission to view department details.', null, 403);
+        }
+
         $department = Department::withCount('employees')->findOrFail($id);
 
         return $this->sendSuccess($department, 'Department retrieved successfully.');
@@ -68,6 +83,11 @@ class DepartmentController extends Controller
      */
     public function update(Request $request, $id): JsonResponse
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.department.edit')) {
+            return $this->sendError('You do not have permission to edit departments.', null, 403);
+        }
+
         $department = Department::findOrFail($id);
 
         $validated = $request->validate([
@@ -88,6 +108,11 @@ class DepartmentController extends Controller
      */
     public function destroy($id): JsonResponse
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.department.delete')) {
+            return $this->sendError('You do not have permission to delete departments.', null, 403);
+        }
+
         $department = Department::findOrFail($id);
 
         // Check if department has employees

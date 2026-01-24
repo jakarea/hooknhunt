@@ -1,128 +1,151 @@
-import { useState } from 'react'
-import { Title, Text, Stack, Paper, Group, Grid, Card, Badge, Button, Table, SimpleGrid } from '@mantine/core'
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { Title, Text, Stack, Paper, Group, Grid, Card, Badge, Button, Table, SimpleGrid, Skeleton } from '@mantine/core'
 import { IconDashboard, IconCoin, IconWallet, IconBuildingBank, IconMoneybag, IconPlus, IconArrowRight, IconRefresh, IconCheck, IconTrendingUp, IconTrendingDown } from '@tabler/icons-react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { usePermissions } from '@/hooks/usePermissions'
+import { notifications } from '@mantine/notifications'
+import {
+  getFinanceDashboard,
+  getBankTransactions,
+  getExpenses,
+  type BankTransaction,
+  type Expense,
+} from '@/utils/api'
 
-// Mock data
-const mockSummary = {
-  total_cash: 50000,
-  total_bank: 250000,
-  total_bkash: 15000,
-  total_nagad: 8000,
-  total_balance: 323500,
-  account_count: 5,
-  by_type: {
-    cash: { count: 1, total_balance: 50000 },
-    bank: { count: 2, total_balance: 250000 },
-    bkash: { count: 1, total_balance: 15000 },
-    nagad: { count: 1, total_balance: 8000 }
+type DashboardData = {
+  banksSummary: {
+    totalBalance: number
+    accountCount: number
+    byType: {
+      cash: { count: number; totalBalance: number | string }
+      bank: { count: number; totalBalance: number | string }
+      bkash: { count: number; totalBalance: number | string }
+      nagad: { count: number; totalBalance: number | string }
+      rocket: { count: number; totalBalance: number | string }
+    }
+  }
+  recentTransactions: BankTransaction[]
+  expenses: {
+    pendingCount: number
+    pendingAmount: number | string
+  }
+  revenueVsExpenses: {
+    revenue: number
+    expenses: number
+    netIncome: number
+    startDate: string
+    endDate: string
   }
 }
 
-const mockTransactions = [
-  {
-    id: 1,
-    date: '2026-01-17',
-    type: 'deposit',
-    amount: 25000,
-    balance_after: 75000,
-    description: 'Sales deposit - Order #1234',
-    bank: { name: 'Brac Bank', type: 'bank' }
-  },
-  {
-    id: 2,
-    date: '2026-01-17',
-    type: 'withdrawal',
-    amount: 5000,
-    balance_after: 70000,
-    description: 'Office rent payment',
-    bank: { name: 'Brac Bank', type: 'bank' }
-  },
-  {
-    id: 3,
-    date: '2026-01-17',
-    type: 'deposit',
-    amount: 10000,
-    balance_after: 80000,
-    description: 'bKash payment - Order #1235',
-    bank: { name: 'bKash', type: 'bkash' }
-  },
-  {
-    id: 4,
-    date: '2026-01-16',
-    type: 'withdrawal',
-    amount: 2000,
-    balance_after: 70000,
-    description: 'Office supplies purchase',
-    bank: { name: 'Cash', type: 'cash' }
-  },
-  {
-    id: 5,
-    date: '2026-01-16',
-    type: 'deposit',
-    amount: 15000,
-    balance_after: 70000,
-    description: 'Wholesale payment received',
-    bank: { name: 'Nagad', type: 'nagad' }
-  }
-]
-
-const mockPendingExpenses = [
-  {
-    id: 1,
-    title: 'Office Rent - January 2026',
-    amount: 25000,
-    expense_date: '2026-01-15',
-    is_approved: false,
-    account: { name: 'Office Rent' },
-    paid_by: { name: 'John Doe' }
-  },
-  {
-    id: 2,
-    title: 'Office Supplies',
-    amount: 5000,
-    expense_date: '2026-01-16',
-    is_approved: false,
-    account: { name: 'Office Supplies' },
-    paid_by: { name: 'Jane Smith' }
-  },
-  {
-    id: 3,
-    title: 'Utility Bills',
-    amount: 3500,
-    expense_date: '2026-01-17',
-    is_approved: false,
-    account: { name: 'Utilities' },
-    paid_by: { name: 'Bob Johnson' }
-  },
-  {
-    id: 4,
-    title: 'Staff Tea Snacks',
-    amount: 1500,
-    expense_date: '2026-01-17',
-    is_approved: false,
-    account: { name: 'Employee Benefits' },
-    paid_by: { name: 'Alice Williams' }
-  },
-  {
-    id: 5,
-    title: 'Internet Bill',
-    amount: 2000,
-    expense_date: '2026-01-15',
-    is_approved: false,
-    account: { name: 'Internet & Connectivity' },
-    paid_by: { name: 'Charlie Brown' }
-  }
-]
-
 export default function FinanceDashboardPage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance dashboard view permission
+  if (!hasPermission('finance.dashboard.index')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to access the Finance Dashboard.</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
+  const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null)
+  const [recentTransactions, setRecentTransactions] = useState<BankTransaction[]>([])
+  const [pendingExpenses, setPendingExpenses] = useState<Expense[]>([])
+
+  // Fetch dashboard data
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true)
+      } else {
+        setRefreshing(true)
+      }
+
+      // Fetch main dashboard data
+      const dashboardResponse = await getFinanceDashboard()
+
+      // Extract data from Laravel API response: { status: true, data: { banksSummary: ... } }
+      const data = dashboardResponse?.data || null
+
+      setDashboardData(data)
+
+      // Fetch recent transactions (last 5)
+      const transactionsResponse = await getBankTransactions({})
+      let transactionsData: BankTransaction[] = []
+
+      if (transactionsResponse && typeof transactionsResponse === 'object') {
+        if ('data' in transactionsResponse) {
+          const innerData = transactionsResponse.data
+          if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+            transactionsData = innerData.data
+          } else if (Array.isArray(innerData)) {
+            transactionsData = innerData
+          }
+        } else if (Array.isArray(transactionsResponse)) {
+          transactionsData = transactionsResponse
+        }
+      }
+
+      // Take only first 5 transactions
+      setRecentTransactions(transactionsData.slice(0, 5))
+
+      // Fetch pending expenses
+      const expensesResponse = await getExpenses({ is_approved: false, per_page: 5 })
+      let expensesData: Expense[] = []
+
+      if (expensesResponse && typeof expensesResponse === 'object') {
+        if ('data' in expensesResponse) {
+          const innerData = expensesResponse.data
+          if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
+            expensesData = innerData.data
+          } else if (Array.isArray(innerData)) {
+            expensesData = innerData
+          }
+        } else if (Array.isArray(expensesResponse)) {
+          expensesData = expensesResponse
+        }
+      }
+
+      // Convert is_approved from 0/1 to boolean if needed
+      expensesData = expensesData.map((exp: any) => ({
+        ...exp,
+        isApproved: exp.isApproved ?? exp.is_approved ?? false,
+      }))
+
+      setPendingExpenses(expensesData)
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: t('common.somethingWentWrong') || 'Failed to load dashboard data',
+        color: 'red',
+      })
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }, [t])
+
+  // Initial load
+  useEffect(() => {
+    fetchDashboardData(true)
+  }, [fetchDashboardData])
 
   // Format currency
-  const formatCurrency = (amount: number) => {
-    return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatCurrency = (amount: number | string) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount
+    return `৳${num.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   // Format date
@@ -136,8 +159,28 @@ export default function FinanceDashboardPage() {
 
   // Handle refresh
   const handleRefresh = () => {
-    setRefreshing(true)
-    setTimeout(() => setRefreshing(false), 1000)
+    fetchDashboardData(false)
+    notifications.show({
+      title: 'Refreshed',
+      message: 'Dashboard data has been refreshed',
+      color: 'blue',
+    })
+  }
+
+  // Loading skeleton
+  if (loading) {
+    return (
+      <Stack p="xl">
+        <Skeleton height={40} width="100%" />
+        <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} height={120} radius="md" />
+          ))}
+        </SimpleGrid>
+        <Skeleton height={200} radius="md" />
+        <Skeleton height={300} radius="md" />
+      </Stack>
+    )
   }
 
   return (
@@ -163,40 +206,40 @@ export default function FinanceDashboardPage() {
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconWallet size={24} color="green" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalCash')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalCash')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="green">
-            {formatCurrency(mockSummary.by_type.cash.total_balance)}
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">
+            {formatCurrency(dashboardData?.banksSummary?.byType?.cash?.totalBalance ?? 0)}
           </Text>
         </Card>
 
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconBuildingBank size={24} color="blue" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBankBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBankBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="blue">
-            {formatCurrency(mockSummary.by_type.bank.total_balance)}
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="blue">
+            {formatCurrency(dashboardData?.banksSummary?.byType?.bank?.totalBalance ?? 0)}
           </Text>
         </Card>
 
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconMoneybag size={24} color="purple" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.bkashBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.bkashBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="purple">
-            {formatCurrency(mockSummary.by_type.bkash.total_balance)}
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="purple">
+            {formatCurrency(dashboardData?.banksSummary?.byType?.bkash?.totalBalance ?? 0)}
           </Text>
         </Card>
 
         <Card withBorder p="md" shadow="sm">
           <Group gap="xs">
             <IconCoin size={24} color="orange" />
-            <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
+            <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
           </Group>
-          <Text size="xl" fw={700} c="orange">
-            {formatCurrency(mockSummary.total_balance)}
+          <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="orange">
+            {formatCurrency(dashboardData?.banksSummary?.totalBalance ?? 0)}
           </Text>
         </Card>
       </SimpleGrid>
@@ -247,7 +290,7 @@ export default function FinanceDashboardPage() {
       {/* Revenue vs Expenses */}
       <Paper withBorder p="md" shadow="sm" mt="md">
         <Group justify="space-between" mb="xs">
-          <Text fw={600}>{t('finance.dashboardPage.revenueVsExpenses')} (January 2026)</Text>
+          <Text fw={600}>{t('finance.dashboardPage.revenueVsExpenses')} (Current Month)</Text>
           <Badge color="blue">{t('finance.dashboardPage.monthlyView')}</Badge>
         </Group>
 
@@ -257,29 +300,29 @@ export default function FinanceDashboardPage() {
             <Group gap="xs" mb="sm">
               <Group gap="xs">
                 <IconTrendingUp size={20} color="green" />
-                <Text size="sm" c="dimmed">{t('finance.dashboardPage.totalRevenue')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.totalRevenue')}</Text>
               </Group>
               <Text size="xxl" fw={700} c="green">
-                ৳5,25,000.00
+                {formatCurrency(dashboardData?.revenueVsExpenses?.revenue || 0)}
               </Text>
-              <Text size="xs" c="dimmed">
-                +15.3% {t('finance.dashboardPage.fromLastMonth')}
+              <Text className="text-xs md:text-sm" c="dimmed">
+                {t('finance.dashboardPage.fromLastMonth')}
               </Text>
             </Group>
 
             {/* Revenue Breakdown */}
             <Stack gap={4} mt="sm">
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.salesRevenue')}</Text>
-                <Text size="xs" fw={500}>৳3,50,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.salesRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.wholesaleRevenue')}</Text>
-                <Text size="xs" fw={500}>৳1,50,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.wholesaleRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.darazRevenue')}</Text>
-                <Text size="xs" fw={500}>৳250,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.darazRevenue')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
             </Stack>
           </Card>
@@ -289,33 +332,33 @@ export default function FinanceDashboardPage() {
             <Group gap="xs" mb="sm">
               <Group gap="xs">
                 <IconTrendingDown size={20} color="red" />
-                <Text size="sm" c="dimmed">{t('finance.dashboardPage.totalExpenses')}</Text>
+                <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.totalExpenses')}</Text>
               </Group>
               <Text size="xxl" fw={700} c="red">
-                ৳3,80,000.00
+                {formatCurrency(dashboardData?.revenueVsExpenses?.expenses || 0)}
               </Text>
-              <Text size="xs" c="dimmed">
-                +8.2% {t('finance.dashboardPage.fromLastMonth')}
+              <Text className="text-xs md:text-sm" c="dimmed">
+                {t('finance.dashboardPage.fromLastMonth')}
               </Text>
             </Group>
 
             {/* Expenses Breakdown */}
             <Stack gap={4} mt="sm">
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.costOfGoodsSold')}</Text>
-                <Text size="xs" fw={500}>৳1,80,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.costOfGoodsSold')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.operationalExpenses')}</Text>
-                <Text size="xs" fw={500}>৳950,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.operationalExpenses')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.administrative')}</Text>
-                <Text size="xs" fw={500}>৳250,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.administrative')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
               <Group justify="space-between">
-                <Text size="xs">{t('finance.dashboardPage.financeCharges')}</Text>
-                <Text size="xs" fw={500}>৳800,000</Text>
+                <Text className="text-xs md:text-sm">{t('finance.dashboardPage.financeCharges')}</Text>
+                <Text className="text-xs md:text-sm" fw={500}>—</Text>
               </Group>
             </Stack>
           </Card>
@@ -326,14 +369,14 @@ export default function FinanceDashboardPage() {
           <Group justify="space-between">
             <Group gap="xs">
               <IconCoin size={20} color="gray" />
-              <Text size="sm" c="dimmed">{t('finance.dashboardPage.netProfit')} (January)</Text>
+              <Text className="text-sm md:text-base" c="dimmed">{t('finance.dashboardPage.netProfit')} (Current Month)</Text>
             </Group>
             <Badge
-              color="green"
-              size="lg"
+              color={(dashboardData?.revenueVsExpenses?.netIncome || 0) >= 0 ? 'green' : 'red'}
+              className="text-lg md:text-xl lg:text-2xl"
               variant="filled"
             >
-              {t('finance.dashboardPage.profit')}: ৳1,45,000.00
+              {(dashboardData?.revenueVsExpenses?.netIncome || 0) >= 0 ? t('finance.dashboardPage.profit') : t('finance.dashboardPage.loss')}: {formatCurrency(Math.abs(dashboardData?.revenueVsExpenses?.netIncome || 0))}
             </Badge>
           </Group>
         </Card>
@@ -347,7 +390,7 @@ export default function FinanceDashboardPage() {
             component={Link}
             to="/finance/transactions"
             variant="subtle"
-            size="xs"
+            className="text-xs md:text-sm"
             rightSection={<IconArrowRight size={14} />}
           >
             {t('finance.dashboardPage.viewAll')}
@@ -365,39 +408,47 @@ export default function FinanceDashboardPage() {
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
-            {mockTransactions.map((tx) => (
-              <Table.Tr key={tx.id}>
-                <Table.Td>{formatDate(tx.date)}</Table.Td>
-                <Table.Td>{tx.bank.name}</Table.Td>
-                <Table.Td>
-                  <Badge
-                    color={tx.type === 'deposit' ? 'green' : tx.type === 'withdrawal' ? 'red' : 'blue'}
-                    variant="light"
-                  >
-                    {t(`finance.dashboardPage.${tx.type}`)}
-                  </Badge>
+            {recentTransactions.length === 0 ? (
+              <Table.Tr>
+                <Table.Td colSpan={5}>
+                  <Text c="dimmed" ta="center" py="xl">No recent transactions</Text>
                 </Table.Td>
-                <Table.Td>
-                  <Text
-                    fw={600}
-                    c={tx.type === 'deposit' ? 'green' : 'red'}
-                  >
-                    {formatCurrency(tx.amount)}
-                  </Text>
-                </Table.Td>
-                <Table.Td>{formatCurrency(tx.balance_after)}</Table.Td>
               </Table.Tr>
-            ))}
+            ) : (
+              recentTransactions.map((tx) => (
+                <Table.Tr key={tx.id}>
+                  <Table.Td>{formatDate(tx.transactionDate)}</Table.Td>
+                  <Table.Td>{tx.bank?.name || '-'}</Table.Td>
+                  <Table.Td>
+                    <Badge
+                      color={tx.type === 'deposit' ? 'green' : tx.type === 'withdrawal' ? 'red' : 'blue'}
+                      variant="light"
+                    >
+                      {t(`finance.banksPage.transactionsPage.transactionTypes.${tx.type}`) || tx.type}
+                    </Badge>
+                  </Table.Td>
+                  <Table.Td>
+                    <Text
+                      fw={600}
+                      c={['deposit', 'transfer_in'].includes(tx.type) ? 'green' : 'red'}
+                    >
+                      {formatCurrency(tx.amount)}
+                    </Text>
+                  </Table.Td>
+                  <Table.Td>{formatCurrency(tx.balanceAfter)}</Table.Td>
+                </Table.Tr>
+              ))
+            )}
           </Table.Tbody>
         </Table>
       </Paper>
 
       {/* Pending Expenses */}
-      {mockPendingExpenses.length > 0 && (
+      {pendingExpenses.length > 0 && (
         <Paper withBorder p="md" shadow="sm" mt="md">
           <Group justify="space-between" mb="xs">
             <Text fw={600}>{t('finance.dashboardPage.pendingExpenses')}</Text>
-            <Badge size="xs">{mockPendingExpenses.length} {t('finance.dashboardPage.pending')}</Badge>
+            <Badge className="text-xs md:text-sm">{pendingExpenses.length} {t('finance.dashboardPage.pending')}</Badge>
           </Group>
 
           <Table striped highlightOnHover>
@@ -412,16 +463,16 @@ export default function FinanceDashboardPage() {
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
-              {mockPendingExpenses.map((expense) => (
+              {pendingExpenses.map((expense) => (
                 <Table.Tr key={expense.id}>
                   <Table.Td>{expense.title}</Table.Td>
-                  <Table.Td>{expense.account.name}</Table.Td>
+                  <Table.Td>{expense.account?.name || '-'}</Table.Td>
                   <Table.Td fw={600}>{formatCurrency(expense.amount)}</Table.Td>
-                  <Table.Td>{formatDate(expense.expense_date)}</Table.Td>
-                  <Table.Td>{expense.paid_by.name}</Table.Td>
+                  <Table.Td>{formatDate(expense.expenseDate)}</Table.Td>
+                  <Table.Td>{expense.paidBy?.name || '-'}</Table.Td>
                   <Table.Td>
                     <Button
-                      size="xs"
+                      className="text-xs md:text-sm"
                       variant="light"
                       component={Link}
                       to={`/finance/expenses/${expense.id}/approve`}
@@ -442,9 +493,9 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconDashboard size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
-              <Text size="xl" fw={700} style={{ fontFamily: 'monospace' }}>
-                {formatCurrency(mockSummary.total_balance)}
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalBalance')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl font-mono" fw={700}>
+                {formatCurrency(dashboardData?.banksSummary?.totalBalance || 0)}
               </Text>
             </div>
           </Group>
@@ -454,9 +505,9 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconCoin size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.activeBankAccounts')}</Text>
-              <Text size="xl" fw={700}>
-                {mockSummary.account_count} {t('finance.dashboardPage.accounts')}
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.activeBankAccounts')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
+                {dashboardData?.banksSummary?.accountCount || 0} {t('finance.dashboardPage.accounts')}
               </Text>
             </div>
           </Group>
@@ -466,9 +517,9 @@ export default function FinanceDashboardPage() {
           <Group gap="xs">
             <IconRefresh size={40} />
             <div>
-              <Text size="xs" c="dimmed">{t('finance.dashboardPage.totalTransactions')}</Text>
-              <Text size="xl" fw={700}>
-                {mockTransactions.length} {t('finance.dashboardPage.records')}
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.dashboardPage.totalTransactions')}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
+                {recentTransactions.length} {t('finance.dashboardPage.records')}
               </Text>
             </div>
           </Group>

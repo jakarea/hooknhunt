@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -15,100 +15,128 @@ import {
   Tabs,
   Alert,
   NumberFormatter,
+  Skeleton,
+  LoadingOverlay,
 } from '@mantine/core'
 import {
   IconDownload,
   IconPrinter,
   IconCheck,
   IconX,
-  IconAlertTriangle,
+  IconRefresh,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
+import { usePermissions } from '@/hooks/usePermissions'
+import { getTrialBalance } from '@/utils/api'
 
-interface Account {
+interface TrialBalanceAccount {
   id: number
   code: string
   name: string
-  type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+  type: 'asset' | 'liability' | 'equity' | 'income' | 'expense'
+  type_label: string
   debit: number
   credit: number
+  balance: number
 }
 
-type AccountType = 'all' | 'asset' | 'liability' | 'equity' | 'revenue' | 'expense'
+interface TrialBalanceData {
+  asOfDate: string
+  accounts: TrialBalanceAccount[]
+  totalDebit: number
+  totalCredit: number
+  difference: number
+  isBalanced: boolean
+  totalDebitBalances: number
+  totalCreditBalances: number
+}
 
-// Mock data for development
-const mockAccounts: Account[] = [
-  // Assets
-  { id: 1, code: '1000', name: 'Cash', type: 'asset', debit: 150000, credit: 0 },
-  { id: 2, code: '1010', name: 'Cash on Hand', type: 'asset', debit: 50000, credit: 0 },
-  { id: 3, code: '1020', name: 'Bank Accounts', type: 'asset', debit: 1100000, credit: 0 },
-  { id: 4, code: '1100', name: 'Accounts Receivable', type: 'asset', debit: 450000, credit: 0 },
-  { id: 5, code: '1200', name: 'Inventory', type: 'asset', debit: 890000, credit: 0 },
-  { id: 6, code: '1300', name: 'Prepaid Expenses', type: 'asset', debit: 75000, credit: 0 },
-  { id: 7, code: '1500', name: 'Fixed Assets', type: 'asset', debit: 2500000, credit: 0 },
-  { id: 8, code: '1510', name: 'Office Equipment', type: 'asset', debit: 350000, credit: 0 },
-  { id: 9, code: '1520', name: 'Computer Equipment', type: 'asset', debit: 450000, credit: 0 },
-  { id: 10, code: '1530', name: 'Furniture and Fixtures', type: 'asset', debit: 275000, credit: 0 },
-  { id: 11, code: '1540', name: 'Vehicles', type: 'asset', debit: 850000, credit: 0 },
-  { id: 12, code: '1600', name: 'Accumulated Depreciation', type: 'asset', debit: 0, credit: 450000 },
-
-  // Liabilities
-  { id: 13, code: '2000', name: 'Accounts Payable', type: 'liability', debit: 0, credit: 320000 },
-  { id: 14, code: '2100', name: 'Accrued Expenses', type: 'liability', debit: 0, credit: 85000 },
-  { id: 15, code: '2200', name: 'Taxes Payable', type: 'liability', debit: 0, credit: 125000 },
-  { id: 16, code: '2300', name: 'Short-term Loans', type: 'liability', debit: 0, credit: 500000 },
-  { id: 17, code: '2500', name: 'Long-term Liabilities', type: 'liability', debit: 0, credit: 1500000 },
-  { id: 18, code: '2510', name: 'Bank Loans', type: 'liability', debit: 0, credit: 1200000 },
-  { id: 19, code: '2520', name: 'Lease Obligations', type: 'liability', debit: 0, credit: 300000 },
-
-  // Equity
-  { id: 20, code: '3000', name: 'Owner\'s Equity', type: 'equity', debit: 0, credit: 3500000 },
-  { id: 21, code: '3100', name: 'Share Capital', type: 'equity', debit: 0, credit: 2000000 },
-  { id: 22, code: '3200', name: 'Retained Earnings', type: 'equity', debit: 0, credit: 1200000 },
-  { id: 23, code: '3300', name: 'Current Year Earnings', type: 'equity', debit: 0, credit: 300000 },
-
-  // Revenue
-  { id: 24, code: '4000', name: 'Sales Revenue', type: 'revenue', debit: 0, credit: 8500000 },
-  { id: 25, code: '4100', name: 'Product Sales', type: 'revenue', debit: 0, credit: 7200000 },
-  { id: 26, code: '4200', name: 'Service Revenue', type: 'revenue', debit: 0, credit: 1300000 },
-  { id: 27, code: '4300', name: 'Other Income', type: 'revenue', debit: 0, credit: 250000 },
-  { id: 28, code: '4310', name: 'Interest Income', type: 'revenue', debit: 0, credit: 45000 },
-  { id: 29, code: '4320', name: 'Discount Received', type: 'revenue', debit: 0, credit: 85000 },
-
-  // Expenses
-  { id: 30, code: '5000', name: 'Cost of Goods Sold', type: 'expense', debit: 5200000, credit: 0 },
-  { id: 31, code: '5100', name: 'Operating Expenses', type: 'expense', debit: 1850000, credit: 0 },
-  { id: 32, code: '5110', name: 'Rent Expense', type: 'expense', debit: 600000, credit: 0 },
-  { id: 33, code: '5120', name: 'Utilities Expense', type: 'expense', debit: 150000, credit: 0 },
-  { id: 34, code: '5130', name: 'Salaries and Wages', type: 'expense', debit: 800000, credit: 0 },
-  { id: 35, code: '5140', name: 'Office Supplies', type: 'expense', debit: 85000, credit: 0 },
-  { id: 36, code: '5150', name: 'Marketing Expenses', type: 'expense', debit: 150000, credit: 0 },
-  { id: 37, code: '5200', name: 'Depreciation Expense', type: 'expense', debit: 275000, credit: 0 },
-  { id: 38, code: '5300', name: 'Interest Expense', type: 'expense', debit: 95000, credit: 0 },
-  { id: 39, code: '5400', name: 'Tax Expense', type: 'expense', debit: 450000, credit: 0 },
-]
+type AccountType = 'all' | 'asset' | 'liability' | 'equity' | 'income' | 'expense'
 
 export default function TrialBalancePage() {
   const { t } = useTranslation()
+  const { hasPermission } = usePermissions()
+
+  // Permission check - user needs finance reports trial balance permission
+  if (!hasPermission('finance_reports_trial_balance')) {
+    return (
+      <Stack p="xl">
+        <Card withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3}>Access Denied</Title>
+          <Text c="dimmed">You don't have permission to view Trial Balance Report.</Text>
+        </Card>
+      </Stack>
+    )
+  }
+
   const [asOfDate, setAsOfDate] = useState<Date | null>(new Date())
   const [activeTab, setActiveTab] = useState<AccountType>('all')
+  const [trialBalance, setTrialBalance] = useState<TrialBalanceData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [includeZeroBalance, setIncludeZeroBalance] = useState(false)
+
+  // Fetch trial balance data
+  const fetchTrialBalance = async () => {
+    setLoading(true)
+    try {
+      const params: any = {}
+      if (asOfDate) {
+        params.as_of_date = asOfDate.toISOString().split('T')[0]
+      }
+      // Use camelCase as backend accepts both
+      params.includeZeroBalance = includeZeroBalance
+
+      const response = await getTrialBalance(params)
+
+      // Handle nested response structure
+      const data = response?.data || response
+      setTrialBalance(data)
+
+    } catch (error: any) {
+      console.error('Failed to fetch trial balance:', error)
+      notifications.show({
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to load trial balance',
+        color: 'red',
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch data on mount and when date changes
+  useEffect(() => {
+    fetchTrialBalance()
+  }, [asOfDate, includeZeroBalance])
+
+  // Refresh data
+  const handleRefresh = () => {
+    fetchTrialBalance()
+    notifications.show({
+      title: 'Refreshing',
+      message: 'Trial balance is being updated...',
+      color: 'blue',
+    })
+  }
 
   // Get account type configuration
-  const getTypeConfig = (type: Account['type']) => {
-    const configs = {
+  const getTypeConfig = (type: string) => {
+    const configs: Record<string, { color: string; label: string }> = {
       asset: { color: 'green', label: 'Asset' },
       liability: { color: 'red', label: 'Liability' },
       equity: { color: 'blue', label: 'Equity' },
-      revenue: { color: 'cyan', label: 'Revenue' },
+      income: { color: 'cyan', label: 'Revenue' },
       expense: { color: 'orange', label: 'Expense' },
     }
-    return configs[type]
+    return configs[type] || { color: 'gray', label: type }
   }
 
   // Filter and sort accounts
   const filteredAccounts = useMemo(() => {
-    let accounts = mockAccounts
+    if (!trialBalance?.accounts) return []
+
+    let accounts = [...trialBalance.accounts]
 
     // Filter by type
     if (activeTab !== 'all') {
@@ -117,33 +145,41 @@ export default function TrialBalancePage() {
 
     // Sort by code
     return accounts.sort((a, b) => a.code.localeCompare(b.code))
-  }, [activeTab])
+  }, [trialBalance, activeTab])
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    const totalDebit = filteredAccounts.reduce((sum, account) => sum + account.debit, 0)
-    const totalCredit = filteredAccounts.reduce((sum, account) => sum + account.credit, 0)
-    const isBalanced = totalDebit === totalCredit
+  // Get account counts by type
+  const getAccountCount = (type: AccountType) => {
+    if (!trialBalance?.accounts) return 0
+    if (type === 'all') return trialBalance.accounts.length
+    return trialBalance.accounts.filter((acc) => acc.type === type).length
+  }
 
-    return { totalDebit, totalCredit, isBalanced }
-  }, [filteredAccounts])
-
-  // Calculate account balance
-  const getBalance = (account: Account) => {
-    if (account.debit > account.credit) {
-      return { amount: account.debit - account.credit, type: 'debit' as const }
-    } else if (account.credit > account.debit) {
-      return { amount: account.credit - account.debit, type: 'credit' as const }
+  // Calculate account balance for display
+  const getAccountBalance = (account: TrialBalanceAccount) => {
+    // Assets and Expenses: Debit balances are positive
+    // Liabilities, Equity, and Income: Credit balances are positive
+    if (account.type === 'asset' || account.type === 'expense') {
+      return account.balance
+    } else {
+      return account.balance
     }
-    return { amount: 0, type: 'balanced' as const }
+  }
+
+  // Get balance type (debit or credit)
+  const getBalanceType = (account: TrialBalanceAccount) => {
+    if (account.type === 'asset' || account.type === 'expense') {
+      return account.balance >= 0 ? 'debit' : 'credit'
+    } else {
+      return account.balance >= 0 ? 'credit' : 'debit'
+    }
   }
 
   // Handle export
   const handleExport = () => {
     notifications.show({
-      title: t('finance.trialBalancePage.notification.exportSuccess'),
-      message: t('finance.trialBalancePage.notification.exportSuccessMessage'),
-      color: 'green',
+      title: 'Export Coming Soon',
+      message: 'Excel export functionality will be available soon.',
+      color: 'blue',
     })
   }
 
@@ -153,9 +189,10 @@ export default function TrialBalancePage() {
   }
 
   // Format date
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: Date | null | string) => {
     if (!date) return 'N/A'
-    return date.toLocaleDateString('en-US', {
+    const d = typeof date === 'string' ? new Date(date) : date
+    return d.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
       year: 'numeric',
@@ -173,6 +210,14 @@ export default function TrialBalancePage() {
               <Text c="dimmed">{t('finance.trialBalancePage.subtitle')}</Text>
             </Box>
             <Group>
+              <Button
+                leftSection={<IconRefresh size={16} />}
+                variant="light"
+                onClick={handleRefresh}
+                loading={loading}
+              >
+                Refresh
+              </Button>
               <Button leftSection={<IconDownload size={16} />} variant="light" onClick={handleExport}>
                 {t('finance.trialBalancePage.exportExcel')}
               </Button>
@@ -184,174 +229,232 @@ export default function TrialBalancePage() {
         </Box>
 
         {/* Filters */}
-        <Card withBorder p="md" radius="md">
-          <Group justify="space-between">
+        <Card withBorder p="md" radius="md" pos="relative">
+          {loading && <LoadingOverlay visible />}
+          <Group justify="space-between" wrap="flex-wrap">
             <DateInput
               label={t('finance.trialBalancePage.asOfDate')}
               placeholder={t('finance.trialBalancePage.asOfDatePlaceholder')}
               value={asOfDate}
               onChange={setAsOfDate}
-              clearable
+              clearable={false}
               style={{ width: 200 }}
+              maxDate={new Date()}
             />
-            <Text size="sm" c="dimmed">
-              {t('finance.trialBalancePage.showingAccounts', { count: filteredAccounts.length })}
-            </Text>
+            <Group>
+              <Text size="sm">Include Zero Balances:</Text>
+              <Button
+                size="xs"
+                variant={includeZeroBalance ? 'filled' : 'light'}
+                onClick={() => setIncludeZeroBalance(!includeZeroBalance)}
+              >
+                {includeZeroBalance ? 'Yes' : 'No'}
+              </Button>
+            </Group>
+            {trialBalance && (
+              <Text size="sm" c="dimmed">
+                Showing {filteredAccounts.length} of {trialBalance.accounts.length} accounts
+              </Text>
+            )}
           </Group>
         </Card>
 
         {/* Tabs for account types */}
         <Tabs value={activeTab} onChange={(value) => setActiveTab(value as AccountType)}>
           <Tabs.List>
-            <Tabs.Tab value="all">All ({mockAccounts.length})</Tabs.Tab>
-            <Tabs.Tab value="asset">Assets</Tabs.Tab>
-            <Tabs.Tab value="liability">Liabilities</Tabs.Tab>
-            <Tabs.Tab value="equity">Equity</Tabs.Tab>
-            <Tabs.Tab value="revenue">Revenue</Tabs.Tab>
-            <Tabs.Tab value="expense">Expenses</Tabs.Tab>
+            <Tabs.Tab value="all">
+              All ({trialBalance ? trialBalance.accounts.length : 0})
+            </Tabs.Tab>
+            <Tabs.Tab value="asset">
+              Assets ({getAccountCount('asset')})
+            </Tabs.Tab>
+            <Tabs.Tab value="liability">
+              Liabilities ({getAccountCount('liability')})
+            </Tabs.Tab>
+            <Tabs.Tab value="equity">
+              Equity ({getAccountCount('equity')})
+            </Tabs.Tab>
+            <Tabs.Tab value="income">
+              Revenue ({getAccountCount('income')})
+            </Tabs.Tab>
+            <Tabs.Tab value="expense">
+              Expenses ({getAccountCount('expense')})
+            </Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value={activeTab}>
-            <Card withBorder p="0" radius="md" mt="md" shadow="sm">
-              <Table.ScrollContainer minWidth={900}>
-                <Table striped highlightOnHover>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>{t('finance.trialBalancePage.tableHeaders.accountCode')}</Table.Th>
-                      <Table.Th>{t('finance.trialBalancePage.tableHeaders.accountName')}</Table.Th>
-                      <Table.Th>Type</Table.Th>
-                      <Table.Th style={{ textAlign: 'right' }}>{t('finance.trialBalancePage.tableHeaders.debit')}</Table.Th>
-                      <Table.Th style={{ textAlign: 'right' }}>{t('finance.trialBalancePage.tableHeaders.credit')}</Table.Th>
-                      <Table.Th style={{ textAlign: 'right' }}>Balance</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {filteredAccounts.map((account) => {
-                      const typeConfig = getTypeConfig(account.type)
-                      const balance = getBalance(account)
-
-                      return (
-                        <Table.Tr key={account.id}>
-                          <Table.Td>
-                            <Text style={{ fontFamily: 'monospace' }} fw={600}>
-                              {account.code}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm" fw={500}>{account.name}</Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Badge color={typeConfig.color} variant="light" size="sm">
-                              {typeConfig.label}
-                            </Badge>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm" ta="right" fw={600} c="teal">
-                              {account.debit > 0 ? (
-                                <NumberFormatter value={account.debit} prefix="৳" thousandSeparator />
-                              ) : (
-                                '-'
-                              )}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            <Text size="sm" ta="right" fw={600} c="orange">
-                              {account.credit > 0 ? (
-                                <NumberFormatter value={account.credit} prefix="৳" thousandSeparator />
-                              ) : (
-                                '-'
-                              )}
-                            </Text>
-                          </Table.Td>
-                          <Table.Td>
-                            {balance.amount > 0 ? (
-                              <Text
-                                size="sm"
-                                ta="right"
-                                fw={700}
-                                c={balance.type === 'debit' ? 'teal' : 'orange'}
-                              >
-                                <NumberFormatter value={balance.amount} prefix="৳" thousandSeparator />
-                                <Text span size="xs" ml="xs" c="dimmed" fw={400}>
-                                  {balance.type}
-                                </Text>
-                              </Text>
-                            ) : (
-                              <Text size="sm" ta="right" c="dimmed">
-                                -
-                              </Text>
-                            )}
+            <Card withBorder p="0" radius="md" mt="md" shadow="sm" pos="relative">
+              {loading ? (
+                <Box p="xl">
+                  <Skeleton height={40} mb="sm" />
+                  <Skeleton height={40} mb="sm" />
+                  <Skeleton height={40} mb="sm" />
+                  <Skeleton height={40} mb="sm" />
+                  <Skeleton height={40} />
+                </Box>
+              ) : (
+                <Table.ScrollContainer minWidth={900}>
+                  <Table striped highlightOnHover>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Account Code</Table.Th>
+                        <Table.Th>Account Name</Table.Th>
+                        <Table.Th>Type</Table.Th>
+                        <Table.Th ta="right">Debit</Table.Th>
+                        <Table.Th ta="right">Credit</Table.Th>
+                        <Table.Th ta="right">Balance</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {filteredAccounts.length === 0 ? (
+                        <Table.Tr>
+                          <Table.Td colSpan={7} ta="center">
+                            <Text c="dimmed">No accounts found for this criteria</Text>
                           </Table.Td>
                         </Table.Tr>
-                      )
-                    })}
+                      ) : (
+                        filteredAccounts.map((account) => {
+                          const typeConfig = getTypeConfig(account.type)
+                          const balanceAmount = Math.abs(getAccountBalance(account))
+                          const balanceType = getBalanceType(account)
 
-                    {/* Totals Row */}
-                    <Table.Tr bg="light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))">
-                      <Table.Td colSpan={3}>
-                        <Text size="sm" fw={700}>{t('finance.trialBalancePage.totalAccounts')}</Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" ta="right" fw={700} c="teal">
-                          <NumberFormatter value={totals.totalDebit} prefix="৳" thousandSeparator />
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" ta="right" fw={700} c="orange">
-                          <NumberFormatter value={totals.totalCredit} prefix="৳" thousandSeparator />
-                        </Text>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text size="sm" ta="right" fw={700}>
-                          -
-                        </Text>
-                      </Table.Td>
-                    </Table.Tr>
-                  </Table.Tbody>
-                </Table>
-              </Table.ScrollContainer>
+                          return (
+                            <Table.Tr key={account.id}>
+                              <Table.Td>
+                                <Text style={{ fontFamily: 'monospace' }} fw={600}>
+                                  {account.code}
+                                </Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Text className="text-sm md:text-base" fw={500}>{account.name}</Text>
+                              </Table.Td>
+                              <Table.Td>
+                                <Badge color={typeConfig.color} variant="light" className="text-sm md:text-base">
+                                  {typeConfig.label}
+                                </Badge>
+                              </Table.Td>
+                              <Table.Td ta="right">
+                                {account.debit > 0 ? (
+                                  <Text className="text-sm md:text-base" fw={600} c="teal">
+                                    <NumberFormatter value={account.debit} prefix="৳" thousandSeparator />
+                                  </Text>
+                                ) : (
+                                  <Text c="dimmed">-</Text>
+                                )}
+                              </Table.Td>
+                              <Table.Td ta="right">
+                                {account.credit > 0 ? (
+                                  <Text className="text-sm md:text-base" fw={600} c="orange">
+                                    <NumberFormatter value={account.credit} prefix="৳" thousandSeparator />
+                                  </Text>
+                                ) : (
+                                  <Text c="dimmed">-</Text>
+                                )}
+                              </Table.Td>
+                              <Table.Td ta="right">
+                                {balanceAmount > 0.01 ? (
+                                  <Text
+                                    className="text-sm md:text-base"
+                                    fw={700}
+                                    c={balanceType === 'debit' ? 'teal' : 'orange'}
+                                  >
+                                    <NumberFormatter value={balanceAmount} prefix="৳" thousandSeparator />
+                                    <Text span className="text-xs md:text-sm" ml="xs" c="dimmed" fw={400}>
+                                      {balanceType}
+                                    </Text>
+                                  </Text>
+                                ) : (
+                                  <Text className="text-sm md:text-base" c="dimmed">
+                                    -
+                                  </Text>
+                                )}
+                              </Table.Td>
+                            </Table.Tr>
+                          )
+                        })
+                      )}
+
+                      {/* Totals Row */}
+                      <Table.Tr bg="light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))">
+                        <Table.Td colSpan={3}>
+                          <Text className="text-sm md:text-base" fw={700}>Total</Text>
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text className="text-sm md:text-base" fw={700} c="teal">
+                            {trialBalance && (
+                              <NumberFormatter value={trialBalance.totalDebit} prefix="৳" thousandSeparator />
+                            )}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text className="text-sm md:text-base" fw={700} c="orange">
+                            {trialBalance && (
+                              <NumberFormatter value={trialBalance.totalCredit} prefix="৳" thousandSeparator />
+                            )}
+                          </Text>
+                        </Table.Td>
+                        <Table.Td ta="right">
+                          <Text className="text-sm md:text-base" fw={700}>
+                            -
+                          </Text>
+                        </Table.Td>
+                      </Table.Tr>
+                    </Table.Tbody>
+                  </Table>
+                </Table.ScrollContainer>
+              )}
             </Card>
           </Tabs.Panel>
         </Tabs>
 
         {/* Balance Verification Alert */}
-        {totals.isBalanced ? (
-          <Alert
-            variant="light"
-            color="teal"
-            title={`${t('finance.trialBalancePage.title')} ${t('finance.trialBalancePage.balanced')}`}
-            icon={<IconCheck size={20} />}
-          >
-            <Group gap="xl">
-              <Text size="sm">
-                {t('finance.trialBalancePage.debitEqualsCredit')} {t('finance.trialBalancePage.asOf')} {formatDate(asOfDate)}
-              </Text>
-              <Text size="sm" fw={600}>
-                ৳{totals.totalDebit.toLocaleString()}
-              </Text>
-            </Group>
-          </Alert>
-        ) : (
-          <Alert
-            variant="light"
-            color="red"
-            title={`${t('finance.trialBalancePage.title')} ${t('finance.trialBalancePage.notBalanced')}`}
-            icon={<IconX size={20} />}
-          >
-            <Group gap="xl">
-              <Text size="sm">
-                There's a discrepancy of ৳{Math.abs(totals.totalDebit - totals.totalCredit).toLocaleString()}
-              </Text>
-              <Group gap="md">
-                <Text size="sm">
-                  {t('finance.trialBalancePage.tableHeaders.debit')}: <Text span fw={600} c="teal">৳{totals.totalDebit.toLocaleString()}</Text>
-                </Text>
-                <Text size="sm">
-                  {t('finance.trialBalancePage.tableHeaders.credit')}: <Text span fw={600} c="orange">৳{totals.totalCredit.toLocaleString()}</Text>
-                </Text>
-              </Group>
-            </Group>
-          </Alert>
+        {trialBalance && (
+          <>
+            {trialBalance.isBalanced ? (
+              <Alert
+                variant="light"
+                color="teal"
+                title={`${t('finance.trialBalancePage.title')} - Balanced`}
+                icon={<IconCheck size={20} />}
+              >
+                <Stack gap="xs">
+                  <Text className="text-sm md:text-base">
+                    Debits and credits are equal as of {formatDate(trialBalance.asOfDate)}
+                  </Text>
+                  <Group gap="xl">
+                    <Text className="text-sm md:text-base" fw={600}>
+                      Total: <NumberFormatter value={trialBalance.totalDebit} prefix="৳" thousandSeparator />
+                    </Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">
+                      Difference: <NumberFormatter value={Math.abs(trialBalance.difference)} prefix="৳" thousandSeparator decimalScale={2} />
+                    </Text>
+                  </Group>
+                </Stack>
+              </Alert>
+            ) : (
+              <Alert
+                variant="light"
+                color="red"
+                title={`${t('finance.trialBalancePage.title')} - Not Balanced`}
+                icon={<IconX size={20} />}
+              >
+                <Stack gap="xs">
+                  <Text className="text-sm md:text-base">
+                    Trial balance is out of balance by{' '}
+                    <NumberFormatter value={Math.abs(trialBalance.difference)} prefix="৳" thousandSeparator decimalScale={2} />
+                  </Text>
+                  <Group gap="xl">
+                    <Text className="text-sm md:text-base">
+                      Debit: <Text span fw={600} c="teal">৳{(trialBalance.total_debit || trialBalance.totalDebit || 0).toLocaleString()}</Text>
+                    </Text>
+                    <Text className="text-sm md:text-base">
+                      Credit: <Text span fw={600} c="orange">৳{(trialBalance.total_credit || trialBalance.totalCredit || 0).toLocaleString()}</Text>
+                    </Text>
+                  </Group>
+                </Stack>
+              </Alert>
+            )}
+          </>
         )}
 
         {/* Print-only section - only visible when printing */}
@@ -364,10 +467,10 @@ export default function TrialBalancePage() {
                   {t('finance.trialBalancePage.title')}
                 </Title>
                 <Text style={{ textAlign: 'center', fontSize: '14px', color: '#666' }}>
-                  {t('finance.trialBalancePage.asOf')} {formatDate(asOfDate)}
+                  As of {formatDate(trialBalance?.asOfDate || null)}
                 </Text>
                 <Text style={{ textAlign: 'center', fontSize: '12px', color: '#999', marginTop: '5px' }}>
-                  {t('finance.trialBalancePage.showingAccounts', { count: filteredAccounts.length })}
+                  Showing {filteredAccounts.length} accounts
                 </Text>
               </Box>
 
@@ -375,18 +478,19 @@ export default function TrialBalancePage() {
               <Table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <Table.Thead>
                   <Table.Tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>{t('finance.trialBalancePage.tableHeaders.accountCode')}</Table.Th>
-                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>{t('finance.trialBalancePage.tableHeaders.accountName')}</Table.Th>
+                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>Account Code</Table.Th>
+                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>Account Name</Table.Th>
                     <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>Type</Table.Th>
-                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold', textAlign: 'right' }}>{t('finance.trialBalancePage.tableHeaders.debit')}</Table.Th>
-                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold', textAlign: 'right' }}>{t('finance.trialBalancePage.tableHeaders.credit')}</Table.Th>
+                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold', textAlign: 'right' }}>Debit</Table.Th>
+                    <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold', textAlign: 'right' }}>Credit</Table.Th>
                     <Table.Th style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold', textAlign: 'right' }}>Balance</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {filteredAccounts.map((account) => {
                     const typeConfig = getTypeConfig(account.type)
-                    const balance = getBalance(account)
+                    const balanceAmount = Math.abs(getAccountBalance(account))
+                    const balanceType = getBalanceType(account)
 
                     return (
                       <Table.Tr key={account.id}>
@@ -402,26 +506,18 @@ export default function TrialBalancePage() {
                           <Text>{typeConfig.label}</Text>
                         </Table.Td>
                         <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right' }}>
-                          {account.debit > 0 ? (
-                            <Text>{account.debit.toLocaleString()}</Text>
-                          ) : (
-                            <Text style={{ color: '#999' }}>-</Text>
-                          )}
+                          {account.debit > 0 ? account.debit.toLocaleString() : '-'}
                         </Table.Td>
                         <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right' }}>
-                          {account.credit > 0 ? (
-                            <Text>{account.credit.toLocaleString()}</Text>
-                          ) : (
-                            <Text style={{ color: '#999' }}>-</Text>
-                          )}
+                          {account.credit > 0 ? account.credit.toLocaleString() : '-'}
                         </Table.Td>
                         <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right' }}>
-                          {balance.amount > 0 ? (
+                          {balanceAmount > 0.01 ? (
                             <Text style={{ fontWeight: 700 }}>
-                              {balance.amount.toLocaleString()} {balance.type}
+                              {balanceAmount.toLocaleString()} {balanceType}
                             </Text>
                           ) : (
-                            <Text style={{ color: '#999' }}>-</Text>
+                            '-'
                           )}
                         </Table.Td>
                       </Table.Tr>
@@ -431,13 +527,13 @@ export default function TrialBalancePage() {
                   {/* Totals Row */}
                   <Table.Tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold' }}>
                     <Table.Td colSpan={3} style={{ border: '1px solid #ddd', padding: '8px', fontWeight: 'bold' }}>
-                      {t('finance.trialBalancePage.totalAccounts')}
+                      Total
                     </Table.Td>
                     <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {totals.totalDebit.toLocaleString()}
+                      {trialBalance?.totalDebit.toLocaleString() || '-'}
                     </Table.Td>
                     <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
-                      {totals.totalCredit.toLocaleString()}
+                      {trialBalance?.totalCredit.toLocaleString() || '-'}
                     </Table.Td>
                     <Table.Td style={{ border: '1px solid #ddd', padding: '8px', textAlign: 'right', fontWeight: 'bold' }}>
                       -
@@ -449,12 +545,12 @@ export default function TrialBalancePage() {
               {/* Balance Verification */}
               <Box p="md" style={{ border: '2px solid #333', backgroundColor: '#f9f9f9' }}>
                 <Text style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
-                  {t('finance.trialBalancePage.debitEqualsCredit')}: {totals.isBalanced ? t('finance.trialBalancePage.balanced') : t('finance.trialBalancePage.notBalanced')}
+                  Balance Check: {trialBalance?.isBalanced ? 'Balanced' : 'Not Balanced'}
                 </Text>
                 <Text style={{ fontSize: '12px' }}>
-                  {totals.isBalanced
-                    ? `${t('finance.trialBalancePage.debitEqualsCredit')} ${t('finance.trialBalancePage.asOf')} ${formatDate(asOfDate)}`
-                    : `Discrepancy: ${Math.abs(totals.totalDebit - totals.totalCredit).toLocaleString()}`
+                  {trialBalance?.isBalanced
+                    ? `Debits equal credits as of ${formatDate(trialBalance?.asOfDate || null)}`
+                    : `Difference: ${Math.abs(trialBalance?.difference || 0).toLocaleString()}`
                   }
                 </Text>
               </Box>
@@ -469,7 +565,7 @@ export default function TrialBalancePage() {
       </Stack>
 
       {/* Print-specific styling */}
-      <style jsx global>{`
+      <style>{`
         @media print {
           /* Hide everything except print-only section */
           body * {

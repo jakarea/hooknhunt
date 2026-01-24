@@ -3,103 +3,277 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
-use App\Traits\ApiResponse;
+use App\Models\AuditLog;
+use App\Models\DocumentAttachment;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\File;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\JsonResponse;
 
 class AuditController extends Controller
 {
-    use ApiResponse;
+    protected AuditService $auditService;
 
-    protected $logPath;
-
-    public function __construct()
+    public function __construct(AuditService $auditService)
     {
-        $this->logPath = storage_path('logs/audit');
+        $this->auditService = $auditService;
     }
 
     /**
-     * সব লগ ফাইলের লিস্ট দেখা (মাসের নাম এবং সাইজসহ)
+     * Get audit logs with filters
      */
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        if (!File::exists($this->logPath)) {
-            return $this->sendSuccess([], 'No audit logs found yet.');
-        }
+        $filters = [
+            'entity_type' => $request->entity_type,
+            'entity_id' => $request->entity_id,
+            'action' => $request->action,
+            'user_id' => $request->user_id,
+            'start_date' => $request->start_date,
+            'end_date' => $request->end_date,
+            'search' => $request->search,
+        ];
 
-        $files = File::files($this->logPath);
-        $logList = [];
+        $logs = $this->auditService->search($filters)
+            ->paginate($request->per_page ?? 50);
 
-        foreach ($files as $file) {
-            if ($file->getExtension() === 'csv') {
-                $logList[] = [
-                    'file_name' => $file->getFilename(),
-                    'size' => round($file->getSize() / 1024, 2) . ' KB',
-                    'last_modified' => date("Y-m-d H:i:s", $file->getMTime()),
-                ];
-            }
-        }
-
-        // লেটেস্ট ফাইলগুলো আগে দেখাবে
-        usort($logList, fn($a, $b) => strcmp($b['file_name'], $a['file_name']));
-
-        return $this->sendSuccess($logList, 'Audit logs retrieved successfully.');
-    }
-
-    /**
-     * নির্দিষ্ট মাসের লগ ফাইল ডাউনলোড করা
-     */
-    public function download($fileName)
-    {
-        $filePath = $this->logPath . '/' . $fileName;
-
-        // সিকিউরিটি চেক: ফাইলটি আসলে অডিট ফোল্ডারে আছে কিনা এবং CSV কিনা
-        if (!File::exists($filePath) || File::extension($filePath) !== 'csv') {
-            return $this->sendError('File not found or invalid format.', null, 404);
-        }
-
-        return response()->download($filePath, $fileName, [
-            'Content-Type' => 'text/csv',
+        return response()->json([
+            'success' => true,
+            'data' => $logs,
         ]);
     }
 
     /**
-     * পুরনো লগ ফাইল ডিলিট করা (বড় সিস্টেম ক্লিনিংয়ের জন্য)
+     * Get single audit log
      */
-    public function destroy($fileName)
+    public function show(int $id): JsonResponse
     {
-        $filePath = $this->logPath . '/' . $fileName;
+        $log = AuditLog::with(['performer', 'documents', 'originalAudit', 'reversals'])
+            ->find($id);
 
-        if (File::exists($filePath)) {
-            File::delete($filePath);
-            return $this->sendSuccess(null, "Log file {$fileName} deleted successfully.");
+        if (!$log) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Audit log not found',
+            ], 404);
         }
 
-        return $this->sendError('File not found.', null, 404);
+        return response()->json([
+            'success' => true,
+            'data' => $log,
+        ]);
     }
 
     /**
-     * (Optional) লগ ফাইলের কন্টেন্ট সরাসরি এপিআইতে দেখা (Preview)
-     * বড় ফাইল হলে এটি রিকমেন্ডেড না, তবে ছোট ফাইলের জন্য ভালো
+     * Get history for an entity
      */
-    public function preview($fileName)
+    public function history(Request $request): JsonResponse
     {
-        $filePath = $this->logPath . '/' . $fileName;
+        $validated = $request->validate([
+            'entity_type' => 'required|string',
+            'entity_id' => 'required|integer',
+        ]);
 
-        if (!File::exists($filePath)) {
-            return $this->sendError('File not found.', null, 404);
+        $logs = $this->auditService->search([
+            'entity_type' => $validated['entity_type'],
+            'entity_id' => $validated['entity_id'],
+        ])->paginate($request->per_page ?? 20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs,
+        ]);
+    }
+
+    /**
+     * Get audit statistics
+     */
+    public function statistics(Request $request): JsonResponse
+    {
+        $query = AuditLog::query();
+
+        // Filter by date range if provided
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
         }
 
-        $data = array_map('str_getcsv', file($filePath));
-        $header = array_shift($data);
-        $csv = [];
-        foreach ($data as $row) {
-            if(count($header) == count($row)) {
-                $csv[] = array_combine($header, $row);
-            }
+        $stats = [
+            'total_logs' => (clone $query)->count(),
+            'by_action' => (clone $query)->selectRaw('action, COUNT(*) as count')
+                ->groupBy('action')
+                ->pluck('count', 'action'),
+            'by_entity_type' => (clone $query)->selectRaw('entity_type, COUNT(*) as count')
+                ->groupBy('entity_type')
+                ->pluck('count', 'entity_type'),
+            'recent_activity' => (clone $query)->with('performer')
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get(),
+            'reversals' => (clone $query)->reversals()->count(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'data' => $stats,
+        ]);
+    }
+
+    /**
+     * Upload document to audit log
+     */
+    public function uploadDocument(Request $request, int $auditLogId): JsonResponse
+    {
+        $validated = $request->validate([
+            'file' => 'required|file|max:10240', // Max 10MB
+            'document_type' => 'nullable|string',
+            'document_number' => 'nullable|string',
+            'document_date' => 'nullable|date',
+            'description' => 'nullable|string',
+            'is_confidential' => 'boolean',
+        ]);
+
+        $auditLog = AuditLog::find($auditLogId);
+
+        if (!$auditLog) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Audit log not found',
+            ], 404);
         }
 
-        return $this->sendSuccess(array_slice($csv, -50), 'Last 50 activities from log.');
+        try {
+            $document = $this->auditService->attachDocument(
+                $auditLog,
+                $request->file('file'),
+                [
+                    'document_type' => $validated['document_type'] ?? null,
+                    'document_number' => $validated['document_number'] ?? null,
+                    'document_date' => $validated['document_date'] ?? null,
+                    'description' => $validated['description'] ?? null,
+                    'is_confidential' => $validated['is_confidential'] ?? false,
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Document uploaded successfully',
+                'data' => $document,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload document',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Download document
+     */
+    public function downloadDocument(int $id): JsonResponse
+    {
+        $document = DocumentAttachment::find($id);
+
+        if (!$document) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Document not found',
+            ], 404);
+        }
+
+        // Check access permissions
+        if (!$document->canBeAccessedBy(auth()->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You do not have permission to access this document',
+            ], 403);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'download_url' => $document->download_url,
+                'file_name' => $document->file_name,
+                'file_size' => $document->file_size_human,
+            ],
+        ]);
+    }
+
+    /**
+     * Get documents for an entity
+     */
+    public function entityDocuments(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'entity_type' => 'required|string',
+            'entity_id' => 'required|integer',
+        ]);
+
+        $documents = DocumentAttachment::forEntity(
+            $validated['entity_type'],
+            $validated['entity_id']
+        )
+            ->with('uploader', 'auditLog')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $documents,
+        ]);
+    }
+
+    /**
+     * Get timeline of events
+     */
+    public function timeline(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'entity_type' => 'required|string',
+            'entity_id' => 'required|integer',
+        ]);
+
+        $logs = AuditLog::forEntity(
+            $validated['entity_type'],
+            $validated['entity_id']
+        )
+            ->with(['performer', 'documents'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Group by date
+        $timeline = $logs->groupBy(function ($log) {
+            return $log->created_at->format('Y-m-d');
+        })->map(function ($logs, $date) {
+            return [
+                'date' => $date,
+                'events' => $logs->map(function ($log) {
+                    return [
+                        'id' => $log->id,
+                        'time' => $log->created_at->format('H:i:s'),
+                        'action' => $log->action,
+                        'action_label' => $log->action_label,
+                        'description' => $log->description,
+                        'performed_by' => $log->performed_by_name,
+                        'icon' => $log->icon,
+                        'color' => $log->action_color,
+                        'changes' => $log->formatted_changes,
+                        'documents' => $log->documents->map(function ($doc) {
+                            return [
+                                'id' => $doc->id,
+                                'file_name' => $doc->file_name,
+                                'file_type' => $doc->file_type,
+                                'document_type' => $doc->document_type,
+                            ];
+                        }),
+                    ];
+                }),
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $timeline,
+        ]);
     }
 }

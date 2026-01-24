@@ -21,6 +21,11 @@ class PayrollController extends Controller
      */
     public function index(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.payroll.index')) {
+            return $this->sendError('You do not have permission to view payroll.', null, 403);
+        }
+
         $query = Payroll::with(['user:id,name', 'user.staffProfile:user_id,designation,department_id', 'user.staffProfile.department']);
 
         $user = auth()->user();
@@ -61,6 +66,11 @@ class PayrollController extends Controller
      */
     public function generate(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.payroll.generate')) {
+            return $this->sendError('You do not have permission to generate payroll.', null, 403);
+        }
+
         $request->validate([
             'month_year' => 'required|date_format:Y-m', // e.g. "2025-01"
         ]);
@@ -128,6 +138,11 @@ class PayrollController extends Controller
      */
     public function update(Request $request, $id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.payroll.edit')) {
+            return $this->sendError('You do not have permission to edit payroll.', null, 403);
+        }
+
         $request->validate([
             'bonus' => 'numeric|min:0',
             'deductions' => 'numeric|min:0'
@@ -158,6 +173,11 @@ class PayrollController extends Controller
      */
     public function pay($id)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('hrm.payroll.process')) {
+            return $this->sendError('You do not have permission to process payroll payments.', null, 403);
+        }
+
         $payroll = Payroll::with('user')->findOrFail($id);
 
         if ($payroll->status === 'paid') {
@@ -202,6 +222,12 @@ class PayrollController extends Controller
                     'debit' => 0,
                     'credit' => $payroll->net_payable
                 ]);
+
+                // Validate balance (critical for double-entry)
+                if (!$je->isBalanced()) {
+                    DB::rollBack();
+                    return $this->sendError('Journal entry is not balanced. Debit: ' . $je->getTotalDebitAttribute . ', Credit: ' . $je->getTotalCreditAttribute);
+                }
             }
 
             DB::commit();

@@ -44,9 +44,20 @@ class CategoryController extends Controller
             'image_id' => 'nullable|exists:media_files,id'
         ]);
 
+        // Generate unique slug
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        // Check if slug exists and find the next available number
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
         $category = Category::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name) . '-' . rand(100, 999),
+            'slug' => $slug,
             'parent_id' => $request->parent_id,
             'image_id' => $request->image_id,
             'is_active' => true

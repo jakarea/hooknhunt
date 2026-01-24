@@ -176,7 +176,7 @@ function AddFundsModal({
         onChange={(e) => setDescription(e.currentTarget.value)}
       />
       {!wallet && (
-        <Text size="xs" c="dimmed">
+        <Text className="text-xs md:text-sm" c="dimmed">
           Search by customer name, email or phone number
         </Text>
       )}
@@ -424,48 +424,48 @@ export default function WalletPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconWallet size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-              <Text size="xs" c="dimmed">Total Balance</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Balance</Text>
             </Group>
             {statsLoading ? (
-              <Text size="xl" fw={700} c="dimmed">Loading...</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="dimmed">Loading...</Text>
             ) : (
-              <Text size="xl" fw={700}>{formatCurrency(stats?.totalBalance || 0)}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{formatCurrency(stats?.totalBalance || 0)}</Text>
             )}
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconTrendingUp size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="xs" c="dimmed">Total Credits</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Credits</Text>
             </Group>
             {statsLoading ? (
-              <Text size="xl" fw={700} c="dimmed">Loading...</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="dimmed">Loading...</Text>
             ) : (
-              <Text size="xl" fw={700} c="green">{formatCurrency(stats?.totalCredits || 0)}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="green">{formatCurrency(stats?.totalCredits || 0)}</Text>
             )}
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconTrendingDown size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
-              <Text size="xs" c="dimmed">Total Debits</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Debits</Text>
             </Group>
             {statsLoading ? (
-              <Text size="xl" fw={700} c="dimmed">Loading...</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="dimmed">Loading...</Text>
             ) : (
-              <Text size="xl" fw={700} c="red">{formatCurrency(stats?.totalDebits || 0)}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="red">{formatCurrency(stats?.totalDebits || 0)}</Text>
             )}
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconCoin size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-              <Text size="xs" c="dimmed">Active Wallets</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Active Wallets</Text>
             </Group>
             {statsLoading ? (
-              <Text size="xl" fw={700} c="dimmed">Loading...</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700} c="dimmed">Loading...</Text>
             ) : (
-              <Text size="xl" fw={700}>{stats?.activeWallets || 0}</Text>
+              <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{stats?.activeWallets || 0}</Text>
             )}
           </Card>
         </SimpleGrid>
@@ -497,7 +497,7 @@ export default function WalletPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               style={{ flex: 1, maxWidth: '400px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
             <Select
               placeholder="Filter by balance"
@@ -509,13 +509,13 @@ export default function WalletPage() {
                 { value: 'zero', label: 'Zero Balance' },
                 { value: 'negative', label: 'Negative Balance (Due)' },
               ]}
-              size="md"
+              className="text-base md:text-lg"
               style={{ minWidth: '180px' }}
               clearable
             />
             <Button
               variant="light"
-              size="md"
+              className="text-base md:text-lg"
               onClick={() => {
                 fetchWallets(currentPage)
                 fetchTransactions()
@@ -527,7 +527,7 @@ export default function WalletPage() {
           </Group>
           <Button
             color="green"
-            size="md"
+            className="text-base md:text-lg"
             leftSection={<IconPlus size={16} />}
             onClick={() => openAddFundsModal()}
           >
@@ -559,14 +559,14 @@ export default function WalletPage() {
                             src={null}
                             alt={wallet.customerName || 'Customer'}
                             radius="xl"
-                            size="sm"
+                            className="text-sm md:text-base"
                             color="red"
                           >
                             {(wallet.customerName || 'N').charAt(0)}
                           </Avatar>
                           <Box>
-                            <Text fw={600} size="sm">{wallet.customerName || 'Unknown Customer'}</Text>
-                            <Text size="xs" c="dimmed">{wallet.customerPhone || 'N/A'}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{wallet.customerName || 'Unknown Customer'}</Text>
+                            <Text className="text-xs md:text-sm" c="dimmed">{wallet.customerPhone || 'N/A'}</Text>
                           </Box>
                         </Group>
                         <Badge
@@ -585,9 +585,9 @@ export default function WalletPage() {
                           borderRadius: '8px',
                         }}
                       >
-                        <Text size="xs" c="dimmed">Current Balance</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Current Balance</Text>
                         <Text
-                          size="xl"
+                          className="text-xl md:text-2xl lg:text-3xl"
                           fw={700}
                           c={wallet.balance >= 0 ? 'green' : 'red'}
                         >
@@ -598,19 +598,19 @@ export default function WalletPage() {
                       {/* Stats */}
                       <SimpleGrid cols={2}>
                         <Box>
-                          <Text size="xs" c="dimmed">Total Credits</Text>
-                          <Text size="sm" fw={500} c="green">{formatCurrency(wallet.totalCredits)}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">Total Credits</Text>
+                          <Text className="text-sm md:text-base" fw={500} c="green">{formatCurrency(wallet.totalCredits)}</Text>
                         </Box>
                         <Box>
-                          <Text size="xs" c="dimmed">Total Debits</Text>
-                          <Text size="sm" fw={500} c="red">{formatCurrency(wallet.totalDebits)}</Text>
+                          <Text className="text-xs md:text-sm" c="dimmed">Total Debits</Text>
+                          <Text className="text-sm md:text-base" fw={500} c="red">{formatCurrency(wallet.totalDebits)}</Text>
                         </Box>
                       </SimpleGrid>
 
                       {/* Last transaction */}
                       <Group>
                         <IconCalendar size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                        <Text size="xs" c="dimmed">
+                        <Text className="text-xs md:text-sm" c="dimmed">
                           Last: {formatDateTime(wallet.lastTransaction)}
                         </Text>
                       </Group>
@@ -619,20 +619,18 @@ export default function WalletPage() {
                       <Group>
                         <Button
                           variant="light"
-                          size="xs"
+                          className="text-xs md:text-sm flex-1"
                           component={Link}
                           to={`/crm/wallet/${wallet.id}`}
                           leftSection={<IconEye size={14} />}
-                          style={{ flex: 1 }}
                         >
                           View Wallet
                         </Button>
                         <Button
                           variant="light"
-                          size="xs"
+                          className="text-xs md:text-sm flex-1"
                           color="green"
                           leftSection={<IconPlus size={14} />}
-                          style={{ flex: 1 }}
                           onClick={() => openAddFundsModal(wallet)}
                         >
                           Add Funds
@@ -678,43 +676,43 @@ export default function WalletPage() {
                                 src={null}
                                 alt={wallet.customerName || 'Customer'}
                                 radius="xl"
-                                size="sm"
+                                className="text-sm md:text-base"
                                 color="red"
                               >
                                 {(wallet.customerName || 'N').charAt(0)}
                               </Avatar>
                               <Box>
-                                <Text fw={600} size="sm">{wallet.customerName || 'Unknown Customer'}</Text>
-                                <Text size="xs" c="dimmed">{wallet.customerPhone || 'N/A'}</Text>
+                                <Text fw={600} className="text-sm md:text-base">{wallet.customerName || 'Unknown Customer'}</Text>
+                                <Text className="text-xs md:text-sm" c="dimmed">{wallet.customerPhone || 'N/A'}</Text>
                               </Box>
                             </Group>
                           </Table.Td>
                           <Table.Td>
                             <Text
                               fw={700}
-                              size="sm"
+                              className="text-sm md:text-base"
                               c={wallet.balance >= 0 ? 'green' : 'red'}
                             >
                               {formatCurrency(wallet.balance)}
                             </Text>
                             {wallet.balance < 0 && (
-                              <Badge size="xs" color="red" variant="light" mt="xs">Due</Badge>
+                              <Badge className="text-xs md:text-sm" color="red" variant="light" mt="xs">Due</Badge>
                             )}
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" c="green">{formatCurrency(wallet.totalCredits)}</Text>
+                            <Text className="text-sm md:text-base" c="green">{formatCurrency(wallet.totalCredits)}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm" c="red">{formatCurrency(wallet.totalDebits)}</Text>
+                            <Text className="text-sm md:text-base" c="red">{formatCurrency(wallet.totalDebits)}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{formatDateTime(wallet.lastTransaction)}</Text>
+                            <Text className="text-sm md:text-base">{formatDateTime(wallet.lastTransaction)}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Badge
                               color={wallet.balance >= 0 ? 'green' : 'red'}
                               variant="light"
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               {wallet.balance >= 0 ? 'Active' : 'Due'}
                             </Badge>
@@ -723,7 +721,7 @@ export default function WalletPage() {
                             <Group>
                               <Button
                                 variant="light"
-                                size="xs"
+                                className="text-xs md:text-sm"
                                 color="gray"
                                 component={Link}
                                 to={`/crm/wallet/${wallet.id}`}
@@ -733,7 +731,7 @@ export default function WalletPage() {
                               </Button>
                               <Button
                                 variant="filled"
-                                size="xs"
+                                className="text-xs md:text-sm"
                                 color="green"
                                 leftSection={<IconPlus size={14} />}
                                 onClick={() => openAddFundsModal(wallet)}
@@ -755,18 +753,18 @@ export default function WalletPage() {
               <Group justify="flex-end">
                 <Button
                   variant="light"
-                  size="sm"
+                  className="text-sm md:text-base"
                   disabled={currentPage === 1}
                   onClick={() => fetchWallets(currentPage - 1)}
                 >
                   Previous
                 </Button>
-                <Text size="sm" c="dimmed">
+                <Text className="text-sm md:text-base" c="dimmed">
                   Page {currentPage} of {totalWalletPages}
                 </Text>
                 <Button
                   variant="light"
-                  size="sm"
+                  className="text-sm md:text-base"
                   disabled={currentPage === totalWalletPages}
                   onClick={() => fetchWallets(currentPage + 1)}
                 >
@@ -796,31 +794,31 @@ export default function WalletPage() {
                     <Group justify="space-between" mb="xs">
                       <Group>
                         <IconReceipt size={16} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                        <Text fw={600} size="sm">{txn.customerName}</Text>
+                        <Text fw={600} className="text-sm md:text-base">{txn.customerName}</Text>
                       </Group>
                       <Badge
                         color={txn.type === 'credit' ? 'green' : 'red'}
                         variant="light"
-                        size="sm"
+                        className="text-sm md:text-base"
                       >
                         {txn.type === 'credit' ? 'Credit' : 'Debit'}
                       </Badge>
                     </Group>
-                    <Text size="sm" mb="xs">{txn.description}</Text>
+                    <Text className="text-sm md:text-base" mb="xs">{txn.description}</Text>
                     <Group justify="space-between">
                       <Text
                         fw={700}
-                        size="lg"
+                        className="text-lg md:text-xl lg:text-2xl"
                         c={txn.type === 'credit' ? 'green' : 'red'}
                       >
                         {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                       </Text>
                       <Box style={{ textAlign: 'right' }}>
-                        <Text size="xs" c="dimmed">Balance: {formatCurrency(txn.balanceAfter)}</Text>
-                        <Text size="xs" c="dimmed">{formatDateTime(txn.createdAt)}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">Balance: {formatCurrency(txn.balanceAfter)}</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed">{formatDateTime(txn.createdAt)}</Text>
                       </Box>
                     </Group>
-                    <Text size="xs" c="dimmed" mt="xs">By {txn.createdBy}</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed" mt="xs">By {txn.createdBy}</Text>
                   </Card>
                 ))
               )}
@@ -855,37 +853,37 @@ export default function WalletPage() {
                       transactions.map((txn) => (
                         <Table.Tr key={txn.id}>
                           <Table.Td>
-                            <Text fw={600} size="sm">{txn.customerName}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{txn.customerName}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Badge
                               color={txn.type === 'credit' ? 'green' : 'red'}
                               variant="light"
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               {txn.type === 'credit' ? 'Credit' : 'Debit'}
                             </Badge>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{txn.description}</Text>
+                            <Text className="text-sm md:text-base">{txn.description}</Text>
                           </Table.Td>
                           <Table.Td>
                             <Text
                               fw={700}
-                              size="sm"
+                              className="text-sm md:text-base"
                               c={txn.type === 'credit' ? 'green' : 'red'}
                             >
                               {txn.type === 'credit' ? '+' : '-'}{formatCurrency(txn.amount)}
                             </Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text fw={600} size="sm">{formatCurrency(txn.balanceAfter)}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{formatCurrency(txn.balanceAfter)}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{formatDateTime(txn.createdAt)}</Text>
+                            <Text className="text-sm md:text-base">{formatDateTime(txn.createdAt)}</Text>
                           </Table.Td>
                           <Table.Td>
-                            <Text size="sm">{txn.createdBy}</Text>
+                            <Text className="text-sm md:text-base">{txn.createdBy}</Text>
                           </Table.Td>
                         </Table.Tr>
                       ))

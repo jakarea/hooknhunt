@@ -1,18 +1,19 @@
 /**
  * ENHANCED PERMISSIONS HOOK
  * Provides permission checking with auto-refresh capability
+ * Fully dynamic - all permissions come from database
  */
 
 import { useCallback, useEffect } from 'react'
 import { useAuthStore } from '@/stores/authStore'
 import api from '@/lib/api'
 import { notifications } from '@mantine/notifications'
-import { getRoutePermission } from '@/config/permissions'
 
 export function usePermissions() {
   const {
     user,
     permissions,
+    permissionKeys,
     permissionObjects,
     token,
     setPermissions,
@@ -23,6 +24,7 @@ export function usePermissions() {
     isSuperAdmin,
     hasAccessToGroup,
     getPermissionGroups,
+    canAccessRoute: storeCanAccessRoute,
   } = useAuthStore()
 
   /**
@@ -46,11 +48,6 @@ export function usePermissions() {
 
         // Update store with both slugs and full objects
         setPermissions(newPermissions, rolePermissions)
-
-        console.log('✅ Permissions refreshed:', {
-          total: newPermissions.length,
-          permissions: newPermissions.slice(0, 5), // Show first 5
-        })
 
         return true
       }
@@ -89,6 +86,7 @@ export function usePermissions() {
 
   /**
    * Check if user can access a specific route
+   * Uses naming convention to derive permission from route
    * Super admins can access all routes
    */
   const canAccessRoute = useCallback(
@@ -98,14 +96,10 @@ export function usePermissions() {
         return true
       }
 
-      const requiredPermission = getRoutePermission(route)
-
-      // No permission required = public route
-      if (!requiredPermission) return true
-
-      return hasPermission(requiredPermission)
+      // Use store's canAccessRoute method (uses naming convention)
+      return storeCanAccessRoute(route)
     },
-    [hasPermission, isSuperAdmin]
+    [storeCanAccessRoute, isSuperAdmin]
   )
 
   /**
@@ -196,6 +190,7 @@ export function usePermissions() {
 
   return {
     permissions,
+    permissionKeys,
     permissionObjects,
     hasPermission,
     hasAnyPermission,

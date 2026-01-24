@@ -72,10 +72,18 @@ Route::group([
 
     // --- Module: MEDIA ASSETS ---
     Route::group(['prefix' => 'media'], function () {
+        // Folders
         Route::get('folders', 'MediaController@getFolders');
         Route::post('folders', 'MediaController@createFolder');
+        Route::put('folders/{id}', 'MediaController@updateFolder');
+        Route::delete('folders/{id}', 'MediaController@deleteFolder');
+
+        // Files
         Route::get('files', 'MediaController@getFiles');
+        Route::get('files/{id}', 'MediaController@getFile');
+        Route::put('files/{id}', 'MediaController@updateFile');
         Route::post('upload', 'MediaController@upload');
+        Route::post('files/bulk-move', 'MediaController@bulkMoveFiles');
         Route::delete('files/bulk-delete', 'MediaController@bulkDelete');
     });
 
@@ -84,6 +92,7 @@ Route::group([
         Route::apiResource('categories', 'CategoryController');
         Route::get('helpers/categories/tree', 'CategoryController@treeStructure');
         Route::apiResource('brands', 'BrandController');
+        Route::apiResource('attributes', 'AttributeController');
         Route::apiResource('products', 'ProductController');
         Route::post('products/{id}/duplicate', 'ProductController@duplicate');
         Route::post('products/{id}/variants', 'ProductController@storeVariant');
@@ -187,13 +196,18 @@ Route::group([
 
     // --- Module: FINANCE ---
     Route::group(['prefix' => 'finance'], function () {
-        // Chart of Accounts
-        Route::apiResource('accounts', 'AccountController');
-        Route::get('accounts/summary', 'AccountController@balanceSummary');
+        // Finance Dashboard
+        Route::get('dashboard', 'FinanceController@dashboard');
 
-        // Bank Accounts
-        Route::apiResource('banks', 'BankController');
+        // Chart of Accounts - Specific routes BEFORE apiResource
+        Route::get('accounts/summary', 'AccountController@balanceSummary');
+        Route::get('accounts/trial-balance', 'AccountController@trialBalance');
+        Route::get('accounts/statistics', 'AccountController@statistics');
+        Route::apiResource('accounts', 'AccountController');
+
+        // Bank Accounts - Specific routes BEFORE apiResource
         Route::get('banks/summary', 'BankController@summary');
+        Route::apiResource('banks', 'BankController');
         Route::get('banks/{id}/transactions', 'BankController@transactions');
         Route::post('banks/{id}/deposit', 'BankController@deposit');
         Route::post('banks/{id}/withdraw', 'BankController@withdraw');
@@ -215,6 +229,123 @@ Route::group([
             Route::get('cash-flow', 'ReportController@cashFlow');
             Route::get('trial-balance', 'ReportController@trialBalance');
             Route::get('general-ledger', 'ReportController@generalLedger');
+        });
+
+        // Bank Reconciliations
+        Route::apiResource('bank-reconciliations', 'BankReconciliationController');
+        Route::post('bank-reconciliations/{id}/reconcile', 'BankReconciliationController@reconcile');
+        Route::post('bank-reconciliations/{id}/reset', 'BankReconciliationController@reset');
+        Route::get('bank-reconciliations/book-balance/{bankId}', 'BankReconciliationController@getBookBalance');
+        Route::get('bank-reconciliations/pending-transactions/{bankId}', 'BankReconciliationController@getPendingTransactions');
+        Route::get('bank-reconciliations/summary', 'BankReconciliationController@summary');
+
+        // Fixed Assets
+        Route::apiResource('fixed-assets', 'FixedAssetController');
+        Route::post('fixed-assets/{id}/dispose', 'FixedAssetController@dispose');
+        Route::post('fixed-assets/update-depreciation', 'FixedAssetController@updateDepreciationAll');
+        Route::get('fixed-assets/categories', 'FixedAssetController@getCategories');
+        Route::get('fixed-assets/locations', 'FixedAssetController@getLocations');
+        Route::get('fixed-assets/summary', 'FixedAssetController@summary');
+
+        // Cheque/PDC Management
+        Route::apiResource('cheques', 'ChequeController');
+        Route::post('cheques/{id}/deposit', 'ChequeController@deposit');
+        Route::post('cheques/{id}/clear', 'ChequeController@clear');
+        Route::post('cheques/{id}/bounce', 'ChequeController@bounce');
+        Route::post('cheques/{id}/cancel', 'ChequeController@cancel');
+        Route::get('cheques/alerts', 'ChequeController@alerts');
+        Route::get('cheques/summary', 'ChequeController@summary');
+
+        // Currencies
+        Route::get('currencies/default', 'CurrencyController@getDefault');
+        Route::post('currencies/convert', 'CurrencyController@convert');
+        Route::apiResource('currencies', 'CurrencyController');
+        Route::post('currencies/{id}/exchange-rate', 'CurrencyController@updateExchangeRate');
+
+        // VAT/Tax Ledger
+        Route::apiResource('vat-tax-ledgers', 'VatTaxLedgerController');
+        Route::post('vat-tax-ledgers/{id}/mark-paid', 'VatTaxLedgerController@markAsPaid');
+        Route::post('vat-tax-ledgers/{id}/mark-filed', 'VatTaxLedgerController@markAsFiled');
+        Route::get('vat-tax-ledgers/summary', 'VatTaxLedgerController@summary');
+        Route::get('vat-tax-ledgers/net-calculation', 'VatTaxLedgerController@netCalculation');
+        Route::get('vat-tax-ledgers/by-period', 'VatTaxLedgerController@byPeriod');
+
+        // Journal Entries
+        Route::get('journal-entries/next-number', 'JournalEntryController@getNextNumber');
+        Route::get('journal-entries/statistics', 'JournalEntryController@statistics');
+        Route::get('journal-entries/by-account', 'JournalEntryController@byAccount');
+        Route::apiResource('journal-entries', 'JournalEntryController');
+        Route::post('journal-entries/{id}/reverse', 'JournalEntryController@reverse');
+
+        // Budgets - Specific routes must come BEFORE apiResource
+        Route::get('budgets/variance-report', 'BudgetController@varianceReport');
+        Route::get('budgets/statistics', 'BudgetController@statistics');
+        Route::apiResource('budgets', 'BudgetController');
+        Route::post('budgets/{id}/approve', 'BudgetController@approve');
+        Route::put('budgets/{id}/actual', 'BudgetController@updateActual');
+
+        // Cost Centers
+        Route::apiResource('cost-centers', 'CostCenterController');
+        Route::post('cost-centers/{id}/allocate-budget', 'CostCenterController@allocateBudget');
+        Route::post('cost-centers/{id}/recalculate-budget', 'CostCenterController@recalculateBudget');
+        Route::get('cost-centers/{id}/expenses', 'CostCenterController@expenses');
+        Route::get('cost-centers/statistics', 'CostCenterController@statistics');
+        Route::get('cost-centers/next-code', 'CostCenterController@getNextCode');
+
+        // Projects
+        Route::apiResource('projects', 'ProjectController');
+        Route::post('projects/{id}/calculate-profitability', 'ProjectController@calculateProfitability');
+        Route::put('projects/{id}/update-progress', 'ProjectController@updateProgress');
+        Route::get('projects/{id}/expenses', 'ProjectController@expenses');
+        Route::get('projects/statistics', 'ProjectController@statistics');
+        Route::get('projects/next-code', 'ProjectController@getNextCode');
+
+        // Fiscal Years
+        Route::apiResource('fiscal-years', 'FiscalYearController');
+        Route::post('fiscal-years/{id}/close', 'FiscalYearController@close');
+        Route::post('fiscal-years/{id}/reopen', 'FiscalYearController@reopen');
+        Route::get('fiscal-years/{id}/summary', 'FiscalYearController@summary');
+        Route::get('fiscal-years/current', 'FiscalYearController@getCurrent');
+        Route::get('fiscal-years/statistics', 'FiscalYearController@statistics');
+        Route::get('fiscal-years/check-date', 'FiscalYearController@checkDate');
+
+        // Accounts Payable (Vendor Bills) - Specific routes must come BEFORE apiResource
+        Route::get('accounts-payable/aging-report', 'AccountsPayableController@agingReport');
+        Route::get('accounts-payable/payments', 'AccountsPayableController@payments');
+        Route::get('accounts-payable/statistics', 'AccountsPayableController@statistics');
+        Route::apiResource('accounts-payable', 'AccountsPayableController');
+        Route::post('accounts-payable/payments', 'AccountsPayableController@storePayment');
+
+        // Accounts Receivable (Customer Invoices) - Specific routes must come BEFORE apiResource
+        Route::get('accounts-receivable/aging-report', 'AccountsReceivableController@agingReport');
+        Route::get('accounts-receivable/payments', 'AccountsReceivableController@payments');
+        Route::get('accounts-receivable/statistics', 'AccountsReceivableController@statistics');
+        Route::apiResource('accounts-receivable', 'AccountsReceivableController');
+        Route::post('accounts-receivable/payments', 'AccountsReceivableController@storePayment');
+
+        // Advanced Financial Reports
+        Route::prefix('reports')->group(function () {
+            Route::get('/', 'FinancialReportController@index');
+            Route::post('/', 'FinancialReportController@store');
+            Route::get('/statistics', 'FinancialReportController@statistics');
+            Route::get('/templates', 'FinancialReportController@templates');
+            Route::get('/{id}', 'FinancialReportController@show');
+            Route::put('/{id}', 'FinancialReportController@update');
+            Route::delete('/{id}', 'FinancialReportController@destroy');
+            Route::post('/{id}/generate', 'FinancialReportController@generate');
+            Route::get('/{id}/export', 'FinancialReportController@export');
+        });
+
+        // Audit Trail
+        Route::prefix('audit')->group(function () {
+            Route::get('/', 'AuditController@index');
+            Route::get('/statistics', 'AuditController@statistics');
+            Route::get('/history', 'AuditController@history');
+            Route::get('/timeline', 'AuditController@timeline');
+            Route::get('/{id}', 'AuditController@show');
+            Route::post('/{id}/documents', 'AuditController@uploadDocument');
+            Route::get('/documents/{id}/download', 'AuditController@downloadDocument');
+            Route::get('/documents/entity', 'AuditController@entityDocuments');
         });
     });
 

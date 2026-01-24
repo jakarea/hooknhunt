@@ -285,10 +285,10 @@ class SalesOrderController extends Controller
 
         // Debit: Cash or Receivable
         $debitAccId = ($order->payment_status === 'paid') ? $cashAcc->id : $accountsReceivableAcc->id;
-        
+
         JournalItem::create([
             'journal_entry_id' => $jeRevenue->id,
-            'account_id' => $debitAccId, 
+            'account_id' => $debitAccId,
             'debit' => $order->total_amount,
             'credit' => 0
         ]);
@@ -300,6 +300,11 @@ class SalesOrderController extends Controller
             'debit' => 0,
             'credit' => $order->total_amount
         ]);
+
+        // Validate balance for revenue entry (critical for double-entry)
+        if (!$jeRevenue->isBalanced()) {
+            throw new \Exception('Revenue journal entry is not balanced. Debit: ' . $jeRevenue->getTotalDebitAttribute . ', Credit: ' . $jeRevenue->getTotalCreditAttribute);
+        }
 
         // Entry 2: Record COGS (Cost of Goods Sold)
         // This moves value from Inventory Asset to Expense
@@ -328,6 +333,11 @@ class SalesOrderController extends Controller
                 'debit' => 0,
                 'credit' => $cogsAmount
             ]);
+
+            // Validate balance for COGS entry (critical for double-entry)
+            if (!$jeCogs->isBalanced()) {
+                throw new \Exception('COGS journal entry is not balanced. Debit: ' . $jeCogs->getTotalDebitAttribute . ', Credit: ' . $jeCogs->getTotalCreditAttribute);
+            }
         }
     }
 }

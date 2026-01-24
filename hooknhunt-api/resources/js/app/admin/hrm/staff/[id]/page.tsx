@@ -194,9 +194,7 @@ export default function StaffProfilePage() {
     const fetchUserData = async () => {
       try {
         setLoading(true)
-        console.log('Fetching staff data for ID:', id)
         const response = await api.get(`/hrm/staff/${id}`)
-        console.log('Raw API response:', response.data)
 
         // API returns { data: { user, rolePermissions, grantedPermissions, blockedPermissions } }
         const apiData = response.data.data
@@ -205,8 +203,6 @@ export default function StaffProfilePage() {
         const granted = apiData.grantedPermissions || apiData.granted_permissions || []
         const blocked = apiData.blockedPermissions || apiData.blocked_permissions || []
 
-        console.log('User data from response:', userData)
-        console.log('Staff profile from API:', userData?.staffProfile || userData?.staff_profile)
 
         // Normalize data - API returns camelCase, convert to snake_case for consistency
         const profileData = userData.staffProfile || userData.staff_profile
@@ -247,10 +243,6 @@ export default function StaffProfilePage() {
           deleted_at: userData.deletedAt || userData.deleted_at,
         }
 
-        console.log('Normalized user data:', normalizedUser)
-        console.log('Normalized staff profile:', normalizedProfile)
-        console.log('User name:', normalizedUser.name)
-        console.log('User role:', normalizedUser.role)
         setUser(normalizedUser)
 
         // Combine role permissions with granted permissions, exclude blocked
@@ -371,7 +363,7 @@ export default function StaffProfilePage() {
               src={null}
               alt={user.name || 'User'}
               radius="xl"
-              size="xl"
+              className="text-xl md:text-2xl lg:text-3xl"
               color="red"
             >
               {user.name?.charAt(0)?.toUpperCase() || 'U'}
@@ -382,22 +374,22 @@ export default function StaffProfilePage() {
                 <Badge
                   color={user.is_active ? 'green' : 'gray'}
                   variant="light"
-                  size="lg"
+                  className="text-lg md:text-xl lg:text-2xl"
                 >
                   {user.is_active ? 'Active' : 'Inactive'}
                 </Badge>
               </Group>
-              <Text size="lg" c="dimmed" mb="xs">{user.staffProfile?.designation || 'N/A'}</Text>
+              <Text className="text-lg md:text-xl lg:text-2xl" c="dimmed" mb="xs">{user.staffProfile?.designation || 'N/A'}</Text>
               <Group >
                 {user.email && (
                   <Group >
                     <IconMail size={16} />
-                    <Text size="sm">{user.email}</Text>
+                    <Text className="text-sm md:text-base">{user.email}</Text>
                   </Group>
                 )}
                 <Group >
                   <IconPhone size={16} />
-                  <Text size="sm">{user.phone}</Text>
+                  <Text className="text-sm md:text-base">{user.phone}</Text>
                 </Group>
               </Group>
             </Box>
@@ -431,7 +423,7 @@ export default function StaffProfilePage() {
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Personal Information</Title>
           {hasPermission('hrm.staff.edit') && (
-            <ActionIcon variant="subtle" color="blue" size="sm">
+            <ActionIcon variant="subtle" color="blue" className="text-sm md:text-base">
               <IconEdit size={16} />
             </ActionIcon>
           )}
@@ -440,49 +432,49 @@ export default function StaffProfilePage() {
             <Group >
               <IconUser size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Full Name</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Full Name</Text>
                 <Text fw={500}>{user.name}</Text>
               </Box>
             </Group>
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Staff ID</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Staff ID</Text>
                 <Text fw={500}>#{user.id}</Text>
               </Box>
             </Group>
             <Group >
               <IconPhone size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Phone</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Phone</Text>
                 <Text fw={500}>{user.phone}</Text>
               </Box>
             </Group>
             <Group >
               <IconMail size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Email</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Email</Text>
                 <Text fw={500}>{user.email || 'N/A'}</Text>
               </Box>
             </Group>
             <Group >
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Date of Birth</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Date of Birth</Text>
                 <Text fw={500}>{formatDate(user.staffProfile?.dob || null)}</Text>
               </Box>
             </Group>
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Gender</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Gender</Text>
                 <Text fw={500}>{user.staffProfile?.gender ? user.staffProfile.gender.charAt(0).toUpperCase() + user.staffProfile.gender.slice(1) : 'N/A'}</Text>
               </Box>
             </Group>
             <Group  style={{ gridColumn: '1 / -1' }}>
               <IconMapPin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Address</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Address</Text>
                 <Text fw={500}>
                   {user.staffProfile?.address ? `${user.staffProfile.address}${user.staffProfile.division ? `, ${user.staffProfile.division}` : ''}${user.staffProfile.district ? `, ${user.staffProfile.district}` : ''}${user.staffProfile.thana ? `, ${user.staffProfile.thana}` : ''}`.trim() : 'N/A'}
                 </Text>
@@ -517,7 +509,7 @@ export default function StaffProfilePage() {
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Professional Information</Title>
           {hasPermission('hrm.staff.edit') && (
-            <ActionIcon variant="subtle" color="blue" size="sm">
+            <ActionIcon variant="subtle" color="blue" className="text-sm md:text-base">
               <IconEdit size={16} />
             </ActionIcon>
           )}
@@ -526,35 +518,35 @@ export default function StaffProfilePage() {
             <Group >
               <IconShield size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Role</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Role</Text>
                 <Badge variant="light" color="red">{user.role?.name || 'N/A'}</Badge>
               </Box>
             </Group>
             <Group >
               <IconBuilding size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Department</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Department</Text>
                 <Text fw={500}>{user.staffProfile?.department?.name || 'N/A'}</Text>
               </Box>
             </Group>
             <Group >
               <IconId size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Designation</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Designation</Text>
                 <Text fw={500}>{user.staffProfile?.designation || 'N/A'}</Text>
               </Box>
             </Group>
             <Group >
               <IconCalendar size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Joining Date</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Joining Date</Text>
                 <Text fw={500}>{formatDate(user.staffProfile?.joining_date || null)}</Text>
               </Box>
             </Group>
             <Group >
               <IconCoin size={18} style={{ color: 'var(--mantine-color-red-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Base Salary</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Base Salary</Text>
                 <Text fw={500}>
                   {user.staffProfile?.base_salary ? `${parseFloat(String(user.staffProfile.base_salary)).toLocaleString()} BDT` : 'N/A'}
                 </Text>
@@ -563,7 +555,7 @@ export default function StaffProfilePage() {
             <Group >
               <IconCoin size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Total Salary Package</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Total Salary Package</Text>
                 <Text fw={500}>
                   {user.staffProfile?.base_salary || user.staffProfile?.house_rent || user.staffProfile?.medical_allowance || user.staffProfile?.conveyance_allowance
                     ? `${(
@@ -583,7 +575,7 @@ export default function StaffProfilePage() {
             <Group >
               <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
               <Box>
-                <Text size="xs" c="dimmed">Account Created</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">Account Created</Text>
                 <Text fw={500}>{formatDate(user.created_at)}</Text>
               </Box>
             </Group>
@@ -612,8 +604,8 @@ export default function StaffProfilePage() {
         <SimpleGrid cols={{ base: 1, sm: 2 }}>
           <Group >
             <IconShield size={18} style={{ color: user.is_active ? 'green' : 'gray' }} />
-            <Box style={{ flex: 1 }}>
-              <Text size="xs" c="dimmed">Account Status</Text>
+            <Box className="flex-1">
+              <Text className="text-xs md:text-sm" c="dimmed">Account Status</Text>
               <Group >
                 <Badge color={user.is_active ? 'green' : 'gray'} variant="light">
                   {user.is_active ? 'Active' : 'Inactive'}
@@ -621,7 +613,7 @@ export default function StaffProfilePage() {
                 <ActionIcon
                   variant="subtle"
                   color={user.is_active ? 'red' : 'green'}
-                  size="sm"
+                  className="text-lg md:text-xl lg:text-2xl"
                   onClick={() => setBlockConfirmOpened(true)}
                 >
                   {user.is_active ? <IconBan size={14} /> : <IconCheck size={14} />}
@@ -631,8 +623,8 @@ export default function StaffProfilePage() {
           </Group>
           <Group >
             <IconPhone size={18} style={{ color: user.phone_verified_at ? 'green' : 'orange' }} />
-            <Box style={{ flex: 1 }}>
-              <Text size="xs" c="dimmed">Phone Verification</Text>
+            <Box className="flex-1">
+              <Text className="text-xs md:text-sm" c="dimmed">Phone Verification</Text>
               <Group >
                 <Badge color={user.phone_verified_at ? 'green' : 'orange'} variant="light">
                   {user.phone_verified_at ? 'Verified' : 'Not Verified'}
@@ -640,7 +632,7 @@ export default function StaffProfilePage() {
                 <ActionIcon
                   variant="subtle"
                   color={user.phone_verified_at ? 'orange' : 'green'}
-                  size="sm"
+                  className="text-lg md:text-xl lg:text-2xl"
                   onClick={() => setVerifyConfirmOpened(true)}
                 >
                   {user.phone_verified_at ? <IconX size={14} /> : <IconCheck size={14} />}
@@ -651,15 +643,15 @@ export default function StaffProfilePage() {
           <Group >
             <IconClock size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
             <Box>
-              <Text size="xs" c="dimmed">Last Login</Text>
-              <Text fw={500} size="sm">{formatDateTime(user.last_login_at || null)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Last Login</Text>
+              <Text fw={500} className="text-sm md:text-base">{formatDateTime(user.last_login_at || null)}</Text>
             </Box>
           </Group>
           <Group >
             <IconCalendar size={18} style={{ color: 'var(--mantine-color-blue-filled)' }} />
             <Box>
-              <Text size="xs" c="dimmed">Last Updated</Text>
-              <Text fw={500} size="sm">{formatDateTime(user.updated_at)}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Last Updated</Text>
+              <Text fw={500} className="text-sm md:text-base">{formatDateTime(user.updated_at)}</Text>
             </Box>
           </Group>
         </SimpleGrid>
@@ -678,7 +670,7 @@ export default function StaffProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Permissions & Access</Title>
-          <Badge size="lg">{permissions.length} permissions</Badge>
+          <Badge className="text-lg md:text-xl lg:text-2xl">{permissions.length} permissions</Badge>
         </Group>
 
         {permissions.length > 0 ? (
@@ -689,8 +681,8 @@ export default function StaffProfilePage() {
                   <Group >
                     <IconShield size={16} style={{ color: 'var(--mantine-color-red-filled)' }} />
                     <Box>
-                      <Text fw={500} size="sm">{permission.name}</Text>
-                      <Text size="xs" c="dimmed">{permission.group_name}</Text>
+                      <Text fw={500} className="text-sm md:text-base">{permission.name}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{permission.group_name}</Text>
                     </Box>
                   </Group>
                 </Paper>
@@ -700,7 +692,7 @@ export default function StaffProfilePage() {
             {permissions.length > MAX_VISIBLE_PERMISSIONS && (
               <Button
                 variant="light"
-                size="sm"
+                className="text-sm md:text-base"
                 mt="md"
                 onClick={() => setShowAllPermissions(!showAllPermissions)}
               >
@@ -721,7 +713,7 @@ export default function StaffProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Leave History</Title>
-          <Badge size="lg">{leaves.length} records</Badge>
+          <Badge className="text-lg md:text-xl lg:text-2xl">{leaves.length} records</Badge>
         </Group>
 
         {leaves.length === 0 ? (
@@ -754,7 +746,7 @@ export default function StaffProfilePage() {
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {new Date(leave.start_date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric'
@@ -770,7 +762,7 @@ export default function StaffProfilePage() {
                     <Text fw={500}>{leave.days_count}</Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" c="dimmed">{leave.reason || 'N/A'}</Text>
+                    <Text className="text-sm md:text-base" c="dimmed">{leave.reason || 'N/A'}</Text>
                   </Table.Td>
                   <Table.Td>
                     <Badge
@@ -780,13 +772,13 @@ export default function StaffProfilePage() {
                         'yellow'
                       }
                       variant="light"
-                      size="sm"
+                      className="text-sm md:text-base"
                     >
                       {leave.status.charAt(0).toUpperCase() + leave.status.slice(1)}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {leave.approver?.name || 'N/A'}
                     </Text>
                   </Table.Td>
@@ -805,7 +797,7 @@ export default function StaffProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Attendance History</Title>
-          <Badge size="lg">{attendance.length} records</Badge>
+          <Badge className="text-lg md:text-xl lg:text-2xl">{attendance.length} records</Badge>
         </Group>
 
         {attendance.length === 0 ? (
@@ -825,7 +817,7 @@ export default function StaffProfilePage() {
               {attendance.map((att) => (
                 <Table.Tr key={att.id}>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {new Date(att.date).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -834,7 +826,7 @@ export default function StaffProfilePage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {att.clock_in ? new Date(`2000-01-01 ${att.clock_in}`).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit'
@@ -842,7 +834,7 @@ export default function StaffProfilePage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {att.clock_out ? new Date(`2000-01-01 ${att.clock_out}`).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit'
@@ -859,13 +851,13 @@ export default function StaffProfilePage() {
                         'gray'
                       }
                       variant="light"
-                      size="sm"
+                      className="text-sm md:text-base"
                     >
                       {att.status.charAt(0).toUpperCase() + att.status.slice(1)}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" c="dimmed">{att.note || '-'}</Text>
+                    <Text className="text-sm md:text-base" c="dimmed">{att.note || '-'}</Text>
                   </Table.Td>
                 </Table.Tr>
               ))}
@@ -882,7 +874,7 @@ export default function StaffProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Payroll History</Title>
-          <Badge size="lg">{payroll.length} records</Badge>
+          <Badge className="text-lg md:text-xl lg:text-2xl">{payroll.length} records</Badge>
         </Group>
 
         {payroll.length === 0 ? (
@@ -904,7 +896,7 @@ export default function StaffProfilePage() {
               {payroll.map((pay) => (
                 <Table.Tr key={pay.id}>
                   <Table.Td>
-                    <Text size="sm" fw={500}>
+                    <Text className="text-sm md:text-base" fw={500}>
                       {new Date(pay.month_year + '-01').toLocaleDateString('en-US', {
                         month: 'long',
                         year: 'numeric'
@@ -912,7 +904,7 @@ export default function StaffProfilePage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       ৳{parseFloat(pay.basic_salary).toLocaleString('en-BD', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -920,7 +912,7 @@ export default function StaffProfilePage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" c="green">
+                    <Text className="text-sm md:text-base" c="green">
                       ৳{parseFloat(pay.bonus).toLocaleString('en-BD', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -928,7 +920,7 @@ export default function StaffProfilePage() {
                     </Text>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm" c="red">
+                    <Text className="text-sm md:text-base" c="red">
                       ৳{parseFloat(pay.deductions).toLocaleString('en-BD', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
@@ -947,13 +939,13 @@ export default function StaffProfilePage() {
                     <Badge
                       color={pay.status === 'paid' ? 'green' : 'orange'}
                       variant="light"
-                      size="sm"
+                      className="text-sm md:text-base"
                     >
                       {pay.status.charAt(0).toUpperCase() + pay.status.slice(1)}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
-                    <Text size="sm">
+                    <Text className="text-sm md:text-base">
                       {pay.payment_date
                         ? new Date(pay.payment_date).toLocaleDateString('en-US', {
                             month: 'short',
@@ -981,7 +973,7 @@ export default function StaffProfilePage() {
       <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
         <Group justify="space-between" mb="md">
           <Title order={4} className="text-base md:text-lg lg:text-xl">Login History</Title>
-          <Badge size="lg">{mockLoginHistory.length} records</Badge>
+          <Badge className="text-lg md:text-xl lg:text-2xl">{mockLoginHistory.length} records</Badge>
         </Group>
         <Text c="dimmed">Mock data - API integration pending</Text>
       </Paper>

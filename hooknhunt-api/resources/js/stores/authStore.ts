@@ -1,5 +1,59 @@
 import { create } from 'zustand'
 
+/**
+ * Convert route path to permission key using naming convention
+ *
+ * Examples:
+ * /finance/banks           → finance_banks_view
+ * /finance/banks/create    → finance_banks_create
+ * /finance/banks/123/edit   → finance_banks_edit
+ * /hrm/staff               → hrm_staff_view
+ *
+ * @param route - The route path (e.g., "/finance/banks/123/edit")
+ * @returns The corresponding permission key (e.g., "finance_banks_edit")
+ */
+function routeToPermissionKey(route: string): string | null {
+  // Remove leading and trailing slashes
+  let path = route.replace(/^\/|\/$/g, '')
+
+  // Split by /
+  const parts = path.split('/').filter(Boolean)
+
+  if (parts.length === 0) return null
+
+  // Remove numeric segments (IDs) from dynamic routes
+  // e.g., /finance/banks/123/edit → /finance/banks/edit
+  const cleanParts = parts.filter(p => !/^\d+$/.test(p))
+
+  // Handle action keywords
+  const lastPart = cleanParts[cleanParts.length - 1]
+
+  // Map action keywords to permission actions
+  const actionMap: Record<string, string> = {
+    create: 'create',
+    edit: 'edit',
+    update: 'edit',
+    delete: 'delete',
+    destroy: 'delete',
+    store: 'create',
+    show: 'view',
+    view: 'view',
+    index: 'view',
+  }
+
+  // If last part is an action keyword, use it
+  // Otherwise, default to 'view'
+  const action = actionMap[lastPart as string] || 'view'
+
+  // Remove the action from parts if it's 'view'
+  const resourceParts = action === 'view'
+    ? cleanParts
+    : cleanParts.slice(0, -1)
+
+  // Join with underscores to create permission key
+  return [...resourceParts, action].join('_')
+}
+
 export interface Role {
   id: number
   name: string
@@ -11,6 +65,7 @@ export interface Permission {
   id: number
   name: string
   slug: string
+  key: string  // Frontend permission identifier (e.g., "finance_banks_view")
   group_name?: string
 }
 
@@ -33,7 +88,8 @@ export interface User {
 interface AuthState {
   user: User | null
   token: string | null
-  permissions: string[] // Array of permission slugs
+  permissions: string[] // Array of permission slugs (for backward compatibility)
+  permissionKeys: string[] // Array of permission keys (for frontend)
   permissionObjects: Permission[] // Array of full permission objects with group_name
   hydrated: boolean // Track if we've loaded from localStorage
   isAuthenticated: () => boolean
@@ -44,6 +100,7 @@ interface AuthState {
   isSuperAdmin: () => boolean
   hasAccessToGroup: (groupName: string) => boolean
   getPermissionGroups: () => string[]
+  canAccessRoute: (route: string) => boolean  // Check route access using permission keys
   login: (token: string, user: User, permissions?: string[], permissionObjects?: Permission[]) => void
   setPermissions: (permissions: string[], permissionObjects?: Permission[]) => void
   logout: () => void
@@ -55,16 +112,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
   permissions: [],
+  permissionKeys: [], // NEW: Store permission keys separately for frontend
   permissionObjects: [],
   hydrated: false,
   isAuthenticated: () => !!get().token, // Check for both null and undefined
 
-  // Permission checking methods
+  // Permission checking methods (checks both keys and slugs)
   hasPermission: (permission: string) => {
-    const { permissions, user } = get()
+    const { permissions, permissionKeys, user } = get()
     // Super admin has all permissions
     if (user?.role?.slug === 'super_admin') return true
-    return permissions.includes(permission)
+    // Check both keys and slugs for flexibility
+    return permissions.includes(permission) || permissionKeys.includes(permission)
   },
 
   hasAnyPermission: (permissions: string[]) => {
@@ -108,29 +167,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     return Array.from(groups)
   },
 
+  // Check if user can access a route based on their permissions (from database)
+  // Uses naming convention: route path → permission key
+  canAccessRoute: (route: string) => {
+    const { user, permissionKeys } = get()
+    // Super admin can access all routes
+    if (user?.role?.slug === 'super_admin') return true
+
+    // Convert route path to permission key using naming convention
+    // /finance/banks → finance_banks_view
+    // /finance/banks/create → finance_banks_create
+    // /finance/banks/123/edit → finance_banks_edit
+    const requiredKey = routeToPermissionKey(route)
+
+    // If route doesn't map to a permission pattern, it's public
+    if (!requiredKey) return true
+
+    // Check if user has the permission key
+    return permissionKeys.includes(requiredKey)
+  },
+
   login: (token, user, permissions = [], permissionObjects = []) => {
-    console.log('[authStore.login] Starting login process...')
-    console.log('[authStore.login] Token:', token)
-    console.log('[authStore.login] User:', user)
+
+    // Extract permission keys from permissionObjects
+    const permissionKeys = permissionObjects.map((p: Permission) => p.key).filter(Boolean)
 
     // Save to localStorage
     localStorage.setItem('token', token)
     localStorage.setItem('user', JSON.stringify(user))
     localStorage.setItem('permissions', JSON.stringify(permissions))
+    localStorage.setItem('permissionKeys', JSON.stringify(permissionKeys))
     localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
 
-    console.log('[authStore.login] localStorage.setItem completed')
-    console.log('[authStore.login] Verification - Token in localStorage:', localStorage.getItem('token'))
 
     // Set state
-    set({ user, token, permissions, permissionObjects, hydrated: true })
-    console.log('[authStore.login] State updated. Hydrated:', true)
+    set({ user, token, permissions, permissionKeys, permissionObjects, hydrated: true })
   },
 
   setPermissions: (permissions: string[], permissionObjects = []) => {
+    // Extract permission keys from permissionObjects
+    const permissionKeys = permissionObjects.map((p: Permission) => p.key).filter(Boolean)
+
     localStorage.setItem('permissions', JSON.stringify(permissions))
+    localStorage.setItem('permissionKeys', JSON.stringify(permissionKeys))
     localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
-    set({ permissions, permissionObjects })
+    set({ permissions, permissionKeys, permissionObjects })
   },
 
   logout: () => {
@@ -138,33 +219,31 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     localStorage.removeItem('permissions')
+    localStorage.removeItem('permissionKeys')
     localStorage.removeItem('permissionObjects')
 
     // Clear state
-    set({ user: null, token: null, permissions: [], permissionObjects: [], hydrated: true })
+    set({ user: null, token: null, permissions: [], permissionKeys: [], permissionObjects: [], hydrated: false })
 
     // Redirect to login
     window.location.href = '/login'
   },
 
   loadUserFromStorage: () => {
-    console.log('[authStore.loadUserFromStorage] Loading from localStorage...')
     const token = localStorage.getItem('token')
     const userString = localStorage.getItem('user')
     const permissionsString = localStorage.getItem('permissions')
+    const permissionKeysString = localStorage.getItem('permissionKeys')
     const permissionObjectsString = localStorage.getItem('permissionObjects')
 
-    console.log('[authStore.loadUserFromStorage] Token found:', token ? 'YES' : 'NO')
-    console.log('[authStore.loadUserFromStorage] User found:', userString ? 'YES' : 'NO')
 
     if (token && userString) {
       try {
         const user = JSON.parse(userString) as User
         const permissions = permissionsString ? JSON.parse(permissionsString) : []
+        const permissionKeys = permissionKeysString ? JSON.parse(permissionKeysString) : []
         const permissionObjects = permissionObjectsString ? JSON.parse(permissionObjectsString) : []
-        console.log('[authStore.loadUserFromStorage] Parsed user:', user.name)
-        set({ user, token, permissions, permissionObjects, hydrated: true })
-        console.log('[authStore.loadUserFromStorage] State set successfully')
+        set({ user, token, permissions, permissionKeys, permissionObjects, hydrated: true })
       } catch (error) {
         console.error('[authStore.loadUserFromStorage] Error parsing:', error)
         // Clear corrupted storage
@@ -172,7 +251,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         get().logout()
       }
     } else {
-      console.log('[authStore.loadUserFromStorage] No token/user found in localStorage')
       set({ hydrated: true })
     }
   },

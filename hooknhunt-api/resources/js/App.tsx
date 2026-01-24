@@ -78,6 +78,7 @@ import EditBank from "@/app/admin/finance/banks/[id]/edit/page"
 import Transactions from "@/app/admin/finance/transactions/page"
 import Expenses from "@/app/admin/finance/expenses/page"
 import CreateExpense from "@/app/admin/finance/expenses/create/page"
+import EditExpense from "@/app/admin/finance/expenses/[id]/edit/page"
 import Accounts from "@/app/admin/finance/accounts/page"
 import CreateAccount from "@/app/admin/finance/accounts/create/page"
 import ReportsIndex from "@/app/admin/finance/reports/page"
@@ -86,6 +87,19 @@ import BalanceSheet from "@/app/admin/finance/reports/balance-sheet/page"
 import CashFlow from "@/app/admin/finance/reports/cash-flow/page"
 import TrialBalance from "@/app/admin/finance/reports/trial-balance/page"
 import GeneralLedger from "@/app/admin/finance/reports/general-ledger/page"
+import FixedAssets from "@/app/admin/finance/fixed-assets/page"
+import Cheques from "@/app/admin/finance/cheques/page"
+import VatTaxLedger from "@/app/admin/finance/vat-tax/page"
+import JournalEntries from "@/app/admin/finance/journal-entries/page"
+import Budgets from "@/app/admin/finance/budgets/page"
+import CostCenters from "@/app/admin/finance/cost-centers/page"
+import Projects from "@/app/admin/finance/projects/page"
+import FiscalYears from "@/app/admin/finance/fiscal-years/page"
+import AccountsPayable from "@/app/admin/finance/accounts-payable/page"
+import AccountsReceivable from "@/app/admin/finance/accounts-receivable/page"
+import Currencies from "@/app/admin/finance/currencies/page"
+import CustomReports from "@/app/admin/finance/reports/custom/page"
+import FinanceAudit from "@/app/admin/finance/audit/page"
 import Tickets from "@/app/admin/support/tickets/page"
 import SupportCategories from "@/app/admin/support/categories/page"
 import Banners from "@/app/admin/cms/banners/page"
@@ -216,8 +230,22 @@ function App() {
               <Route path="finance/transactions" element={<Transactions />} />
               <Route path="finance/expenses" element={<Expenses />} />
               <Route path="finance/expenses/create" element={<CreateExpense />} />
+              <Route path="finance/expenses/:id/edit" element={<EditExpense />} />
               <Route path="finance/accounts" element={<Accounts />} />
               <Route path="finance/accounts/create" element={<CreateAccount />} />
+              <Route path="finance/fixed-assets" element={<FixedAssets />} />
+              <Route path="finance/cheques" element={<Cheques />} />
+              <Route path="finance/vat-tax" element={<VatTaxLedger />} />
+              <Route path="finance/journal-entries" element={<JournalEntries />} />
+              <Route path="finance/budgets" element={<Budgets />} />
+              <Route path="finance/cost-centers" element={<CostCenters />} />
+              <Route path="finance/projects" element={<Projects />} />
+              <Route path="finance/fiscal-years" element={<FiscalYears />} />
+              <Route path="finance/accounts-payable" element={<AccountsPayable />} />
+              <Route path="finance/accounts-receivable" element={<AccountsReceivable />} />
+              <Route path="finance/currencies" element={<Currencies />} />
+              <Route path="finance/reports/custom" element={<CustomReports />} />
+              <Route path="finance/audit" element={<FinanceAudit />} />
               <Route path="finance/reports" element={<ReportsIndex />} />
               <Route path="finance/reports/profit-loss" element={<ProfitLoss />} />
               <Route path="finance/reports/balance-sheet" element={<BalanceSheet />} />

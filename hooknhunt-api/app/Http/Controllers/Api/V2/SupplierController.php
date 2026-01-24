@@ -34,14 +34,34 @@ class SupplierController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string',
+            'email' => 'required|email',
+            'whatsapp' => 'nullable|string',
+            'shop_url' => 'nullable|url',
             'shop_name' => 'nullable|string',
+            'contact_person' => 'nullable|string',
             'phone' => 'nullable|string',
-            'wechat_id' => 'nullable|string', // Critical for China
+            'wechat_id' => 'nullable|string',
+            'wechat_qr_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'wechat_qr_url' => 'nullable|url',
             'alipay_id' => 'nullable|string',
+            'alipay_qr_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'alipay_qr_url' => 'nullable|url',
             'address' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
         ]);
 
-        $supplier = Supplier::create($validated);
+        // Handle file uploads
+        $data = $validated;
+        if ($request->hasFile('wechat_qr_file')) {
+            $path = $request->file('wechat_qr_file')->store('wechat_qr_codes', 'public');
+            $data['wechat_qr_file'] = $path;
+        }
+        if ($request->hasFile('alipay_qr_file')) {
+            $path = $request->file('alipay_qr_file')->store('alipay_qr_codes', 'public');
+            $data['alipay_qr_file'] = $path;
+        }
+
+        $supplier = Supplier::create($data);
         return $this->sendSuccess($supplier, 'Supplier created successfully', 201);
     }
 
@@ -52,8 +72,38 @@ class SupplierController extends Controller
 
     public function update(Request $request, $id)
     {
+        $validated = $request->validate([
+            'name' => 'sometimes|required|string',
+            'email' => 'sometimes|required|email',
+            'whatsapp' => 'nullable|string',
+            'shop_url' => 'nullable|url',
+            'shop_name' => 'nullable|string',
+            'contact_person' => 'nullable|string',
+            'phone' => 'nullable|string',
+            'wechat_id' => 'nullable|string',
+            'wechat_qr_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'wechat_qr_url' => 'nullable|url',
+            'alipay_id' => 'nullable|string',
+            'alipay_qr_file' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'alipay_qr_url' => 'nullable|url',
+            'address' => 'nullable|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
         $supplier = Supplier::findOrFail($id);
-        $supplier->update($request->all());
+
+        // Handle file uploads
+        $data = $validated;
+        if ($request->hasFile('wechat_qr_file')) {
+            $path = $request->file('wechat_qr_file')->store('wechat_qr_codes', 'public');
+            $data['wechat_qr_file'] = $path;
+        }
+        if ($request->hasFile('alipay_qr_file')) {
+            $path = $request->file('alipay_qr_file')->store('alipay_qr_codes', 'public');
+            $data['alipay_qr_file'] = $path;
+        }
+
+        $supplier->update($data);
         return $this->sendSuccess($supplier, 'Supplier updated successfully');
     }
 

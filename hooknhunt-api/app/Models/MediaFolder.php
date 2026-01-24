@@ -20,10 +20,14 @@ class MediaFolder extends Model
         'sort_order',
         'is_public',
         'allowed_roles',
+        'view_roles',
+        'edit_roles',
     ];
 
     protected $casts = [
         'allowed_roles' => 'array',
+        'view_roles' => 'array',
+        'edit_roles' => 'array',
         'is_public' => 'boolean',
         'sort_order' => 'integer',
     ];
@@ -89,8 +93,53 @@ class MediaFolder extends Model
             return false;
         }
 
+        // Get user's role slug
+        $userRole = optional($user->role)->slug ?? null;
+
         $allowedRoles = $this->allowed_roles ?? [];
-        return empty($allowedRoles) || in_array($user->role, $allowedRoles);
+        return empty($allowedRoles) || in_array($userRole, $allowedRoles);
+    }
+
+    /**
+     * Check if user can view this folder.
+     */
+    public function canBeViewedBy($user): bool
+    {
+        if (!$user) {
+            return $this->is_public ?? false;
+        }
+
+        // Get user's role slug
+        $userRole = optional($user->role)->slug ?? null;
+
+        // Super admin can view everything
+        if ($userRole === 'super_admin') {
+            return true;
+        }
+
+        $viewRoles = $this->view_roles ?? [];
+        return empty($viewRoles) || in_array($userRole, $viewRoles);
+    }
+
+    /**
+     * Check if user can edit/delete this folder.
+     */
+    public function canBeEditedBy($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        // Get user's role slug
+        $userRole = optional($user->role)->slug ?? null;
+
+        // Super admin can edit everything
+        if ($userRole === 'super_admin') {
+            return true;
+        }
+
+        $editRoles = $this->edit_roles ?? [];
+        return empty($editRoles) || in_array($userRole, $editRoles);
     }
 
     /**

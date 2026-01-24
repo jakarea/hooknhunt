@@ -43,13 +43,11 @@ export default function DashboardPage() {
     try {
       const today = new Date().toISOString().split('T')[0]
       const response = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}&user_id=${user.id}`)
-      console.log('Today attendance response:', response)
 
       if (response.data?.data?.data && response.data.data.data.length > 0) {
         setTodayAttendance(response.data.data.data[0])
       }
     } catch (error) {
-      console.log('No attendance for today:', error)
     }
   }
 
@@ -60,13 +58,11 @@ export default function DashboardPage() {
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
 
       const response = await api.get(`/hrm/attendance?start_date=${startOfMonth}&end_date=${endOfMonth}&user_id=${user.id}`)
-      console.log('History response:', response)
 
       if (response.data?.data?.data) {
         setAttendanceHistory(response.data.data.data)
       }
     } catch (err) {
-      console.log('Error fetching history:', err)
     }
   }
 

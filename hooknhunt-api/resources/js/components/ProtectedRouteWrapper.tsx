@@ -25,20 +25,14 @@ export function ProtectedRouteWrapper({
   const location = useLocation()
   const { attendance, loading } = useAttendance(user?.id, token)
 
-  console.log('[ProtectedRoute] Hydrated:', hydrated)
-  console.log('[ProtectedRoute] Token from store:', token ? 'Exists' : 'NULL')
-  console.log('[ProtectedRoute] Token from localStorage:', localStorage.getItem('token'))
 
   if (!hydrated || loading) {
-    console.log('[ProtectedRoute] Waiting for hydration...')
     return <LoadingState />
   }
 
   const isAuthenticated = !!token
-  console.log('[ProtectedRoute] isAuthenticated:', isAuthenticated)
 
   if (!isAuthenticated) {
-    console.log('[ProtectedRoute] Not authenticated, redirecting to login')
     return <Navigate to="/login" replace />
   }
 
@@ -47,7 +41,6 @@ export function ProtectedRouteWrapper({
   const isOnBreak = attendance?.clock_in && !attendance?.clock_out && breakIns.length > breakOuts.length
 
   if (isOnBreak && location.pathname !== '/dashboard') {
-    console.log('[ProtectedRoute] User is on break, redirecting to dashboard')
     return <Navigate to="/dashboard" replace />
   }
 

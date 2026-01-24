@@ -168,7 +168,7 @@ export default function StaffPage() {
       title: 'Delete Staff',
       centered: true,
       children: (
-        <Text size="sm">
+        <Text className="text-sm md:text-base">
           Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.
         </Text>
       ),
@@ -244,7 +244,7 @@ export default function StaffPage() {
             <Group >
               <ActionIcon
                 variant="light"
-                size="lg"
+                className="text-lg md:text-xl lg:text-2xl"
                 onClick={handleRefresh}
                 loading={loading}
               >
@@ -268,33 +268,33 @@ export default function StaffPage() {
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconUsers size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-              <Text size="xs" c="dimmed">Total Staff</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Staff</Text>
             </Group>
-            <Text size="xl" fw={700}>{totalStaff}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalStaff}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconBriefcase size={20} style={{ color: 'var(--mantine-color-green-filled)' }} />
-              <Text size="xs" c="dimmed">Active</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Active</Text>
             </Group>
-            <Text size="xl" fw={700}>{activeStaff}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{activeStaff}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconClock size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
-              <Text size="xs" c="dimmed">On Leave</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">On Leave</Text>
             </Group>
-            <Text size="xl" fw={700}>{onLeaveStaff}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{onLeaveStaff}</Text>
           </Card>
 
           <Card withBorder p="md" radius="md">
             <Group  mb="xs">
               <IconBuilding size={20} style={{ color: 'var(--mantine-color-purple-filled)' }} />
-              <Text size="xs" c="dimmed">Departments</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Departments</Text>
             </Group>
-            <Text size="xl" fw={700}>{departmentsCount}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{departmentsCount}</Text>
           </Card>
         </SimpleGrid>
 
@@ -307,7 +307,7 @@ export default function StaffPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               style={{ flex: 1, maxWidth: '400px' }}
-              size="md"
+              className="text-base md:text-lg"
             />
           </Group>
         </Group>
@@ -345,46 +345,46 @@ export default function StaffPage() {
                           <Avatar
                             alt={staffMember.name}
                             radius="xl"
-                            size="sm"
+                            className="text-sm md:text-base"
                             color="red"
                           >
                             {getInitials(staffMember.name)}
                           </Avatar>
                           <Box>
-                            <Text fw={600} size="sm">{staffMember.name}</Text>
-                            {staffMember.email && <Text size="xs" c="dimmed">{staffMember.email}</Text>}
-                            <Text size="xs" c="dimmed">{staffMember.phone}</Text>
+                            <Text fw={600} className="text-sm md:text-base">{staffMember.name}</Text>
+                            {staffMember.email && <Text className="text-xs md:text-sm" c="dimmed">{staffMember.email}</Text>}
+                            <Text className="text-xs md:text-sm" c="dimmed">{staffMember.phone}</Text>
                           </Box>
                         </Group>
                       </Table.Td>
                       <Table.Td>
                         {staffMember.staffProfile?.department ? (
-                          <Badge size="sm" variant="light">{staffMember.staffProfile.department.name}</Badge>
+                          <Badge className="text-sm md:text-base" variant="light">{staffMember.staffProfile.department.name}</Badge>
                         ) : (
-                          <Text size="sm" c="dimmed">N/A</Text>
+                          <Text className="text-sm md:text-base" c="dimmed">N/A</Text>
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{staffMember.staffProfile?.designation || 'N/A'}</Text>
+                        <Text className="text-sm md:text-base">{staffMember.staffProfile?.designation || 'N/A'}</Text>
                       </Table.Td>
                       <Table.Td>
                         {staffMember.role ? (
-                          <Badge size="sm" color="blue" variant="light">{staffMember.role.name}</Badge>
+                          <Badge className="text-sm md:text-base" color="blue" variant="light">{staffMember.role.name}</Badge>
                         ) : (
-                          <Text size="sm" c="dimmed">N/A</Text>
+                          <Text className="text-sm md:text-base" c="dimmed">N/A</Text>
                         )}
                       </Table.Td>
                       <Table.Td>
                         <Badge
                           color={staffMember.isActive ? 'green' : 'gray'}
                           variant="light"
-                          size="sm"
+                          className="text-sm md:text-base"
                         >
                           {staffMember.isActive? 'Active':'InActive'}
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
+                        <Text className="text-sm md:text-base">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Group >
@@ -395,7 +395,7 @@ export default function StaffPage() {
                               color="blue"
                               component={Link}
                               to={`/hrm/staff/${staffMember.id}`}
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               <IconEye size={16} />
                             </ActionIcon>
@@ -408,7 +408,7 @@ export default function StaffPage() {
                               color="gray"
                               component={Link}
                               to={`/hrm/staff/${staffMember.id}/edit`}
-                              size="sm"
+                              className="text-sm md:text-base"
                             >
                               <IconPencil size={16} />
                             </ActionIcon>
@@ -422,7 +422,7 @@ export default function StaffPage() {
                               <ActionIcon
                                 variant="subtle"
                                 color="red"
-                                size="sm"
+                                className="text-sm md:text-base"
                                 loading={deletingStaffId === staffMember.id}
                                 disabled={staffMember.id === currentUser?.id}
                                 onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
@@ -455,20 +455,20 @@ export default function StaffPage() {
                     <Avatar
                       alt={staffMember.name}
                       radius="xl"
-                      size="md"
+                      className="text-base md:text-lg"
                       color="red"
                     >
                       {getInitials(staffMember.name)}
                     </Avatar>
                     <Box>
-                      <Text fw={600} size="sm">{staffMember.name}</Text>
-                      <Text size="xs" c="dimmed">{staffMember.phone}</Text>
+                      <Text fw={600} className="text-sm md:text-base">{staffMember.name}</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{staffMember.phone}</Text>
                     </Box>
                   </Group>
                   <Badge
                     color={staffMember.isActive ? 'green' : 'gray'}
                     variant="light"
-                    size="sm"
+                    className="text-sm md:text-base"
                   >
                     {String(staffMember.isActive)}
                   </Badge>
@@ -477,37 +477,37 @@ export default function StaffPage() {
                 {staffMember.email && (
                   <Group gap={6} mb="xs">
                     <IconMail size={14} style={{ color: 'var(--mantine-color-gray-5)' }} />
-                    <Text size="xs">{staffMember.email}</Text>
+                    <Text className="text-xs md:text-sm">{staffMember.email}</Text>
                   </Group>
                 )}
 
                 <SimpleGrid cols={2}  mb="xs">
                   <Box>
-                    <Text size="xs" c="dimmed">Department</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">Department</Text>
                     {staffMember.staffProfile?.department ? (
-                      <Badge size="xs" variant="light">{staffMember.staffProfile.department.name}</Badge>
+                      <Badge className="text-xs md:text-sm" variant="light">{staffMember.staffProfile.department.name}</Badge>
                     ) : (
-                      <Text size="xs">N/A</Text>
+                      <Text className="text-xs md:text-sm">N/A</Text>
                     )}
                   </Box>
                   <Box>
-                    <Text size="xs" c="dimmed">Position</Text>
-                    <Text size="xs">{staffMember.staffProfile?.designation || 'N/A'}</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">Position</Text>
+                    <Text className="text-xs md:text-sm">{staffMember.staffProfile?.designation || 'N/A'}</Text>
                   </Box>
                 </SimpleGrid>
 
                 <SimpleGrid cols={2} >
                   <Box>
-                    <Text size="xs" c="dimmed">Role</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">Role</Text>
                     {staffMember.role ? (
-                      <Badge size="xs" color="blue" variant="light">{staffMember.role.name}</Badge>
+                      <Badge className="text-xs md:text-sm" color="blue" variant="light">{staffMember.role.name}</Badge>
                     ) : (
-                      <Text size="xs">N/A</Text>
+                      <Text className="text-xs md:text-sm">N/A</Text>
                     )}
                   </Box>
                   <Box>
-                    <Text size="xs" c="dimmed">Joined</Text>
-                    <Text size="xs">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
+                    <Text className="text-xs md:text-sm" c="dimmed">Joined</Text>
+                    <Text className="text-xs md:text-sm">{formatDate(staffMember.staffProfile?.joiningDate)}</Text>
                   </Box>
                 </SimpleGrid>
 
@@ -516,11 +516,10 @@ export default function StaffPage() {
                   {hasPermission('hrm.staff.index') && (
                     <Button
                       variant="light"
-                      size="xs"
+                      className="text-xs md:text-sm flex-1"
                       component={Link}
                       to={`/hrm/staff/${staffMember.id}`}
                       leftSection={<IconEye size={14} />}
-                      style={{ flex: 1 }}
                     >
                       View
                     </Button>
@@ -533,7 +532,7 @@ export default function StaffPage() {
                       color="gray"
                       component={Link}
                       to={`/hrm/staff/${staffMember.id}/edit`}
-                      size="sm"
+                      className="text-sm md:text-base"
                     >
                       <IconPencil size={16} />
                     </ActionIcon>
@@ -547,7 +546,7 @@ export default function StaffPage() {
                       <ActionIcon
                         variant="subtle"
                         color="red"
-                        size="sm"
+                        className="text-sm md:text-base"
                         loading={deletingStaffId === staffMember.id}
                         disabled={staffMember.id === currentUser?.id}
                         onClick={() => openDeleteModal(staffMember.id, staffMember.name)}
@@ -569,7 +568,7 @@ export default function StaffPage() {
               total={totalPages}
               value={currentPage}
               onChange={handlePageChange}
-              size="sm"
+              className="text-sm md:text-base"
             />
           </Group>
         )}

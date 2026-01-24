@@ -506,17 +506,33 @@ class BankController extends Controller
         ]);
 
         // Credit: Default cash or income account
-        $defaultAccount = ChartOfAccount::where('type', 'asset')->where('name', 'like', '%Cash%')->first();
+        $defaultAccount = ChartOfAccount::where('type', 'asset')
+            ->where('name', 'like', '%Cash%')
+            ->where('is_active', true)
+            ->first();
+
         if (!$defaultAccount) {
-            $defaultAccount = ChartOfAccount::where('type', 'asset')->first();
+            // Try to find any active asset account as fallback
+            $defaultAccount = ChartOfAccount::where('type', 'asset')
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (!$defaultAccount) {
+            throw new \Exception('No active asset account found for journal entry. Please create an asset account first.');
         }
 
         JournalItem::create([
             'journal_entry_id' => $journalEntry->id,
-            'account_id' => $defaultAccount?->id ?? 1,
+            'account_id' => $defaultAccount->id,
             'debit' => 0,
             'credit' => $amount,
         ]);
+
+        // Validate balance (critical for double-entry)
+        if (!$journalEntry->isBalanced()) {
+            throw new \Exception('Journal entry is not balanced. Debit: ' . $journalEntry->getTotalDebitAttribute . ', Credit: ' . $journalEntry->getTotalCreditAttribute);
+        }
 
         return $journalEntry;
     }
@@ -562,6 +578,11 @@ class BankController extends Controller
             'debit' => 0,
             'credit' => $amount,
         ]);
+
+        // Validate balance (critical for double-entry)
+        if (!$journalEntry->isBalanced()) {
+            throw new \Exception('Journal entry is not balanced. Debit: ' . $journalEntry->getTotalDebitAttribute . ', Credit: ' . $journalEntry->getTotalCreditAttribute);
+        }
 
         return $journalEntry;
     }
@@ -614,6 +635,11 @@ class BankController extends Controller
             'debit' => 0,
             'credit' => $amount,
         ]);
+
+        // Validate balance (critical for double-entry)
+        if (!$journalEntry->isBalanced()) {
+            throw new \Exception('Journal entry is not balanced. Debit: ' . $journalEntry->getTotalDebitAttribute . ', Credit: ' . $journalEntry->getTotalCreditAttribute);
+        }
 
         return $journalEntry;
     }
