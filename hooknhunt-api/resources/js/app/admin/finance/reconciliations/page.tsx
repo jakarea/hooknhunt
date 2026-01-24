@@ -299,7 +299,7 @@ export default function BankAccountReconciliationsPage() {
   const viewingReconciliation = reconciliations.find((r) => r.id === viewingId)
 
   return (
-    <Container size="xl">
+    <Box p={{ base: 'md', md: 'xl' }}>
       <Stack gap="md">
         {/* Header */}
         <Flex justify="space-between" align="center">
@@ -735,6 +735,6 @@ export default function BankAccountReconciliationsPage() {
           )}
         </Modal>
       </Stack>
-    </Container>
+    </Box>
   )
 }

@@ -3262,3 +3262,384 @@ export const updateMediaFile = async (id: number, data: {
   const response = await api.put(`media/files/${id}`, data)
   return response.data
 }
+
+// ============================================
+// CURRENCIES API METHODS
+// ============================================
+
+export type Currency = {
+  id: number
+  code: string
+  name: string
+  symbol: string
+  symbolPosition: 'left' | 'right'
+  decimalPlaces: number
+  isDefault: boolean
+  exchangeRate: number | null
+  isActive: boolean
+  notes?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type CurrencyFilters = {
+  is_active?: boolean
+}
+
+/**
+ * Get all currencies
+ * GET /api/v2/finance/currencies
+ */
+export const getCurrencies = async (filters?: CurrencyFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.is_active !== undefined) params.append('is_active', filters.is_active ? '1' : '0')
+
+  const response = await api.get(`finance/currencies?${params}`)
+  return response.data
+}
+
+/**
+ * Get single currency by ID
+ * GET /api/v2/finance/currencies/{id}
+ */
+export const getCurrency = async (id: number) => {
+  const response = await api.get(`finance/currencies/${id}`)
+  return response.data
+}
+
+/**
+ * Get default currency
+ * GET /api/v2/finance/currencies/default
+ */
+export const getDefaultCurrency = async () => {
+  const response = await api.get('finance/currencies/default')
+  return response.data
+}
+
+/**
+ * Create new currency
+ * POST /api/v2/finance/currencies
+ */
+export const createCurrency = async (data: {
+  code: string
+  name: string
+  symbol: string
+  symbol_position: 'left' | 'right'
+  decimal_places: number
+  exchange_rate?: number | null
+  is_active?: boolean
+  notes?: string | null
+}) => {
+  const response = await api.post('finance/currencies', data)
+  return response.data
+}
+
+/**
+ * Update currency
+ * PUT/PATCH /api/v2/finance/currencies/{id}
+ */
+export const updateCurrency = async (id: number, data: {
+  name?: string
+  symbol?: string
+  symbol_position?: 'left' | 'right'
+  decimal_places?: number
+  exchange_rate?: number | null
+  is_active?: boolean
+  is_default?: boolean
+  notes?: string | null
+}) => {
+  const response = await api.put(`finance/currencies/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete currency
+ * DELETE /api/v2/finance/currencies/{id}
+ */
+export const deleteCurrency = async (id: number) => {
+  const response = await api.delete(`finance/currencies/${id}`)
+  return response.data
+}
+
+/**
+ * Convert amount between currencies
+ * POST /api/v2/finance/currencies/convert
+ */
+export const convertCurrency = async (data: {
+  amount: number
+  from_currency: string
+  to_currency?: string | null
+  format?: boolean
+}) => {
+  const response = await api.post('finance/currencies/convert', data)
+  return response.data
+}
+
+/**
+ * Update exchange rate
+ * POST /api/v2/finance/currencies/{id}/exchange-rate
+ */
+export const updateCurrencyExchangeRate = async (id: number, exchangeRate: number) => {
+  const response = await api.post(`finance/currencies/${id}/exchange-rate`, {
+    exchange_rate: exchangeRate,
+  })
+  return response.data
+}
+
+// ============================================
+// ADVANCED FINANCIAL REPORTS API METHODS
+// ============================================
+
+export type FinancialReport = {
+  id: number
+  name: string
+  type: 'comparative' | 'ratio' | 'cash_flow' | 'fund_flow' | 'custom'
+  description?: string | null
+  templateId?: number | null
+  startDate: string
+  endDate: string
+  compareStartDate?: string | null
+  compareEndDate?: string | null
+  periodType?: string | null
+  config?: Record<string, any>
+  columns?: string[]
+  filters?: Record<string, any>
+  isScheduled: boolean
+  scheduleFrequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | null
+  nextRunAt?: string | null
+  exportFormat: 'pdf' | 'excel' | 'csv'
+  status: 'pending' | 'generating' | 'completed' | 'failed'
+  data?: Record<string, any>
+  summary?: Record<string, any>
+  errorMessage?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type ReportTemplate = {
+  id: number
+  name: string
+  type: string
+  category: string
+  description?: string | null
+  config: Record<string, any>
+  isSystem: boolean
+  isActive: boolean
+}
+
+export type FinancialReportFilters = {
+  type?: string
+  status?: string
+  scheduled?: boolean
+}
+
+/**
+ * Get all financial reports
+ * GET /api/v2/finance/reports
+ */
+export const getFinancialReports = async (filters?: FinancialReportFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.type) params.append('type', filters.type)
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.scheduled !== undefined) params.append('scheduled', filters.scheduled ? '1' : '0')
+
+  const response = await api.get(`finance/reports?${params}`)
+  return response.data
+}
+
+/**
+ * Get single financial report
+ * GET /api/v2/finance/reports/{id}
+ */
+export const getFinancialReport = async (id: number) => {
+  const response = await api.get(`finance/reports/${id}`)
+  return response.data
+}
+
+/**
+ * Create financial report
+ * POST /api/v2/finance/reports
+ */
+export const createFinancialReport = async (data: {
+  name: string
+  type: 'comparative' | 'ratio' | 'cash_flow' | 'fund_flow' | 'custom'
+  description?: string | null
+  template_id?: number | null
+  start_date: string
+  end_date: string
+  compare_start_date?: string | null
+  compare_end_date?: string | null
+  period_type?: string | null
+  config?: Record<string, any>
+  columns?: string[]
+  filters?: Record<string, any>
+  is_scheduled?: boolean
+  schedule_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | null
+  export_format?: 'pdf' | 'excel' | 'csv'
+}) => {
+  const response = await api.post('finance/reports', data)
+  return response.data
+}
+
+/**
+ * Update financial report
+ * PUT /api/v2/finance/reports/{id}
+ */
+export const updateFinancialReport = async (id: number, data: {
+  name?: string
+  description?: string | null
+  start_date?: string
+  end_date?: string
+  compare_start_date?: string | null
+  compare_end_date?: string | null
+  period_type?: string | null
+  config?: Record<string, any>
+  columns?: string[]
+  filters?: Record<string, any>
+  is_scheduled?: boolean
+  schedule_frequency?: 'daily' | 'weekly' | 'monthly' | 'quarterly' | null
+  export_format?: 'pdf' | 'excel' | 'csv'
+}) => {
+  const response = await api.put(`finance/reports/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete financial report
+ * DELETE /api/v2/finance/reports/{id}
+ */
+export const deleteFinancialReport = async (id: number) => {
+  const response = await api.delete(`finance/reports/${id}`)
+  return response.data
+}
+
+/**
+ * Generate financial report
+ * POST /api/v2/finance/reports/{id}/generate
+ */
+export const generateFinancialReport = async (id: number) => {
+  const response = await api.post(`finance/reports/${id}/generate`)
+  return response.data
+}
+
+/**
+ * Export financial report
+ * GET /api/v2/finance/reports/{id}/export
+ */
+export const exportFinancialReport = async (id: number) => {
+  const response = await api.get(`finance/reports/${id}/export`)
+  return response.data
+}
+
+/**
+ * Get report templates
+ * GET /api/v2/finance/reports/templates
+ */
+export const getReportTemplates = async (filters?: { type?: string; category?: string }) => {
+  const params = new URLSearchParams()
+
+  if (filters?.type) params.append('type', filters.type)
+  if (filters?.category) params.append('category', filters.category)
+
+  const response = await api.get(`finance/reports/templates?${params}`)
+  return response.data
+}
+
+/**
+ * Get financial report statistics
+ * GET /api/v2/finance/reports/statistics
+ */
+export const getFinancialReportStatistics = async () => {
+  const response = await api.get('finance/reports/statistics')
+  return response.data
+}
+
+// ============================================
+// FINANCE AUDIT TRAIL API METHODS
+// ============================================
+
+export type AuditLog = {
+  id: number
+  entityType: string
+  entityId: number
+  action: string
+  description: string
+  oldValues?: Record<string, any> | null
+  newValues?: Record<string, any> | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  performedBy: number
+  createdAt: string
+}
+
+export type AuditFilters = {
+  entity_type?: string
+  entity_id?: number
+  action?: string
+  user_id?: number
+  start_date?: string
+  end_date?: string
+  search?: string
+}
+
+/**
+ * Get audit logs
+ * GET /api/v2/finance/audit
+ */
+export const getAuditLogs = async (filters?: AuditFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.entity_type) params.append('entity_type', filters.entity_type)
+  if (filters?.entity_id) params.append('entity_id', filters.entity_id.toString())
+  if (filters?.action) params.append('action', filters.action)
+  if (filters?.user_id) params.append('user_id', filters.user_id.toString())
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.search) params.append('search', filters.search)
+
+  const response = await api.get(`finance/audit?${params}`)
+  return response.data
+}
+
+/**
+ * Get single audit log
+ * GET /api/v2/finance/audit/{id}
+ */
+export const getAuditLog = async (id: number) => {
+  const response = await api.get(`finance/audit/${id}`)
+  return response.data
+}
+
+/**
+ * Get audit statistics
+ * GET /api/v2/finance/audit/statistics
+ */
+export const getAuditStatistics = async (filters?: { start_date?: string; end_date?: string }) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+
+  const response = await api.get(`finance/audit/statistics?${params}`)
+  return response.data
+}
+
+/**
+ * Get entity history
+ * GET /api/v2/finance/audit/history
+ */
+export const getEntityHistory = async (entityType: string, entityId: number) => {
+  const response = await api.get(`finance/audit/history?entity_type=${entityType}&entity_id=${entityId}`)
+  return response.data
+}
+
+/**
+ * Get entity timeline
+ * GET /api/v2/finance/audit/timeline
+ */
+export const getEntityTimeline = async (entityType: string, entityId: number) => {
+  const response = await api.get(`finance/audit/timeline?entity_type=${entityType}&entity_id=${entityId}`)
+  return response.data
+}

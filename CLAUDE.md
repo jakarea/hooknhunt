@@ -10,20 +10,28 @@ Hook & Hunt is a headless e-commerce ERP system for a multi-channel sales operat
 2. **React Admin Panel** (`hooknhunt-api/resources/js/`) - Mantine UI SPA built with React + Vite
 3. **Next.js Storefront** (`storefront/`) - Customer-facing e-commerce frontend
 
+**Tech Stack**:
+- Backend: PHP 8.2+, Laravel 12, Laravel Sanctum (auth), Pest (testing)
+- Admin Panel: React 18, TypeScript, Vite, Mantine UI, Zustand, React Router v7, Tailwind CSS 4
+- Storefront: Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Zustand
+- Mobile: Capacitor 8 (for Android/iOS apps from the admin panel)
+
 ## Common Development Commands
 
 ### Laravel API Backend
 ```bash
 cd hooknhunt-api
 
-# Setup (first time)
+# Setup (first time) - installs deps, creates .env, generates key, runs migrations, builds frontend
 composer run setup
 
 # Development (runs Laravel server, queue, logs, and Vite concurrently)
 composer run dev
 
-# Testing
+# Testing (uses Pest)
 composer run test
+# Or run specific test file
+./vendor/bin/pest tests/Feature/ExampleTest.php
 
 # Database operations
 php artisan migrate
@@ -61,11 +69,13 @@ npm run lint         # ESLint
 ### Next.js Storefront
 ```bash
 cd storefront
-npm run dev          # Start Next.js dev server (http://localhost:3000)
-npm run build        # Production build
+npm run dev          # Start Next.js dev server with turbopack (http://localhost:3000)
+npm run build        # Production build with turbopack
 npm run start        # Start production server
 npm run lint         # ESLint
 ```
+
+**Note**: The storefront uses API rewrites to proxy `/api/v1/*` requests to the Laravel backend (configured in `next.config.ts`). Update the `destination` URL if your backend runs on a different host/port.
 
 ## Architecture Overview
 
@@ -90,6 +100,8 @@ All V2 API routes are in `routes/api.php` under the `/api/v2` prefix:
 - **`/api/v2/public/*`**: Public products/categories, lead capture - Public
 
 **Middleware**: All protected routes use `auth` middleware (Laravel Sanctum). Role-based access control is handled via permission checks.
+
+**Response Format**: The `CamelCaseResponse` middleware automatically converts all JSON response keys from snake_case (Laravel default) to camelCase (JavaScript convention). Frontend code should expect camelCase properties.
 
 ### Legacy V1 Routes
 
@@ -164,6 +176,18 @@ if (is_string($categoryIds)) {
 - Super admin role bypasses all permission checks
 - `usePermissions` hook provides convenient permission checking methods
 
+**Permission Checking (Frontend)**:
+The `usePermissions` hook (`resources/js/hooks/usePermissions.ts`) provides:
+- `hasPermission(slug)` - Check single permission or array (any match)
+- `hasAnyPermission(slugs[])` - Check if user has any of the permissions
+- `hasAllPermissions(slugs[])` - Check if user has all permissions
+- `canAccessRoute(route)` - Derive permission from route name (e.g., `/finance/banks` → `finance.banks.view`)
+- `canEditProfile(userId)` / `canViewProfile(userId)` - Profile access checks
+- `isSuperAdmin()` - Check if user is super admin
+- `hasRole(role)` - Check if user has specific role
+- `hasAccessToGroup(groupName)` - Check access to permission group
+- `refreshPermissions()` - Manually refresh permissions from API
+
 **Storefront (Next.js)**:
 - Uses React Context (`storefront/src/context/AuthContext.tsx`)
 - Token stored in localStorage as `auth_token`
@@ -183,15 +207,17 @@ if (is_string($categoryIds)) {
 
 ### Admin Panel Frontend (React SPA)
 
-**Tech Stack**: React 18 + TypeScript + Vite + Mantine UI + Zustand + React Router
+**Tech Stack**: React 18 + TypeScript + Vite + Mantine UI + Zustand + React Router v7
 
 **Structure**:
-- `resources/js/App.tsx`: Main app with routes
+- `resources/js/App.tsx`: Main app with all routes defined inline (file-based routing is NOT used)
+- `resources/js/main.tsx`: Entry point
 - `resources/js/components/`: Reusable components (sidebar, layout, etc.)
 - `resources/js/app/admin/*/page.tsx`: Page components organized by module
 - `resources/js/stores/`: Zustand state stores (auth, finance, ui, roles)
 - `resources/js/hooks/`: Custom React hooks (usePermissions, useApi, useMobile)
 - `resources/js/utils/`: Utility functions (API clients, formatters)
+- `resources/js/lib/mantine-theme.ts`: Mantine theme configuration
 
 **Key Stores**:
 - `authStore.ts`: Authentication, permissions, user data
@@ -199,13 +225,15 @@ if (is_string($categoryIds)) {
 - `uiStore.ts`: UI state (sidebar, modals, etc.)
 - `rolesStore.ts`: Role management state
 
-**Routing**: File-based routing in `App.tsx` with React Router v7. All admin routes are under `/admin/*`.
+**Routing**: All routes are defined in `App.tsx` using React Router v7. All admin routes are under `/admin/*` and wrapped in `AdminLayout`. Path aliases are configured (`@` maps to `resources/js`).
 
 **Navigation**: `app-sidebar-mantine.tsx` dynamically renders navigation based on user permissions using `usePermissions` hook.
 
+**Vite Config**: The dev server runs on `localhost:5173` with HMR enabled. The `@` alias points to `resources/js`.
+
 ### Storefront Frontend (Next.js)
 
-**Tech Stack**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS + Zustand
+**Tech Stack**: Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS 4 + Zustand
 
 **Structure**:
 - `src/app/`: Next.js app directory with file-based routing
@@ -216,6 +244,10 @@ if (is_string($categoryIds)) {
 **API Client**: Custom fetch wrapper in `src/lib/api.ts` with automatic token handling.
 
 **Authentication**: AuthContext provider wraps the app, handles token validation, and provides cached user data for better UX.
+
+**Configuration**: `next.config.ts` includes:
+- Image optimization disabled (`unoptimized: true`) for local development
+- API rewrites proxy `/api/v1/*` to Laravel backend at `http://192.168.0.166:8000` (update for your environment)
 
 ## Development Patterns
 
@@ -245,6 +277,16 @@ class ExampleController extends Controller
     }
 }
 ```
+
+**Permission Middleware**: Routes can be protected with `CheckPermission` middleware:
+```php
+Route::get('items', 'ExampleController@index')->middleware('permission:items.view');
+```
+
+The middleware checks:
+1. User is authenticated
+2. User is super_admin (auto-passes)
+3. User has the required permission (via role or direct permission)
 
 ### Frontend Page Component Pattern
 
@@ -287,6 +329,19 @@ export const useModuleStore = create<ModuleState>((set) => ({
   })),
 }))
 ```
+
+### API Client Pattern
+
+**Admin Panel**: The `api` client (`resources/js/lib/api.ts`) is configured with:
+- Base URL from `VITE_API_BASE_URL` env var (defaults to `http://localhost:8000/api/v2`)
+- 30-second timeout (for mobile networks)
+- Auto-injects Bearer token from authStore
+- Global error handling via interceptors:
+  - 401 → Clears auth, redirects to login
+  - 403 → Access denied toast
+  - 422/400 → Returns error for component-level handling
+  - 500/503 → Server error toast
+- Type-safe methods via `apiMethods` (get, post, put, patch, delete)
 
 ## Frontend Development Guidelines (Mobile-First PWA)
 
@@ -422,6 +477,11 @@ SMS_API_KEY=your_api_key
 SMS_API_URL=https://sms.api_endpoint
 ```
 
+### Admin Panel (resources/js/.env)
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v2
+```
+
 ### Storefront (.env.local)
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
@@ -468,22 +528,298 @@ hooknhunt/
         └── lib/                # Utilities (API client)
 ```
 
+## Finance Module (Complete ERP System)
+
+The Finance module is a full-featured double-entry accounting system following industry-standard practices. It manages chart of accounts, journal entries, expenses, banks, financial reports, and more.
+
+### Architecture Overview
+
+**Double-Entry Accounting**: Every transaction must balance (debits = credits). The system enforces this rule at the journal entry level.
+
+**Account Types** (5 types in Chart of Accounts):
+- `asset` - Assets (debit balance increases)
+- `liability` - Liabilities (credit balance increases)
+- `equity` - Owner's equity (credit balance increases)
+- `income` - Revenue/Income (credit balance increases)
+- `expense` - Expenses (debit balance increases)
+
+### API Routes Structure
+
+All finance routes are under `/api/v2/finance/` prefix:
+
+**Core Accounting**:
+- `GET /finance/accounts` - List chart of accounts
+- `GET /finance/accounts/summary` - Balance summary by type
+- `GET /finance/accounts/trial-balance` - Trial balance report
+- `GET /finance/accounts/statistics` - Account statistics
+- `POST /finance/accounts` - Create new account
+- `PUT /finance/accounts/{id}` - Update account (only if no transactions)
+- `DELETE /finance/accounts/{id}` - Delete account (only if no transactions)
+
+**Journal Entries**:
+- `GET /finance/journal-entries` - List all journal entries
+- `GET /finance/journal-entries/next-number` - Get next entry number
+- `GET /finance/journal-entries/statistics` - Journal statistics
+- `GET /finance/journal-entries/by-account` - Entries by account
+- `POST /finance/journal-entries` - Create journal entry
+- `POST /finance/journal-entries/{id}/reverse` - Reverse/cancel an entry
+
+**Expenses**:
+- `GET /finance/expenses` - List expenses
+- `POST /finance/expenses` - Create expense
+- `PUT /finance/expenses/{id}` - Update expense (only if not approved)
+- `DELETE /finance/expenses/{id}` - Delete expense (only if not approved)
+- `POST /finance/expenses/{id}/approve` - Approve and post to ledger
+
+**Bank Accounts**:
+- `GET /finance/banks` - List bank accounts
+- `GET /finance/banks/summary` - Bank balance summary
+- `GET /finance/banks/{id}/transactions` - Bank transactions
+- `POST /finance/banks/{id}/deposit` - Deposit to account
+- `POST /finance/banks/{id}/withdraw` - Withdraw from account
+- `POST /finance/banks/transfer` - Transfer between accounts
+
+**Financial Reports**:
+- `GET /finance/reports/trial-balance` - Trial balance
+- `GET /finance/reports/profit-loss` - Income statement
+- `GET /finance/reports/balance-sheet` - Balance sheet
+- `GET /finance/reports/cash-flow` - Cash flow statement
+- `GET /finance/reports/general-ledger` - General ledger
+
+**Additional Modules**:
+- **Budgets**: `GET /finance/budgets`, `GET /finance/budgets/variance-report`
+- **Fixed Assets**: `GET /finance/fixed-assets`, `GET /finance/fixed-assets/summary`
+- **Cheques/PDC**: `GET /finance/cheques`, `GET /finance/cheques/alerts`
+- **VAT/Tax**: `GET /finance/vat-tax-ledgers`, `GET /finance/vat-tax-ledgers/net-calculation`
+- **Currencies**: `GET /finance/currencies`, `POST /finance/currencies/convert`
+- **Accounts Payable**: `GET /finance/accounts-payable`, `GET /finance/accounts-payable/aging-report`
+- **Accounts Receivable**: `GET /finance/accounts-receivable`, `GET /finance/accounts-receivable/aging-report`
+- **Cost Centers**: `GET /finance/cost-centers`
+- **Projects**: `GET /finance/projects`
+- **Fiscal Years**: `GET /finance/fiscal-years`, `POST /finance/fiscal-years/{id}/close`
+
+### Backend Models & Relationships
+
+**ChartOfAccount** Model:
+```php
+// App/Models/ChartOfAccount.php
+
+protected $fillable = ['name', 'code', 'type', 'is_active', 'description'];
+
+// Accessors appended to JSON
+protected $appends = ['balance', 'debit_total', 'credit_total', 'type_label'];
+
+// Relationships
+public function journalItems() { hasMany(JournalItem::class) }
+public function expenses() { hasMany(Expense::class) }
+
+// Scopes
+scopeActive($query) // Only active accounts
+scopeOfType($query, $type) // Filter by type
+
+// Balance calculation logic:
+// - asset & expense: balance = debit - credit
+// - liability, equity, income: balance = credit - debit
+```
+
+**JournalEntry** Model:
+```php
+// App/Models/JournalEntry.php
+
+protected $fillable = ['entry_number', 'date', 'description', 'is_reversed'];
+
+// Calculated accessors
+protected $appends = ['total_debit', 'total_credit'];
+
+// Relationships
+public function items() { hasMany(JournalItem::class) }
+public function creator() { belongsTo(User::class) }
+```
+
+**JournalItem** Model:
+```php
+// App/Models/JournalItem.php
+
+protected $fillable = ['account_id', 'journal_entry_id', 'debit', 'credit'];
+
+// Relationships (CRITICAL - both must exist)
+public function account() { belongsTo(ChartOfAccount::class) }
+public function journalEntry() { belongsTo(JournalEntry::class) }
+```
+
+**Expense** Model:
+```php
+// App/Models/Expense.php
+
+protected $fillable = [
+    'title', 'amount', 'account_id', 'expense_date',
+    'reference_number', 'notes', 'attachment',
+    'vat_percentage', 'vat_amount', 'vat_challan_no',
+    'tax_percentage', 'tax_amount', 'tax_challan_no',
+    'is_approved', 'approved_by', 'approved_at', 'journal_entry_id'
+];
+
+// Custom accessor for paid by user
+protected $appends = ['paid_by_user'];
+
+public function getPaidByUserAttribute() {
+    // Returns the user who paid (uses user() relationship)
+}
+
+public function account() { belongsTo(ChartOfAccount::class) }
+public function journalEntry() { belongsTo(JournalEntry::class) }
+```
+
+### Frontend Pages Structure
+
+**Main Pages** (`resources/js/app/admin/finance/`):
+- `/finance` - Dashboard overview
+- `/finance/accounts` - Chart of Accounts management
+- `/finance/journal-entries` - Journal entries list and management
+- `/finance/expenses` - Expense management with create/edit
+- `/finance/expenses/[id]/edit` - Edit expense (if not approved)
+- `/finance/banks` - Bank accounts management
+- `/finance/transactions` - Bank transactions
+- `/finance/reports` - Reports hub
+- `/finance/reports/trial-balance` - Trial balance report
+- `/finance/budgets` - Budget management
+- `/finance/vat-tax` - VAT/Tax ledger
+- `/finance/fixed-assets` - Fixed asset register
+- `/finance/cheques` - Cheque/PDC management
+- `/finance/currencies` - Multi-currency management
+- `/finance/accounts-payable` - Vendor bills
+- `/finance/accounts-receivable` - Customer invoices
+- `/finance/reconciliations` - Bank reconciliation
+- `/finance/audit` - Audit trail
+
+### Critical Implementation Patterns
+
+**1. Page Layout Consistency**:
+All finance pages MUST use the same layout structure:
+```tsx
+// ✅ CORRECT - Consistent padding
+<Box p={{ base: 'md', md: 'xl' }}>
+  <Stack gap="md">
+    {/* Content */}
+  </Stack>
+</Box>
+
+// ❌ WRONG - Too much padding
+<Container size="xl">
+  <Stack gap="md">
+    {/* Content */}
+  </Stack>
+</Container>
+```
+
+**2. API Response Handling**:
+The `CamelCaseResponse` middleware converts all snake_case to camelCase. Always use camelCase in frontend:
+
+```tsx
+// ✅ CORRECT
+<Text>{entry.entryNumber}</Text>
+<Text>{entry.totalDebit}</Text>
+<Text>{account.typeLabel}</Text>
+
+// ❌ WRONG (won't work)
+<Text>{entry.entry_number}</Text>
+```
+
+**3. Model Accessors with $appends**:
+When models need calculated properties in API responses:
+1. Create accessor method (e.g., `getTotalDebitAttribute()`)
+2. Add property name to `$appends` array
+3. Use camelCase on frontend (middleware handles conversion)
+
+**4. Collection Filtering**:
+When filtering Laravel Collections that will be JSON-encoded:
+```php
+// ✅ CORRECT - Reset keys to get proper array
+$accounts = $accounts->filter(...)->values();
+
+// ❌ WRONG - Results in object {0: {...}, 3: {...}}
+$accounts = $accounts->filter(...);
+```
+
+**5. Trial Balance Date Filtering**:
+```php
+// Correct way to filter journal items by date
+$debitTotal = JournalItem::where('account_id', $account->id)
+    ->whereHas('journalEntry', function ($q) use ($asOfDate) {
+        $q->where('date', '<=', $asOfDate);
+    })
+    ->sum('debit');
+```
+
+**6. Expense Approval Workflow**:
+- Expenses can only be edited/deleted when `is_approved = false`
+- Approval creates journal entry and posts to ledger
+- After approval, expense is locked (audit trail)
+- Bank account search includes: "Cash", "Bank", "bKash", and codes starting with "BANK"
+
+### Common Issues & Solutions
+
+**Issue**: Trial balance showing "accounts is not iterable"
+- **Cause**: Collection has non-sequential keys after filtering
+- **Solution**: Use `->values()` to reset keys before returning
+
+**Issue**: Property undefined errors (e.g., `total_debit` undefined)
+- **Cause**: Frontend using snake_case when API returns camelCase
+- **Solution**: Always use camelCase on frontend (e.g., `totalDebit`)
+
+**Issue**: Journal entry totals showing 0
+- **Cause**: Missing calculated properties in `$appends` array
+- **Solution**: Add properties like `total_debit`, `total_credit` to model's `$appends`
+
+**Issue**: Paid By column showing empty on Expenses page
+- **Cause**: Frontend expects `paidBy` but model has `user()` relationship
+- **Solution**: Add `paidByUser` accessor to model with `$appends`
+
+**Issue**: Cannot update/delete account or expense
+- **Cause**: Item has existing transactions (journal entries or expenses)
+- **Solution**: Create a new account instead; audit trail protection
+
+**Issue**: Trial balance 422 validation error
+- **Cause**: Duplicate keys in validation array or wrong parameter naming
+- **Solution**: Use `$request->input('param_name')` with fallbacks for both snake_case and camelCase
+
+**Issue**: "Payment account not configured" when approving expense
+- **Cause**: System only looked for Cash accounts
+- **Solution**: Bank search now includes Bank, bKash, and BANK* codes
+
+### Key Database Tables (Finance)
+
+- `chart_of_accounts` - Account codes and types
+- `journal_entries` - Header for accounting transactions
+- `journal_items` - Line items (debits/credits) for entries
+- `expenses` - Expense requests with VAT/Tax
+- `banks` - Bank account details
+- `bank_transactions` - Transaction history
+- `bank_reconciliations` - Reconciliation records
+- `fixed_assets` - Asset register with depreciation
+- `cheques` - Cheque/PDC management
+- `vat_tax_ledgers` - VAT and tax tracking
+- `currencies` - Multi-currency setup
+- `budgets` - Budget planning
+- `cost_centers` - Department/project tracking
+- `projects` - Project accounting
+- `fiscal_years` - Fiscal year management
+- `accounts_payable` - Vendor bills
+- `accounts_receivable` - Customer invoices
+
+### Important: Account Number Generation
+
+Chart of Accounts codes follow industry-standard patterns:
+- `1xxx` - Assets
+- `2xxx` - Liabilities
+- `3xxx` - Equity
+- `4xxx` - Income/Revenue
+- `5xxx` - Expenses
+
+When creating new accounts, auto-generate codes based on type:
+```php
+$lastAccount = ChartOfAccount::ofType($type)->orderBy('code', 'desc')->first();
+$nextCode = $lastAccount ? intval($lastAccount->code) + 1 : $baseCode[$type];
+```
+
 ## Key Database Tables
-
-- `users` - Customers and staff (with roles and permissions)
-- `products` - Product parent records
-- `product_variants` - Sellable SKU variants
-- `categories` - Product categories (hierarchical)
-- `attributes` - Product variant attributes
-- `inventory` - Stock levels per variant
-- `purchase_orders` - Purchase order management
-- `suppliers` - Supplier information
-- `media_files` - Media library
-- `chart_of_accounts` - Finance module accounts
-- `banks` - Bank accounts
-- `expenses` - Expense tracking
-- `warehouses` - Inventory warehouses
-- `roles` - User roles
-- `permissions` - Granular permissions
-
-For full schema details, check migration files in `hooknhunt-api/database/migrations/`.

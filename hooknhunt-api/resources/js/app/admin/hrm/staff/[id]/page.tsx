@@ -194,9 +194,7 @@ export default function StaffProfilePage() {
     const fetchUserData = async () => {
       try {
         setLoading(true)
-        console.log('Fetching staff data for ID:', id)
         const response = await api.get(`/hrm/staff/${id}`)
-        console.log('Raw API response:', response.data)
 
         // API returns { data: { user, rolePermissions, grantedPermissions, blockedPermissions } }
         const apiData = response.data.data
@@ -205,8 +203,6 @@ export default function StaffProfilePage() {
         const granted = apiData.grantedPermissions || apiData.granted_permissions || []
         const blocked = apiData.blockedPermissions || apiData.blocked_permissions || []
 
-        console.log('User data from response:', userData)
-        console.log('Staff profile from API:', userData?.staffProfile || userData?.staff_profile)
 
         // Normalize data - API returns camelCase, convert to snake_case for consistency
         const profileData = userData.staffProfile || userData.staff_profile
@@ -247,10 +243,6 @@ export default function StaffProfilePage() {
           deleted_at: userData.deletedAt || userData.deleted_at,
         }
 
-        console.log('Normalized user data:', normalizedUser)
-        console.log('Normalized staff profile:', normalizedProfile)
-        console.log('User name:', normalizedUser.name)
-        console.log('User role:', normalizedUser.role)
         setUser(normalizedUser)
 
         // Combine role permissions with granted permissions, exclude blocked

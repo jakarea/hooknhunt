@@ -131,14 +131,11 @@ export default function EditCustomerPage() {
         setLoading(true)
         const response = await api.get(`/user-management/users/${id}`)
 
-        console.log('Customer edit response:', response.data)
 
         if (response.data?.status && response.data?.data?.user) {
           const user = response.data.data.user
           const profile = response.data.data.user.customerProfile
 
-          console.log('User data:', user)
-          console.log('Customer profile:', profile)
 
           setCustomerName(user.name)
 
@@ -249,8 +246,6 @@ export default function EditCustomerPage() {
 
     try {
       // Log for debugging
-      console.log('Form data:', formData)
-      console.log('Selected role_id:', roleId)
 
       const updateData: any = {
         name: formData.name.trim(),

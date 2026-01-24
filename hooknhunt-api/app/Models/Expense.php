@@ -59,11 +59,20 @@ class Expense extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'paid_by_user',
+    ];
+
+    /**
      * The relationships that should always be loaded.
      *
      * @var array<string, string>
      */
-    protected $with = ['account', 'user'];
+    protected $with = ['account'];
 
     /**
      * Relationship: Expense belongs to a Chart of Account (Expense Head)
@@ -79,6 +88,25 @@ class Expense extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'paid_by');
+    }
+
+    /**
+     * Accessor: Get paidBy user (alias for user relationship)
+     * This provides compatibility with frontend expecting 'paidBy'
+     */
+    public function getPaidByUserAttribute()
+    {
+        // Check if the user relationship is already loaded
+        if (array_key_exists('user', $this->relations)) {
+            return $this->relations['user'];
+        }
+
+        // If not loaded and we have a paid_by ID, load the user
+        if ($this->attributes['paid_by'] ?? null) {
+            return $this->user()->getResults();
+        }
+
+        return null;
     }
 
     /**

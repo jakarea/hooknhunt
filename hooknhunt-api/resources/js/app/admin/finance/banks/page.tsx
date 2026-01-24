@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { Title, Text, Stack, Paper, Group, Badge, Button, Card, SimpleGrid, TextInput, SegmentedControl, ActionIcon, Menu, Modal, NumberInput, Select, Textarea, ThemeIcon, LoadingOverlay } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { IconPlus, IconSearch, IconDotsVertical, IconArrowUpRight, IconArrowDownLeft, IconArrowsExchange, IconEdit, IconTrash, IconBuildingBank, IconWallet, IconBrandCashapp, IconPhone, IconRocket, IconEye, IconRefresh } from '@tabler/icons-react'
@@ -8,6 +8,7 @@ import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
 import { getBanks, deleteBank, getBanksSummary, createDeposit, createWithdrawal, createTransfer, getAccounts, type BankAccount, type BankSummary } from '@/utils/api'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useFinanceStore } from '@/stores/financeStore'
 
 export default function BanksPage() {
   const { t } = useTranslation()
@@ -24,6 +25,10 @@ export default function BanksPage() {
       </Stack>
     )
   }
+
+  // Zustand store for finance state
+  const addRecentBank = useFinanceStore((state) => state.addRecentBank)
+
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [depositOpened, { open: openDeposit, close: closeDeposit }] = useDisclosure(false)
@@ -63,8 +68,6 @@ export default function BanksPage() {
         getBanksSummary()
       ])
 
-      console.log('[Banks Page] Banks API Response:', banksData)
-      console.log('[Banks Page] Banks data:', banksData.data)
 
       setBanks(banksData.data || [])
       setSummary(summaryData.data || summaryData)
@@ -95,8 +98,23 @@ export default function BanksPage() {
     }
   }, [search, typeFilter])
 
+  // Track recently viewed banks (when page first loads)
+  useEffect(() => {
+    if (banks.length > 0 && !loading) {
+      // Add first 5 banks to recent items
+      banks.slice(0, 5).forEach(bank => {
+        addRecentBank({
+          id: bank.id,
+          name: bank.name,
+          type: bank.type,
+          viewedAt: new Date().toISOString()
+        })
+      })
+    }
+  }, [banks, loading, addRecentBank])
+
   // Fetch chart of accounts
-  const fetchChartOfAccounts = async () => {
+  const fetchChartOfAccounts = useCallback(async () => {
     try {
       const response = await getAccounts()
       const accounts = response.data || response || []
@@ -107,34 +125,36 @@ export default function BanksPage() {
     } catch (err) {
       console.error('Error fetching chart of accounts:', err)
     }
-  }
+  }, [])
 
   // Type icons and colors
-  const getTypeConfig = (t: (key: string) => string, type: string) => ({
+  const getTypeConfig = useCallback((t: (key: string) => string, type: string) => ({
     cash: { icon: <IconWallet size={24} />, color: 'green', label: t('finance.banksPage.filterCash') },
     bank: { icon: <IconBuildingBank size={24} />, color: 'blue', label: t('finance.banksPage.filterBank') },
     bkash: { icon: <IconPhone size={24} />, color: 'pink', label: t('finance.banksPage.filterBkash') },
     nagad: { icon: <IconBrandCashapp size={24} />, color: 'orange', label: t('finance.banksPage.filterNagad') },
     rocket: { icon: <IconRocket size={24} />, color: 'grape', label: t('finance.banksPage.filterRocket') },
     other: { icon: <IconBuildingBank size={24} />, color: 'gray', label: 'Other' }
-  })[type] || { icon: <IconBuildingBank size={24} />, color: 'gray', label: 'Other' }
+  })[type] || { icon: <IconBuildingBank size={24} />, color: 'gray', label: 'Other' }, [])
 
   // Format currency
-  const formatCurrency = (amount: number | null | undefined) => {
+  const formatCurrency = useCallback((amount: number | null | undefined) => {
     if (amount === null || amount === undefined) {
       return '৳0.00'
     }
     return `৳${amount.toLocaleString('en-BD', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-  }
+  }, [])
 
-  // Filter banks (client-side filtering as backup)
-  const filteredBanks = banks.filter((bank) => {
-    const matchesSearch = bank.name.toLowerCase().includes(search.toLowerCase()) ||
-      bank.accountNumber?.toLowerCase().includes(search.toLowerCase()) ||
-      bank.notes?.toLowerCase().includes(search.toLowerCase())
-    const matchesType = typeFilter === 'all' || bank.type === typeFilter
-    return matchesSearch && matchesType
-  })
+  // Filter banks (client-side filtering as backup) - memoized for performance
+  const filteredBanks = useMemo(() => {
+    return banks.filter((bank) => {
+      const matchesSearch = bank.name.toLowerCase().includes(search.toLowerCase()) ||
+        bank.accountNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        bank.notes?.toLowerCase().includes(search.toLowerCase())
+      const matchesType = typeFilter === 'all' || bank.type === typeFilter
+      return matchesSearch && matchesType
+    })
+  }, [banks, search, typeFilter])
 
   // Handle delete with confirmation
   const handleDelete = async (bank: BankAccount) => {

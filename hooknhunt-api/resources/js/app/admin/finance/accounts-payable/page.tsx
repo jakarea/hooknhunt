@@ -78,13 +78,15 @@ export default function AccountsPayablePage() {
         getAccountsPayableStatistics(),
         getAgingReport(),
       ])
-      setBills(billsRes.data || [])
+      // Handle both paginated response and direct array
+      const billsData = Array.isArray(billsRes) ? billsRes : (billsRes.data?.data || billsRes.data || [])
+      setBills(billsData)
       setStatistics(statsRes.data)
       setAgingReport(agingRes.data)
     } catch (error) {
       notifications.show({
-        title: 'Error',
-        message: 'Failed to load accounts payable data',
+        title: t('common.error') || 'Error',
+        message: t('finance.accountsPayablePage.notification.fetchError'),
         color: 'red',
       })
     } finally {
@@ -98,27 +100,27 @@ export default function AccountsPayablePage() {
 
   const handleDelete = (bill: VendorBill) => {
     modals.openConfirmModal({
-      title: 'Delete Bill',
+      title: t('finance.accountsPayablePage.notification.deleteTitle'),
       children: (
         <Text size="sm">
-          Are you sure you want to delete bill {bill.bill_number}? This action cannot be undone.
+          {t('finance.accountsPayablePage.notification.deleteConfirm', { billNumber: bill.bill_number })}
         </Text>
       ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      labels: { confirm: t('common.delete') || 'Delete', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
           await deleteVendorBill(bill.id)
           notifications.show({
-            title: 'Success',
-            message: 'Bill deleted successfully',
+            title: t('common.success') || 'Success',
+            message: t('finance.accountsPayablePage.notification.deleteSuccess'),
             color: 'green',
           })
           fetchData()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete bill',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.accountsPayablePage.notification.deleteError'),
             color: 'red',
           })
         }
@@ -146,6 +148,26 @@ export default function AccountsPayablePage() {
     return colors[status] || 'gray'
   }
 
+  const getStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      draft: t('finance.accountsPayablePage.statusBadges.draft'),
+      open: t('finance.accountsPayablePage.statusBadges.open'),
+      partial: t('finance.accountsPayablePage.statusBadges.partial'),
+      paid: t('finance.accountsPayablePage.statusBadges.paid'),
+      overdue: t('finance.accountsPayablePage.statusBadges.overdue'),
+    }
+    return labels[status] || status
+  }
+
+  const getPaymentStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      unpaid: t('finance.accountsPayablePage.statusBadges.unpaid'),
+      partial: t('finance.accountsPayablePage.statusBadges.partial'),
+      paid: t('finance.accountsPayablePage.statusBadges.paid'),
+    }
+    return labels[status] || status
+  }
+
   if (loading) {
     return (
       <Box p={{ base: 'md', md: 'xl' }}>
@@ -168,15 +190,15 @@ export default function AccountsPayablePage() {
         {/* Header */}
         <Group justify="space-between">
           <Box>
-            <Title order={1} className="text-lg md:text-xl lg:text-2xl">Accounts Payable</Title>
-            <Text c="dimmed" className="text-sm md:text-base">Vendor bills and payments management</Text>
+            <Title order={1} className="text-lg md:text-xl lg:text-2xl">{t('finance.accountsPayablePage.title')}</Title>
+            <Text c="dimmed" className="text-sm md:text-base">{t('finance.accountsPayablePage.subtitle')}</Text>
           </Box>
           <Group>
             <ActionIcon variant="light" onClick={fetchData}>
               <IconRefresh size={18} />
             </ActionIcon>
             <Button leftSection={<IconPlus size={16} />}>
-              New Bill
+              {t('finance.accountsPayablePage.newBill')}
             </Button>
           </Group>
         </Group>
@@ -185,19 +207,19 @@ export default function AccountsPayablePage() {
         {statistics && (
           <Group>
             <Card withBorder p="md" radius="md" className="flex-1">
-              <Text className="text-xs md:text-sm" c="dimmed">Total Bills</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.statistics.totalBills')}</Text>
               <Text className="text-xl md:text-2xl" fw={700}>{statistics.total_bills}</Text>
             </Card>
             <Card withBorder p="md" radius="md" className="flex-1">
-              <Text className="text-xs md:text-sm" c="dimmed">Unpaid</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.statistics.unpaid')}</Text>
               <Text className="text-xl md:text-2xl" fw={700} c="red">{statistics.unpaid_bills}</Text>
             </Card>
             <Card withBorder p="md" radius="md" className="flex-1">
-              <Text className="text-xs md:text-sm" c="dimmed">Overdue</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.statistics.overdue')}</Text>
               <Text className="text-xl md:text-2xl" fw={700} c="orange">{statistics.overdue_bills}</Text>
             </Card>
             <Card withBorder p="md" radius="md" className="flex-1">
-              <Text className="text-xs md:text-sm" c="dimmed">Total Due</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.statistics.totalDue')}</Text>
               <Text className="text-xl md:text-2xl" fw={700} c="blue">
                 <NumberFormatter value={statistics.total_due} prefix="৳" thousandSeparator />
               </Text>
@@ -208,8 +230,8 @@ export default function AccountsPayablePage() {
         {/* Tabs */}
         <Tabs value={activeTab} onChange={setActiveTab}>
           <Tabs.List>
-            <Tabs.Tab value="bills" leftSection={<IconClock size={14} />}>Bills</Tabs.Tab>
-            <Tabs.Tab value="aging" leftSection={<IconAlertCircle size={14} />}>Aging Report</Tabs.Tab>
+            <Tabs.Tab value="bills" leftSection={<IconClock size={14} />}>{t('finance.accountsPayablePage.tabs.bills')}</Tabs.Tab>
+            <Tabs.Tab value="aging" leftSection={<IconAlertCircle size={14} />}>{t('finance.accountsPayablePage.tabs.aging')}</Tabs.Tab>
           </Tabs.List>
 
           {/* Bills Tab */}
@@ -218,23 +240,23 @@ export default function AccountsPayablePage() {
             <Paper withBorder p="md" radius="md" mb="md">
               <Group>
                 <TextInput
-                  placeholder="Search bills..."
+                  placeholder={t('finance.accountsPayablePage.filters.searchPlaceholder')}
                   leftSection={<IconSearch size={16} />}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.currentTarget.value)}
                   className="flex-1"
                 />
                 <Select
-                  placeholder="Status"
+                  placeholder={t('finance.accountsPayablePage.filters.status')}
                   clearable
                   value={statusFilter}
                   onChange={(v) => setStatusFilter(v || '')}
                   data={[
-                    { value: 'draft', label: 'Draft' },
-                    { value: 'open', label: 'Open' },
-                    { value: 'partial', label: 'Partially Paid' },
-                    { value: 'paid', label: 'Paid' },
-                    { value: 'overdue', label: 'Overdue' },
+                    { value: 'draft', label: t('finance.accountsPayablePage.statusBadges.draft') },
+                    { value: 'open', label: t('finance.accountsPayablePage.statusBadges.open') },
+                    { value: 'partial', label: t('finance.accountsPayablePage.statusBadges.partial') },
+                    { value: 'paid', label: t('finance.accountsPayablePage.statusBadges.paid') },
+                    { value: 'overdue', label: t('finance.accountsPayablePage.statusBadges.overdue') },
                   ]}
                   w={{ base: '100%', sm: 150 }}
                 />
@@ -247,14 +269,14 @@ export default function AccountsPayablePage() {
                 <Table striped highlightOnHover>
                   <Table.Thead>
                     <Table.Tr>
-                      <Table.Th>Bill #</Table.Th>
-                      <Table.Th>Supplier</Table.Th>
-                      <Table.Th>Bill Date</Table.Th>
-                      <Table.Th>Due Date</Table.Th>
-                      <Table.Th ta="right">Total</Table.Th>
-                      <Table.Th ta="right">Balance</Table.Th>
-                      <Table.Th>Status</Table.Th>
-                      <Table.Th ta="center">Actions</Table.Th>
+                      <Table.Th>{t('finance.accountsPayablePage.table.billNumber')}</Table.Th>
+                      <Table.Th>{t('finance.accountsPayablePage.table.supplier')}</Table.Th>
+                      <Table.Th>{t('finance.accountsPayablePage.table.billDate')}</Table.Th>
+                      <Table.Th>{t('finance.accountsPayablePage.table.dueDate')}</Table.Th>
+                      <Table.Th ta="right">{t('finance.accountsPayablePage.table.total')}</Table.Th>
+                      <Table.Th ta="right">{t('finance.accountsPayablePage.table.balance')}</Table.Th>
+                      <Table.Th>{t('finance.accountsPayablePage.table.status')}</Table.Th>
+                      <Table.Th ta="center">{t('finance.accountsPayablePage.table.actions')}</Table.Th>
                     </Table.Tr>
                   </Table.Thead>
                   <Table.Tbody>
@@ -262,7 +284,7 @@ export default function AccountsPayablePage() {
                       <Table.Tr>
                         <Table.Td colSpan={8}>
                           <Box py="xl" ta="center">
-                            <Text c="dimmed">No bills found</Text>
+                            <Text c="dimmed">{t('finance.accountsPayablePage.table.noBillsFound')}</Text>
                           </Box>
                         </Table.Td>
                       </Table.Tr>
@@ -284,10 +306,10 @@ export default function AccountsPayablePage() {
                           <Table.Td>
                             <Group gap="xs">
                               <Badge color={getStatusColor(bill.status)} variant="light">
-                                {bill.status_label || bill.status}
+                                {bill.status_label || getStatusLabel(bill.status)}
                               </Badge>
                               <Badge color={getPaymentStatusColor(bill.payment_status)} variant="light">
-                                {bill.payment_status_label || bill.payment_status}
+                                {bill.payment_status_label || getPaymentStatusLabel(bill.payment_status)}
                               </Badge>
                             </Group>
                           </Table.Td>
@@ -318,7 +340,7 @@ export default function AccountsPayablePage() {
             <Stack display={{ base: 'block', md: 'none' }} gap="sm">
               {bills.length === 0 ? (
                 <Card withBorder p="xl" ta="center">
-                  <Text c="dimmed">No bills found</Text>
+                  <Text c="dimmed">{t('finance.accountsPayablePage.table.noBillsFound')}</Text>
                 </Card>
               ) : (
                 bills.map((bill) => (
@@ -326,12 +348,12 @@ export default function AccountsPayablePage() {
                     <Group justify="space-between" mb="xs">
                       <Text className="font-mono" fw={600}>{bill.bill_number}</Text>
                       <Badge color={getStatusColor(bill.status)} variant="light">
-                        {bill.status_label || bill.status}
+                        {bill.status_label || getStatusLabel(bill.status)}
                       </Badge>
                     </Group>
                     <Text size="sm">{bill.supplier_name || '-'}</Text>
                     <Group mt="xs" justify="space-between">
-                      <Text size="xs" c="dimmed">Due: {bill.due_date}</Text>
+                      <Text size="xs" c="dimmed">{t('finance.accountsPayablePage.table.due')} {bill.due_date}</Text>
                       <Text size="sm" fw={600} c={bill.balance_due > 0 ? 'red' : 'green'}>
                         <NumberFormatter value={bill.balance_due} prefix="৳" thousandSeparator />
                       </Text>
@@ -361,80 +383,80 @@ export default function AccountsPayablePage() {
               <Stack>
                 <Alert icon={<IconAlertCircle size={16} />} color="blue">
                   <Text className="text-sm md:text-base">
-                    Total Outstanding: <Text fw={700} span><NumberFormatter value={agingReport.total_due} prefix="৳" thousandSeparator /></Text>
+                    {t('finance.accountsPayablePage.aging.totalOutstanding')} <Text fw={700} span><NumberFormatter value={agingReport?.total_due || 0} prefix="৳" thousandSeparator /></Text>
                   </Text>
                 </Alert>
 
                 {/* Aging Buckets */}
-                <Title order={3} className="text-base md:text-lg">Aging Summary</Title>
+                <Title order={3} className="text-base md:text-lg">{t('finance.accountsPayablePage.aging.title')}</Title>
                 <Card withBorder p="md">
                   <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }}>
                     <Box>
-                      <Text className="text-xs md:text-sm" c="dimmed">Current</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.aging.current')}</Text>
                       <Text className="text-lg md:text-xl" fw={700} c="green">
-                        <NumberFormatter value={agingReport.aging.current.amount} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={agingReport?.aging?.current?.amount || 0} prefix="৳" thousandSeparator />
                       </Text>
                       <Text className="text-xs md:text-sm" c="dimmed">
-                        {agingReport.aging.current.count} bills
+                        {agingReport?.aging?.current?.count || 0} {t('finance.accountsPayablePage.aging.bills')}
                       </Text>
                     </Box>
                     <Box>
-                      <Text className="text-xs md:text-sm" c="dimmed">1-30 Days</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.aging.days1_30')}</Text>
                       <Text className="text-lg md:text-xl" fw={700} c="yellow">
-                        <NumberFormatter value={agingReport.aging['1_30_days'].amount} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={agingReport?.aging?.['1_30_days']?.amount || 0} prefix="৳" thousandSeparator />
                       </Text>
                       <Text className="text-xs md:text-sm" c="dimmed">
-                        {agingReport.aging['1_30_days'].count} bills
+                        {agingReport?.aging?.['1_30_days']?.count || 0} {t('finance.accountsPayablePage.aging.bills')}
                       </Text>
                     </Box>
                     <Box>
-                      <Text className="text-xs md:text-sm" c="dimmed">31-60 Days</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.aging.days31_60')}</Text>
                       <Text className="text-lg md:text-xl" fw={700} c="orange">
-                        <NumberFormatter value={agingReport.aging['31_60_days'].amount} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={agingReport?.aging?.['31_60_days']?.amount || 0} prefix="৳" thousandSeparator />
                       </Text>
                       <Text className="text-xs md:text-sm" c="dimmed">
-                        {agingReport.aging['31_60_days'].count} bills
+                        {agingReport?.aging?.['31_60_days']?.count || 0} {t('finance.accountsPayablePage.aging.bills')}
                       </Text>
                     </Box>
                     <Box>
-                      <Text className="text-xs md:text-sm" c="dimmed">61-90 Days</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.aging.days61_90')}</Text>
                       <Text className="text-lg md:text-xl" fw={700} c="red">
-                        <NumberFormatter value={agingReport.aging['61_90_days'].amount} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={agingReport?.aging?.['61_90_days']?.amount || 0} prefix="৳" thousandSeparator />
                       </Text>
                       <Text className="text-xs md:text-sm" c="dimmed">
-                        {agingReport.aging['61_90_days'].count} bills
+                        {agingReport?.aging?.['61_90_days']?.count || 0} {t('finance.accountsPayablePage.aging.bills')}
                       </Text>
                     </Box>
                     <Box>
-                      <Text className="text-xs md:text-sm" c="dimmed">Over 90 Days</Text>
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.accountsPayablePage.aging.daysOver90')}</Text>
                       <Text className="text-lg md:text-xl" fw={700} c="red">
-                        <NumberFormatter value={agingReport.aging.over_90_days.amount} prefix="৳" thousandSeparator />
+                        <NumberFormatter value={agingReport?.aging?.over_90_days?.amount || 0} prefix="৳" thousandSeparator />
                       </Text>
                       <Text className="text-xs md:text-sm" c="dimmed">
-                        {agingReport.aging.over_90_days.count} bills
+                        {agingReport?.aging?.over_90_days?.count || 0} {t('finance.accountsPayablePage.aging.bills')}
                       </Text>
                     </Box>
                   </SimpleGrid>
                 </Card>
 
                 {/* By Supplier */}
-                <Title order={3} className="text-base md:text-lg">Aging by Supplier</Title>
+                <Title order={3} className="text-base md:text-lg">{t('finance.accountsPayablePage.aging.bySupplier')}</Title>
                 <Card withBorder p="0" radius="md">
                   <Table.ScrollContainer minWidth={800}>
                     <Table striped highlightOnHover>
                       <Table.Thead>
                         <Table.Tr>
-                          <Table.Th>Supplier</Table.Th>
-                          <Table.Th ta="right">Current</Table.Th>
-                          <Table.Th ta="right">1-30</Table.Th>
-                          <Table.Th ta="right">31-60</Table.Th>
-                          <Table.Th ta="right">61-90</Table.Th>
-                          <Table.Th ta="right">90+</Table.Th>
-                          <Table.Th ta="right">Total</Table.Th>
+                          <Table.Th>{t('finance.accountsPayablePage.aging.supplier')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.current')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.days1_30')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.days31_60')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.days61_90')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.daysOver90')}</Table.Th>
+                          <Table.Th ta="right">{t('finance.accountsPayablePage.aging.total')}</Table.Th>
                         </Table.Tr>
                       </Table.Thead>
                       <Table.Tbody>
-                        {agingReport.by_supplier.map((supplier) => (
+                        {agingReport?.by_supplier?.map((supplier) => (
                           <Table.Tr key={supplier.supplier_id}>
                             <Table.Td>{supplier.supplier_name}</Table.Td>
                             <Table.Td ta="right">

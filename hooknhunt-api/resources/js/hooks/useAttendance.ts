@@ -51,7 +51,6 @@ export function useAttendance(userId: number | undefined, token: string | null) 
           })
         }
       } catch (error) {
-        console.log('Error fetching attendance for break check:', error)
       } finally {
         setLoading(false)
       }

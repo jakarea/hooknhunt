@@ -17,6 +17,8 @@ import {
   IconChartBar,
   IconReceipt,
   IconChartPie,
+  IconCurrency,
+  IconHistory,
 } from "@tabler/icons-react"
 import {
   Box,
@@ -223,6 +225,7 @@ export function AppSidebarMantine({
               {
                 title: t("finance.budgetingPlanning"),
                 icon: IconChartBar,
+                url: "/finance/budgets",
                 children: [
                   { title: t("finance.budgets"), url: "/finance/budgets" },
                   { title: t("finance.costCenters"), url: "/finance/cost-centers" },
@@ -233,10 +236,16 @@ export function AppSidebarMantine({
               {
                 title: t("finance.accountsPayableReceivable"),
                 icon: IconReceipt,
+                url: "/finance/accounts-payable",
                 children: [
                   { title: t("finance.accountsPayable"), url: "/finance/accounts-payable" },
                   { title: t("finance.accountsReceivable"), url: "/finance/accounts-receivable" },
                 ]
+              },
+              {
+                title: t("finance.currencies"),
+                icon: IconCurrency,
+                url: "/finance/currencies",
               },
               {
                 title: t("finance.reports"),
@@ -248,7 +257,13 @@ export function AppSidebarMantine({
                   { title: t("finance.cashFlow"), url: "/finance/reports/cash-flow" },
                   { title: t("finance.trialBalance"), url: "/finance/reports/trial-balance" },
                   { title: t("finance.generalLedger"), url: "/finance/reports/general-ledger" },
+                  { title: t("finance.advancedReports"), url: "/finance/reports/custom" },
                 ]
+              },
+              {
+                title: t("finance.auditTrail"),
+                icon: IconHistory,
+                url: "/finance/audit",
               },
             ],
           },
@@ -347,7 +362,6 @@ export function AppSidebarMantine({
       }
     });
 
-    console.log("Nested Permissions:", nestedPermissions)
 
     // Helper function to check if user has any permission for a given URL/path
     const hasPermissionForPath = (path: string): boolean => {

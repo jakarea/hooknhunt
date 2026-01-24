@@ -313,14 +313,11 @@ class AccountController extends Controller
      */
     public function trialBalance(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'as_of_date' => 'nullable|date',
-            'include_zero_balance' => 'boolean',
-        ]);
+        // Validate parameters (accepts both snake_case and camelCase from frontend)
+        $asOfDate = $request->input('as_of_date') ?? $request->input('asOfDate') ?? now()->toDateString();
+        $includeZeroBalance = $request->boolean('include_zero_balance', $request->boolean('includeZeroBalance', false));
 
         $query = ChartOfAccount::active();
-
-        $asOfDate = $validated['as_of_date'] ?? now()->toDateString();
 
         // Get all accounts with their balances up to the specified date
         $accounts = $query->get()->map(function ($account) use ($asOfDate) {
@@ -357,10 +354,12 @@ class AccountController extends Controller
         });
 
         // Filter out zero balance accounts if requested
-        if (!$request->boolean('include_zero_balance')) {
+        if (!$includeZeroBalance) {
             $accounts = $accounts->filter(function($acc) {
                 return abs($acc['balance']) > 0.01;
-            });
+            })->values(); // Reset keys to make it a proper array
+        } else {
+            $accounts = $accounts->values(); // Reset keys even without filtering
         }
 
         // Calculate totals

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
   Paper,
   Group,
@@ -85,10 +85,10 @@ export default function JournalEntriesPage() {
       ],
     },
     validate: {
-      entry_number: (val: string) => (val ? null : 'Entry number is required'),
-      date: (val: Date) => (val ? null : 'Date is required'),
+      entry_number: (val: string) => (val ? null : t('finance.journalEntriesPage.validation.entryNumberRequired')),
+      date: (val: Date) => (val ? null : t('finance.journalEntriesPage.validation.dateRequired')),
       items: {
-        account_id: (val: string) => (val ? null : 'Account is required'),
+        account_id: (val: string) => (val ? null : t('finance.journalEntriesPage.validation.accountRequired')),
       },
     },
   })
@@ -106,7 +106,7 @@ export default function JournalEntriesPage() {
     fetchNextNumber()
   }, [])
 
-  const fetchEntries = async () => {
+  const fetchEntries = useCallback(async () => {
     setLoading(true)
     try {
       const response = await getJournalEntries({
@@ -122,16 +122,16 @@ export default function JournalEntriesPage() {
       setEntries(Array.isArray(entriesData) ? entriesData : entriesData?.data || [])
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.message || 'Failed to fetch journal entries',
+        title: t('common.error') || 'Error',
+        message: error.message || t('finance.journalEntriesPage.notification.fetchError'),
         color: 'red',
       })
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = useCallback(async () => {
     try {
       const response = await getAccounts()
       // Handle nested response structure
@@ -141,9 +141,9 @@ export default function JournalEntriesPage() {
       console.error('Failed to fetch accounts:', error)
       setAccounts([])
     }
-  }
+  }, [])
 
-  const fetchNextNumber = async () => {
+  const fetchNextNumber = useCallback(async () => {
     try {
       const response = await getNextJournalEntryNumber()
       setNextNumber(response.data?.next_entry_number || 'JE-000001')
@@ -151,9 +151,9 @@ export default function JournalEntriesPage() {
     } catch (error: any) {
       console.error('Failed to fetch next number:', error)
     }
-  }
+  }, [])
 
-  const handleOpenCreate = () => {
+  const handleOpenCreate = useCallback(() => {
     setEditId(null)
     form.reset()
     fetchNextNumber()
@@ -167,16 +167,16 @@ export default function JournalEntriesPage() {
       ],
     })
     setModalOpened(true)
-  }
+  }, [nextNumber, form])
 
-  const handleOpenEdit = async (id: number) => {
+  const handleOpenEdit = useCallback(async (id: number) => {
     try {
       const response = await getJournalEntry(id)
       const entry = response.data
 
       setEditId(id)
       form.setValues({
-        entry_number: entry.entry_number,
+        entry_number: entry.entryNumber || entry.entry_number,
         date: new Date(entry.date),
         description: entry.description || '',
         items: entry.items?.map((item: JournalItem) => ({
@@ -196,36 +196,36 @@ export default function JournalEntriesPage() {
         color: 'red',
       })
     }
-  }
+  }, [form])
 
-  const handleOpenView = async (id: number) => {
+  const handleOpenView = useCallback(async (id: number) => {
     try {
       const response = await getJournalEntry(id)
       setSelectedEntry(response.data)
       setViewModalOpened(true)
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: 'Failed to load journal entry',
+        title: t('common.error') || 'Error',
+        message: t('finance.journalEntriesPage.notification.loadError'),
         color: 'red',
       })
     }
-  }
+  }, [])
 
-  const handleOpenReverse = (entry: JournalEntry) => {
+  const handleOpenReverse = useCallback((entry: JournalEntry) => {
     setSelectedEntry(entry)
     reverseForm.reset()
     setReverseModalOpened(true)
-  }
+  }, [reverseForm])
 
-  const handleSubmit = async (values: typeof form.values) => {
+  const handleSubmit = useCallback(async (values: typeof form.values) => {
     // Validate items
     const validItems = values.items.filter(item => item.account_id && (item.debit || item.credit))
 
     if (validItems.length < 2) {
       notifications.show({
-        title: 'Validation Error',
-        message: 'At least 2 valid journal items are required',
+        title: t('common.error') || 'Validation Error',
+        message: t('finance.journalEntriesPage.validation.atLeastTwoItems'),
         color: 'red',
       })
       return
@@ -238,8 +238,8 @@ export default function JournalEntriesPage() {
 
       if (debit > 0 && credit > 0) {
         notifications.show({
-          title: 'Validation Error',
-          message: 'Each item can have either debit or credit, not both',
+          title: t('common.error') || 'Validation Error',
+          message: t('finance.journalEntriesPage.notification.unbalancedError'),
           color: 'red',
         })
         return
@@ -247,8 +247,8 @@ export default function JournalEntriesPage() {
 
       if (debit === 0 && credit === 0) {
         notifications.show({
-          title: 'Validation Error',
-          message: 'Each item must have either debit or credit amount',
+          title: t('common.error') || 'Validation Error',
+          message: t('finance.journalEntriesPage.validation.mustBalance'),
           color: 'red',
         })
         return
@@ -261,8 +261,8 @@ export default function JournalEntriesPage() {
 
     if (Math.abs(totalDebit - totalCredit) > 0.01) {
       notifications.show({
-        title: 'Validation Error',
-        message: `Journal entry must be balanced. Debit: ${totalDebit.toFixed(2)}, Credit: ${totalCredit.toFixed(2)}`,
+        title: t('common.error') || 'Validation Error',
+        message: t('finance.journalEntriesPage.notification.unbalancedError'),
         color: 'red',
       })
       return
@@ -283,15 +283,15 @@ export default function JournalEntriesPage() {
       if (editId) {
         await updateJournalEntry(editId, payload)
         notifications.show({
-          title: 'Success',
-          message: 'Journal entry updated successfully',
+          title: t('common.success') || 'Success',
+          message: t('finance.journalEntriesPage.notification.updateSuccess'),
           color: 'green',
         })
       } else {
         await createJournalEntry(payload)
         notifications.show({
-          title: 'Success',
-          message: 'Journal entry created successfully',
+          title: t('common.success') || 'Success',
+          message: t('finance.journalEntriesPage.notification.createSuccess'),
           color: 'green',
         })
       }
@@ -301,42 +301,42 @@ export default function JournalEntriesPage() {
       fetchNextNumber()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to save journal entry',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.journalEntriesPage.notification.createError'),
         color: 'red',
       })
     }
-  }
+  }, [editId, reverseForm, fetchEntries, fetchNextNumber])
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     modals.openConfirmModal({
-      title: 'Delete Journal Entry',
+      title: t('common.delete') || 'Delete Journal Entry',
       children: (
-        <Text size="sm">Are you sure you want to delete this journal entry? This action cannot be undone.</Text>
+        <Text size="sm">{t('finance.journalEntriesPage.notification.deleteConfirm')}</Text>
       ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      labels: { confirm: t('common.delete') || 'Delete', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
           await deleteJournalEntry(id)
           notifications.show({
-            title: 'Success',
-            message: 'Journal entry deleted successfully',
+            title: t('common.success') || 'Success',
+            message: t('finance.journalEntriesPage.notification.deleteSuccess'),
             color: 'green',
           })
           fetchEntries()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete journal entry',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.journalEntriesPage.notification.deleteError'),
             color: 'red',
           })
         }
       },
     })
-  }
+  }, [fetchEntries])
 
-  const handleReverse = async () => {
+  const handleReverse = useCallback(async () => {
     if (!selectedEntry) return
 
     try {
@@ -344,44 +344,44 @@ export default function JournalEntriesPage() {
         reason: reverseForm.values.reason || null,
       })
       notifications.show({
-        title: 'Success',
-        message: 'Journal entry reversed successfully',
+        title: t('common.success') || 'Success',
+        message: t('finance.journalEntriesPage.notification.reverseSuccess'),
         color: 'green',
       })
       setReverseModalOpened(false)
       fetchEntries()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to reverse journal entry',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.journalEntriesPage.notification.reverseError'),
         color: 'red',
       })
     }
-  }
+  }, [selectedEntry, reverseForm, fetchEntries, editId])
 
-  const addJournalItem = () => {
+  const addJournalItem = useCallback(() => {
     form.insertListItem('items', { account_id: '', debit: '', credit: '' })
-  }
+  }, [form])
 
-  const removeJournalItem = (index: number) => {
+  const removeJournalItem = useCallback((index: number) => {
     if (form.values.items.length > 2) {
       form.removeListItem('items', index)
     } else {
       notifications.show({
-        title: 'Validation Error',
-        message: 'At least 2 journal items are required',
+        title: t('common.error') || 'Validation Error',
+        message: t('finance.journalEntriesPage.validation.atLeastTwoItems'),
         color: 'red',
       })
     }
-  }
+  }, [form])
 
-  const calculateTotals = () => {
+  const calculateTotals = useCallback(() => {
     const totalDebit = form.values.items.reduce((sum, item) => sum + (parseFloat(item.debit) || 0), 0)
     const totalCredit = form.values.items.reduce((sum, item) => sum + (parseFloat(item.credit) || 0), 0)
     return { totalDebit, totalCredit }
-  }
+  }, [form.values])
 
-  const totals = calculateTotals()
+  const totals = useMemo(() => calculateTotals(), [calculateTotals])
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
@@ -391,12 +391,12 @@ export default function JournalEntriesPage() {
           <Group>
             <IconBook size={32} />
             <Stack gap={0}>
-              <Text size="lg" fw={500}>Journal Entries</Text>
-              <Text size="sm" c="dimmed">Manage manual journal entries and adjustments</Text>
+              <Text size="lg" fw={500}>{t('finance.journalEntriesPage.title')}</Text>
+              <Text size="sm" c="dimmed">{t('finance.journalEntriesPage.subtitle')}</Text>
             </Stack>
           </Group>
           <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>
-            New Entry
+            {t('finance.journalEntriesPage.addEntry')}
           </Button>
         </Group>
 
@@ -405,7 +405,7 @@ export default function JournalEntriesPage() {
           <Grid gutter="md">
             <Grid.Col span={{ base: 12, md: 3 }}>
               <TextInput
-                placeholder="Search description..."
+                placeholder={t('finance.journalEntriesPage.filters.searchPlaceholder')}
                 leftSection={<IconSearch size={16} />}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -413,32 +413,32 @@ export default function JournalEntriesPage() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <TextInput
-                placeholder="Entry number"
+                placeholder={t('finance.journalEntriesPage.filters.entryNumber')}
                 value={filters.entry_number}
                 onChange={(e) => setFilters({ ...filters, entry_number: e.target.value })}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 6, md: 2 }}>
               <DateInput
-                placeholder="Start date"
+                placeholder={t('finance.journalEntriesPage.filters.startDate')}
                 value={filters.start_date ? new Date(filters.start_date) : null}
                 onChange={(value) => setFilters({ ...filters, start_date: value ? value.toISOString().split('T')[0] : '' })}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 6, md: 2 }}>
               <DateInput
-                placeholder="End date"
+                placeholder={t('finance.journalEntriesPage.filters.endDate')}
                 value={filters.end_date ? new Date(filters.end_date) : null}
                 onChange={(value) => setFilters({ ...filters, end_date: value ? value.toISOString().split('T')[0] : '' })}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <Select
-                placeholder="Status"
+                placeholder={t('finance.journalEntriesPage.filters.status')}
                 data={[
                   { value: '', label: 'All' },
                   { value: 'false', label: 'Active' },
-                  { value: 'true', label: 'Reversed' },
+                  { value: 'true', label: t('finance.journalEntriesPage.statusBadges.reversed') },
                 ]}
                 value={filters.is_reversed}
                 onChange={(value) => setFilters({ ...filters, is_reversed: value || '' })}
@@ -463,44 +463,44 @@ export default function JournalEntriesPage() {
         {/* Balance Check Alert */}
         {Math.abs(totals.totalDebit - totals.totalCredit) > 0.01 && modalOpened && (
           <Alert color="red" icon={<IconScale size={16} />}>
-            Journal entry is not balanced. Debit: {totals.totalDebit.toFixed(2)}, Credit: {totals.totalCredit.toFixed(2)}
+            {t('finance.journalEntriesPage.alert.unbalanced')} Debit: {totals.totalDebit.toFixed(2)}, Credit: {totals.totalCredit.toFixed(2)}
           </Alert>
         )}
 
-        {/* Table */}
-        <Paper withBorder>
+        {/* Table - Desktop View */}
+        <Paper withBorder display={{ base: 'none', md: 'block' }}>
           <ScrollArea>
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Entry #</Table.Th>
-                  <Table.Th>Date</Table.Th>
-                  <Table.Th>Description</Table.Th>
-                  <Table.Th>Debit</Table.Th>
-                  <Table.Th>Credit</Table.Th>
-                  <Table.Th>Status</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.entryNumber')}</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.date')}</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.description')}</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.debits')}</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.credits')}</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.status')}</Table.Th>
                   <Table.Th>Created By</Table.Th>
-                  <Table.Th ta="right">Actions</Table.Th>
+                  <Table.Th ta="right">{t('finance.journalEntriesPage.table.actions')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {loading ? (
                   <Table.Tr>
                     <Table.Td colSpan={8} ta="center">
-                      <Text c="dimmed">Loading...</Text>
+                      <Text c="dimmed">{t('finance.journalEntriesPage.table.loading')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : entries.length === 0 ? (
                   <Table.Tr>
                     <Table.Td colSpan={8} ta="center">
-                      <Text c="dimmed">No journal entries found</Text>
+                      <Text c="dimmed">{t('finance.journalEntriesPage.table.noEntriesFound')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : (
                   entries.map((entry) => (
                     <Table.Tr key={entry.id}>
                       <Table.Td>
-                        <Text fw={500}>{entry.entry_number}</Text>
+                        <Text fw={500}>{entry.entryNumber || entry.entry_number}</Text>
                       </Table.Td>
                       <Table.Td>{new Date(entry.date).toLocaleDateString()}</Table.Td>
                       <Table.Td>
@@ -508,19 +508,19 @@ export default function JournalEntriesPage() {
                       </Table.Td>
                       <Table.Td>
                         <Text c="green">
-                          <NumberFormatter value={entry.total_debit || 0} decimalScale={2} thousandSeparator prefix="BDT " />
+                          <NumberFormatter value={entry.totalDebit || entry.total_debit || 0} decimalScale={2} thousandSeparator prefix="BDT " />
                         </Text>
                       </Table.Td>
                       <Table.Td>
                         <Text c="red">
-                          <NumberFormatter value={entry.total_credit || 0} decimalScale={2} thousandSeparator prefix="BDT " />
+                          <NumberFormatter value={entry.totalCredit || entry.total_credit || 0} decimalScale={2} thousandSeparator prefix="BDT " />
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        {entry.is_reversed ? (
-                          <Badge color="orange" variant="light">Reversed</Badge>
+                        {entry.isReversed || entry.is_reversed ? (
+                          <Badge color="orange" variant="light">{t('finance.journalEntriesPage.statusBadges.reversed')}</Badge>
                         ) : (
-                          <Badge color="green" variant="light">Active</Badge>
+                          <Badge color="green" variant="light">{t('finance.journalEntriesPage.statusBadges.balanced')}</Badge>
                         )}
                       </Table.Td>
                       <Table.Td>
@@ -573,26 +573,134 @@ export default function JournalEntriesPage() {
             </Table>
           </ScrollArea>
         </Paper>
+
+        {/* Mobile Card View */}
+        <Stack display={{ base: 'block', md: 'none' }}>
+          {loading ? (
+            <Paper withBorder p="md">
+              <Text ta="center" c="dimmed">Loading...</Text>
+            </Paper>
+          ) : entries.length === 0 ? (
+            <Paper withBorder p="md">
+              <Text ta="center" c="dimmed">No journal entries found</Text>
+            </Paper>
+          ) : (
+            entries.map((entry) => (
+              <Paper key={entry.id} withBorder p="md" mb="sm" shadow="sm">
+                <Stack gap="sm">
+                  {/* Header: Entry #, Date, Status */}
+                  <Group justify="space-between">
+                    <Text className="text-sm md:text-base" fw={500}>
+                      {entry.entryNumber || entry.entry_number}
+                    </Text>
+                    <Badge
+                      color={entry.isReversed || entry.is_reversed ? 'orange' : 'green'}
+                      variant="light"
+                      className="text-xs md:text-sm"
+                    >
+                      {entry.isReversed || entry.is_reversed ? t('finance.journalEntriesPage.statusBadges.reversed') : t('finance.journalEntriesPage.statusBadges.balanced')}
+                    </Badge>
+                  </Group>
+                  <Text className="text-xs md:text-sm" c="dimmed">
+                    {new Date(entry.date).toLocaleDateString()}
+                    {entry.creator?.name && ` • Created by ${entry.creator.name}`}
+                  </Text>
+
+                  {/* Description */}
+                  <Text className="text-sm md:text-base">
+                    {entry.description || '-'}
+                  </Text>
+
+                  {/* Debit & Credit */}
+                  <Group>
+                    <Paper p="xs" className="flex-1" bg="green.0">
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.journalEntriesPage.table.debit')}</Text>
+                      <Text className="text-sm md:text-base" fw={600} c="green">
+                        <NumberFormatter
+                          value={entry.totalDebit || entry.total_debit || 0}
+                          decimalScale={2}
+                          thousandSeparator
+                          prefix="৳"
+                        />
+                      </Text>
+                    </Paper>
+                    <Paper p="xs" className="flex-1" bg="red.0">
+                      <Text className="text-xs md:text-sm" c="dimmed">{t('finance.journalEntriesPage.table.credit')}</Text>
+                      <Text className="text-sm md:text-base" fw={600} c="red">
+                        <NumberFormatter
+                          value={entry.totalCredit || entry.total_credit || 0}
+                          decimalScale={2}
+                          thousandSeparator
+                          prefix="৳"
+                        />
+                      </Text>
+                    </Paper>
+                  </Group>
+
+                  {/* Actions */}
+                  <Group justify="flex-end">
+                    <ActionIcon
+                      size="sm"
+                      variant="light"
+                      color="blue"
+                      onClick={() => handleOpenView(entry.id)}
+                    >
+                      <IconEye size={16} />
+                    </ActionIcon>
+                    {!entry.is_reversed && (
+                      <>
+                        <ActionIcon
+                          size="sm"
+                          variant="light"
+                          color="yellow"
+                          onClick={() => handleOpenEdit(entry.id)}
+                        >
+                          <IconPencil size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          size="sm"
+                          variant="light"
+                          color="orange"
+                          onClick={() => handleOpenReverse(entry)}
+                        >
+                          <IconRefresh size={16} />
+                        </ActionIcon>
+                        <ActionIcon
+                          size="sm"
+                          variant="light"
+                          color="red"
+                          onClick={() => handleDelete(entry.id)}
+                        >
+                          <IconTrash size={16} />
+                        </ActionIcon>
+                      </>
+                    )}
+                  </Group>
+                </Stack>
+              </Paper>
+            ))
+          )}
+        </Stack>
       </Stack>
 
       {/* Create/Edit Modal */}
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Text fw={500}>{editId ? 'Edit Journal Entry' : 'New Journal Entry'}</Text>}
+        title={<Text fw={500}>{editId ? t('finance.journalEntriesPage.modal.editTitle') : t('finance.journalEntriesPage.modal.newTitle')}</Text>}
         size="xl"
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack gap="md">
             <Group>
               <TextInput
-                label="Entry Number"
+                label={t('finance.journalEntriesPage.modal.entryNumber')}
                 required
                 {...form.getInputProps('entry_number')}
                 style={{ flex: 1 }}
               />
               <DateInput
-                label="Date"
+                label={t('finance.journalEntriesPage.modal.date')}
                 required
                 value={form.values.date}
                 onChange={(value) => form.setFieldValue('date', value as Date)}
@@ -601,34 +709,34 @@ export default function JournalEntriesPage() {
             </Group>
 
             <TextInput
-              label="Description"
-              placeholder="Entry description..."
+              label={t('finance.journalEntriesPage.modal.description')}
+              placeholder={t('finance.journalEntriesPage.modal.descriptionPlaceholder')}
               {...form.getInputProps('description')}
             />
 
-            <Text fw={500} size="sm">Journal Items</Text>
+            <Text fw={500} size="sm">{t('finance.journalEntriesPage.modal.journalItems')}</Text>
 
             {form.values.items.map((item, index) => (
               <Group key={index} gap="md">
                 <Select
-                  placeholder="Select account"
+                  placeholder={t('finance.journalEntriesPage.modal.selectAccount')}
                   data={accounts.map(acc => ({
                     value: acc.id.toString(),
-                    label: `${acc.account_code} - ${acc.account_name}`,
+                    label: `${acc.code || acc.account_code} - ${acc.name || acc.account_name}`,
                   }))}
                   {...form.getInputProps(`items.${index}.account_id`)}
                   style={{ flex: 2 }}
                   searchable
                 />
                 <TextInput
-                  placeholder="Debit"
+                  placeholder={t('finance.journalEntriesPage.modal.debit')}
                   type="number"
                   step="0.01"
                   {...form.getInputProps(`items.${index}.debit`)}
                   style={{ flex: 1 }}
                 />
                 <TextInput
-                  placeholder="Credit"
+                  placeholder={t('finance.journalEntriesPage.modal.credit')}
                   type="number"
                   step="0.01"
                   {...form.getInputProps(`items.${index}.credit`)}
@@ -646,25 +754,25 @@ export default function JournalEntriesPage() {
 
             <Button variant="light" onClick={addJournalItem} fullWidth>
               <IconPlus size={16} style={{ marginRight: 8 }} />
-              Add Item
+              {t('finance.journalEntriesPage.modal.addItem')}
             </Button>
 
             {/* Totals */}
             <Group>
               <Paper flex={1} p="sm" withBorder bg="green.0">
-                <Text size="sm" c="green">Total Debit</Text>
+                <Text size="sm" c="green">{t('finance.journalEntriesPage.modal.totalDebit')}</Text>
                 <Text size="lg" fw={500}>
                   <NumberFormatter value={totals.totalDebit} decimalScale={2} thousandSeparator />
                 </Text>
               </Paper>
               <Paper flex={1} p="sm" withBorder bg="red.0">
-                <Text size="sm" c="red">Total Credit</Text>
+                <Text size="sm" c="red">{t('finance.journalEntriesPage.modal.totalCredit')}</Text>
                 <Text size="lg" fw={500}>
                   <NumberFormatter value={totals.totalCredit} decimalScale={2} thousandSeparator />
                 </Text>
               </Paper>
               <Paper flex={1} p="sm" withBorder bg={Math.abs(totals.totalDebit - totals.totalCredit) < 0.01 ? 'blue.0' : 'orange.0'}>
-                <Text size="sm">Difference</Text>
+                <Text size="sm">{t('finance.journalEntriesPage.modal.difference')}</Text>
                 <Text size="lg" fw={500}>
                   <NumberFormatter value={Math.abs(totals.totalDebit - totals.totalCredit)} decimalScale={2} thousandSeparator />
                 </Text>
@@ -672,8 +780,8 @@ export default function JournalEntriesPage() {
             </Group>
 
             <Group justify="flex-end">
-              <Button variant="subtle" onClick={() => setModalOpened(false)}>Cancel</Button>
-              <Button type="submit">{editId ? 'Update' : 'Create'} Entry</Button>
+              <Button variant="subtle" onClick={() => setModalOpened(false)}>{t('finance.journalEntriesPage.modal.cancel')}</Button>
+              <Button type="submit">{editId ? t('finance.journalEntriesPage.modal.update') : t('finance.journalEntriesPage.modal.create')}</Button>
             </Group>
           </Stack>
         </form>
@@ -683,53 +791,53 @@ export default function JournalEntriesPage() {
       <Modal
         opened={viewModalOpened}
         onClose={() => setViewModalOpened(false)}
-        title={<Text fw={500}>Journal Entry Details</Text>}
+        title={<Text fw={500}>{t('finance.journalEntriesPage.viewModal.title')}</Text>}
         size="lg"
       >
         {selectedEntry && (
           <Stack>
             <Group>
               <div>
-                <Text size="xs" c="dimmed">Entry Number</Text>
-                <Text fw={500}>{selectedEntry.entry_number}</Text>
+                <Text size="xs" c="dimmed">{t('finance.journalEntriesPage.viewModal.entryNumber')}</Text>
+                <Text fw={500}>{selectedEntry.entryNumber || selectedEntry.entry_number}</Text>
               </div>
               <div>
-                <Text size="xs" c="dimmed">Date</Text>
+                <Text size="xs" c="dimmed">{t('finance.journalEntriesPage.viewModal.date')}</Text>
                 <Text>{new Date(selectedEntry.date).toLocaleDateString()}</Text>
               </div>
               <div>
-                <Text size="xs" c="dimmed">Status</Text>
-                {selectedEntry.is_reversed ? (
-                  <Badge color="orange" variant="light">Reversed</Badge>
+                <Text size="xs" c="dimmed">{t('finance.journalEntriesPage.viewModal.status')}</Text>
+                {selectedEntry.isReversed || selectedEntry.is_reversed ? (
+                  <Badge color="orange" variant="light">{t('finance.journalEntriesPage.statusBadges.reversed')}</Badge>
                 ) : (
-                  <Badge color="green" variant="light">Active</Badge>
+                  <Badge color="green" variant="light">{t('finance.journalEntriesPage.statusBadges.active')}</Badge>
                 )}
               </div>
             </Group>
 
             {selectedEntry.description && (
               <>
-                <Text size="xs" c="dimmed">Description</Text>
+                <Text size="xs" c="dimmed">{t('finance.journalEntriesPage.viewModal.description')}</Text>
                 <Text>{selectedEntry.description}</Text>
               </>
             )}
 
-            <Text fw={500} size="sm">Journal Items</Text>
+            <Text fw={500} size="sm">{t('finance.journalEntriesPage.viewModal.journalItems')}</Text>
 
             <Paper withBorder>
               <Table>
                 <Table.Thead>
                   <Table.Tr>
-                    <Table.Th>Account</Table.Th>
-                    <Table.Th ta="right">Debit</Table.Th>
-                    <Table.Th ta="right">Credit</Table.Th>
+                    <Table.Th>{t('finance.journalEntriesPage.viewModal.account')}</Table.Th>
+                    <Table.Th ta="right">{t('finance.journalEntriesPage.viewModal.debit')}</Table.Th>
+                    <Table.Th ta="right">{t('finance.journalEntriesPage.viewModal.credit')}</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {selectedEntry.items?.map((item) => (
                     <Table.Tr key={item.id}>
                       <Table.Td>
-                        {item.account?.account_code} - {item.account?.account_name}
+                        {item.account?.code || item.account?.account_code} - {item.account?.name || item.account?.account_name}
                       </Table.Td>
                       <Table.Td ta="right">
                         {item.debit > 0 ? (
@@ -748,15 +856,15 @@ export default function JournalEntriesPage() {
                     </Table.Tr>
                   ))}
                   <Table.Tr fw={500}>
-                    <Table.Td>Total</Table.Td>
+                    <Table.Td>{t('finance.journalEntriesPage.viewModal.total')}</Table.Td>
                     <Table.Td ta="right">
                       <Text c="green">
-                        <NumberFormatter value={selectedEntry.total_debit || 0} decimalScale={2} thousandSeparator />
+                        <NumberFormatter value={selectedEntry.totalDebit || selectedEntry.total_debit || 0} decimalScale={2} thousandSeparator />
                       </Text>
                     </Table.Td>
                     <Table.Td ta="right">
                       <Text c="red">
-                        <NumberFormatter value={selectedEntry.total_credit || 0} decimalScale={2} thousandSeparator />
+                        <NumberFormatter value={selectedEntry.totalCredit || selectedEntry.total_credit || 0} decimalScale={2} thousandSeparator />
                       </Text>
                     </Table.Td>
                   </Table.Tr>
@@ -765,7 +873,7 @@ export default function JournalEntriesPage() {
             </Paper>
 
             <Group justify="flex-end">
-              <Button onClick={() => setViewModalOpened(false)}>Close</Button>
+              <Button onClick={() => setViewModalOpened(false)}>{t('finance.journalEntriesPage.viewModal.close')}</Button>
             </Group>
           </Stack>
         )}
@@ -775,33 +883,33 @@ export default function JournalEntriesPage() {
       <Modal
         opened={reverseModalOpened}
         onClose={() => setReverseModalOpened(false)}
-        title={<Text fw={500}>Reverse Journal Entry</Text>}
+        title={<Text fw={500}>{t('finance.journalEntriesPage.reverseModal.title')}</Text>}
         size="md"
       >
         <Stack>
           {selectedEntry && (
             <>
               <Text size="sm">
-                Are you sure you want to reverse journal entry <Text span fw={500}>{selectedEntry.entry_number}</Text>?
+                {t('finance.journalEntriesPage.reverseModal.confirmMessage', { entryNumber: selectedEntry.entryNumber || selectedEntry.entry_number })}
               </Text>
               <Text size="sm" c="dimmed">
-                This will create a new entry with opposite debits and credits.
+                {t('finance.journalEntriesPage.reverseModal.description')}
               </Text>
 
               <TextInput
-                label="Reason (optional)"
-                placeholder="Reason for reversal..."
+                label={t('finance.journalEntriesPage.reverseModal.reason')}
+                placeholder={t('finance.journalEntriesPage.reverseModal.reasonPlaceholder')}
                 {...reverseForm.getInputProps('reason')}
               />
 
               <Group justify="flex-end">
-                <Button variant="subtle" onClick={() => setReverseModalOpened(false)}>Cancel</Button>
+                <Button variant="subtle" onClick={() => setReverseModalOpened(false)}>{t('finance.journalEntriesPage.reverseModal.cancel')}</Button>
                 <Button
                   color="orange"
                   leftSection={<IconRefresh size={16} />}
                   onClick={handleReverse}
                 >
-                  Reverse Entry
+                  {t('finance.journalEntriesPage.reverseModal.reverseEntry')}
                 </Button>
               </Group>
             </>

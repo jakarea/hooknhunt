@@ -59,7 +59,6 @@ export function PermissionGuard({
 
   // Debug logging
   if (debug) {
-    console.log('PermissionGuard check:', {
       permission,
       permissions,
       requireAll,
@@ -105,7 +104,6 @@ export function SelfProfileGuard({
   const ownProfile = isOwnProfile(userId)
 
   if (debug) {
-    console.log('SelfProfileGuard check:', {
       userId,
       mode,
       ownProfile,

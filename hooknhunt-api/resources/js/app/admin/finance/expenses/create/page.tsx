@@ -24,6 +24,7 @@ import {
   IconDeviceFloppy,
   IconReceipt,
   IconUpload,
+  IconInfoCircle,
 } from '@tabler/icons-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
@@ -74,7 +75,6 @@ export default function CreateExpensePage() {
 
         // Fetch accounts
         const accountsResponse = await getAccounts()
-        console.log('Accounts response:', accountsResponse)
 
         let accountsData: ChartOfAccount[] = []
         if (accountsResponse && typeof accountsResponse === 'object') {
@@ -89,19 +89,16 @@ export default function CreateExpensePage() {
             accountsData = accountsResponse
           }
         }
-        console.log('Processed accounts data:', accountsData)
 
         // Filter only expense accounts (case-insensitive)
         const expenseAccounts = accountsData.filter((acc) => {
           const accountType = typeof acc.type === 'string' ? acc.type.toLowerCase() : ''
           return accountType === 'expense'
         })
-        console.log('Filtered expense accounts:', expenseAccounts)
         setAccounts(expenseAccounts)
 
         // Fetch users
         const usersResponse = await getUsers()
-        console.log('Users response:', usersResponse)
 
         let usersData: User[] = []
         if (usersResponse && typeof usersResponse === 'object') {
@@ -116,7 +113,6 @@ export default function CreateExpensePage() {
             usersData = usersResponse
           }
         }
-        console.log('Processed users data:', usersData)
         setUsers(usersData)
       } catch (error) {
         console.error('Failed to fetch data:', error)
@@ -375,10 +371,12 @@ export default function CreateExpensePage() {
                 placeholder={t('finance.banksPage.expensesCreatePage.selectDate')}
                 description={t('finance.banksPage.expensesCreatePage.expenseDateDescription')}
                 value={formData.expenseDate}
-                onChange={(value) => handleChange('expenseDate', value)}
+                onChange={(value) => {
+                  handleChange('expenseDate', value)
+                }}
                 error={errors.expenseDate}
                 maxDate={new Date()}
-                clearable
+                // clearable temporarily removed for debugging
               />
 
               {/* Reference Number */}
@@ -400,9 +398,11 @@ export default function CreateExpensePage() {
                   label: person.name,
                 }))}
                 value={formData.paidById}
-                onChange={(value) => handleChange('paidById', value || '')}
+                onChange={(value) => {
+                  handleChange('paidById', value || '')
+                }}
                 searchable
-                clearable
+                // clearable temporarily removed for debugging
               />
 
               {/* Attachment */}
@@ -415,7 +415,7 @@ export default function CreateExpensePage() {
                 error={errors.attachment}
                 accept="image/*,.pdf"
                 leftSection={<IconUpload size={16} />}
-                clearable
+                // clearable temporarily removed for debugging
               />
 
               {/* Notes */}
@@ -448,7 +448,6 @@ export default function CreateExpensePage() {
                   min={0}
                   max={100}
                   leftSection={<Text size="sm">%</Text>}
-                  clearable
                 />
                 <NumberInput
                   label="VAT Amount"
@@ -464,7 +463,6 @@ export default function CreateExpensePage() {
                   hideControls
                   leftSection={<Text size="sm">৳</Text>}
                   readOnly={!!formData.vatPercentage}
-                  clearable
                 />
                 <TextInput
                   label="VAT Challan No"
@@ -472,7 +470,7 @@ export default function CreateExpensePage() {
                   description="VAT challan number"
                   value={formData.vatChallanNo}
                   onChange={(e) => handleChange('vatChallanNo', e.currentTarget.value)}
-                  clearable
+                  // clearable temporarily removed for debugging
                 />
               </SimpleGrid>
 
@@ -488,7 +486,6 @@ export default function CreateExpensePage() {
                   min={0}
                   max={100}
                   leftSection={<Text size="sm">%</Text>}
-                  clearable
                 />
                 <NumberInput
                   label="Tax Amount"
@@ -504,7 +501,6 @@ export default function CreateExpensePage() {
                   hideControls
                   leftSection={<Text size="sm">৳</Text>}
                   readOnly={!!formData.taxPercentage}
-                  clearable
                 />
                 <TextInput
                   label="Tax Challan No"
@@ -512,7 +508,7 @@ export default function CreateExpensePage() {
                   description="Tax challan number"
                   value={formData.taxChallanNo}
                   onChange={(e) => handleChange('taxChallanNo', e.currentTarget.value)}
-                  clearable
+                  // clearable temporarily removed for debugging
                 />
               </SimpleGrid>
             </Stack>

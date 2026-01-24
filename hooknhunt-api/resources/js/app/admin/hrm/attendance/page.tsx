@@ -151,7 +151,6 @@ export default function AttendancePage() {
         updater: record.updater,
       }))
 
-      console.log('Normalized attendance:', normalizedAttendance)
       setAttendance(normalizedAttendance)
 
       // Fetch today's attendance for current user (same approach as dashboard)
@@ -162,7 +161,6 @@ export default function AttendancePage() {
 
           // Fetch all attendance for today (without user filter to avoid permission issues)
           const myAttendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
-          console.log('My attendance response:', myAttendanceResponse)
 
           // API returns paginated data with camelCase fields
           let myAttendanceData = []
@@ -173,7 +171,6 @@ export default function AttendancePage() {
             myAttendanceData = Array.isArray(myAttendanceResponse.data.data) ? myAttendanceResponse.data.data : []
           }
 
-          console.log('My attendance data:', myAttendanceData)
 
           // Find my attendance - handle both camelCase/snake_case and string/number
           const myRecord = myAttendanceData.find((a: any) => {
@@ -182,7 +179,6 @@ export default function AttendancePage() {
           })
 
           if (myRecord) {
-            console.log('Found my attendance:', myRecord)
 
             // Convert camelCase to snake_case for consistency
             const normalizedRecord: Attendance = {
@@ -200,10 +196,8 @@ export default function AttendancePage() {
               user: myRecord.user,
               updater: myRecord.updater,
             }
-            console.log('Normalized attendance:', normalizedRecord)
             setTodayAttendance(normalizedRecord)
           } else {
-            console.log('No attendance found for user_id:', user.id)
             setTodayAttendance(null)
           }
         } catch (error) {

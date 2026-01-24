@@ -119,7 +119,6 @@ export default function DashboardPage() {
       const today = new Date().toISOString().split('T')[0]
       // Fetch all attendance and filter to avoid permission issues
       const response = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
-      console.log('Today attendance response:', response)
 
       let attendanceData = []
       if (response.data?.data?.data) {
@@ -149,7 +148,6 @@ export default function DashboardPage() {
         setTodayAttendance(null)
       }
     } catch (error) {
-      console.log('No attendance for today:', error)
       setTodayAttendance(null)
     }
   }
@@ -161,7 +159,6 @@ export default function DashboardPage() {
       const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0]
 
       const response = await api.get(`/hrm/attendance?start_date=${startOfMonth}&end_date=${endOfMonth}`)
-      console.log('History response:', response)
 
       let historyData = []
       if (response.data?.data?.data) {
@@ -188,7 +185,6 @@ export default function DashboardPage() {
 
       setAttendanceHistory(userHistory)
     } catch (err) {
-      console.log('Error fetching history:', err)
     }
   }
 
@@ -329,7 +325,6 @@ export default function DashboardPage() {
     if (!breakIn || !breakOut) return '--:--'
 
     try {
-      console.log('Calculating duration:', { breakIn, breakOut })
 
       // Parse break in time
       let breakInTime: Date
@@ -355,7 +350,6 @@ export default function DashboardPage() {
       const diffMs = breakOutTime.getTime() - breakInTime.getTime()
       const totalMinutes = Math.floor(diffMs / 1000 / 60)
 
-      console.log('Duration calculation:', { diffMs, totalMinutes, breakInTime, breakOutTime })
 
       if (totalMinutes <= 0) return '--:--'
 
@@ -509,13 +503,11 @@ export default function DashboardPage() {
                   const breakIns = Array.isArray(record.break_in) ? record.break_in : []
                   const breakOuts = Array.isArray(record.break_out) ? record.break_out : []
 
-                  console.log('Processing record:', { breakIns, breakOuts })
 
                   for (let i = 0; i < breakIns.length; i++) {
                     const breakInTime = formatTime(breakIns[i])
                     const breakOutTime = i < breakOuts.length ? formatTime(breakOuts[i]) : t('dashboard.active')
                     const duration = i < breakOuts.length ? calculateBreakDuration(breakIns[i], breakOuts[i]) : null
-                    console.log('Break entry:', { i, breakIn: breakIns[i], breakOut: breakOuts[i], duration })
                     breakTimes.push(`${breakInTime} - ${breakOutTime} ${duration ? `: ${duration}` : ''}`)
                   }
 

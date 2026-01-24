@@ -139,7 +139,6 @@ export default function BankDetailsPage() {
   const fetchChartOfAccounts = async () => {
     try {
       const response = await getAccounts()
-      console.log('[Accounts] API Response:', response)
 
       // Access the data property from the API response
       const accounts = response.data || response || []
@@ -149,7 +148,6 @@ export default function BankDetailsPage() {
         acc.type === 'expense' && acc.is_active
       )
 
-      console.log('[Accounts] Expense accounts:', expenseAccounts)
       setChartOfAccounts(expenseAccounts)
     } catch (err) {
       console.error('Error fetching chart of accounts:', err)

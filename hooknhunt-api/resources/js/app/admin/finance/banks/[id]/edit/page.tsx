@@ -89,12 +89,8 @@ export default function EditBankPage() {
         setLoading(true)
         setError(null)
         const response = await getBank(parseInt(id))
-        console.log('[Edit Bank] API Response:', response)
         const bankData = response.data as BankAccount & { transactions_count?: number }
 
-        console.log('[Edit Bank] Bank data:', bankData)
-        console.log('[Edit Bank] account_number:', bankData.account_number)
-        console.log('[Edit Bank] account_name:', bankData.account_name)
 
         setBank(bankData)
         setHasTransactions((bankData.transactions_count || 0) > 0)
@@ -109,11 +105,6 @@ export default function EditBankPage() {
           phone: bankData.phone || '',
           notes: bankData.notes || '',
           status: bankData.status || 'active',
-        })
-
-        console.log('[Edit Bank] Form data after pre-fill:', {
-          account_number: formData.account_number,
-          account_name: formData.account_name,
         })
       } catch (err: any) {
         console.error('Error fetching bank:', err)
@@ -194,12 +185,8 @@ export default function EditBankPage() {
       }
 
       // Debug logging - before
-      console.log('[Edit Bank] Form data before cleaning:', formData)
-      console.log('[Edit Bank] Clean data to send:', cleanData)
 
       const response = await updateBank(parseInt(id!), cleanData)
-      console.log('[Edit Bank] API Response:', response)
-      console.log('[Edit Bank] Response data:', response.data)
 
       notifications.show({
         title: 'Success',

@@ -136,7 +136,6 @@ export default function ProfilePage() {
           deletedAt: userData.deletedAt || userData.deleted_at,
         }
 
-        console.log('Normalized user data:', normalizedUser)
         setUser(normalizedUser)
 
         // Combine role permissions with granted permissions, exclude blocked

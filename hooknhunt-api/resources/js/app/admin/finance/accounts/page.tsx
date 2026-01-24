@@ -38,6 +38,7 @@ import { notifications } from '@mantine/notifications'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useFinanceStore } from '@/stores/financeStore'
 import { modals } from '@mantine/modals'
 import {
   getAccounts,
@@ -53,6 +54,7 @@ type AccountType = 'all' | 'asset' | 'liability' | 'equity' | 'revenue' | 'expen
 export default function AccountsPage() {
   const { t } = useTranslation()
   const { hasPermission } = usePermissions()
+  const addRecentAccount = useFinanceStore((state) => state.addRecentAccount)
 
   // Permission check - user needs finance accounts view permission
   if (!hasPermission('finance_accounts_view')) {
@@ -89,8 +91,6 @@ export default function AccountsPage() {
       }
 
       const response = await getAccounts()
-      console.log('Raw API response:', response)
-      console.log('First account data:', response && typeof response === 'object' && 'data' in response ? response.data[0] : 'N/A')
 
       // Handle nested response structure - try multiple patterns
       let accountsData: ChartOfAccount[] = []
@@ -112,8 +112,6 @@ export default function AccountsPage() {
         }
       }
 
-      console.log('Extracted accounts data:', accountsData)
-      console.log('Number of accounts:', accountsData.length)
 
       // Convert 'income' to 'revenue' and handle field naming
       accountsData = accountsData.map((acc: any) => {
@@ -128,11 +126,9 @@ export default function AccountsPage() {
           parent_id: acc.parent_id ?? null,
           description: acc.description ?? null,
         }
-        console.log(`Account ${acc.code} balance:`, acc.balance, '→ processed:', processed.balance)
         return processed
       })
 
-      console.log('Processed accounts:', accountsData)
       setAccounts(accountsData)
     } catch (error) {
       console.error('Error fetching accounts:', error)
@@ -275,6 +271,21 @@ export default function AccountsPage() {
       total_count: filteredAccounts.length,
     }
   }, [filteredAccounts])
+
+  // Track recent accounts in Zustand store
+  useEffect(() => {
+    if (filteredAccounts.length > 0 && !loading) {
+      filteredAccounts.slice(0, 5).forEach(account => {
+        addRecentAccount({
+          id: account.id,
+          name: account.name,
+          code: account.code,
+          type: account.type,
+          viewedAt: new Date().toISOString()
+        })
+      })
+    }
+  }, [filteredAccounts, loading, addRecentAccount])
 
   // Handle refresh
   const handleRefresh = () => {
@@ -795,13 +806,13 @@ export default function AccountsPage() {
                   <Card withBorder p="md" className="flex-1">
                     <Text className="text-sm md:text-base" c="dimmed">Total Debit</Text>
                     <Text className="text-xl md:text-2xl" fw={700} c="blue">
-                      ৳{trialBalanceData.total_debit?.toLocaleString() || 0}
+                      ৳{(trialBalanceData.total_debit || trialBalanceData.totalDebit || 0)?.toLocaleString()}
                     </Text>
                   </Card>
                   <Card withBorder p="md" className="flex-1">
                     <Text className="text-sm md:text-base" c="dimmed">Total Credit</Text>
                     <Text className="text-xl md:text-2xl" fw={700} c="orange">
-                      ৳{trialBalanceData.total_credit?.toLocaleString() || 0}
+                      ৳{(trialBalanceData.total_credit || trialBalanceData.totalCredit || 0)?.toLocaleString()}
                     </Text>
                   </Card>
                   <Card withBorder p="md" className="flex-1">

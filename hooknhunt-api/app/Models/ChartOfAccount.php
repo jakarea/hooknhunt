@@ -34,6 +34,18 @@ class ChartOfAccount extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'balance',
+        'debit_total',
+        'credit_total',
+        'type_label',
+    ];
+
+    /**
      * Relationship: One Account has many Journal Entries (Ledger Lines)
      */
     public function journalItems()
@@ -78,5 +90,39 @@ class ChartOfAccount extends Model
             'expense' => 'Expense',
             default => 'Unknown',
         };
+    }
+
+    /**
+     * Get total debit amount for this account
+     */
+    public function getDebitTotalAttribute(): float
+    {
+        return (float) $this->journalItems()->sum('debit');
+    }
+
+    /**
+     * Get total credit amount for this account
+     */
+    public function getCreditTotalAttribute(): float
+    {
+        return (float) $this->journalItems()->sum('credit');
+    }
+
+    /**
+     * Get calculated balance for this account
+     * Assets and Expenses: Debit - Credit
+     * Liabilities, Equity, and Income: Credit - Debit
+     */
+    public function getBalanceAttribute(): float
+    {
+        $debitTotal = $this->debit_total;
+        $creditTotal = $this->credit_total;
+
+        // Calculate balance based on account type
+        if (in_array($this->type, ['asset', 'expense'])) {
+            return $debitTotal - $creditTotal;
+        }
+
+        return $creditTotal - $debitTotal;
     }
 }

@@ -141,6 +141,11 @@ class CurrencyController extends Controller
 
         $validated['updated_by'] = auth()->id();
 
+        // If setting this currency as default, remove default flag from all others
+        if (isset($validated['is_default']) && $validated['is_default'] === true) {
+            Currency::where('id', '!=', $id)->update(['is_default' => false]);
+        }
+
         $currency->update($validated);
 
         $this->currencyService->clearCache();

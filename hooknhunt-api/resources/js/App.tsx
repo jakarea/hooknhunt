@@ -78,6 +78,7 @@ import EditBank from "@/app/admin/finance/banks/[id]/edit/page"
 import Transactions from "@/app/admin/finance/transactions/page"
 import Expenses from "@/app/admin/finance/expenses/page"
 import CreateExpense from "@/app/admin/finance/expenses/create/page"
+import EditExpense from "@/app/admin/finance/expenses/[id]/edit/page"
 import Accounts from "@/app/admin/finance/accounts/page"
 import CreateAccount from "@/app/admin/finance/accounts/create/page"
 import ReportsIndex from "@/app/admin/finance/reports/page"
@@ -96,6 +97,9 @@ import Projects from "@/app/admin/finance/projects/page"
 import FiscalYears from "@/app/admin/finance/fiscal-years/page"
 import AccountsPayable from "@/app/admin/finance/accounts-payable/page"
 import AccountsReceivable from "@/app/admin/finance/accounts-receivable/page"
+import Currencies from "@/app/admin/finance/currencies/page"
+import CustomReports from "@/app/admin/finance/reports/custom/page"
+import FinanceAudit from "@/app/admin/finance/audit/page"
 import Tickets from "@/app/admin/support/tickets/page"
 import SupportCategories from "@/app/admin/support/categories/page"
 import Banners from "@/app/admin/cms/banners/page"
@@ -226,6 +230,7 @@ function App() {
               <Route path="finance/transactions" element={<Transactions />} />
               <Route path="finance/expenses" element={<Expenses />} />
               <Route path="finance/expenses/create" element={<CreateExpense />} />
+              <Route path="finance/expenses/:id/edit" element={<EditExpense />} />
               <Route path="finance/accounts" element={<Accounts />} />
               <Route path="finance/accounts/create" element={<CreateAccount />} />
               <Route path="finance/fixed-assets" element={<FixedAssets />} />
@@ -238,6 +243,9 @@ function App() {
               <Route path="finance/fiscal-years" element={<FiscalYears />} />
               <Route path="finance/accounts-payable" element={<AccountsPayable />} />
               <Route path="finance/accounts-receivable" element={<AccountsReceivable />} />
+              <Route path="finance/currencies" element={<Currencies />} />
+              <Route path="finance/reports/custom" element={<CustomReports />} />
+              <Route path="finance/audit" element={<FinanceAudit />} />
               <Route path="finance/reports" element={<ReportsIndex />} />
               <Route path="finance/reports/profit-loss" element={<ProfitLoss />} />
               <Route path="finance/reports/balance-sheet" element={<BalanceSheet />} />

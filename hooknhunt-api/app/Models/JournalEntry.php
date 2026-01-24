@@ -15,6 +15,16 @@ class JournalEntry extends Model
     ];
 
     /**
+     * The accessors to append to the model's array form.
+     *
+     * @var array<int, string>
+     */
+    protected $appends = [
+        'total_debit',
+        'total_credit',
+    ];
+
+    /**
      * Boot method to add event listeners
      */
     protected static function boot()

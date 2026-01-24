@@ -152,14 +152,12 @@ export default function EditLeadPage() {
     try {
       const response = await api.get('/hrm/staff')
 
-      console.log('Staff API response:', response.data)
 
       if (response.data?.status) {
         // Handle both array and paginated response
         const data = response.data.data
         const users = Array.isArray(data) ? data : (data?.data || [])
 
-        console.log('Parsed staff list:', users)
 
         setStaffList(users)
       }
@@ -286,11 +284,9 @@ export default function EditLeadPage() {
           : null,
       }
 
-      console.log('Sending activity payload:', payload)
 
       const response = await api.post('/crm/activities', payload)
 
-      console.log('Activity response:', response.data)
 
       if (response.data?.status) {
         notifications.show({

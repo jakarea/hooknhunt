@@ -16,6 +16,7 @@ import {
   Alert,
   Card,
   Modal,
+  Box,
 } from '@mantine/core'
 import {
   IconChartPie,
@@ -87,13 +88,13 @@ export default function BudgetsPage() {
       notes: '',
     },
     validate: {
-      name: (val: string) => (val ? null : 'Budget name is required'),
-      scope_type: (val: string) => (val ? null : 'Scope type is required'),
-      period_type: (val: string) => (val ? null : 'Period type is required'),
-      fiscal_year: (val: string) => (val ? null : 'Fiscal year is required'),
-      start_date: (val: Date | null) => (val ? null : 'Start date is required'),
-      end_date: (val: Date | null) => (val ? null : 'End date is required'),
-      planned_amount: (val: string) => (val && parseFloat(val) > 0 ? null : 'Planned amount is required'),
+      name: (val: string) => (val ? null : t('finance.budgetsPage.validation.nameRequired')),
+      scope_type: (val: string) => (val ? null : t('finance.budgetsPage.validation.scopeTypeRequired')),
+      period_type: (val: string) => (val ? null : t('finance.budgetsPage.validation.periodTypeRequired')),
+      fiscal_year: (val: string) => (val ? null : t('finance.budgetsPage.validation.fiscalYearRequired')),
+      start_date: (val: Date | null) => (val ? null : t('finance.budgetsPage.validation.startDateRequired')),
+      end_date: (val: Date | null) => (val ? null : t('finance.budgetsPage.validation.endDateRequired')),
+      planned_amount: (val: string) => (val && parseFloat(val) > 0 ? null : t('finance.budgetsPage.validation.plannedAmountRequired')),
     },
   })
 
@@ -114,11 +115,13 @@ export default function BudgetsPage() {
         scope_type: filters.scope_type as any || undefined,
         search: filters.search || undefined,
       })
-      setBudgets(response.data || [])
+      // Handle both paginated response and direct array
+      const budgetsData = Array.isArray(response) ? response : (response.data?.data || response.data || [])
+      setBudgets(budgetsData)
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.message || 'Failed to fetch budgets',
+        title: t('common.error') || 'Error',
+        message: error.message || t('finance.budgetsPage.notification.fetchError'),
         color: 'red',
       })
     } finally {
@@ -129,9 +132,12 @@ export default function BudgetsPage() {
   const fetchAccounts = async () => {
     try {
       const response = await getAccounts()
-      setAccounts(response || [])
+      // Handle both paginated response and direct array
+      const accountsData = Array.isArray(response) ? response : (response.data?.data || response.data || [])
+      setAccounts(accountsData)
     } catch (error: any) {
       console.error('Failed to fetch accounts:', error)
+      setAccounts([])
     }
   }
 
@@ -141,6 +147,18 @@ export default function BudgetsPage() {
       setStatistics(response.data)
     } catch (error: any) {
       console.error('Failed to fetch statistics:', error)
+      // Set default statistics to avoid page break
+      setStatistics({
+        total_budgets: 0,
+        draft_budgets: 0,
+        active_budgets: 0,
+        completed_budgets: 0,
+        exceeded_budgets: 0,
+        budgets_needing_alert: 0,
+        total_planned_amount: 0,
+        total_actual_amount: 0,
+        total_variance: 0,
+      })
     }
   }
 
@@ -189,8 +207,8 @@ export default function BudgetsPage() {
       setModalOpened(true)
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: 'Failed to load budget',
+        title: t('common.error') || 'Error',
+        message: t('finance.budgetsPage.notification.loadError'),
         color: 'red',
       })
     }
@@ -203,8 +221,8 @@ export default function BudgetsPage() {
       setViewModalOpened(true)
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: 'Failed to load budget',
+        title: t('common.error') || 'Error',
+        message: t('finance.budgetsPage.notification.loadError'),
         color: 'red',
       })
     }
@@ -231,15 +249,15 @@ export default function BudgetsPage() {
       if (editId) {
         await updateBudget(editId, payload)
         notifications.show({
-          title: 'Success',
-          message: 'Budget updated successfully',
+          title: t('common.success') || 'Success',
+          message: t('finance.budgetsPage.notification.updateSuccess'),
           color: 'green',
         })
       } else {
         await createBudget(payload)
         notifications.show({
-          title: 'Success',
-          message: 'Budget created successfully',
+          title: t('common.success') || 'Success',
+          message: t('finance.budgetsPage.notification.createSuccess'),
           color: 'green',
         })
       }
@@ -249,8 +267,8 @@ export default function BudgetsPage() {
       fetchStatistics()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to save budget',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.budgetsPage.notification.saveError'),
         color: 'red',
       })
     }
@@ -258,26 +276,26 @@ export default function BudgetsPage() {
 
   const handleDelete = (id: number) => {
     modals.openConfirmModal({
-      title: 'Delete Budget',
+      title: t('finance.budgetsPage.notification.deleteTitle'),
       children: (
-        <Text size="sm">Are you sure you want to delete this budget? This action cannot be undone.</Text>
+        <Text size="sm">{t('finance.budgetsPage.notification.deleteConfirm')}</Text>
       ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      labels: { confirm: t('common.delete') || 'Delete', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
           await deleteBudget(id)
           notifications.show({
-            title: 'Success',
-            message: 'Budget deleted successfully',
+            title: t('common.success') || 'Success',
+            message: t('finance.budgetsPage.notification.deleteSuccess'),
             color: 'green',
           })
           fetchBudgets()
           fetchStatistics()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete budget',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.budgetsPage.notification.deleteError'),
             color: 'red',
           })
         }
@@ -287,26 +305,26 @@ export default function BudgetsPage() {
 
   const handleApprove = (id: number) => {
     modals.openConfirmModal({
-      title: 'Approve Budget',
+      title: t('finance.budgetsPage.notification.approveTitle'),
       children: (
-        <Text size="sm">Are you sure you want to approve this budget? This will activate it for tracking.</Text>
+        <Text size="sm">{t('finance.budgetsPage.notification.approveConfirm')}</Text>
       ),
-      labels: { confirm: 'Approve', cancel: 'Cancel' },
+      labels: { confirm: t('common.approve') || 'Approve', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'green' },
       onConfirm: async () => {
         try {
           await approveBudget(id)
           notifications.show({
-            title: 'Success',
-            message: 'Budget approved successfully',
+            title: t('common.success') || 'Success',
+            message: t('finance.budgetsPage.notification.approveSuccess'),
             color: 'green',
           })
           fetchBudgets()
           fetchStatistics()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to approve budget',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.budgetsPage.notification.approveError'),
             color: 'red',
           })
         }
@@ -331,19 +349,19 @@ export default function BudgetsPage() {
   }
 
   return (
-    <>
-      <Stack gap="md">
+    <Box p={{ base: 'md', md: 'xl' }}>
+      <Stack>
         {/* Header */}
         <Group justify="space-between">
           <Group>
             <IconChartPie size={32} />
             <Stack gap={0}>
-              <Text size="lg" fw={500}>Budget Management</Text>
-              <Text size="sm" c="dimmed">Plan, track, and analyze budgets</Text>
+              <Text size="lg" fw={500}>{t('finance.budgetsPage.title')}</Text>
+              <Text size="sm" c="dimmed">{t('finance.budgetsPage.subtitle')}</Text>
             </Stack>
           </Group>
           <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>
-            New Budget
+            {t('finance.budgetsPage.newBudget')}
           </Button>
         </Group>
 
@@ -352,25 +370,25 @@ export default function BudgetsPage() {
           <Grid>
             <Grid.Col span={{ base: 12, md: 3 }}>
               <Card padding="md" withBorder>
-                <Text size="sm" c="dimmed">Total Budgets</Text>
+                <Text size="sm" c="dimmed">{t('finance.budgetsPage.statistics.totalBudgets')}</Text>
                 <Text size="xl" fw={500}>{statistics.total_budgets}</Text>
               </Card>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 3 }}>
               <Card padding="md" withBorder>
-                <Text size="sm" c="dimmed">Active Budgets</Text>
+                <Text size="sm" c="dimmed">{t('finance.budgetsPage.statistics.activeBudgets')}</Text>
                 <Text size="xl" fw={500} c="green">{statistics.active_budgets}</Text>
               </Card>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 3 }}>
               <Card padding="md" withBorder>
-                <Text size="sm" c="dimmed">Exceeded Budgets</Text>
+                <Text size="sm" c="dimmed">{t('finance.budgetsPage.statistics.exceededBudgets')}</Text>
                 <Text size="xl" fw={500} c="red">{statistics.exceeded_budgets}</Text>
               </Card>
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 3 }}>
               <Card padding="md" withBorder>
-                <Text size="sm" c="dimmed">Total Planned</Text>
+                <Text size="sm" c="dimmed">{t('finance.budgetsPage.statistics.totalPlanned')}</Text>
                 <Text size="xl" fw={500}>
                   <NumberFormatter value={statistics.total_planned_amount} decimalScale={2} thousandSeparator prefix="BDT " />
                 </Text>
@@ -384,7 +402,7 @@ export default function BudgetsPage() {
           <Grid>
             <Grid.Col span={{ base: 12, md: 3 }}>
               <TextInput
-                placeholder="Search budgets..."
+                placeholder={t('finance.budgetsPage.filters.searchPlaceholder')}
                 leftSection={<IconSearch size={16} />}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -392,20 +410,20 @@ export default function BudgetsPage() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <TextInput
-                placeholder="Fiscal Year"
+                placeholder={t('finance.budgetsPage.filters.fiscalYear')}
                 value={filters.fiscal_year}
                 onChange={(e) => setFilters({ ...filters, fiscal_year: e.target.value })}
               />
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <Select
-                placeholder="Period Type"
+                placeholder={t('finance.budgetsPage.filters.periodType')}
                 data={[
-                  { value: '', label: 'All' },
-                  { value: 'monthly', label: 'Monthly' },
-                  { value: 'quarterly', label: 'Quarterly' },
-                  { value: 'yearly', label: 'Yearly' },
-                  { value: 'custom', label: 'Custom' },
+                  { value: '', label: t('finance.budgetsPage.filters.all') },
+                  { value: 'monthly', label: t('finance.budgetsPage.filters.monthly') },
+                  { value: 'quarterly', label: t('finance.budgetsPage.filters.quarterly') },
+                  { value: 'yearly', label: t('finance.budgetsPage.filters.yearly') },
+                  { value: 'custom', label: t('finance.budgetsPage.filters.custom') },
                 ]}
                 value={filters.period_type}
                 onChange={(value) => setFilters({ ...filters, period_type: value || '' })}
@@ -413,13 +431,13 @@ export default function BudgetsPage() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <Select
-                placeholder="Status"
+                placeholder={t('finance.budgetsPage.filters.status')}
                 data={[
-                  { value: '', label: 'All' },
-                  { value: 'draft', label: 'Draft' },
-                  { value: 'active', label: 'Active' },
-                  { value: 'completed', label: 'Completed' },
-                  { value: 'exceeded', label: 'Exceeded' },
+                  { value: '', label: t('finance.budgetsPage.filters.all') },
+                  { value: 'draft', label: t('finance.budgetsPage.filters.draft') },
+                  { value: 'active', label: t('finance.budgetsPage.filters.active') },
+                  { value: 'completed', label: t('finance.budgetsPage.filters.completed') },
+                  { value: 'exceeded', label: t('finance.budgetsPage.filters.exceeded') },
                 ]}
                 value={filters.status}
                 onChange={(value) => setFilters({ ...filters, status: value || '' })}
@@ -427,12 +445,12 @@ export default function BudgetsPage() {
             </Grid.Col>
             <Grid.Col span={{ base: 12, md: 2 }}>
               <Select
-                placeholder="Scope Type"
+                placeholder={t('finance.budgetsPage.filters.scopeType')}
                 data={[
-                  { value: '', label: 'All' },
-                  { value: 'company', label: 'Company' },
-                  { value: 'department', label: 'Department' },
-                  { value: 'account', label: 'Account' },
+                  { value: '', label: t('finance.budgetsPage.filters.all') },
+                  { value: 'company', label: t('finance.budgetsPage.filters.company') },
+                  { value: 'department', label: t('finance.budgetsPage.filters.department') },
+                  { value: 'account', label: t('finance.budgetsPage.filters.account') },
                 ]}
                 value={filters.scope_type}
                 onChange={(value) => setFilters({ ...filters, scope_type: value || '' })}
@@ -457,7 +475,7 @@ export default function BudgetsPage() {
         {/* Alert for budgets needing attention */}
         {budgets.filter(b => b.needs_alert).length > 0 && (
           <Alert icon={<IconAlertTriangle size={16} />} color="orange">
-            {budgets.filter(b => b.needs_alert).length} budget(s) exceed alert threshold and require attention
+            {t('finance.budgetsPage.alert.attentionNeeded', { count: budgets.filter(b => b.needs_alert).length })}
           </Alert>
         )}
 
@@ -466,27 +484,27 @@ export default function BudgetsPage() {
           <Table striped highlightOnHover>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Budget Name</Table.Th>
-                <Table.Th>Period</Table.Th>
-                <Table.Th>Planned</Table.Th>
-                <Table.Th>Actual</Table.Th>
-                <Table.Th>Variance</Table.Th>
-                <Table.Th>Usage</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th ta="right">Actions</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.budgetName')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.period')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.planned')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.actual')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.variance')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.usage')}</Table.Th>
+                <Table.Th>{t('finance.budgetsPage.table.status')}</Table.Th>
+                <Table.Th ta="right">{t('finance.budgetsPage.table.actions')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {loading ? (
                 <Table.Tr>
                   <Table.Td colSpan={8} ta="center">
-                    <Text c="dimmed">Loading...</Text>
+                    <Text c="dimmed">{t('finance.budgetsPage.table.loading')}</Text>
                   </Table.Td>
                 </Table.Tr>
               ) : budgets.length === 0 ? (
                 <Table.Tr>
                   <Table.Td colSpan={8} ta="center">
-                    <Text c="dimmed">No budgets found</Text>
+                    <Text c="dimmed">{t('finance.budgetsPage.table.noBudgetsFound')}</Text>
                   </Table.Td>
                 </Table.Tr>
               ) : (
@@ -583,45 +601,45 @@ export default function BudgetsPage() {
       <Modal
         opened={modalOpened}
         onClose={() => setModalOpened(false)}
-        title={<Text fw={500}>{editId ? 'Edit Budget' : 'New Budget'}</Text>}
+        title={<Text fw={500}>{editId ? t('finance.budgetsPage.modal.editTitle') : t('finance.budgetsPage.modal.newTitle')}</Text>}
         size="lg"
       >
         <form onSubmit={form.onSubmit(handleSubmit)}>
           <Stack>
             <TextInput
-              label="Budget Name"
-              placeholder="Enter budget name"
+              label={t('finance.budgetsPage.modal.budgetName')}
+              placeholder={t('finance.budgetsPage.modal.budgetNamePlaceholder')}
               required
               {...form.getInputProps('name')}
             />
 
             <TextInput
-              label="Description"
-              placeholder="Budget description (optional)"
+              label={t('finance.budgetsPage.modal.description')}
+              placeholder={t('finance.budgetsPage.modal.descriptionPlaceholder')}
               {...form.getInputProps('description')}
             />
 
             <Group>
               <Select
-                label="Scope Type"
+                label={t('finance.budgetsPage.modal.scopeType')}
                 required
                 data={[
-                  { value: 'company', label: 'Company' },
-                  { value: 'department', label: 'Department' },
-                  { value: 'account', label: 'Account' },
+                  { value: 'company', label: t('finance.budgetsPage.filters.company') },
+                  { value: 'department', label: t('finance.budgetsPage.filters.department') },
+                  { value: 'account', label: t('finance.budgetsPage.filters.account') },
                 ]}
                 {...form.getInputProps('scope_type')}
               />
               <TextInput
-                label="Scope ID"
-                placeholder="Department/Account ID"
+                label={t('finance.budgetsPage.modal.scopeId')}
+                placeholder={t('finance.budgetsPage.modal.scopeIdPlaceholder')}
                 {...form.getInputProps('scope_id')}
               />
             </Group>
 
             <Select
-              label="Account (Optional)"
-              placeholder="Link to chart of account"
+              label={t('finance.budgetsPage.modal.account')}
+              placeholder={t('finance.budgetsPage.modal.accountPlaceholder')}
               data={accounts.map(acc => ({
                 value: acc.id.toString(),
                 label: `${acc.account_code} - ${acc.account_name}`,
@@ -632,40 +650,40 @@ export default function BudgetsPage() {
 
             <Group>
               <Select
-                label="Period Type"
+                label={t('finance.budgetsPage.modal.periodType')}
                 required
                 data={[
-                  { value: 'monthly', label: 'Monthly' },
-                  { value: 'quarterly', label: 'Quarterly' },
-                  { value: 'yearly', label: 'Yearly' },
-                  { value: 'custom', label: 'Custom' },
+                  { value: 'monthly', label: t('finance.budgetsPage.filters.monthly') },
+                  { value: 'quarterly', label: t('finance.budgetsPage.filters.quarterly') },
+                  { value: 'yearly', label: t('finance.budgetsPage.filters.yearly') },
+                  { value: 'custom', label: t('finance.budgetsPage.filters.custom') },
                 ]}
                 {...form.getInputProps('period_type')}
               />
               <TextInput
-                label="Fiscal Year"
-                placeholder="2024-2025"
+                label={t('finance.budgetsPage.modal.fiscalYear')}
+                placeholder={t('finance.budgetsPage.modal.fiscalYearPlaceholder')}
                 required
                 {...form.getInputProps('fiscal_year')}
               />
             </Group>
 
             <TextInput
-              label="Period Name"
-              placeholder="e.g., July 2024, Q1 2024"
+              label={t('finance.budgetsPage.modal.periodName')}
+              placeholder={t('finance.budgetsPage.modal.periodNamePlaceholder')}
               {...form.getInputProps('period_name')}
             />
 
             <Group>
               <DateInput
-                label="Start Date"
+                label={t('finance.budgetsPage.modal.startDate')}
                 required
                 value={form.values.start_date}
                 onChange={(value) => form.setFieldValue('start_date', value)}
                 style={{ flex: 1 }}
               />
               <DateInput
-                label="End Date"
+                label={t('finance.budgetsPage.modal.endDate')}
                 required
                 value={form.values.end_date}
                 onChange={(value) => form.setFieldValue('end_date', value)}
@@ -674,8 +692,8 @@ export default function BudgetsPage() {
             </Group>
 
             <TextInput
-              label="Planned Amount"
-              placeholder="0.00"
+              label={t('finance.budgetsPage.modal.plannedAmount')}
+              placeholder={t('finance.budgetsPage.modal.plannedAmountPlaceholder')}
               required
               type="number"
               step="0.01"
@@ -683,21 +701,21 @@ export default function BudgetsPage() {
             />
 
             <TextInput
-              label="Alert Threshold (%)"
-              placeholder="80"
+              label={t('finance.budgetsPage.modal.alertThreshold')}
+              placeholder={t('finance.budgetsPage.modal.alertThresholdPlaceholder')}
               type="number"
               {...form.getInputProps('alert_threshold')}
             />
 
             <TextInput
-              label="Notes"
-              placeholder="Additional notes (optional)"
+              label={t('finance.budgetsPage.modal.notes')}
+              placeholder={t('finance.budgetsPage.modal.notesPlaceholder')}
               {...form.getInputProps('notes')}
             />
 
             <Group justify="flex-end">
-              <Button variant="subtle" onClick={() => setModalOpened(false)}>Cancel</Button>
-              <Button type="submit">{editId ? 'Update' : 'Create'} Budget</Button>
+              <Button variant="subtle" onClick={() => setModalOpened(false)}>{t('finance.budgetsPage.modal.cancel')}</Button>
+              <Button type="submit">{editId ? t('finance.budgetsPage.modal.update') : t('finance.budgetsPage.modal.create')}</Button>
             </Group>
           </Stack>
         </form>
@@ -707,44 +725,44 @@ export default function BudgetsPage() {
       <Modal
         opened={viewModalOpened}
         onClose={() => setViewModalOpened(false)}
-        title={<Text fw={500}>Budget Details</Text>}
+        title={<Text fw={500}>{t('finance.budgetsPage.modal.viewTitle')}</Text>}
         size="md"
       >
         {selectedBudget && (
           <Stack>
             <Group>
               <div>
-                <Text size="xs" c="dimmed">Budget Name</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.budgetName')}</Text>
                 <Text fw={500}>{selectedBudget.name}</Text>
               </div>
               <div>
-                <Text size="xs" c="dimmed">Status</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.table.status')}</Text>
                 {getStatusBadge(selectedBudget)}
               </div>
             </Group>
 
             {selectedBudget.description && (
               <>
-                <Text size="xs" c="dimmed">Description</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.description')}</Text>
                 <Text>{selectedBudget.description}</Text>
               </>
             )}
 
             <Grid>
               <Grid.Col span={6}>
-                <Text size="xs" c="dimmed">Period</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.period')}</Text>
                 <Text>{selectedBudget.period_type_label}</Text>
               </Grid.Col>
               <Grid.Col span={6}>
-                <Text size="xs" c="dimmed">Fiscal Year</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.fiscalYear')}</Text>
                 <Text>{selectedBudget.fiscal_year}</Text>
               </Grid.Col>
               <Grid.Col span={6}>
-                <Text size="xs" c="dimmed">Start Date</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.startDate')}</Text>
                 <Text>{new Date(selectedBudget.start_date).toLocaleDateString()}</Text>
               </Grid.Col>
               <Grid.Col span={6}>
-                <Text size="xs" c="dimmed">End Date</Text>
+                <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.endDate')}</Text>
                 <Text>{new Date(selectedBudget.end_date).toLocaleDateString()}</Text>
               </Grid.Col>
             </Grid>
@@ -752,19 +770,19 @@ export default function BudgetsPage() {
             <Paper withBorder p="md">
               <Grid>
                 <Grid.Col span={4}>
-                  <Text size="xs" c="dimmed">Planned Amount</Text>
+                  <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.plannedAmount')}</Text>
                   <Text size="lg" fw={500} c="blue">
                     <NumberFormatter value={selectedBudget.planned_amount} decimalScale={2} thousandSeparator prefix="BDT " />
                   </Text>
                 </Grid.Col>
                 <Grid.Col span={4}>
-                  <Text size="xs" c="dimmed">Actual Amount</Text>
+                  <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.actualAmount')}</Text>
                   <Text size="lg" fw={500} c="red">
                     <NumberFormatter value={selectedBudget.actual_amount} decimalScale={2} thousandSeparator prefix="BDT " />
                   </Text>
                 </Grid.Col>
                 <Grid.Col span={4}>
-                  <Text size="xs" c="dimmed">Variance</Text>
+                  <Text size="xs" c="dimmed">{t('finance.budgetsPage.modal.view.variance')}</Text>
                   <Text size="lg" fw={500} c={selectedBudget.variance_color}>
                     <Group gap={4}>
                       {getVarianceIcon(selectedBudget)}
@@ -783,11 +801,11 @@ export default function BudgetsPage() {
             />
 
             <Group justify="flex-end">
-              <Button onClick={() => setViewModalOpened(false)}>Close</Button>
+              <Button onClick={() => setViewModalOpened(false)}>{t('finance.budgetsPage.modal.close')}</Button>
             </Group>
           </Stack>
         )}
       </Modal>
-    </>
+    </Box>
   )
 }

@@ -84,11 +84,9 @@ export default function PayrollPage() {
       if (monthYear) params.month_year = monthYear;
       if (statusFilter !== 'all') params.status = statusFilter;
 
-      console.log('Fetching payroll with params:', params);
 
       const response = await api.get(`/hrm/payrolls`, { params });
 
-      console.log('Payroll API response:', response.data);
 
       // Handle Laravel pagination response
       // Structure: response.data.data.data contains the actual array
@@ -100,7 +98,6 @@ export default function PayrollPage() {
         ? response.data
         : [];
 
-      console.log('Extracted payroll data:', data);
 
       setPayroll(data);
 
@@ -156,7 +153,6 @@ export default function PayrollPage() {
   const openEditModal = (record: Payroll) => {
     if (!hasPermission('hrm.payroll.edit')) return;
 
-    console.log('Opening edit modal for record:', record);
 
     setSelectedPayroll(record);
 
@@ -164,7 +160,6 @@ export default function PayrollPage() {
     const bonus = typeof record.bonus === 'string' ? parseFloat(record.bonus) : record.bonus;
     const deductions = typeof record.deductions === 'string' ? parseFloat(record.deductions) : record.deductions;
 
-    console.log('Bonus:', bonus, 'Deductions:', deductions);
 
     setEditBonus(bonus);
     setEditDeductions(deductions);

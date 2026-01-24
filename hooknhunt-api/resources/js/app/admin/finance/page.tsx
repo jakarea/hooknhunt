@@ -74,14 +74,9 @@ export default function FinanceDashboardPage() {
 
       // Fetch main dashboard data
       const dashboardResponse = await getFinanceDashboard()
-      console.log('Dashboard API raw response:', dashboardResponse)
 
       // Extract data from Laravel API response: { status: true, data: { banksSummary: ... } }
       const data = dashboardResponse?.data || null
-      console.log('Extracted dashboard data:', data)
-      console.log('Banks summary:', data?.banksSummary)
-      console.log('Total balance:', data?.banksSummary?.totalBalance)
-      console.log('Account count:', data?.banksSummary?.accountCount)
 
       setDashboardData(data)
 

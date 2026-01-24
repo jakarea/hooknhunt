@@ -17,7 +17,6 @@ export function OTPForm({ phone = '', className, ...props }: OTPFormProps) {
 
     // Simulate API call
     setTimeout(() => {
-      console.log('OTP submitted:', otp)
       setLoading(false)
     }, 1000)
   }

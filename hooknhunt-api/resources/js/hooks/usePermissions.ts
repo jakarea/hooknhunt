@@ -49,11 +49,6 @@ export function usePermissions() {
         // Update store with both slugs and full objects
         setPermissions(newPermissions, rolePermissions)
 
-        console.log('✅ Permissions refreshed:', {
-          total: newPermissions.length,
-          permissions: newPermissions.slice(0, 5), // Show first 5
-        })
-
         return true
       }
     } catch (err) {

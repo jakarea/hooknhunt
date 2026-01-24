@@ -188,9 +188,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: (token, user, permissions = [], permissionObjects = []) => {
-    console.log('[authStore.login] Starting login process...')
-    console.log('[authStore.login] Token:', token)
-    console.log('[authStore.login] User:', user)
 
     // Extract permission keys from permissionObjects
     const permissionKeys = permissionObjects.map((p: Permission) => p.key).filter(Boolean)
@@ -202,12 +199,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     localStorage.setItem('permissionKeys', JSON.stringify(permissionKeys))
     localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
 
-    console.log('[authStore.login] localStorage.setItem completed')
-    console.log('[authStore.login] Verification - Token in localStorage:', localStorage.getItem('token'))
 
     // Set state
     set({ user, token, permissions, permissionKeys, permissionObjects, hydrated: true })
-    console.log('[authStore.login] State updated. Hydrated:', true)
   },
 
   setPermissions: (permissions: string[], permissionObjects = []) => {
@@ -236,15 +230,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadUserFromStorage: () => {
-    console.log('[authStore.loadUserFromStorage] Loading from localStorage...')
     const token = localStorage.getItem('token')
     const userString = localStorage.getItem('user')
     const permissionsString = localStorage.getItem('permissions')
     const permissionKeysString = localStorage.getItem('permissionKeys')
     const permissionObjectsString = localStorage.getItem('permissionObjects')
 
-    console.log('[authStore.loadUserFromStorage] Token found:', token ? 'YES' : 'NO')
-    console.log('[authStore.loadUserFromStorage] User found:', userString ? 'YES' : 'NO')
 
     if (token && userString) {
       try {
@@ -252,9 +243,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const permissions = permissionsString ? JSON.parse(permissionsString) : []
         const permissionKeys = permissionKeysString ? JSON.parse(permissionKeysString) : []
         const permissionObjects = permissionObjectsString ? JSON.parse(permissionObjectsString) : []
-        console.log('[authStore.loadUserFromStorage] Parsed user:', user.name)
         set({ user, token, permissions, permissionKeys, permissionObjects, hydrated: true })
-        console.log('[authStore.loadUserFromStorage] State set successfully')
       } catch (error) {
         console.error('[authStore.loadUserFromStorage] Error parsing:', error)
         // Clear corrupted storage
@@ -262,7 +251,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         get().logout()
       }
     } else {
-      console.log('[authStore.loadUserFromStorage] No token/user found in localStorage')
       set({ hydrated: true })
     }
   },

@@ -62,33 +62,33 @@ type LedgerFormData = {
   notes: string
 }
 
-const TAX_TYPES = [
-  { value: 'vat', label: 'VAT' },
-  { value: 'tax', label: 'Tax' },
-  { value: 'ait', label: 'AIT (Advance Income Tax)' },
+const getTaxTypes = (t: any) => [
+  { value: 'vat', label: t('finance.vatTaxPage.taxTypes.vat') },
+  { value: 'tax', label: t('finance.vatTaxPage.taxTypes.tax') },
+  { value: 'ait', label: t('finance.vatTaxPage.taxTypes.ait') },
 ]
 
-const TRANSACTION_TYPES = [
-  { value: 'purchase', label: 'Purchase' },
-  { value: 'sale', label: 'Sale' },
-  { value: 'expense', label: 'Expense' },
-  { value: 'adjustment', label: 'Adjustment' },
+const getTransactionTypes = (t: any) => [
+  { value: 'purchase', label: t('finance.vatTaxPage.transactionTypes.purchase') },
+  { value: 'sale', label: t('finance.vatTaxPage.transactionTypes.sale') },
+  { value: 'expense', label: t('finance.vatTaxPage.transactionTypes.expense') },
+  { value: 'adjustment', label: t('finance.vatTaxPage.transactionTypes.adjustment') },
 ]
 
-const DIRECTIONS = [
-  { value: 'input', label: 'Input (Paid on purchases)' },
-  { value: 'output', label: 'Output (Collected on sales)' },
+const getDirections = (t: any) => [
+  { value: 'input', label: t('finance.vatTaxPage.directions.input') },
+  { value: 'output', label: t('finance.vatTaxPage.directions.output') },
 ]
 
-const FLOW_TYPES = [
-  { value: 'debit', label: 'Debit' },
-  { value: 'credit', label: 'Credit' },
+const getFlowTypes = (t: any) => [
+  { value: 'debit', label: t('finance.vatTaxPage.flowTypes.debit') },
+  { value: 'credit', label: t('finance.vatTaxPage.flowTypes.credit') },
 ]
 
-const STATUSES = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'filed', label: 'Filed' },
-  { value: 'paid', label: 'Paid' },
+const getStatuses = (t: any) => [
+  { value: 'pending', label: t('finance.vatTaxPage.statuses.pending') },
+  { value: 'filed', label: t('finance.vatTaxPage.statuses.filed') },
+  { value: 'paid', label: t('finance.vatTaxPage.statuses.paid') },
 ]
 
 export default function VatTaxLedgerPage() {
@@ -128,14 +128,14 @@ export default function VatTaxLedgerPage() {
       notes: '',
     },
     validate: {
-      transactionType: (value) => (!value ? 'Transaction type is required' : null),
-      taxType: (value) => (!value ? 'Tax type is required' : null),
-      baseAmount: (value) => (value === '' ? 'Base amount is required' : null),
-      taxRate: (value) => (value === '' ? 'Tax rate is required' : null),
-      taxAmount: (value) => (value === '' ? 'Tax amount is required' : null),
-      direction: (value) => (!value ? 'Direction is required' : null),
-      flowType: (value) => (!value ? 'Flow type is required' : null),
-      transactionDate: (value) => (!value ? 'Transaction date is required' : null),
+      transactionType: (value) => (!value ? t('finance.vatTaxPage.validation.transactionTypeRequired') : null),
+      taxType: (value) => (!value ? t('finance.vatTaxPage.validation.taxTypeRequired') : null),
+      baseAmount: (value) => (value === '' ? t('finance.vatTaxPage.validation.baseAmountRequired') : null),
+      taxRate: (value) => (value === '' ? t('finance.vatTaxPage.validation.taxRateRequired') : null),
+      taxAmount: (value) => (value === '' ? t('finance.vatTaxPage.validation.taxAmountRequired') : null),
+      direction: (value) => (!value ? t('finance.vatTaxPage.validation.directionRequired') : null),
+      flowType: (value) => (!value ? t('finance.vatTaxPage.validation.flowTypeRequired') : null),
+      transactionDate: (value) => (!value ? t('finance.vatTaxPage.validation.transactionDateRequired') : null),
     },
   })
 
@@ -179,7 +179,7 @@ export default function VatTaxLedgerPage() {
 
       setLedgers(data)
     } catch (error) {
-      notifications.show({ title: 'Error', message: 'Failed to load VAT/Tax entries', color: 'red' })
+      notifications.show({ title: t('common.error') || 'Error', message: t('finance.vatTaxPage.notification.fetchError'), color: 'red' })
     } finally {
       setLoading(false)
     }
@@ -235,10 +235,10 @@ export default function VatTaxLedgerPage() {
 
       if (editId) {
         await updateVatTaxLedger(editId, payload)
-        notifications.show({ title: 'Success', message: 'Entry updated successfully', color: 'green' })
+        notifications.show({ title: t('common.success') || 'Success', message: t('finance.vatTaxPage.notification.updateSuccess'), color: 'green' })
       } else {
         await createVatTaxLedger(payload)
-        notifications.show({ title: 'Success', message: 'Entry created successfully', color: 'green' })
+        notifications.show({ title: t('common.success') || 'Success', message: t('finance.vatTaxPage.notification.createSuccess'), color: 'green' })
       }
 
       setModalOpened(false)
@@ -249,8 +249,8 @@ export default function VatTaxLedgerPage() {
       fetchNetCalculation()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to save entry',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.vatTaxPage.notification.createError'),
         color: 'red',
       })
     }
@@ -292,27 +292,27 @@ export default function VatTaxLedgerPage() {
         setViewModalOpened(true)
       }
     } catch (error) {
-      notifications.show({ title: 'Error', message: 'Failed to load entry details', color: 'red' })
+      notifications.show({ title: t('common.error') || 'Error', message: t('finance.vatTaxPage.notification.loadError'), color: 'red' })
     }
   }
 
   const handleDelete = (id: number) => {
     modals.openConfirmModal({
-      title: 'Delete Entry',
-      children: <Text size="sm">Are you sure you want to delete this entry? This action cannot be undone.</Text>,
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      title: t('common.delete') || 'Delete Entry',
+      children: <Text size="sm">{t('finance.vatTaxPage.notification.deleteConfirm')}</Text>,
+      labels: { confirm: t('common.delete') || 'Delete', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
           await deleteVatTaxLedger(id)
-          notifications.show({ title: 'Success', message: 'Entry deleted successfully', color: 'green' })
+          notifications.show({ title: t('common.success') || 'Success', message: t('finance.vatTaxPage.notification.deleteSuccess'), color: 'green' })
           fetchLedgers()
           fetchSummary()
           fetchNetCalculation()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete entry',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.vatTaxPage.notification.deleteError'),
             color: 'red',
           })
         }
@@ -335,7 +335,7 @@ export default function VatTaxLedgerPage() {
         payment_reference: values.paymentReference,
       })
 
-      notifications.show({ title: 'Success', message: 'Entry marked as paid', color: 'green' })
+      notifications.show({ title: t('common.success') || 'Success', message: t('finance.vatTaxPage.notification.paidSuccess'), color: 'green' })
       setPaidModalOpened(false)
       setActionEntryId(null)
       paidForm.reset()
@@ -344,8 +344,8 @@ export default function VatTaxLedgerPage() {
       fetchNetCalculation()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to mark as paid',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.vatTaxPage.notification.paidError'),
         color: 'red',
       })
     }
@@ -366,7 +366,7 @@ export default function VatTaxLedgerPage() {
         acknowledgement_number: values.acknowledgementNumber || undefined,
       })
 
-      notifications.show({ title: 'Success', message: 'Entry marked as filed', color: 'green' })
+      notifications.show({ title: t('common.success') || 'Success', message: t('finance.vatTaxPage.notification.filedSuccess'), color: 'green' })
       setFiledModalOpened(false)
       setActionEntryId(null)
       filedForm.reset()
@@ -375,56 +375,56 @@ export default function VatTaxLedgerPage() {
       fetchNetCalculation()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to mark as filed',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.vatTaxPage.notification.filedError'),
         color: 'red',
       })
     }
   }
 
   const getTaxTypeBadge = (taxType: string) => {
-    if (taxType === 'vat') return <Badge color="blue">VAT</Badge>
-    if (taxType === 'tax') return <Badge color="orange">Tax</Badge>
+    if (taxType === 'vat') return <Badge color="blue">{t('finance.vatTaxPage.taxTypes.vat')}</Badge>
+    if (taxType === 'tax') return <Badge color="orange">{t('finance.vatTaxPage.taxTypes.tax')}</Badge>
     if (taxType === 'ait') return <Badge color="purple">AIT</Badge>
     return <Badge>{taxType}</Badge>
   }
 
   const getDirectionBadge = (direction: string) => {
     if (direction === 'input') {
-      return <Badge leftSection={<IconArrowDownRight size={12} />} color="green" variant="light">Input</Badge>
+      return <Badge leftSection={<IconArrowDownRight size={12} />} color="green" variant="light">{t('finance.vatTaxPage.directions.input').split(' ')[0]}</Badge>
     }
-    return <Badge leftSection={<IconArrowUpRight size={12} />} color="red" variant="light">Output</Badge>
+    return <Badge leftSection={<IconArrowUpRight size={12} />} color="red" variant="light">{t('finance.vatTaxPage.directions.output').split(' ')[0]}</Badge>
   }
 
   const getStatusBadge = (status: string) => {
-    if (status === 'pending') return <Badge color="yellow">Pending</Badge>
-    if (status === 'filed') return <Badge color="blue">Filed</Badge>
-    if (status === 'paid') return <Badge color="green">Paid</Badge>
+    if (status === 'pending') return <Badge color="yellow">{t('finance.vatTaxPage.statuses.pending')}</Badge>
+    if (status === 'filed') return <Badge color="blue">{t('finance.vatTaxPage.statuses.filed')}</Badge>
+    if (status === 'paid') return <Badge color="green">{t('finance.vatTaxPage.statuses.paid')}</Badge>
     return <Badge>{status}</Badge>
   }
 
   return (
-    <Container size="xl">
+    <Box p={{ base: 'md', md: 'xl' }}>
       <Stack gap="md">
         {/* Header */}
         <Flex justify="space-between" align="center">
           <Group>
             <IconReceipt size={32} style={{ color: 'var(--mantine-color-blue-6)' }} />
             <div>
-              <Title order={2}>VAT/Tax Ledger</Title>
-              <Text c="dimmed" size="sm">Track VAT, tax, and AIT transactions</Text>
+              <Title order={2}>{t('finance.vatTaxPage.title')}</Title>
+              <Text c="dimmed" size="sm">{t('finance.vatTaxPage.subtitle')}</Text>
             </div>
           </Group>
           <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
-            Add Entry
+            {t('finance.vatTaxPage.addEntry')}
           </Button>
         </Flex>
 
         {/* Alert for net payable */}
         {netCalculation && netCalculation.total_net_payable > 0 && (
-          <Alert variant="light" color="orange" title="Net Payable" icon={<IconCoin />}>
+          <Alert variant="light" color="orange" title={t('finance.vatTaxPage.netPayableAlert.title')} icon={<IconCoin />}>
             <Text size="sm">
-              Total net VAT/Tax payable: <Text fw={700}>{netCalculation.total_net_payable.toFixed(2)}৳</Text>
+              {t('finance.vatTaxPage.netPayableAlert.message', { amount: netCalculation.total_net_payable.toFixed(2) })}
             </Text>
           </Alert>
         )}
@@ -434,7 +434,7 @@ export default function VatTaxLedgerPage() {
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                VAT Collected (Output)
+                {t('finance.vatTaxPage.summary.vatCollected')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="green">
                 {summary.vat.collected.toFixed(2)}৳
@@ -442,7 +442,7 @@ export default function VatTaxLedgerPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                VAT Paid (Input)
+                {t('finance.vatTaxPage.summary.vatPaid')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="red">
                 {summary.vat.paid.toFixed(2)}৳
@@ -450,7 +450,7 @@ export default function VatTaxLedgerPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Tax/AIT Collected
+                {t('finance.vatTaxPage.summary.taxCollected')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="green">
                 {summary.tax.collected.toFixed(2)}৳
@@ -458,7 +458,7 @@ export default function VatTaxLedgerPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Net Payable
+                {t('finance.vatTaxPage.summary.netPayable')}
               </Text>
               <Text size="xl" fw={700} mt={5} c={summary.total.net_payable > 0 ? 'red' : 'green'}>
                 {summary.total.net_payable.toFixed(2)}৳
@@ -471,38 +471,38 @@ export default function VatTaxLedgerPage() {
         <Paper p="md" withBorder>
           <Group>
             <TextInput
-              placeholder="Search by description, challan..."
+              placeholder={t('finance.vatTaxPage.filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               leftSection={<IconReceipt size={16} />}
               style={{ flex: 1 }}
             />
             <Select
-              placeholder="Filter by Type"
+              placeholder={t('finance.vatTaxPage.filters.filterType')}
               clearable
-              data={TAX_TYPES}
+              data={getTaxTypes(t)}
               value={filterTaxType}
               onChange={setFilterTaxType}
               w={120}
             />
             <Select
-              placeholder="Filter by Direction"
+              placeholder={t('finance.vatTaxPage.filters.filterDirection')}
               clearable
-              data={DIRECTIONS}
+              data={getDirections(t)}
               value={filterDirection}
               onChange={setFilterDirection}
               w={150}
             />
             <Select
-              placeholder="Filter by Status"
+              placeholder={t('finance.vatTaxPage.filters.filterStatus')}
               clearable
-              data={STATUSES}
+              data={getStatuses(t)}
               value={filterStatus}
               onChange={setFilterStatus}
               w={120}
             />
             <Button leftSection={<IconRefresh size={16} />} variant="light" onClick={fetchLedgers}>
-              Refresh
+              {t('finance.vatTaxPage.filters.refresh')}
             </Button>
           </Group>
         </Paper>
@@ -513,28 +513,28 @@ export default function VatTaxLedgerPage() {
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Date</Table.Th>
-                  <Table.Th>Type</Table.Th>
-                  <Table.Th>Direction</Table.Th>
-                  <Table.Th>Base Amount</Table.Th>
-                  <Table.Th>Tax Rate</Table.Th>
-                  <Table.Th>Tax Amount</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Challan No</Table.Th>
-                  <Table.Th ta="center">Actions</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.date')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.type')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.direction')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.baseAmount')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.taxRate')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.taxAmount')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.status')}</Table.Th>
+                  <Table.Th>{t('finance.vatTaxPage.table.challanNo')}</Table.Th>
+                  <Table.Th ta="center">{t('finance.vatTaxPage.table.actions')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {loading ? (
                   <Table.Tr>
                     <Table.Td colSpan={9} ta="center">
-                      <Text c="dimmed">Loading...</Text>
+                      <Text c="dimmed">{t('finance.vatTaxPage.table.loading')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : ledgers.length === 0 ? (
                   <Table.Tr>
                     <Table.Td colSpan={9} ta="center">
-                      <Text c="dimmed">No VAT/Tax entries found</Text>
+                      <Text c="dimmed">{t('finance.vatTaxPage.table.noEntriesFound')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : (
@@ -562,24 +562,24 @@ export default function VatTaxLedgerPage() {
                       </Table.Td>
                       <Table.Td ta="center">
                         <Group gap="xs" justify="center" wrap="nowrap">
-                          <Tooltip label="View Details">
+                          <Tooltip label={t('finance.vatTaxPage.table.viewDetails')}>
                             <ActionIcon size="sm" variant="light" color="blue" onClick={() => openViewModal(ledger.id)}>
                               <IconEye size={16} />
                             </ActionIcon>
                           </Tooltip>
                           {ledger.status === 'pending' && (
                             <>
-                              <Tooltip label="Edit">
+                              <Tooltip label={t('finance.vatTaxPage.table.edit')}>
                                 <ActionIcon size="sm" variant="light" color="orange" onClick={() => openEditModal(ledger)}>
                                   <IconPencil size={16} />
                                 </ActionIcon>
                               </Tooltip>
-                              <Tooltip label="Mark as Filed">
+                              <Tooltip label={t('finance.vatTaxPage.table.markAsFiled')}>
                                 <ActionIcon size="sm" variant="light" color="blue" onClick={() => openFiledModal(ledger.id)}>
                                   <IconFile size={16} />
                                 </ActionIcon>
                               </Tooltip>
-                              <Tooltip label="Delete">
+                              <Tooltip label={t('finance.vatTaxPage.table.delete')}>
                                 <ActionIcon size="sm" variant="light" color="red" onClick={() => handleDelete(ledger.id)}>
                                   <IconTrash size={16} />
                                 </ActionIcon>
@@ -587,7 +587,7 @@ export default function VatTaxLedgerPage() {
                             </>
                           )}
                           {ledger.status === 'filed' && (
-                            <Tooltip label="Mark as Paid">
+                            <Tooltip label={t('finance.vatTaxPage.table.markAsPaid')}>
                               <ActionIcon size="sm" variant="light" color="green" onClick={() => openPaidModal(ledger.id)}>
                                 <IconCheck size={16} />
                               </ActionIcon>
@@ -604,71 +604,71 @@ export default function VatTaxLedgerPage() {
         </Paper>
 
         {/* Create/Edit Modal */}
-        <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={editId ? 'Edit Entry' : 'New Entry'} size="lg">
+        <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={editId ? t('finance.vatTaxPage.modal.editTitle') : t('finance.vatTaxPage.modal.newTitle')} size="lg">
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack>
               <Group grow>
-                <NativeSelect label="Transaction Type" data={TRANSACTION_TYPES} required {...form.getInputProps('transactionType')} />
-                <NativeSelect label="Tax Type" data={TAX_TYPES} required {...form.getInputProps('taxType')} />
+                <NativeSelect label={t('finance.vatTaxPage.modal.transactionType')} data={getTransactionTypes(t)} required {...form.getInputProps('transactionType')} />
+                <NativeSelect label={t('finance.vatTaxPage.modal.taxType')} data={getTaxTypes(t)} required {...form.getInputProps('taxType')} />
               </Group>
 
               <Group grow>
-                <NativeSelect label="Direction" data={DIRECTIONS} required {...form.getInputProps('direction')} />
-                <NativeSelect label="Flow Type" data={FLOW_TYPES} required {...form.getInputProps('flowType')} />
+                <NativeSelect label={t('finance.vatTaxPage.modal.direction')} data={getDirections(t)} required {...form.getInputProps('direction')} />
+                <NativeSelect label={t('finance.vatTaxPage.modal.flowType')} data={getFlowTypes(t)} required {...form.getInputProps('flowType')} />
               </Group>
 
               <Group grow>
-                <NumberInput label="Base Amount (৳)" required prefix="৳" decimalScale={2} {...form.getInputProps('baseAmount')} />
-                <NumberInput label="Tax Rate (%)" required suffix="%" decimalScale={2} min={0} max={100} {...form.getInputProps('taxRate')} />
+                <NumberInput label={t('finance.vatTaxPage.modal.baseAmount')} required prefix="৳" decimalScale={2} {...form.getInputProps('baseAmount')} />
+                <NumberInput label={t('finance.vatTaxPage.modal.taxRate')} required suffix="%" decimalScale={2} min={0} max={100} {...form.getInputProps('taxRate')} />
               </Group>
 
               <NumberInput
-                label="Tax Amount (৳)"
+                label={t('finance.vatTaxPage.modal.taxAmount')}
                 required
                 prefix="৳"
                 decimalScale={2}
                 {...form.getInputProps('taxAmount')}
-                description="Auto-calculated from base amount and tax rate"
+                description={t('finance.vatTaxPage.modal.taxAmountDescription')}
               />
 
-              <DatePicker label="Transaction Date" required {...form.getInputProps('transactionDate')} />
+              <DatePicker label={t('finance.vatTaxPage.modal.transactionDate')} required {...form.getInputProps('transactionDate')} />
 
               <Group grow>
-                <TextInput label="Fiscal Year" placeholder="2024-2025" {...form.getInputProps('fiscalYear')} />
-                <TextInput label="Tax Period" placeholder="e.g., Jul-2024" {...form.getInputProps('taxPeriod')} />
+                <TextInput label={t('finance.vatTaxPage.modal.fiscalYear')} placeholder={t('finance.vatTaxPage.modal.fiscalYearPlaceholder')} {...form.getInputProps('fiscalYear')} />
+                <TextInput label={t('finance.vatTaxPage.modal.taxPeriod')} placeholder={t('finance.vatTaxPage.modal.taxPeriodPlaceholder')} {...form.getInputProps('taxPeriod')} />
               </Group>
 
               <Group grow>
-                <TextInput label="Challan Number" {...form.getInputProps('challanNumber')} />
-                <DatePicker label="Challan Date" {...form.getInputProps('challanDate')} />
+                <TextInput label={t('finance.vatTaxPage.modal.challanNumber')} {...form.getInputProps('challanNumber')} />
+                <DatePicker label={t('finance.vatTaxPage.modal.challanDate')} {...form.getInputProps('challanDate')} />
               </Group>
 
-              <Textarea label="Description" placeholder="Entry description..." {...form.getInputProps('description')} />
-              <Textarea label="Notes" placeholder="Additional notes..." {...form.getInputProps('notes')} />
+              <Textarea label={t('finance.vatTaxPage.modal.description')} placeholder={t('finance.vatTaxPage.modal.descriptionPlaceholder')} {...form.getInputProps('description')} />
+              <Textarea label={t('finance.vatTaxPage.modal.notes')} placeholder={t('finance.vatTaxPage.modal.notesPlaceholder')} {...form.getInputProps('notes')} />
 
               <Group justify="flex-end">
                 <Button variant="light" onClick={() => setModalOpened(false)}>
-                  Cancel
+                  {t('finance.vatTaxPage.modal.cancel')}
                 </Button>
-                <Button type="submit">{editId ? 'Update' : 'Create'}</Button>
+                <Button type="submit">{editId ? t('finance.vatTaxPage.modal.update') : t('finance.vatTaxPage.modal.create')}</Button>
               </Group>
             </Stack>
           </form>
         </Modal>
 
         {/* Mark as Paid Modal */}
-        <Modal opened={paidModalOpened} onClose={() => setPaidModalOpened(false)} title="Mark as Paid" size="sm">
+        <Modal opened={paidModalOpened} onClose={() => setPaidModalOpened(false)} title={t('finance.vatTaxPage.modal.paidTitle')} size="sm">
           <form onSubmit={paidForm.onSubmit(handleMarkAsPaid)}>
             <Stack>
-              <DatePicker label="Payment Date" required {...paidForm.getInputProps('paymentDate')} />
-              <TextInput label="Payment Reference" required placeholder="Payment receipt number..." {...paidForm.getInputProps('paymentReference')} />
+              <DatePicker label={t('finance.vatTaxPage.modal.paymentDate')} required {...paidForm.getInputProps('paymentDate')} />
+              <TextInput label={t('finance.vatTaxPage.modal.paymentReference')} required placeholder={t('finance.vatTaxPage.modal.paymentReferencePlaceholder')} {...paidForm.getInputProps('paymentReference')} />
 
               <Group justify="flex-end">
                 <Button variant="light" onClick={() => setPaidModalOpened(false)}>
-                  Cancel
+                  {t('finance.vatTaxPage.modal.cancel')}
                 </Button>
                 <Button type="submit" color="green">
-                  Mark as Paid
+                  {t('finance.vatTaxPage.modal.markAsPaid')}
                 </Button>
               </Group>
             </Stack>
@@ -676,18 +676,18 @@ export default function VatTaxLedgerPage() {
         </Modal>
 
         {/* Mark as Filed Modal */}
-        <Modal opened={filedModalOpened} onClose={() => setFiledModalOpened(false)} title="Mark as Filed" size="sm">
+        <Modal opened={filedModalOpened} onClose={() => setFiledModalOpened(false)} title={t('finance.vatTaxPage.modal.filedTitle')} size="sm">
           <form onSubmit={filedForm.onSubmit(handleMarkAsFiled)}>
             <Stack>
-              <DatePicker label="Filing Date" required {...filedForm.getInputProps('filingDate')} />
-              <TextInput label="Acknowledgement Number" placeholder="Tax return acknowledgement..." {...filedForm.getInputProps('acknowledgementNumber')} />
+              <DatePicker label={t('finance.vatTaxPage.modal.filingDate')} required {...filedForm.getInputProps('filingDate')} />
+              <TextInput label={t('finance.vatTaxPage.modal.acknowledgementNumber')} placeholder={t('finance.vatTaxPage.modal.acknowledgementNumberPlaceholder')} {...filedForm.getInputProps('acknowledgementNumber')} />
 
               <Group justify="flex-end">
                 <Button variant="light" onClick={() => setFiledModalOpened(false)}>
-                  Cancel
+                  {t('finance.vatTaxPage.modal.cancel')}
                 </Button>
                 <Button type="submit" color="blue">
-                  Mark as Filed
+                  {t('finance.vatTaxPage.modal.markAsFiled')}
                 </Button>
               </Group>
             </Stack>
@@ -695,19 +695,19 @@ export default function VatTaxLedgerPage() {
         </Modal>
 
         {/* View Details Modal */}
-        <Modal opened={viewModalOpened} onClose={() => setViewModalOpened(false)} title="Entry Details" size="md">
+        <Modal opened={viewModalOpened} onClose={() => setViewModalOpened(false)} title={t('finance.vatTaxPage.modal.viewTitle')} size="md">
           {selectedEntry && (
             <Stack>
               <Group grow>
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Tax Type
+                    {t('finance.vatTaxPage.modal.view.taxType')}
                   </Text>
                   {getTaxTypeBadge(selectedEntry.tax_type)}
                 </Box>
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Direction
+                    {t('finance.vatTaxPage.modal.view.direction')}
                   </Text>
                   {getDirectionBadge(selectedEntry.direction)}
                 </Box>
@@ -716,7 +716,7 @@ export default function VatTaxLedgerPage() {
               <Group grow>
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Base Amount
+                    {t('finance.vatTaxPage.modal.view.baseAmount')}
                   </Text>
                   <Text size="lg" fw={500}>
                     {selectedEntry.base_amount.toFixed(2)}৳
@@ -724,7 +724,7 @@ export default function VatTaxLedgerPage() {
                 </Box>
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Tax Rate
+                    {t('finance.vatTaxPage.modal.view.taxRate')}
                   </Text>
                   <Text size="md">{selectedEntry.tax_rate}%</Text>
                 </Box>
@@ -732,7 +732,7 @@ export default function VatTaxLedgerPage() {
 
               <Paper withBorder p="sm" radius="md">
                 <Text fw={500} mb="xs">
-                  Tax Amount
+                  {t('finance.vatTaxPage.modal.view.taxAmount')}
                 </Text>
                 <Text size="xl" fw={700} c="blue">
                   {selectedEntry.tax_amount.toFixed(2)}৳
@@ -741,30 +741,30 @@ export default function VatTaxLedgerPage() {
 
               <Paper withBorder p="sm" radius="md">
                 <Text fw={500} mb="xs">
-                  Transaction Details
+                  {t('finance.vatTaxPage.modal.view.transactionDetails')}
                 </Text>
                 <SimpleGrid cols={2}>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Transaction Date
+                      {t('finance.vatTaxPage.modal.view.transactionDate')}
                     </Text>
                     <Text size="md">{new Date(selectedEntry.transaction_date).toLocaleDateString()}</Text>
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Status
+                      {t('finance.vatTaxPage.modal.view.status')}
                     </Text>
                     {getStatusBadge(selectedEntry.status)}
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Fiscal Year
+                      {t('finance.vatTaxPage.modal.view.fiscalYear')}
                     </Text>
                     <Text size="md">{selectedEntry.fiscal_year || '-'}</Text>
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Tax Period
+                      {t('finance.vatTaxPage.modal.view.taxPeriod')}
                     </Text>
                     <Text size="md">{selectedEntry.tax_period || '-'}</Text>
                   </Box>
@@ -774,19 +774,19 @@ export default function VatTaxLedgerPage() {
               {selectedEntry.challan_number && (
                 <Paper withBorder p="sm" radius="md">
                   <Text fw={500} mb="xs">
-                    Challan Details
+                    {t('finance.vatTaxPage.modal.view.challanDetails')}
                   </Text>
                   <SimpleGrid cols={2}>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Challan Number
+                        {t('finance.vatTaxPage.modal.view.challanNumber')}
                       </Text>
                       <Text size="md">{selectedEntry.challan_number}</Text>
                     </Box>
                     {selectedEntry.challan_date && (
                       <Box>
                         <Text size="sm" c="dimmed">
-                          Challan Date
+                          {t('finance.vatTaxPage.modal.view.challanDate')}
                         </Text>
                         <Text size="md">{new Date(selectedEntry.challan_date).toLocaleDateString()}</Text>
                       </Box>
@@ -798,18 +798,18 @@ export default function VatTaxLedgerPage() {
               {selectedEntry.is_paid && (
                 <Paper withBorder p="sm" radius="md" bg="green.0">
                   <Text fw={500} mb="xs" c="green">
-                    Payment Details
+                    {t('finance.vatTaxPage.modal.view.paymentDetails')}
                   </Text>
                   <SimpleGrid cols={2}>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Payment Date
+                        {t('finance.vatTaxPage.modal.view.paymentDate')}
                       </Text>
                       <Text size="md">{selectedEntry.payment_date ? new Date(selectedEntry.payment_date).toLocaleDateString() : '-'}</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Payment Reference
+                        {t('finance.vatTaxPage.modal.view.paymentReference')}
                       </Text>
                       <Text size="md">{selectedEntry.payment_reference || '-'}</Text>
                     </Box>
@@ -820,7 +820,7 @@ export default function VatTaxLedgerPage() {
               {selectedEntry.description && (
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Description
+                    {t('finance.vatTaxPage.modal.view.description')}
                   </Text>
                   <Text size="sm">{selectedEntry.description}</Text>
                 </Box>
@@ -829,7 +829,7 @@ export default function VatTaxLedgerPage() {
               {selectedEntry.notes && (
                 <Box>
                   <Text size="sm" c="dimmed">
-                    Notes
+                    {t('finance.vatTaxPage.modal.view.notes')}
                   </Text>
                   <Text size="sm">{selectedEntry.notes}</Text>
                 </Box>
@@ -838,6 +838,6 @@ export default function VatTaxLedgerPage() {
           )}
         </Modal>
       </Stack>
-    </Container>
+    </Box>
   )
 }

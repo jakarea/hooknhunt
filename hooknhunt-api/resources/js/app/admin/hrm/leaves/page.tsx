@@ -102,10 +102,6 @@ export default function LeavesPage() {
       setLoading(true)
 
       // Debug logging
-      console.log('=== Fetch Leaves Debug ===')
-      console.log('User object:', user)
-      console.log('User role:', user?.role)
-      console.log('Is Admin:', isAdmin)
 
       const params: Record<string, string> = {}
       if (statusFilter && statusFilter !== 'all') {
@@ -115,18 +111,13 @@ export default function LeavesPage() {
       // Non-admins can only see their own leaves
       if (!isAdmin) {
         params.user_id = String(user?.id)
-        console.log('Not admin, filtering by user_id:', params.user_id)
       } else if (employeeFilter) {
         params.user_id = employeeFilter
-        console.log('Admin with employee filter:', employeeFilter)
       } else {
-        console.log('Admin without filter - fetching all leaves')
       }
 
-      console.log('Request params:', params)
 
       const response = await api.get('/hrm/leaves', { params })
-      console.log('Leaves API Response:', response.data)
 
       const leavesData = response.data.data?.data || response.data.data || []
 
@@ -147,7 +138,6 @@ export default function LeavesPage() {
         approver: leave.approver || leave.approver,
       })) : []
 
-      console.log('Normalized Leaves:', normalizedLeaves)
       setLeaves(normalizedLeaves)
     } catch (error: unknown) {
       console.error('Failed to fetch leaves:', error)

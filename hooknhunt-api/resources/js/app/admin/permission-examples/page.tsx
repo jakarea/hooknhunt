@@ -133,7 +133,6 @@ export default function PermissionExamples() {
           permission="employee.create"
           debug={true}
         >
-          <Button onClick={() => { console.log('Debug info'); }}>Check Console for Debug Info</Button>
         </PermissionGuard>
       </Paper>
     </Stack>

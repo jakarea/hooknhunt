@@ -51,30 +51,30 @@ type AssetFormData = {
   notes: string
 }
 
-const CATEGORIES = [
-  'Furniture',
-  'Equipment',
-  'Vehicle',
-  'Computer',
-  'Machinery',
-  'Building',
-  'Land',
-  'Software',
-  'Other',
+const getCategories = (t: any) => [
+  { value: 'furniture', label: t('finance.fixedAssetsPage.categories.furniture') },
+  { value: 'equipment', label: t('finance.fixedAssetsPage.categories.equipment') },
+  { value: 'vehicle', label: t('finance.fixedAssetsPage.categories.vehicle') },
+  { value: 'computer', label: t('finance.fixedAssetsPage.categories.computer') },
+  { value: 'machinery', label: t('finance.fixedAssetsPage.categories.machinery') },
+  { value: 'building', label: t('finance.fixedAssetsPage.categories.building') },
+  { value: 'land', label: t('finance.fixedAssetsPage.categories.land') },
+  { value: 'software', label: t('finance.fixedAssetsPage.categories.software') },
+  { value: 'other', label: t('finance.fixedAssetsPage.categories.other') },
 ]
 
-const DEPRECIATION_METHODS = [
-  { value: 'straight_line', label: 'Straight Line' },
-  { value: 'declining_balance', label: 'Declining Balance' },
-  { value: 'units_of_production', label: 'Units of Production' },
-  { value: 'none', label: 'No Depreciation' },
+const getDepreciationMethods = (t: any) => [
+  { value: 'straight_line', label: t('finance.fixedAssetsPage.depreciationMethods.straight_line') },
+  { value: 'declining_balance', label: t('finance.fixedAssetsPage.depreciationMethods.declining_balance') },
+  { value: 'units_of_production', label: t('finance.fixedAssetsPage.depreciationMethods.units_of_production') },
+  { value: 'none', label: t('finance.fixedAssetsPage.depreciationMethods.none') },
 ]
 
-const STATUSES = [
-  { value: 'disposed', label: 'Disposed' },
-  { value: 'sold', label: 'Sold' },
-  { value: 'scrapped', label: 'Scrapped' },
-  { value: 'lost', label: 'Lost' },
+const getDisposalStatuses = (t: any) => [
+  { value: 'disposed', label: t('finance.fixedAssetsPage.disposalStatuses.disposed') },
+  { value: 'sold', label: t('finance.fixedAssetsPage.disposalStatuses.sold') },
+  { value: 'scrapped', label: t('finance.fixedAssetsPage.disposalStatuses.scrapped') },
+  { value: 'lost', label: t('finance.fixedAssetsPage.disposalStatuses.lost') },
 ]
 
 export default function FixedAssetsPage() {
@@ -113,11 +113,11 @@ export default function FixedAssetsPage() {
       notes: '',
     },
     validate: {
-      name: (value) => (!value ? 'Asset name is required' : null),
-      category: (value) => (!value ? 'Category is required' : null),
-      purchasePrice: (value) => (value === '' ? 'Purchase price is required' : null),
-      purchaseDate: (value) => (!value ? 'Purchase date is required' : null),
-      usefulLife: (value) => (value === '' ? 'Useful life is required' : null),
+      name: (value) => (!value ? t('finance.fixedAssetsPage.validation.nameRequired') : null),
+      category: (value) => (!value ? t('finance.fixedAssetsPage.validation.categoryRequired') : null),
+      purchasePrice: (value) => (value === '' ? t('finance.fixedAssetsPage.validation.purchasePriceRequired') : null),
+      purchaseDate: (value) => (!value ? t('finance.fixedAssetsPage.validation.purchaseDateRequired') : null),
+      usefulLife: (value) => (value === '' ? t('finance.fixedAssetsPage.validation.usefulLifeRequired') : null),
     },
   })
 
@@ -130,8 +130,8 @@ export default function FixedAssetsPage() {
       disposalReference: '',
     },
     validate: {
-      status: (value) => (!value ? 'Status is required' : null),
-      disposalDate: (value) => (!value ? 'Disposal date is required' : null),
+      status: (value) => (!value ? t('finance.fixedAssetsPage.validation.disposalTypeRequired') : null),
+      disposalDate: (value) => (!value ? t('finance.fixedAssetsPage.validation.disposalDateRequired') : null),
     },
   })
 
@@ -157,7 +157,7 @@ export default function FixedAssetsPage() {
 
       setAssets(data)
     } catch (error) {
-      notifications.show({ title: 'Error', message: 'Failed to load assets', color: 'red' })
+      notifications.show({ title: t('common.error') || 'Error', message: t('finance.fixedAssetsPage.notification.fetchError'), color: 'red' })
     } finally {
       setLoading(false)
     }
@@ -193,10 +193,10 @@ export default function FixedAssetsPage() {
 
       if (editId) {
         await updateFixedAsset(editId, payload)
-        notifications.show({ title: 'Success', message: 'Asset updated successfully', color: 'green' })
+        notifications.show({ title: t('common.success') || 'Success', message: t('finance.fixedAssetsPage.notification.updateSuccess'), color: 'green' })
       } else {
         await createFixedAsset(payload)
-        notifications.show({ title: 'Success', message: 'Asset created successfully', color: 'green' })
+        notifications.show({ title: t('common.success') || 'Success', message: t('finance.fixedAssetsPage.notification.createSuccess'), color: 'green' })
       }
 
       setModalOpened(false)
@@ -206,8 +206,8 @@ export default function FixedAssetsPage() {
       fetchSummary()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to save asset',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.fixedAssetsPage.notification.createError'),
         color: 'red',
       })
     }
@@ -250,26 +250,26 @@ export default function FixedAssetsPage() {
         setViewModalOpened(true)
       }
     } catch (error) {
-      notifications.show({ title: 'Error', message: 'Failed to load asset details', color: 'red' })
+      notifications.show({ title: t('common.error') || 'Error', message: t('finance.fixedAssetsPage.notification.loadError'), color: 'red' })
     }
   }
 
   const handleDelete = (id: number) => {
     modals.openConfirmModal({
-      title: 'Delete Asset',
-      children: <Text size="sm">Are you sure you want to delete this asset? This action cannot be undone.</Text>,
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
+      title: t('common.delete') || 'Delete Asset',
+      children: <Text size="sm">{t('finance.fixedAssetsPage.notification.deleteConfirm')}</Text>,
+      labels: { confirm: t('common.delete') || 'Delete', cancel: t('common.cancel') || 'Cancel' },
       confirmProps: { color: 'red' },
       onConfirm: async () => {
         try {
           await deleteFixedAsset(id)
-          notifications.show({ title: 'Success', message: 'Asset deleted successfully', color: 'green' })
+          notifications.show({ title: t('common.success') || 'Success', message: t('finance.fixedAssetsPage.notification.deleteSuccess'), color: 'green' })
           fetchAssets()
           fetchSummary()
         } catch (error: any) {
           notifications.show({
-            title: 'Error',
-            message: error.response?.data?.message || 'Failed to delete asset',
+            title: t('common.error') || 'Error',
+            message: error.response?.data?.message || t('finance.fixedAssetsPage.notification.deleteError'),
             color: 'red',
           })
         }
@@ -295,7 +295,7 @@ export default function FixedAssetsPage() {
         disposal_reference: values.disposalReference,
       })
 
-      notifications.show({ title: 'Success', message: 'Asset disposed successfully', color: 'green' })
+      notifications.show({ title: t('common.success') || 'Success', message: t('finance.fixedAssetsPage.notification.disposeSuccess'), color: 'green' })
       setDisposeModalOpened(false)
       setDisposeAssetId(null)
       disposeForm.reset()
@@ -303,45 +303,46 @@ export default function FixedAssetsPage() {
       fetchSummary()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to dispose asset',
+        title: t('common.error') || 'Error',
+        message: error.response?.data?.message || t('finance.fixedAssetsPage.notification.disposeError'),
         color: 'red',
       })
     }
   }
 
   const getDepreciationMethodLabel = (method: string) => {
-    return DEPRECIATION_METHODS.find((m) => m.value === method)?.label || method
+    const methods = getDepreciationMethods(t)
+    return methods.find((m) => m.value === method)?.label || method
   }
 
   const getStatusBadge = (asset: FixedAsset) => {
     if (asset.status === 'active' && asset.is_fully_depreciated) {
-      return <Badge color="gray">Fully Depreciated</Badge>
+      return <Badge color="gray">{t('finance.fixedAssetsPage.statusBadges.fullyDepreciated')}</Badge>
     }
     if (asset.status === 'active') {
-      return <Badge color="green">Active</Badge>
+      return <Badge color="green">{t('finance.fixedAssetsPage.statusBadges.active')}</Badge>
     }
-    if (asset.status === 'sold') return <Badge color="blue">Sold</Badge>
-    if (asset.status === 'disposed') return <Badge color="yellow">Disposed</Badge>
-    if (asset.status === 'scrapped') return <Badge color="orange">Scrapped</Badge>
-    if (asset.status === 'lost') return <Badge color="red">Lost</Badge>
+    if (asset.status === 'sold') return <Badge color="blue">{t('finance.fixedAssetsPage.statusBadges.sold')}</Badge>
+    if (asset.status === 'disposed') return <Badge color="yellow">{t('finance.fixedAssetsPage.statusBadges.disposed')}</Badge>
+    if (asset.status === 'scrapped') return <Badge color="orange">{t('finance.fixedAssetsPage.statusBadges.scrapped')}</Badge>
+    if (asset.status === 'lost') return <Badge color="red">{t('finance.fixedAssetsPage.statusBadges.lost')}</Badge>
     return <Badge>{asset.status}</Badge>
   }
 
   return (
-    <Container size="xl">
+    <Box p={{ base: 'md', md: 'xl' }}>
       <Stack gap="md">
         {/* Header */}
         <Flex justify="space-between" align="center">
           <Group>
             <IconBuilding size={32} style={{ color: 'var(--mantine-color-blue-6)' }} />
             <div>
-              <Title order={2}>Fixed Asset Register</Title>
-              <Text c="dimmed" size="sm">Track company assets and depreciation</Text>
+              <Title order={2}>{t('finance.fixedAssetsPage.title')}</Title>
+              <Text c="dimmed" size="sm">{t('finance.fixedAssetsPage.subtitle')}</Text>
             </div>
           </Group>
           <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
-            Add Asset
+            {t('finance.fixedAssetsPage.addAsset')}
           </Button>
         </Flex>
 
@@ -350,7 +351,7 @@ export default function FixedAssetsPage() {
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Total Assets
+                {t('finance.fixedAssetsPage.summary.totalAssets')}
               </Text>
               <Text size="xl" fw={700} mt={5}>
                 {summary.total_assets}
@@ -358,7 +359,7 @@ export default function FixedAssetsPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Active Assets
+                {t('finance.fixedAssetsPage.summary.activeAssets')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="green">
                 {summary.active_assets}
@@ -366,7 +367,7 @@ export default function FixedAssetsPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Total Value
+                {t('finance.fixedAssetsPage.summary.totalValue')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="blue">
                 {summary.total_purchase_value?.toFixed(2)}৳
@@ -374,7 +375,7 @@ export default function FixedAssetsPage() {
             </Card>
             <Card padding="lg" radius="md" withBorder>
               <Text c="dimmed" size="sm" fw={500}>
-                Net Book Value
+                {t('finance.fixedAssetsPage.summary.netBookValue')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="cyan">
                 {summary.total_net_book_value?.toFixed(2)}৳
@@ -387,36 +388,36 @@ export default function FixedAssetsPage() {
         <Paper p="md" withBorder>
           <Group>
             <TextInput
-              placeholder="Search by name, code, serial..."
+              placeholder={t('finance.fixedAssetsPage.filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
               leftSection={<IconChartLine size={16} />}
               style={{ flex: 1 }}
             />
             <Select
-              placeholder="Filter by Category"
+              placeholder={t('finance.fixedAssetsPage.filters.categoryPlaceholder')}
               clearable
-              data={CATEGORIES.map((c) => ({ value: c, label: c }))}
+              data={getCategories(t)}
               value={filterCategory}
               onChange={setFilterCategory}
               w={150}
             />
             <Select
-              placeholder="Filter by Status"
+              placeholder={t('finance.fixedAssetsPage.filters.statusPlaceholder')}
               clearable
               data={[
-                { value: 'active', label: 'Active' },
-                { value: 'disposed', label: 'Disposed' },
-                { value: 'sold', label: 'Sold' },
-                { value: 'scrapped', label: 'Scrapped' },
-                { value: 'lost', label: 'Lost' },
+                { value: 'active', label: t('finance.fixedAssetsPage.statusBadges.active') },
+                { value: 'disposed', label: t('finance.fixedAssetsPage.statusBadges.disposed') },
+                { value: 'sold', label: t('finance.fixedAssetsPage.statusBadges.sold') },
+                { value: 'scrapped', label: t('finance.fixedAssetsPage.statusBadges.scrapped') },
+                { value: 'lost', label: t('finance.fixedAssetsPage.statusBadges.lost') },
               ]}
               value={filterStatus}
               onChange={setFilterStatus}
               w={120}
             />
             <Button leftSection={<IconRefresh size={16} />} variant="light" onClick={fetchAssets}>
-              Refresh
+              {t('finance.fixedAssetsPage.filters.refresh')}
             </Button>
           </Group>
         </Paper>
@@ -427,29 +428,29 @@ export default function FixedAssetsPage() {
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Asset Code</Table.Th>
-                  <Table.Th>Name</Table.Th>
-                  <Table.Th>Category</Table.Th>
-                  <Table.Th>Purchase Date</Table.Th>
-                  <Table.Th>Purchase Price</Table.Th>
-                  <Table.Th>Depreciation</Table.Th>
-                  <Table.Th>Net Book Value</Table.Th>
-                  <Table.Th>Progress</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th ta="center">Actions</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.assetCode')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.name')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.category')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.purchaseDate')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.purchasePrice')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.depreciation')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.netBookValue')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.progress')}</Table.Th>
+                  <Table.Th>{t('finance.fixedAssetsPage.table.status')}</Table.Th>
+                  <Table.Th ta="center">{t('finance.fixedAssetsPage.table.actions')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {loading ? (
                   <Table.Tr>
                     <Table.Td colSpan={10} ta="center">
-                      <Text c="dimmed">Loading...</Text>
+                      <Text c="dimmed">{t('finance.fixedAssetsPage.table.loading')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : assets.length === 0 ? (
                   <Table.Tr>
                     <Table.Td colSpan={10} ta="center">
-                      <Text c="dimmed">No assets found</Text>
+                      <Text c="dimmed">{t('finance.fixedAssetsPage.table.noAssetsFound')}</Text>
                     </Table.Td>
                   </Table.Tr>
                 ) : (
@@ -512,7 +513,7 @@ export default function FixedAssetsPage() {
                       <Table.Td>{getStatusBadge(asset)}</Table.Td>
                       <Table.Td ta="center">
                         <Group gap="xs" justify="center">
-                          <Tooltip label="View Details">
+                          <Tooltip label={t('finance.fixedAssetsPage.table.viewDetails')}>
                             <ActionIcon
                               size="sm"
                               variant="light"
@@ -524,7 +525,7 @@ export default function FixedAssetsPage() {
                           </Tooltip>
                           {asset.status === 'active' && (
                             <>
-                              <Tooltip label="Edit">
+                              <Tooltip label={t('finance.fixedAssetsPage.table.edit')}>
                                 <ActionIcon
                                   size="sm"
                                   variant="light"
@@ -534,7 +535,7 @@ export default function FixedAssetsPage() {
                                   <IconPencil size={16} />
                                 </ActionIcon>
                               </Tooltip>
-                              <Tooltip label="Dispose">
+                              <Tooltip label={t('finance.fixedAssetsPage.table.dispose')}>
                                 <ActionIcon
                                   size="sm"
                                   variant="light"
@@ -546,7 +547,7 @@ export default function FixedAssetsPage() {
                               </Tooltip>
                             </>
                           )}
-                          <Tooltip label="Delete">
+                          <Tooltip label={t('finance.fixedAssetsPage.table.delete')}>
                             <ActionIcon size="sm" variant="light" color="red" onClick={() => handleDelete(asset.id)}>
                               <IconTrash size={16} />
                             </ActionIcon>
@@ -565,37 +566,37 @@ export default function FixedAssetsPage() {
         <Modal
           opened={modalOpened}
           onClose={() => setModalOpened(false)}
-          title={editId ? 'Edit Asset' : 'New Asset'}
+          title={editId ? t('finance.fixedAssetsPage.modal.editTitle') : t('finance.fixedAssetsPage.modal.newTitle')}
           size="lg"
         >
           <form onSubmit={form.onSubmit(handleSubmit)}>
             <Stack>
               <Group grow>
-                <TextInput label="Asset Name" placeholder="e.g., Office Desk" required {...form.getInputProps('name')} />
-                <Select label="Category" data={CATEGORIES} required {...form.getInputProps('category')} />
+                <TextInput label={t('finance.fixedAssetsPage.modal.name')} placeholder={t('finance.fixedAssetsPage.modal.namePlaceholder')} required {...form.getInputProps('name')} />
+                <Select label={t('finance.fixedAssetsPage.modal.category')} data={getCategories(t)} required {...form.getInputProps('category')} />
               </Group>
 
               <Group grow>
                 <TextInput label="Subcategory" placeholder="e.g., Executive Desk" {...form.getInputProps('subcategory')} />
-                <TextInput label="Location" placeholder="e.g., Head Office" {...form.getInputProps('location')} />
+                <TextInput label={t('finance.fixedAssetsPage.modal.location')} placeholder={t('finance.fixedAssetsPage.modal.locationPlaceholder')} {...form.getInputProps('location')} />
               </Group>
 
               <Group grow>
-                <TextInput label="Serial Number" placeholder="Asset serial number" {...form.getInputProps('serialNumber')} />
-                <DatePicker label="Purchase Date" required {...form.getInputProps('purchaseDate')} />
+                <TextInput label={t('finance.fixedAssetsPage.modal.serialNumber')} placeholder={t('finance.fixedAssetsPage.modal.serialNumberPlaceholder')} {...form.getInputProps('serialNumber')} />
+                <DatePicker label={t('finance.fixedAssetsPage.modal.purchaseDate')} required {...form.getInputProps('purchaseDate')} />
               </Group>
 
               <Group grow>
-                <NumberInput label="Purchase Price (৳)" required prefix="৳" decimalScale={2} {...form.getInputProps('purchasePrice')} />
-                <NumberInput label="Salvage Value (৳)" prefix="৳" decimalScale={2} {...form.getInputProps('salvageValue')} />
+                <NumberInput label={t('finance.fixedAssetsPage.modal.purchasePrice') + ' (৳)'} required prefix="৳" decimalScale={2} {...form.getInputProps('purchasePrice')} />
+                <NumberInput label={t('finance.fixedAssetsPage.modal.salvageValue') + ' (৳)'} prefix="৳" decimalScale={2} {...form.getInputProps('salvageValue')} />
               </Group>
 
               <Group grow>
-                <NumberInput label="Useful Life (Years)" required min={1} max={100} {...form.getInputProps('usefulLife')} />
+                <NumberInput label={t('finance.fixedAssetsPage.modal.usefulLife')} required min={1} max={100} {...form.getInputProps('usefulLife')} />
                 <Select
-                  label="Depreciation Method"
+                  label={t('finance.fixedAssetsPage.modal.depreciationMethod')}
                   required
-                  data={DEPRECIATION_METHODS}
+                  data={getDepreciationMethods(t)}
                   {...form.getInputProps('depreciationMethod')}
                 />
               </Group>
@@ -605,41 +606,41 @@ export default function FixedAssetsPage() {
               )}
 
               <Group grow>
-                <TextInput label="Supplier" placeholder="Vendor name" {...form.getInputProps('supplier')} />
-                <TextInput label="Invoice Number" placeholder="Purchase invoice" {...form.getInputProps('invoiceNumber')} />
+                <TextInput label={t('finance.fixedAssetsPage.modal.supplier')} placeholder={t('finance.fixedAssetsPage.modal.supplierPlaceholder')} {...form.getInputProps('supplier')} />
+                <TextInput label={t('finance.fixedAssetsPage.modal.invoiceNumber')} placeholder={t('finance.fixedAssetsPage.modal.invoiceNumberPlaceholder')} {...form.getInputProps('invoiceNumber')} />
               </Group>
 
               <DatePicker label="Warranty Expiry" placeholder="Warranty end date" {...form.getInputProps('warrantyExpiry')} />
 
               <Textarea label="Description" placeholder="Asset details" {...form.getInputProps('description')} />
-              <Textarea label="Notes" placeholder="Additional notes" {...form.getInputProps('notes')} />
+              <Textarea label={t('finance.fixedAssetsPage.modal.notes')} placeholder={t('finance.fixedAssetsPage.modal.notesPlaceholder')} {...form.getInputProps('notes')} />
 
               <Group justify="flex-end">
                 <Button variant="light" onClick={() => setModalOpened(false)}>
-                  Cancel
+                  {t('finance.fixedAssetsPage.modal.cancel')}
                 </Button>
-                <Button type="submit">{editId ? 'Update' : 'Create'}</Button>
+                <Button type="submit">{editId ? t('finance.fixedAssetsPage.modal.update') : t('finance.fixedAssetsPage.modal.create')}</Button>
               </Group>
             </Stack>
           </form>
         </Modal>
 
         {/* Dispose Modal */}
-        <Modal opened={disposeModalOpened} onClose={() => setDisposeModalOpened(false)} title="Dispose Asset" size="md">
+        <Modal opened={disposeModalOpened} onClose={() => setDisposeModalOpened(false)} title={t('finance.fixedAssetsPage.modal.disposeTitle')} size="md">
           <form onSubmit={disposeForm.onSubmit(handleDispose)}>
             <Stack>
-              <NativeSelect label="Disposition Type" data={STATUSES} {...disposeForm.getInputProps('status')} />
-              <DatePicker label="Disposition Date" required {...disposeForm.getInputProps('disposalDate')} />
-              <NumberInput label="Disposition Value (৳)" prefix="৳" decimalScale={2} {...disposeForm.getInputProps('disposalValue')} />
-              <Textarea label="Reason" placeholder="Why is this asset being disposed?" {...disposeForm.getInputProps('disposalReason')} />
-              <TextInput label="Reference" placeholder="Disposal document reference" {...disposeForm.getInputProps('disposalReference')} />
+              <NativeSelect label={t('finance.fixedAssetsPage.modal.dispose.disposalType')} data={getDisposalStatuses(t)} {...disposeForm.getInputProps('status')} />
+              <DatePicker label={t('finance.fixedAssetsPage.modal.dispose.disposalDate')} required {...disposeForm.getInputProps('disposalDate')} />
+              <NumberInput label={t('finance.fixedAssetsPage.modal.dispose.disposalValue') + ' (৳)'} prefix="৳" decimalScale={2} {...disposeForm.getInputProps('disposalValue')} />
+              <Textarea label={t('finance.fixedAssetsPage.modal.dispose.reason')} placeholder={t('finance.fixedAssetsPage.modal.dispose.reasonPlaceholder')} {...disposeForm.getInputProps('disposalReason')} />
+              <TextInput label={t('finance.fixedAssetsPage.modal.dispose.reference')} placeholder={t('finance.fixedAssetsPage.modal.dispose.referencePlaceholder')} {...disposeForm.getInputProps('disposalReference')} />
 
               <Group justify="flex-end">
                 <Button variant="light" onClick={() => setDisposeModalOpened(false)}>
-                  Cancel
+                  {t('finance.fixedAssetsPage.modal.cancel')}
                 </Button>
                 <Button type="submit" color="red">
-                  Dispose Asset
+                  {t('finance.fixedAssetsPage.modal.confirmDispose')}
                 </Button>
               </Group>
             </Stack>
@@ -647,14 +648,14 @@ export default function FixedAssetsPage() {
         </Modal>
 
         {/* View Details Modal */}
-        <Modal opened={viewModalOpened} onClose={() => setViewModalOpened(false)} title="Asset Details" size="lg">
+        <Modal opened={viewModalOpened} onClose={() => setViewModalOpened(false)} title={t('finance.fixedAssetsPage.modal.viewTitle')} size="lg">
           {viewAsset && (
             <ScrollArea.Autosize mah={600}>
               <Stack>
                 <Group grow>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Asset Code
+                      {t('finance.fixedAssetsPage.modal.assetCode')}
                     </Text>
                     <Text size="lg" fw={500}>
                       {viewAsset.assetCode}
@@ -662,7 +663,7 @@ export default function FixedAssetsPage() {
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Asset Name
+                      {t('finance.fixedAssetsPage.modal.name')}
                     </Text>
                     <Text size="lg" fw={500}>
                       {viewAsset.name}
@@ -673,7 +674,7 @@ export default function FixedAssetsPage() {
                 <Group grow>
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Category
+                      {t('finance.fixedAssetsPage.modal.category')}
                     </Text>
                     <Text size="md">{viewAsset.category}</Text>
                   </Box>
@@ -694,12 +695,12 @@ export default function FixedAssetsPage() {
 
                 <Paper withBorder p="sm" radius="md">
                   <Text fw={500} mb="xs">
-                    Financial Details
+                    {t('finance.fixedAssetsPage.modal.view.financialDetails')}
                   </Text>
                   <SimpleGrid cols={2}>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Purchase Price
+                        {t('finance.fixedAssetsPage.modal.view.purchasePrice')}
                       </Text>
                       <Text size="md" fw={500}>
                         {viewAsset.purchasePrice.toFixed(2)}৳
@@ -707,19 +708,19 @@ export default function FixedAssetsPage() {
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Purchase Date
+                        {t('finance.fixedAssetsPage.modal.purchaseDate')}
                       </Text>
                       <Text size="md">{new Date(viewAsset.purchaseDate).toLocaleDateString()}</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Salvage Value
+                        {t('finance.fixedAssetsPage.modal.salvageValue')}
                       </Text>
                       <Text size="md">{viewAsset.salvageValue.toFixed(2)}৳</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Useful Life
+                        {t('finance.fixedAssetsPage.modal.view.usefulLife')}
                       </Text>
                       <Text size="md">{viewAsset.usefulLife} years</Text>
                     </Box>
@@ -728,18 +729,18 @@ export default function FixedAssetsPage() {
 
                 <Paper withBorder p="sm" radius="md">
                   <Text fw={500} mb="xs">
-                    Depreciation Details
+                    {t('finance.fixedAssetsPage.modal.view.depreciationDetails')}
                   </Text>
                   <SimpleGrid cols={2}>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Method
+                        {t('finance.fixedAssetsPage.modal.view.depreciationMethod')}
                       </Text>
                       <Text size="md">{getDepreciationMethodLabel(viewAsset.depreciationMethod)}</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Accumulated Depreciation
+                        {t('finance.fixedAssetsPage.modal.view.accumulatedDepreciation')}
                       </Text>
                       <Text size="md" c="red" fw={500}>
                         {viewAsset.accumulatedDepreciation.toFixed(2)}৳
@@ -747,7 +748,7 @@ export default function FixedAssetsPage() {
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
-                        Net Book Value
+                        {t('finance.fixedAssetsPage.modal.view.netBookValue')}
                       </Text>
                       <Text size="md" c="green" fw={500}>
                         {viewAsset.netBookValue.toFixed(2)}৳
@@ -775,16 +776,16 @@ export default function FixedAssetsPage() {
                 {viewAsset.depreciation_schedule && viewAsset.depreciation_schedule.length > 0 && (
                   <Paper withBorder p="sm" radius="md">
                     <Text fw={500} mb="xs">
-                      Depreciation Schedule
+                      {t('finance.fixedAssetsPage.modal.view.schedule')}
                     </Text>
                     <ScrollArea>
                       <Table striped fontSize="xs">
                         <Table.Thead>
                           <Table.Tr>
                             <Table.Th>Year</Table.Th>
-                            <Table.Th>Depreciation</Table.Th>
-                            <Table.Th>Accumulated</Table.Th>
-                            <Table.Th>Book Value</Table.Th>
+                            <Table.Th>{t('finance.fixedAssetsPage.modal.view.depreciationExpense')}</Table.Th>
+                            <Table.Th>{t('finance.fixedAssetsPage.modal.view.accumulatedDepreciation')}</Table.Th>
+                            <Table.Th>{t('finance.fixedAssetsPage.modal.view.bookValue')}</Table.Th>
                           </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
@@ -805,7 +806,7 @@ export default function FixedAssetsPage() {
                 {viewAsset.supplier && (
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Supplier
+                      {t('finance.fixedAssetsPage.modal.view.supplier')}
                     </Text>
                     <Text size="sm">{viewAsset.supplier}</Text>
                   </Box>
@@ -814,7 +815,7 @@ export default function FixedAssetsPage() {
                 {viewAsset.notes && (
                   <Box>
                     <Text size="sm" c="dimmed">
-                      Notes
+                      {t('finance.fixedAssetsPage.modal.view.notes')}
                     </Text>
                     <Text size="sm">{viewAsset.notes}</Text>
                   </Box>
@@ -824,6 +825,6 @@ export default function FixedAssetsPage() {
           )}
         </Modal>
       </Stack>
-    </Container>
+    </Box>
   )
 }

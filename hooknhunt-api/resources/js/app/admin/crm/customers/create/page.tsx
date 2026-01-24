@@ -188,8 +188,6 @@ export default function CreateCustomerPage() {
 
     try {
       // Log for debugging
-      console.log('Form data:', formData)
-      console.log('Selected role_id:', roleId)
 
       const response = await api.post('/user-management/users', {
         name: formData.name.trim(),

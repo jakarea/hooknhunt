@@ -199,13 +199,13 @@ Route::group([
         // Finance Dashboard
         Route::get('dashboard', 'FinanceController@dashboard');
 
-        // Chart of Accounts
-        Route::apiResource('accounts', 'AccountController');
+        // Chart of Accounts - Specific routes BEFORE apiResource
         Route::get('accounts/summary', 'AccountController@balanceSummary');
         Route::get('accounts/trial-balance', 'AccountController@trialBalance');
         Route::get('accounts/statistics', 'AccountController@statistics');
+        Route::apiResource('accounts', 'AccountController');
 
-        // Bank Accounts
+        // Bank Accounts - Specific routes BEFORE apiResource
         Route::get('banks/summary', 'BankController@summary');
         Route::apiResource('banks', 'BankController');
         Route::get('banks/{id}/transactions', 'BankController@transactions');
@@ -257,9 +257,9 @@ Route::group([
         Route::get('cheques/summary', 'ChequeController@summary');
 
         // Currencies
-        Route::apiResource('currencies', 'CurrencyController');
         Route::get('currencies/default', 'CurrencyController@getDefault');
         Route::post('currencies/convert', 'CurrencyController@convert');
+        Route::apiResource('currencies', 'CurrencyController');
         Route::post('currencies/{id}/exchange-rate', 'CurrencyController@updateExchangeRate');
 
         // VAT/Tax Ledger
@@ -277,12 +277,12 @@ Route::group([
         Route::apiResource('journal-entries', 'JournalEntryController');
         Route::post('journal-entries/{id}/reverse', 'JournalEntryController@reverse');
 
-        // Budgets
+        // Budgets - Specific routes must come BEFORE apiResource
+        Route::get('budgets/variance-report', 'BudgetController@varianceReport');
+        Route::get('budgets/statistics', 'BudgetController@statistics');
         Route::apiResource('budgets', 'BudgetController');
         Route::post('budgets/{id}/approve', 'BudgetController@approve');
         Route::put('budgets/{id}/actual', 'BudgetController@updateActual');
-        Route::get('budgets/variance-report', 'BudgetController@varianceReport');
-        Route::get('budgets/statistics', 'BudgetController@statistics');
 
         // Cost Centers
         Route::apiResource('cost-centers', 'CostCenterController');
@@ -309,19 +309,19 @@ Route::group([
         Route::get('fiscal-years/statistics', 'FiscalYearController@statistics');
         Route::get('fiscal-years/check-date', 'FiscalYearController@checkDate');
 
-        // Accounts Payable (Vendor Bills)
-        Route::apiResource('accounts-payable', 'AccountsPayableController');
+        // Accounts Payable (Vendor Bills) - Specific routes must come BEFORE apiResource
         Route::get('accounts-payable/aging-report', 'AccountsPayableController@agingReport');
         Route::get('accounts-payable/payments', 'AccountsPayableController@payments');
-        Route::post('accounts-payable/payments', 'AccountsPayableController@storePayment');
         Route::get('accounts-payable/statistics', 'AccountsPayableController@statistics');
+        Route::apiResource('accounts-payable', 'AccountsPayableController');
+        Route::post('accounts-payable/payments', 'AccountsPayableController@storePayment');
 
-        // Accounts Receivable (Customer Invoices)
-        Route::apiResource('accounts-receivable', 'AccountsReceivableController');
+        // Accounts Receivable (Customer Invoices) - Specific routes must come BEFORE apiResource
         Route::get('accounts-receivable/aging-report', 'AccountsReceivableController@agingReport');
         Route::get('accounts-receivable/payments', 'AccountsReceivableController@payments');
-        Route::post('accounts-receivable/payments', 'AccountsReceivableController@storePayment');
         Route::get('accounts-receivable/statistics', 'AccountsReceivableController@statistics');
+        Route::apiResource('accounts-receivable', 'AccountsReceivableController');
+        Route::post('accounts-receivable/payments', 'AccountsReceivableController@storePayment');
 
         // Advanced Financial Reports
         Route::prefix('reports')->group(function () {

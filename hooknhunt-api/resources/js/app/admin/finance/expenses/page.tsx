@@ -18,6 +18,7 @@ import {
   NumberFormatter,
   Skeleton,
 } from '@mantine/core'
+import { useFinanceStore } from '@/stores/financeStore'
 import {
   IconSearch,
   IconRefresh,
@@ -28,7 +29,7 @@ import {
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useTranslation } from 'react-i18next'
 import { modals } from '@mantine/modals'
@@ -47,6 +48,10 @@ type ExpenseStatus = 'all' | 'pending' | 'approved'
 export default function ExpensesPage() {
   const { t } = useTranslation()
   const { hasPermission } = usePermissions()
+  const navigate = useNavigate()
+
+  // Zustand store for finance state
+  const addRecentExpense = useFinanceStore((state) => state.addRecentExpense)
 
   // Permission check - user needs finance expenses view permission
   if (!hasPermission('finance_expenses_view')) {
@@ -153,6 +158,21 @@ export default function ExpensesPage() {
     fetchAccounts()
   }, [])
 
+  // Track recently viewed expenses (when page first loads)
+  useEffect(() => {
+    if (expenses.length > 0) {
+      // Add first 5 expenses to recent items
+      expenses.slice(0, 5).forEach(expense => {
+        addRecentExpense({
+          id: expense.id,
+          title: expense.title,
+          amount: parseFloat(expense.amount || '0'),
+          viewedAt: new Date().toISOString()
+        })
+      })
+    }
+  }, [expenses, addRecentExpense])
+
   // Initial load
   useEffect(() => {
     fetchExpenses(true)
@@ -240,11 +260,7 @@ export default function ExpensesPage() {
 
   // Handle edit
   const handleEdit = (expenseId: number) => {
-    notifications.show({
-      title: t('finance.banksPage.expensesPage.notification.edit'),
-      message: t('finance.banksPage.expensesPage.notification.editMessage', { id: expenseId }),
-      color: 'blue',
-    })
+    navigate(`/finance/expenses/${expenseId}/edit`)
   }
 
   // Handle delete
@@ -498,7 +514,7 @@ export default function ExpensesPage() {
                         </Badge>
                       </Table.Td>
                       <Table.Td>
-                        <Text className="text-sm md:text-base">{expense.paidBy?.name || '-'}</Text>
+                        <Text className="text-sm md:text-base">{expense.paidByUser?.name || expense.paidBy?.name || expense.user?.name || '-'}</Text>
                       </Table.Td>
                       <Table.Td>
                         <Text className="text-sm md:text-base" fw={600} ta="right">
@@ -619,7 +635,7 @@ export default function ExpensesPage() {
                     {expense.account?.name || '-'}
                   </Badge>
                   <Text className="text-xs md:text-sm" c="dimmed">
-                    By {expense.paidBy?.name || '-'}
+                    By {expense.paidByUser?.name || expense.paidBy?.name || expense.user?.name || '-'}
                   </Text>
                 </Group>
 

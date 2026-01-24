@@ -202,7 +202,11 @@ class ExpenseController extends Controller
                     $query->where('name', 'like', '%Cash%')
                           ->orWhere('name', 'like', '%cash%')
                           ->orWhere('name', 'Cash on Hand')
-                          ->orWhere('name', 'Petty Cash');
+                          ->orWhere('name', 'Petty Cash')
+                          ->orWhere('name', 'like', '%Bank%')
+                          ->orWhere('name', 'like', '%bank%')
+                          ->orWhere('name', 'like', '%bKash%')
+                          ->orWhere('code', 'like', 'BANK%');
                 })
                 ->where('is_active', true)
                 ->first();
@@ -211,7 +215,7 @@ class ExpenseController extends Controller
             if (!$cashAccount) {
                 DB::rollBack();
                 return $this->sendError(
-                    'Payment account not configured. Please create a Cash or Bank account (Asset type) with "Cash" in the name.',
+                    'Payment account not configured. Please create a Cash or Bank account (Asset type) with "Cash" or "Bank" in the name.',
                     null,
                     400
                 );
