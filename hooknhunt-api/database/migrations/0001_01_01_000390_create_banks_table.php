@@ -10,9 +10,11 @@ return new class extends Migration
     {
         Schema::create('banks', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('currency_id')->nullable()->constrained('currencies')->nullOnDelete();
             $table->string('name');
             $table->string('account_number')->nullable();
             $table->string('account_name')->nullable();
+            
             $table->enum('type', ['cash', 'bank', 'bkash', 'nagad', 'rocket', 'other'])->default('bank');
             $table->string('branch')->nullable();
             $table->decimal('current_balance', 15, 2)->default(0);

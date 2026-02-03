@@ -24,9 +24,11 @@ import {
   ActionIcon,
   Avatar,
   PasswordInput,
+  Modal,
 } from '@mantine/core'
-import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser, IconKey } from '@tabler/icons-react'
+import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser, IconKey, IconMail } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { modals } from '@mantine/modals'
 import api from '@/lib/api'
 import { usePermissions } from '@/hooks/usePermissions'
 import { useAuthStore } from '@/stores/authStore'
@@ -51,7 +53,6 @@ interface ValidationErrors {
   designation?: string
   joiningDate?: string
   baseSalary?: string
-  password?: string
 }
 
 export default function EditStaffPage() {
@@ -63,8 +64,6 @@ export default function EditStaffPage() {
   // ALL React hooks must be declared before any conditional logic
   const [saving, setSaving] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-  const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
 
   // Data from API
   const [roles, setRoles] = useState<Array<{ value: string; label: string }>>([])
@@ -295,10 +294,6 @@ export default function EditStaffPage() {
       errors.baseSalary = 'Base salary is required and must be positive'
     }
 
-    if (password && password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
-    }
-
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -359,7 +354,6 @@ export default function EditStaffPage() {
         whatsapp_number: string | null
         office_email: string | null
         office_email_password: string | null
-        password?: string
       } = {
         name,
         phone,
@@ -383,11 +377,6 @@ export default function EditStaffPage() {
         whatsapp_number: whatsappNumber || null,
         office_email: officeEmail || null,
         office_email_password: officeEmailPassword || null,
-      }
-
-      // Only include password if it's provided and user has permission
-      if (canEditPassword && password) {
-        payload.password = password
       }
 
       // Update user
@@ -423,13 +412,83 @@ export default function EditStaffPage() {
         color: 'green',
       })
       navigate(`/hrm/staff/${id}`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update user:', error)
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to update user. Please try again.',
-        color: 'red',
-      })
+
+      // Extract validation errors from backend response
+      const backendErrors = error?.response?.data?.errors
+
+      if (backendErrors) {
+        // Map Laravel validation errors to form fields
+        const fieldErrors: ValidationErrors = {}
+
+        // Handle phone errors
+        if (backendErrors.phone) {
+          fieldErrors.phone = Array.isArray(backendErrors.phone)
+            ? backendErrors.phone[0]
+            : backendErrors.phone
+        }
+
+        // Handle email errors
+        if (backendErrors.email) {
+          fieldErrors.email = Array.isArray(backendErrors.email)
+            ? backendErrors.email[0]
+            : backendErrors.email
+        }
+
+        // Handle name errors
+        if (backendErrors.name) {
+          fieldErrors.name = Array.isArray(backendErrors.name)
+            ? backendErrors.name[0]
+            : backendErrors.name
+        }
+
+        // Handle role_id errors
+        if (backendErrors.role_id) {
+          fieldErrors.roleId = Array.isArray(backendErrors.role_id)
+            ? backendErrors.role_id[0]
+            : backendErrors.role_id
+        }
+
+        // Handle other errors
+        if (backendErrors.base_salary) {
+          fieldErrors.baseSalary = Array.isArray(backendErrors.base_salary)
+            ? backendErrors.base_salary[0]
+            : backendErrors.base_salary
+        }
+
+        if (backendErrors.joining_date) {
+          fieldErrors.joiningDate = Array.isArray(backendErrors.joining_date)
+            ? backendErrors.joining_date[0]
+            : backendErrors.joining_date
+        }
+
+        if (backendErrors.designation) {
+          fieldErrors.designation = Array.isArray(backendErrors.designation)
+            ? backendErrors.designation[0]
+            : backendErrors.designation
+        }
+
+        setValidationErrors(fieldErrors)
+
+        // Show notification with first error
+        const firstError = Object.values(backendErrors)[0]
+        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
+
+        notifications.show({
+          title: 'Validation Error',
+          message: errorMessage || 'Please fix the errors in the form.',
+          color: 'red',
+        })
+      } else {
+        // Generic error
+        const message = error?.response?.data?.message || 'Failed to update user. Please try again.'
+        notifications.show({
+          title: 'Error',
+          message,
+          color: 'red',
+        })
+      }
     } finally {
       setSaving(false)
     }
@@ -487,12 +546,181 @@ export default function EditStaffPage() {
     navigate(`/hrm/staff/${id}`)
   }
 
+  // Handle password change modal
+  const handleChangePassword = () => {
+    const isOwnProfile = currentUser?.id === parseInt(id || '0')
+
+    modals.openConfirmModal({
+      title: (
+        <Group gap="sm">
+          <IconKey size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+          <Text fw={500}>Change Password</Text>
+        </Group>
+      ),
+      centered: true,
+      children: (
+        <Stack>
+          <Alert variant="light" color="blue" icon={<IconLock size={16} />}>
+            <Text size="sm">
+              {isOwnProfile
+                ? 'Enter your current password and a new password to change your password.'
+                : 'You are changing the password for another user. Please proceed with caution.'}
+            </Text>
+          </Alert>
+          <form id="change-password-form">
+            <Stack gap="md">
+              {isOwnProfile && (
+                <PasswordInput
+                  label="Current Password"
+                  placeholder="Enter current password"
+                  name="current_password"
+                  required
+                  autoFocus
+                />
+              )}
+              <PasswordInput
+                label="New Password"
+                placeholder="Enter new password (minimum 6 characters)"
+                name="password"
+                required
+                minLength={6}
+                autoComplete="new-password"
+              />
+              <PasswordInput
+                label="Confirm New Password"
+                placeholder="Confirm new password"
+                name="password_confirmation"
+                required
+                autoComplete="new-password"
+              />
+            </Stack>
+          </form>
+        </Stack>
+      ),
+      labels: { confirm: 'Change Password', cancel: 'Cancel' },
+      confirmProps: { color: 'blue' },
+      onConfirm: async () => {
+        const form = document.getElementById('change-password-form') as HTMLFormElement
+        const formData = new FormData(form)
+
+        const currentPassword = formData.get('current_password') as string
+        const newPassword = formData.get('password') as string
+        const confirmPassword = formData.get('password_confirmation') as string
+
+        // Client-side validation
+        if (!newPassword || newPassword.length < 6) {
+          notifications.show({
+            title: 'Validation Error',
+            message: 'Password must be at least 6 characters long.',
+            color: 'red',
+          })
+          return false
+        }
+
+        if (newPassword !== confirmPassword) {
+          notifications.show({
+            title: 'Validation Error',
+            message: 'Passwords do not match.',
+            color: 'red',
+          })
+          return false
+        }
+
+        if (isOwnProfile && !currentPassword) {
+          notifications.show({
+            title: 'Validation Error',
+            message: 'Please enter your current password.',
+            color: 'red',
+          })
+          return false
+        }
+
+        try {
+          const payload: { password: string; password_confirmation: string; current_password?: string } = {
+            password: newPassword,
+            password_confirmation: confirmPassword,
+          }
+
+          if (isOwnProfile) {
+            payload.current_password = currentPassword
+          }
+
+          await api.post(`/hrm/staff/${id}/change-password`, payload)
+
+          notifications.show({
+            title: 'Success',
+            message: 'Password changed successfully.',
+            color: 'green',
+          })
+          return true
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Failed to change password. Please try again.'
+          notifications.show({
+            title: 'Error',
+            message,
+            color: 'red',
+          })
+          return false
+        }
+      },
+    })
+  }
+
+  // Handle send password SMS
+  const handleSendPasswordSms = async () => {
+    modals.openConfirmModal({
+      title: (
+        <Group gap="sm">
+          <IconMail size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
+          <Text fw={500}>Send New Password via SMS</Text>
+        </Group>
+      ),
+      centered: true,
+      children: (
+        <Stack>
+          <Alert variant="light" color="orange" icon={<IconMail size={16} />}>
+            <Text size="sm">
+              This will generate a <strong>new random password</strong> and send it to the staff member's phone number via SMS.
+              The old password will no longer work after this action.
+            </Text>
+          </Alert>
+          <Text size="sm" c="dimmed">
+            Are you sure you want to proceed? This action cannot be undone.
+          </Text>
+        </Stack>
+      ),
+      labels: { confirm: 'Send Password', cancel: 'Cancel' },
+      confirmProps: { color: 'orange' },
+      onConfirm: async () => {
+        try {
+          const response = await api.post(`/hrm/staff/${id}/send-password-sms`)
+          const maskedPhone = response.data.data?.phone || phone
+
+          notifications.show({
+            title: 'Password Sent',
+            message: `New password has been sent to ${maskedPhone} via SMS.`,
+            color: 'green',
+          })
+          return true
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Failed to send password SMS. Please try again.'
+          notifications.show({
+            title: 'Error',
+            message,
+            color: 'red',
+          })
+          return false
+        }
+      },
+    })
+  }
+
   // Check permission - user can edit own profile OR needs staff.edit permission
   const staffId = parseInt(id || '0')
   const hasAccess = canEditProfile(staffId)
 
-  // Check if current user is profile owner or super_admin for password access
-  const canEditPassword = currentUser?.id === staffId || isSuperAdmin()
+  // Check if current user can change password (profile owner or super_admin)
+  const canChangePassword = currentUser?.id === staffId || isSuperAdmin()
 
   // Show loading state
   if (initialLoading) {
@@ -853,43 +1081,46 @@ export default function EditStaffPage() {
           </Paper>
 
           {/* Password Section - Only for profile owner or super_admin */}
-          {canEditPassword && (
-            <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
-              <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
-              <Stack >
-                <Group>
-                  <IconKey size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
-                  <Title order={3} className="text-base md:text-lg lg:text-xl">Change Password</Title>
+          {canChangePassword && (
+            <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg">
+              <Stack>
+                <Group justify="space-between" align="center" wrap="nowrap">
+                  <Group>
+                    <IconKey size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+                    <Title order={3} className="text-base md:text-lg lg:text-xl">Password & Security</Title>
+                  </Group>
+                  <Group gap="sm">
+                    {/* Send Password SMS button - Only for super_admin and NOT own profile */}
+                    {isSuperAdmin() && currentUser?.id !== parseInt(id || '0') && (
+                      <Button
+                        leftSection={<IconMail size={16} />}
+                        onClick={handleSendPasswordSms}
+                        variant="light"
+                        color="orange"
+                        className="text-sm md:text-base"
+                      >
+                        Send via SMS
+                      </Button>
+                    )}
+                    <Button
+                      leftSection={<IconKey size={16} />}
+                      onClick={handleChangePassword}
+                      variant="light"
+                      color="blue"
+                      className="text-sm md:text-base"
+                    >
+                      Change Password
+                    </Button>
+                  </Group>
                 </Group>
-
-                <Alert variant="light" color="blue" icon={<IconLock size={16} />}>
-                  <Text className="text-sm md:text-base">
-                    Leave password fields empty to keep the current password. Only fill them if you want to change the password.
-                  </Text>
-                </Alert>
-
-                <Grid>
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <PasswordInput
-                      label="New Password"
-                      placeholder="Enter new password (optional)"
-                      value={password}
-                      onChange={(e) => setPassword(e.currentTarget.value)}
-                      error={validationErrors.password}
-                      className="text-base md:text-lg"
-                    />
-                  </Grid.Col>
-                  <Grid.Col span={{ base: 12, md: 6 }}>
-                    <PasswordInput
-                      label="Confirm Password"
-                      placeholder="Confirm new password"
-                      value={passwordConfirmation}
-                      onChange={(e) => setPasswordConfirmation(e.currentTarget.value)}
-                      error={password && passwordConfirmation && password !== passwordConfirmation ? 'Passwords do not match' : undefined}
-                      className="text-base md:text-lg"
-                    />
-                  </Grid.Col>
-                </Grid>
+                <Text size="sm" c="dimmed">
+                  Click the button above to change the password for this staff member.
+                  {currentUser?.id === parseInt(id || '0')
+                    ? ' You will need to enter your current password to make this change.'
+                    : isSuperAdmin()
+                    ? ' As a super admin, you can change the password or send a new one via SMS.'
+                    : ' You can change your password using the button above.'}
+                </Text>
               </Stack>
             </Paper>
           )}

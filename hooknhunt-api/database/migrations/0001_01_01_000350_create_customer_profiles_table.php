@@ -12,6 +12,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->unique()->constrained('users')->onDelete('cascade');
             $table->date('dob')->nullable(); // Merged from modification
+            $table->text('address')->nullable();
+            $table->string('division')->nullable();
+            $table->string('district')->nullable();
+            $table->string('thana')->nullable();
             $table->enum('gender', ['male', 'female', 'other'])->nullable(); // Merged from modification
             $table->string('source')->default('website');
             $table->string('medium')->nullable();

@@ -13,7 +13,26 @@ class Attendance extends Model
         'date' => 'date',
         'break_in' => 'array', // JSON array of break times
         'break_out' => 'array', // JSON array of break times
+        'break_notes' => 'array', // JSON array of break notes
     ];
+
+    /**
+     * Get break_notes as array (always return array, never null)
+     */
+    public function getBreakNotesAttribute($value): array
+    {
+        // Cast handles JSON conversion, this ensures NULL becomes empty array
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
 
     public function user()
     {

@@ -13,13 +13,15 @@ export const api = axios.create({
   timeout: 30000, // 30 seconds timeout for mobile networks
 })
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and track start time
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    // Store start time for response time tracking
+    config.metadata = { startTime: Date.now() }
     return config
   },
   (error) => {
@@ -27,9 +29,22 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor for error handling
+// Response interceptor for error handling and response time tracking
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Calculate REAL total response time (server + network + client processing)
+    const startTime = response.config.metadata?.startTime
+    if (startTime) {
+      const duration = Date.now() - startTime
+
+      // Override backend's response_time with actual round-trip time (real total time)
+      if (response.data && typeof response.data === 'object') {
+        response.data.response_time = duration
+      }
+    }
+
+    return response
+  },
   (error: AxiosError) => {
     const { showErrorToast } = errorHandlers
 

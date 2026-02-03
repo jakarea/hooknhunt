@@ -10,6 +10,8 @@ import {
   Container,
   ThemeIcon,
   Alert,
+  Modal,
+  Textarea,
 } from '@mantine/core'
 import {
   IconClock,
@@ -30,6 +32,7 @@ interface MyAttendance {
   clock_out?: string | null
   break_in?: string[]
   break_out?: string[]
+  break_notes?: string[]
   status: string
   note?: string | null
 }
@@ -43,34 +46,32 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
   const { t } = useTranslation()
   const [actionLoading, setActionLoading] = useState(false)
   const [breakDuration, setBreakDuration] = useState(0)
+  const [breakModalOpened, setBreakModalOpened] = useState(false)
+  const [breakNote, setBreakNote] = useState('')
+  const [breakStartTime, setBreakStartTime] = useState<string | null>(null)
 
-  // Update break duration every second when on break
+  // Update break duration every second when on break or modal is open
   useEffect(() => {
     const breakIns = Array.isArray(myAttendance?.break_in) ? myAttendance.break_in : []
     const breakOuts = Array.isArray(myAttendance?.break_out) ? myAttendance.break_out : []
     const isOnBreak = myAttendance?.clock_in && !myAttendance?.clock_out && breakIns.length > breakOuts.length
 
-    if (!isOnBreak || breakIns.length === 0) {
-      setBreakDuration(0)
-      return
-    }
+    // Use breakStartTime from modal if open, otherwise use last break_in from database
+    const timeSource = breakModalOpened && breakStartTime ? breakStartTime : (isOnBreak && breakIns.length > 0 ? breakIns[breakIns.length - 1] : null)
 
-    // Get the most recent break_in time
-    const lastBreakIn = breakIns[breakIns.length - 1]
-
-    if (!lastBreakIn) {
+    if (!timeSource) {
       setBreakDuration(0)
       return
     }
 
     // Parse the break_in time - could be full ISO or just HH:MM:SS
     let breakInTime: Date
-    if (lastBreakIn.includes('T') || lastBreakIn.includes('-')) {
+    if (timeSource.includes('T') || timeSource.includes('-')) {
       // Full datetime string - use as-is
-      breakInTime = new Date(lastBreakIn)
+      breakInTime = new Date(timeSource)
     } else {
       // Time only (HH:MM:SS) - create local date to avoid timezone issues
-      const [hours, minutes, seconds] = lastBreakIn.split(':').map(Number)
+      const [hours, minutes, seconds] = timeSource.split(':').map(Number)
       breakInTime = new Date()
       breakInTime.setHours(hours, minutes, seconds || 0, 0)
     }
@@ -93,7 +94,7 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
     const interval = setInterval(updateDuration, 1000)
 
     return () => clearInterval(interval)
-  }, [myAttendance])
+  }, [myAttendance, breakModalOpened, breakStartTime])
 
   const handleClockIn = async () => {
     try {
@@ -123,12 +124,44 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
   }
 
   const handleBreakIn = async () => {
+    // Record the break start time locally (NOT saved to DB yet)
+    const now = new Date()
+    setBreakStartTime(now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+
+    // Just open modal - don't call API yet
+    setBreakModalOpened(true)
+  }
+
+  const submitBreakIn = async () => {
+    if (!breakNote.trim()) {
+      notifications.show({
+        title: t('common.warning'),
+        message: 'Please enter a break note',
+        color: 'yellow',
+      })
+      return
+    }
+
+    // Now save the break to database with the actual start time (when modal opened) and note
     try {
       setActionLoading(true)
-      await api.post('/hrm/break-in')
+
+      // Use the breakStartTime captured when modal opened
+      const startTime = breakStartTime || new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
+
+      await api.post('/hrm/break-in', {
+        note: breakNote.trim(),
+        break_time: startTime // Send the exact time when modal opened
+      })
+
+      setBreakModalOpened(false)
+      setBreakNote('')
+      // Don't clear breakStartTime yet - we need it for timer continuity
+      // It will be cleared when break ends or on next refresh
+
       notifications.show({
         title: t('common.success'),
-        message: t('dashboard.success.breakStarted', { time: new Date().toLocaleTimeString() }),
+        message: t('dashboard.success.breakStarted', { time: startTime }),
         color: 'green',
       })
     } catch (error: unknown) {
@@ -141,9 +174,10 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
         message: errorMessage,
         color: 'red',
       })
+      setBreakStartTime(null)
     } finally {
       setActionLoading(false)
-      // Always refresh attendance data
+      // Only refresh if successfully saved
       await onRefresh()
     }
   }
@@ -335,7 +369,8 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
         const breakOutCount = Array.isArray(myAttendance?.break_out) ? myAttendance.break_out.length : 0
         const isOnBreak = myAttendance?.clock_in && !myAttendance?.clock_out && breakInCount > breakOutCount
 
-        if (!isOnBreak) return null
+        // Don't show overlay if modal is open (modal is on top)
+        if (!isOnBreak || breakModalOpened) return null
 
         return (
           <Overlay
@@ -355,6 +390,21 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
                   <Text c="dimmed" size="lg" ta="center">
                     {t('dashboard.breakMessage')}
                   </Text>
+                  {(() => {
+                    const breakInCount = Array.isArray(myAttendance?.break_in) ? myAttendance.break_in.length : 0
+                    const breakNotes = Array.isArray(myAttendance?.break_notes) ? myAttendance.break_notes : []
+                    const currentBreakNote = breakInCount > 0 && breakNotes.length >= breakInCount ? breakNotes[breakInCount - 1] : null
+
+                    return currentBreakNote ? (
+                      <Text c="white" size="md" mt="sm" fw={500} style={{
+                        background: 'rgba(249, 115, 22, 0.2)',
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                      }}>
+                        {currentBreakNote}
+                      </Text>
+                    ) : null
+                  })()}
                   {myAttendance?.clock_in && (
                     <Text c="yellow" size="sm" mt="md">
                       {t('dashboard.clockedInAt', { time: formatTime(myAttendance.clock_in) })}
@@ -420,6 +470,57 @@ export default function AttendanceActions({ myAttendance, onRefresh }: Attendanc
           </Overlay>
         )
       })()}
+
+      {/* Break Note Modal */}
+      <Modal
+        opened={breakModalOpened}
+        onClose={() => {
+          // User closed modal without confirming - cancel the break completely
+          setBreakModalOpened(false)
+          setBreakNote('')
+          setBreakStartTime(null) // Clear the captured start time
+        }}
+        title={t('dashboard.takeBreak')}
+        centered
+        size="md"
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Your break has started! Please enter a note for your break (e.g., Lunch break, Coffee break, Personal break)
+          </Text>
+          <Textarea
+            label="Break Note"
+            placeholder="Enter break note..."
+            value={breakNote}
+            onChange={(e) => setBreakNote(e.currentTarget.value)}
+            required
+            minRows={3}
+            autosize
+            autoFocus
+          />
+          <Group justify="flex-end" mt="md">
+            <Button
+              variant="default"
+              onClick={() => {
+                // Cancel the break - just close modal and reset
+                setBreakModalOpened(false)
+                setBreakNote('')
+                setBreakStartTime(null)
+              }}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitBreakIn}
+              loading={actionLoading}
+              color="yellow"
+            >
+              Confirm
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </>
   )
 }

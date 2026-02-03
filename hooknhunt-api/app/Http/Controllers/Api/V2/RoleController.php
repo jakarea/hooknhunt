@@ -20,7 +20,7 @@ class RoleController extends Controller
     {
         $type = $request->query('type'); // 'staff' or 'customer'
 
-        $query = Role::withCount('users');
+        $query = Role::withCount('users')->orderBy('position');
 
         if ($type === 'staff') {
             // Exclude customer roles (10 = Retail Customer, 11 = Wholesale Customer)
@@ -41,6 +41,7 @@ class RoleController extends Controller
         $request->validate([
             'name' => 'required|unique:roles,name',
             'description' => 'nullable|string',
+            'position' => 'nullable|integer|min:1',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,slug'
         ]);
@@ -48,7 +49,8 @@ class RoleController extends Controller
         $role = Role::create([
             'name' => $request->name,
             'slug' => Str::slug($request->name),
-            'description' => $request->description
+            'description' => $request->description,
+            'position' => $request->position ?? 1,
         ]);
 
         // রোল তৈরির সময় সরাসরি পারমিশন সিঙ্ক করা (ডাইনামিক)
@@ -88,9 +90,10 @@ class RoleController extends Controller
         $role = Role::withSuperAdmin()->findOrFail($id);
 
         // Prevent modifying critical system roles (by ID for security)
-        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleIds = [1, 9, 10, 11]; // Super Admin, Supplier, Retail Customer, Wholesale Customer
         $protectedRoleNames = [
             1 => 'Super Admin',
+            9 => 'Supplier',
             10 => 'Retail Customer',
             11 => 'Wholesale Customer'
         ];
@@ -103,6 +106,7 @@ class RoleController extends Controller
         $request->validate([
             'name' => 'required|unique:roles,name,' . $id,
             'description' => 'nullable|string',
+            'position' => 'nullable|integer|min:1',
             'permissions' => 'nullable|array',
             'permissions.*' => 'exists:permissions,slug'
         ]);
@@ -110,6 +114,7 @@ class RoleController extends Controller
         $role->update([
             'name' => $request->name,
             'description' => $request->description,
+            'position' => $request->position ?? 1,
         ]);
 
         // Sync permissions if provided
@@ -123,33 +128,111 @@ class RoleController extends Controller
     }
 
     /**
-     * Delete role
+     * Soft delete role
+     * Users are automatically reassigned to Retail Customer (default role)
      */
     public function destroy($id)
     {
         $role = Role::withSuperAdmin()->findOrFail($id);
 
         // Prevent deleting critical system roles (by ID for security)
-        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleIds = [1, 9, 10, 11]; // Super Admin, Supplier, Retail Customer, Wholesale Customer
         $protectedRoleNames = [
             1 => 'Super Admin',
+            9 => 'Supplier',
             10 => 'Retail Customer',
             11 => 'Wholesale Customer'
         ];
 
         if (in_array($role->id, $protectedRoleIds)) {
             $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
-            return $this->sendError("{$roleName} role cannot be deleted. It is a critical system role.", null, 403);
+            return $this->sendError("{$roleName} role cannot be archived. It is a critical system role.", null, 403);
         }
 
-        // Check if role has users (including soft-deleted)
-        $userCount = \App\Models\User::withTrashed()->where('role_id', $role->id)->count();
+        // Reassign all active users to Retail Customer (default role)
+        $userCount = \App\Models\User::where('role_id', $role->id)->count();
         if ($userCount > 0) {
-            return $this->sendError('Cannot delete role with assigned users (including deleted users).', null, 400);
+            \App\Models\User::where('role_id', $role->id)->update(['role_id' => 10]); // 10 = Retail Customer
         }
 
         $role->delete();
-        return $this->sendSuccess(null, 'Role deleted successfully.');
+
+        $message = $userCount > 0
+            ? "Role archived successfully. {$userCount} user(s) reassigned to Retail Customer."
+            : 'Role archived successfully.';
+
+        return $this->sendSuccess(null, $message);
+    }
+
+    /**
+     * Get all deleted roles (archived)
+     */
+    public function trashed()
+    {
+        $trashedRoles = Role::withSuperAdmin()->onlyTrashed()->withCount('users')->orderBy('deleted_at', 'desc')->get();
+        return $this->sendSuccess($trashedRoles, 'Archived roles retrieved successfully.');
+    }
+
+    /**
+     * Restore a soft deleted role
+     */
+    public function restore($id)
+    {
+        $role = Role::withSuperAdmin()->onlyTrashed()->findOrFail($id);
+
+        // Prevent restoring critical system roles (by ID for security)
+        $protectedRoleIds = [1, 9, 10, 11]; // Super Admin, Supplier, Retail Customer, Wholesale Customer
+        $protectedRoleNames = [
+            1 => 'Super Admin',
+            9 => 'Supplier',
+            10 => 'Retail Customer',
+            11 => 'Wholesale Customer'
+        ];
+
+        if (in_array($role->id, $protectedRoleIds)) {
+            $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
+            return $this->sendError("{$roleName} role cannot be restored. It is a critical system role.", null, 403);
+        }
+
+        $role->restore();
+        return $this->sendSuccess($role, 'Role restored successfully.');
+    }
+
+    /**
+     * Permanently delete a role (force delete)
+     * Users (including soft-deleted) are reassigned to Retail Customer first
+     */
+    public function forceDelete($id)
+    {
+        $role = Role::withSuperAdmin()->onlyTrashed()->findOrFail($id);
+
+        // Prevent force deleting critical system roles (by ID for security)
+        $protectedRoleIds = [1, 9, 10, 11]; // Super Admin, Supplier, Retail Customer, Wholesale Customer
+        $protectedRoleNames = [
+            1 => 'Super Admin',
+            9 => 'Supplier',
+            10 => 'Retail Customer',
+            11 => 'Wholesale Customer'
+        ];
+
+        if (in_array($role->id, $protectedRoleIds)) {
+            $roleName = $protectedRoleNames[$role->id] ?? 'This system role';
+            return $this->sendError("{$roleName} role cannot be permanently deleted. It is a critical system role.", null, 403);
+        }
+
+        // Reassign all users (including soft-deleted) to Retail Customer before force delete
+        $userCount = \App\Models\User::withTrashed()->where('role_id', $role->id)->count();
+        if ($userCount > 0) {
+            \App\Models\User::withTrashed()->where('role_id', $role->id)->update(['role_id' => 10]); // 10 = Retail Customer
+        }
+
+        $role->forceDelete();
+
+        $message = $userCount > 0
+            ? "Role permanently deleted. {$userCount} user(s) reassigned to Retail Customer."
+            : 'Role permanently deleted successfully.';
+
+        return $this->sendSuccess(null, $message);
     }
 
     /**
@@ -161,9 +244,10 @@ class RoleController extends Controller
         $role = Role::withSuperAdmin()->findOrFail($id);
 
         // Prevent modifying permissions for critical system roles
-        $protectedRoleIds = [1, 10, 11]; // Super Admin, Retail Customer, Wholesale Customer
+        $protectedRoleIds = [1, 9, 10, 11]; // Super Admin, Supplier, Retail Customer, Wholesale Customer
         $protectedRoleNames = [
             1 => 'Super Admin',
+            9 => 'Supplier',
             10 => 'Retail Customer',
             11 => 'Wholesale Customer'
         ];

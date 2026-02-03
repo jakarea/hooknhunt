@@ -69,6 +69,7 @@ import CreateStaffPage from "@/app/admin/hrm/staff/create/page"
 import Departments from "@/app/admin/hrm/departments/page"
 import Leaves from "@/app/admin/hrm/leaves/page"
 import Attendance from "@/app/admin/hrm/attendance/page"
+import EmployeeAttendance from "@/app/admin/hrm/employee-attendance/[id]/page"
 import Payroll from "@/app/admin/hrm/payroll/page"
 import FinanceDashboard from "@/app/admin/finance/page"
 import Banks from "@/app/admin/finance/banks/page"
@@ -125,6 +126,7 @@ import SettingsPermissions from "@/app/admin/settings/permissions/page"
 import APISettings from "@/app/admin/settings/api/page"
 import Backup from "@/app/admin/settings/backup/page"
 import TaxSettings from "@/app/admin/settings/taxes/page"
+import WorkingHoursSettings from "@/app/admin/settings/working-hours/page"
 
 import Login from "@/app/login/page"
 import ForgotPassword from "@/app/forgot-password/page"
@@ -220,6 +222,7 @@ function App() {
               <Route path="hrm/departments" element={<Departments />} />
               <Route path="hrm/leaves" element={<Leaves />} />
               <Route path="hrm/attendance" element={<Attendance />} />
+              <Route path="hrm/employee-attendance/:id" element={<EmployeeAttendance />} />
               <Route path="hrm/payroll" element={<Payroll />} />
               <Route path="hrm/roles" element={<SettingsRoles />} />
               <Route path="finance" element={<FinanceDashboard />} />
@@ -276,6 +279,7 @@ function App() {
               <Route path="settings/api" element={<APISettings />} />
               <Route path="settings/backup" element={<Backup />} />
               <Route path="settings/taxes" element={<TaxSettings />} />
+              <Route path="settings/working-hours" element={<WorkingHoursSettings />} />
             </Route>
           </Route>
 

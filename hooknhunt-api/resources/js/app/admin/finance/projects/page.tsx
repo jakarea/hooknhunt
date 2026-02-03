@@ -126,9 +126,6 @@ export default function ProjectsPage() {
       setProjects(response.data || [])
     } catch (error: any) {
       notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
         title: 'Error',
         message: 'Failed to fetch projects',
         color: 'red',
@@ -250,16 +247,16 @@ export default function ProjectsPage() {
       if (editId) {
         await updateProject(editId, payload)
         notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
+          title: 'Success',
+          message: 'Project updated successfully',
+          color: 'green',
         })
       } else {
         await createProject(payload)
         notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
+          title: 'Success',
+          message: 'Project created successfully',
+          color: 'green',
         })
       }
 
@@ -287,9 +284,6 @@ export default function ProjectsPage() {
         try {
           await deleteProject(project.id)
           notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
             title: 'Success',
             message: 'Project deleted successfully',
             color: 'green',
@@ -298,9 +292,6 @@ export default function ProjectsPage() {
           fetchStatistics()
         } catch (error: any) {
           notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
             title: 'Error',
             message: error.message || 'Failed to delete project',
             color: 'red',
@@ -314,9 +305,9 @@ export default function ProjectsPage() {
     try {
       await calculateProjectProfitability(id)
       notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
+        title: 'Success',
+        message: 'Profitability calculated successfully',
+        color: 'green',
       })
       fetchProjects()
       fetchStatistics()
@@ -334,11 +325,13 @@ export default function ProjectsPage() {
 
     try {
       await updateProjectProgress(selectedProject.id, {
+        progress_percentage: progressForm.values.progress_percentage,
+        notes: progressForm.values.notes,
       })
       notifications.show({
-        title: "Error",
-        message: "An error occurred",
-        color: "red",
+        title: 'Success',
+        message: 'Progress updated successfully',
+        color: 'green',
       })
       setProgressModalOpened(false)
       fetchProjects()

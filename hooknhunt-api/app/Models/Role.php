@@ -4,10 +4,20 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Role extends Model
 {
+    use SoftDeletes;
+
     protected $guarded = ['id'];
+
+    protected $fillable = [
+        'name',
+        'slug',
+        'description',
+        'position',
+    ];
 
     /**
      * The "booted" method of the model.
