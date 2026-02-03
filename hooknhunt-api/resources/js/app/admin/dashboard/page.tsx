@@ -52,8 +52,16 @@ interface MyAttendance {
   clock_out?: string | null
   break_in?: string[]
   break_out?: string[]
+  break_notes?: string[]
   status: string
   note?: string | null
+}
+
+interface HRMSettings {
+  workStartTime: string
+  workEndTime: string
+  breakDuration: number
+  gracePeriod: number
 }
 
 export default function AdminDashboardPage() {
@@ -67,7 +75,16 @@ export default function AdminDashboardPage() {
   const [attendanceHistory, setAttendanceHistory] = useState<MyAttendance[]>([])
   const [dailyQuote, setDailyQuote] = useState('')
 
+  // HRM Settings for late calculation
+  const [hrmSettings, setHrmSettings] = useState<HRMSettings>({
+    workStartTime: '09:00',
+    workEndTime: '18:00',
+    breakDuration: 60,
+    gracePeriod: 15,
+  })
+
   useEffect(() => {
+    fetchHRMSettings()
     fetchDashboardData()
     // Set daily quote based on day of year
     const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24)
@@ -75,80 +92,80 @@ export default function AdminDashboardPage() {
     setDailyQuote(quotes[dayOfYear % quotes.length])
   }, [])
 
+  // Fetch HRM settings for late calculation
+  const fetchHRMSettings = async () => {
+    try {
+      const response = await api.get('/system/settings')
+      const groupedSettings = response.data
+      const hrmSettingsList = groupedSettings.hrm || []
+
+      const settings: HRMSettings = {
+        workStartTime: '09:00',
+        workEndTime: '18:00',
+        breakDuration: 60,
+        gracePeriod: 15,
+      }
+
+      hrmSettingsList.forEach((item: any) => {
+        if (item.key === 'work_start_time') {
+          settings.workStartTime = item.value || '09:00'
+        } else if (item.key === 'work_end_time') {
+          settings.workEndTime = item.value || '18:00'
+        } else if (item.key === 'break_duration_minutes') {
+          settings.breakDuration = parseInt(item.value) || 60
+        } else if (item.key === 'grace_period_minutes') {
+          settings.gracePeriod = parseInt(item.value) || 15
+        }
+      })
+
+      setHrmSettings(settings)
+    } catch (error) {
+      // Use defaults if fetch fails
+      console.error('Failed to fetch HRM settings:', error)
+    }
+  }
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
 
       const today = new Date().toISOString().split('T')[0]
+      const endDate = new Date().toISOString().split('T')[0]
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-      // Fetch today's attendance
-      const attendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
+      // Fetch attendance history
+      const historyResponse = await api.get(`/hrm/attendance?start_date=${startDate}&end_date=${endDate}`)
 
-      const attendanceData = attendanceResponse.data?.data?.data || []
-      const presentCount = attendanceData.filter((a: any) => a.clock_in).length
-      const onBreakCount = attendanceData.filter((a: any) => {
+      // Extract data array - handle different response structures
+      let allAttendanceData: any[] = []
+      if (historyResponse.data?.data?.data) {
+        allAttendanceData = historyResponse.data.data.data
+      } else if (historyResponse.data?.data) {
+        allAttendanceData = Array.isArray(historyResponse.data.data) ? historyResponse.data.data : []
+      }
+
+      // Filter today's attendance
+      const todayAttendance = allAttendanceData.filter((a: any) => a.date === today)
+      const presentCount = todayAttendance.filter((a: any) => a.clock_in).length
+      const onBreakCount = todayAttendance.filter((a: any) => {
         const breakInCount = Array.isArray(a.break_in) ? a.break_in.length : 0
         const breakOutCount = Array.isArray(a.break_out) ? a.break_out.length : 0
         return breakInCount > breakOutCount
       }).length
 
-      // Fetch staff count (optional - only for admins)
-      let totalStaff = 0
-      try {
-        const staffResponse = await api.get('/hrm/staff')
-        const staffData = staffResponse.data?.data?.data || []
-        totalStaff = Array.isArray(staffData) ? staffData.length : (staffData.data?.length || 0)
-      } catch (error) {
-      }
-
-      // Fetch departments count (optional - only for admins)
-      let totalDepts = 0
-      try {
-        const deptResponse = await api.get('/hrm/departments')
-        const deptData = deptResponse.data?.data || []
-        totalDepts = Array.isArray(deptData) ? deptData.length : (deptData.data?.length || 0)
-      } catch (error) {
-      }
-
-      // Build stats object
-      const statsData: DashboardStats = {
-        total_staff: totalStaff,
-        total_departments: totalDepts,
-        today_attendance: presentCount,
-        on_break: onBreakCount,
-        pending_payroll: 0,
-      }
-      setStats(statsData)
-
-      // Build recent activity from attendance data
-      const activityData: RecentActivity[] = attendanceData.slice(0, 5).map((a: any) => ({
-        id: a.id,
-        user_name: a.user?.name || 'Unknown',
-        action: a.clock_out ? 'Clocked out' : a.clock_in ? 'Clocked in' : 'No activity',
-        timestamp: a.clock_in || a.date,
-      }))
-      setRecentActivity(activityData)
-
-      // Fetch my attendance for today
+      // Fetch today's attendance for current user (same approach as HRM attendance page)
       if (user?.id) {
         try {
           // Fetch all attendance for today (without user filter to avoid permission issues)
           const myAttendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
 
-          // Extract data array - handle different response structures
-          let myAttendanceData: any[] = []
+          // API returns paginated data with camelCase fields
+          let myAttendanceData = []
 
-          // Structure 1: { data: { data: { data: [...] } } }
-          if (myAttendanceResponse.data?.data?.data?.data) {
-            myAttendanceData = myAttendanceResponse.data.data.data.data
-          }
-          // Structure 2: { data: { data: [...] } }
-          else if (Array.isArray(myAttendanceResponse.data?.data?.data)) {
+          if (myAttendanceResponse.data?.data?.data) {
             myAttendanceData = myAttendanceResponse.data.data.data
-          }
-          // Structure 3: { data: [...] }
-          else if (Array.isArray(myAttendanceResponse.data?.data)) {
-            myAttendanceData = myAttendanceResponse.data.data
+          } else if (myAttendanceResponse.data?.data) {
+            myAttendanceData = Array.isArray(myAttendanceResponse.data.data) ? myAttendanceResponse.data.data : []
           }
 
           // Find my attendance - handle both camelCase/snake_case and string/number
@@ -157,9 +174,8 @@ export default function AdminDashboardPage() {
             return String(recordUserId) === String(user.id)
           })
 
-
           if (myRecord) {
-            // Normalize to snake_case format
+            // Convert camelCase to snake_case for consistency
             const normalizedRecord: MyAttendance = {
               id: myRecord.id,
               user_id: myRecord.userId || myRecord.user_id,
@@ -168,6 +184,7 @@ export default function AdminDashboardPage() {
               clock_out: myRecord.clockOut || myRecord.clock_out,
               break_in: myRecord.breakIn || myRecord.break_in,
               break_out: myRecord.breakOut || myRecord.break_out,
+              break_notes: myRecord.breakNotes || myRecord.break_notes,
               status: myRecord.status,
               note: myRecord.note,
             }
@@ -180,42 +197,62 @@ export default function AdminDashboardPage() {
           setMyAttendance(null)
         }
 
-        // Fetch attendance history for current user (last 30 days)
+        // Filter to current user's records for history (last 30 days)
+        const userHistory = allAttendanceData
+          .filter((a: any) => (a.userId === user.id || a.user_id === user.id))
+          .map((record: any) => ({
+            id: record.id,
+            user_id: record.userId || record.user_id,
+            date: record.date,
+            clock_in: record.clockIn || record.clock_in,
+            clock_out: record.clockOut || record.clock_out,
+            break_in: record.breakIn || record.break_in,
+            break_out: record.breakOut || record.break_out,
+            status: record.status,
+            note: record.note,
+          }))
+          .sort((a: MyAttendance, b: MyAttendance) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+        setAttendanceHistory(userHistory)
+      }
+
+      // Build stats object
+      const statsData: DashboardStats = {
+        total_staff: 0,
+        total_departments: 0,
+        today_attendance: presentCount,
+        on_break: onBreakCount,
+        pending_payroll: 0,
+      }
+
+      // Fetch staff count (optional - only for admins)
+      if (isAdmin) {
         try {
-          const endDate = new Date().toISOString().split('T')[0]
-          const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-          const historyResponse = await api.get(`/hrm/attendance?start_date=${startDate}&end_date=${endDate}`)
-
-          let historyData = []
-          if (historyResponse.data?.data?.data) {
-            historyData = historyResponse.data.data.data
-          } else if (historyResponse.data?.data) {
-            historyData = Array.isArray(historyResponse.data.data) ? historyResponse.data.data : []
-          }
-
-
-          // Filter to current user's records and normalize
-          const userHistory = historyData
-            .filter((a: any) => a.userId === user.id || a.user_id === user.id)
-            .map((record: any) => ({
-              id: record.id,
-              user_id: record.userId || record.user_id,
-              date: record.date,
-              clock_in: record.clockIn || record.clock_in,
-              clock_out: record.clockOut || record.clock_out,
-              break_in: record.breakIn || record.break_in,
-              break_out: record.breakOut || record.break_out,
-              status: record.status,
-              note: record.note,
-            }))
-            .sort((a: MyAttendance, b: MyAttendance) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-          setAttendanceHistory(userHistory)
+          const staffResponse = await api.get('/hrm/staff')
+          const staffData = staffResponse.data?.data?.data || []
+          statsData.total_staff = Array.isArray(staffData) ? staffData.length : (staffData.data?.length || 0)
         } catch (error) {
-          console.error('Error fetching attendance history:', error)
-          setAttendanceHistory([])
+        }
+
+        try {
+          const deptResponse = await api.get('/hrm/departments')
+          const deptData = deptResponse.data?.data || []
+          statsData.total_departments = Array.isArray(deptData) ? deptData.length : (deptData.data?.length || 0)
+        } catch (error) {
         }
       }
+
+      setStats(statsData)
+
+      // Build recent activity from today's attendance
+      const activityData: RecentActivity[] = todayAttendance.slice(0, 5).map((a: any) => ({
+        id: a.id,
+        user_name: a.user?.name || 'Unknown',
+        action: a.clock_out ? 'Clocked out' : a.clock_in ? 'Clocked in' : 'No activity',
+        timestamp: a.clock_in || a.date,
+      }))
+      setRecentActivity(activityData)
+
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -228,8 +265,8 @@ export default function AdminDashboardPage() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  function formatTime(timeString: string): string {
-    if (!timeString) return '--:--'
+  function formatTime(timeString: string | null | undefined): string {
+    if (!timeString) return '--'
 
     if (/^\d{2}:\d{2}:\d{2}$/.test(timeString)) {
       const [hours, minutes] = timeString.split(':')
@@ -249,6 +286,207 @@ export default function AdminDashboardPage() {
     } catch {
       return timeString
     }
+  }
+
+  // Calculate late time in minutes
+  const calculateLateTime = (clockInTime: string): number | null => {
+    if (!clockInTime) return null
+
+    // Parse clock in time
+    let clockInDate: Date
+    if (clockInTime.includes('T') || clockInTime.includes('-')) {
+      clockInDate = new Date(clockInTime)
+    } else {
+      const [hours, minutes] = clockInTime.split(':').map(Number)
+      clockInDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    // Parse work start time
+    const [workHours, workMinutes] = hrmSettings.workStartTime.split(':').map(Number)
+    const workStartDate = new Date(2000, 0, 1, workHours, workMinutes)
+
+    // Add grace period to work start time
+    const workStartWithGrace = new Date(workStartDate.getTime() + hrmSettings.gracePeriod * 60000)
+
+    // Calculate difference in minutes
+    const diffMs = clockInDate.getTime() - workStartWithGrace.getTime()
+    const diffMinutes = Math.floor(diffMs / 60000)
+
+    return diffMinutes > 0 ? diffMinutes : null
+  }
+
+  // Format late time
+  const formatLateTime = (minutes: number): string => {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+    }
+    return `${minutes}m`
+  }
+
+  // Calculate working hours with overtime
+  const calculateWorkingHoursWithOvertime = (
+    clockIn: string,
+    clockOut?: string,
+    breakIns?: string[],
+    breakOuts?: string[]
+  ): { total: string; overtime: string | null } => {
+    if (!clockOut) return { total: '-', overtime: null }
+
+    // Parse clock in and clock out times
+    let inDate: Date
+    let outDate: Date
+
+    if (clockIn.includes('T') || clockIn.includes('-')) {
+      inDate = new Date(clockIn)
+    } else {
+      const [hours, minutes] = clockIn.split(':').map(Number)
+      inDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    if (clockOut.includes('T') || clockOut.includes('-')) {
+      outDate = new Date(clockOut)
+    } else {
+      const [hours, minutes] = clockOut.split(':').map(Number)
+      outDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    let totalWorkTime = outDate.getTime() - inDate.getTime()
+
+    // Subtract break times
+    if (breakIns && breakOuts && Array.isArray(breakIns) && Array.isArray(breakOuts)) {
+      for (let i = 0; i < breakOuts.length; i++) {
+        const breakInTime = breakIns[i]
+        const breakOutTime = breakOuts[i]
+
+        if (breakInTime && breakOutTime) {
+          let breakIn: Date
+          let breakOut: Date
+
+          if (breakInTime.includes('T') || breakInTime.includes('-')) {
+            breakIn = new Date(breakInTime)
+          } else {
+            const [hours, minutes] = breakInTime.split(':').map(Number)
+            breakIn = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          if (breakOutTime.includes('T') || breakOutTime.includes('-')) {
+            breakOut = new Date(breakOutTime)
+          } else {
+            const [hours, minutes] = breakOutTime.split(':').map(Number)
+            breakOut = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          const breakDuration = breakOut.getTime() - breakIn.getTime()
+          totalWorkTime -= breakDuration
+        }
+      }
+    }
+
+    // Calculate total hours worked
+    const totalHours = Math.floor(totalWorkTime / (1000 * 60 * 60))
+    const totalMinutes = Math.floor((totalWorkTime % (1000 * 60 * 60)) / (1000 * 60))
+    const totalFormatted = `${totalHours}h ${totalMinutes}m`
+
+    // Calculate standard working hours (from settings)
+    const [workStartHours, workStartMinutes] = hrmSettings.workStartTime.split(':').map(Number)
+    const [workEndHours, workEndMinutes] = hrmSettings.workEndTime.split(':').map(Number)
+
+    const workStartDate = new Date(2000, 0, 1, workStartHours, workStartMinutes)
+    const workEndDate = new Date(2000, 0, 1, workEndHours, workEndMinutes)
+
+    // Subtract break duration from standard working hours
+    const standardWorkTime = workEndDate.getTime() - workStartDate.getTime() - (hrmSettings.breakDuration * 60000)
+
+    // Calculate overtime
+    const overtimeWorkTime = totalWorkTime - standardWorkTime
+
+    if (overtimeWorkTime > 0) {
+      const overtimeHours = Math.floor(overtimeWorkTime / (1000 * 60 * 60))
+      const overtimeMinutes = Math.floor((overtimeWorkTime % (1000 * 60 * 60)) / (1000 * 60))
+      return {
+        total: totalFormatted,
+        overtime: `+${overtimeHours}h ${overtimeMinutes}m ${t('hrm.attendance.tableHeaders.overtime')}`
+      }
+    }
+
+    return { total: totalFormatted, overtime: null }
+  }
+
+  // Calculate break duration
+  const calculateBreakDuration = (breakIn: string, breakOut: string | null | undefined): string => {
+    if (!breakIn || !breakOut) return '--'
+
+    try {
+      // Parse break in time
+      let breakInTime: Date
+      if (breakIn.includes('T') || breakIn.includes('-')) {
+        breakInTime = new Date(breakIn)
+      } else {
+        const [hours, minutes, seconds] = breakIn.split(':').map(Number)
+        breakInTime = new Date()
+        breakInTime.setHours(hours, minutes, seconds || 0, 0)
+      }
+
+      // Parse break out time
+      let breakOutTime: Date
+      if (breakOut.includes('T') || breakOut.includes('-')) {
+        breakOutTime = new Date(breakOut)
+      } else {
+        const [hours, minutes, seconds] = breakOut.split(':').map(Number)
+        breakOutTime = new Date()
+        breakOutTime.setHours(hours, minutes, seconds || 0, 0)
+      }
+
+      // Calculate duration in minutes
+      const diffMs = breakOutTime.getTime() - breakInTime.getTime()
+      const totalMinutes = Math.floor(diffMs / 1000 / 60)
+
+      if (totalMinutes <= 0) return '--'
+
+      const hours = Math.floor(totalMinutes / 60)
+      const minutes = totalMinutes % 60
+
+      if (hours > 0) {
+        return `${hours}h ${minutes}m`
+      }
+      return `${minutes}m`
+    } catch {
+      return '--'
+    }
+  }
+
+  // Format break times for display
+  const formatBreakTimes = (breakIns: string[] | undefined, breakOuts: string[] | undefined, breakNotes?: string[]) => {
+    if (!breakIns || breakIns.length === 0) return '--'
+
+    const ins = Array.isArray(breakIns) ? breakIns : []
+    const outs = Array.isArray(breakOuts) ? breakOuts : []
+    const notes = Array.isArray(breakNotes) ? breakNotes : []
+
+    return ins.map((breakIn, i) => {
+      const inTime = formatTime(breakIn)
+      const outTime = i < outs.length ? formatTime(outs[i]) : 'Active'
+      const duration = i < outs.length ? calculateBreakDuration(breakIn, outs[i]) : null
+      const isActive = i >= outs.length
+      const note = notes[i] || null
+
+      return (
+        <Group key={i} gap={4} wrap="nowrap">
+          <IconCoffee size={14} style={{ color: isActive ? '#f59e0b' : '#6b7280' }} />
+          <Text className="text-xs md:text-sm" c="dimmed">
+            {inTime} - {outTime}
+            {duration && (
+              <Text span c="orange" fw={500}> ({duration})</Text>
+            )}
+            {note && (
+              <Text span c="blue" fw={500}> - {note}</Text>
+            )}
+          </Text>
+        </Group>
+      )
+    })
   }
 
   if (loading) {
@@ -352,46 +590,77 @@ export default function AdminDashboardPage() {
         {/* My Attendance Actions */}
         <AttendanceActions myAttendance={myAttendance} onRefresh={fetchDashboardData} />
 
-        {/* Recent Activity Table - Only for admins */}
-        {isAdmin && (
-        <Paper withBorder p="md" radius="lg">
-          <Title order={3} mb="md">{t('dashboard.todaysAttendanceActivity')}</Title>
-
-          {recentActivity.length > 0 ? (
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>{t('dashboard.staffName')}</Table.Th>
-                  <Table.Th>{t('dashboard.action')}</Table.Th>
-                  <Table.Th>{t('dashboard.time')}</Table.Th>
-                  <Table.Th>{t('dashboard.status')}</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {recentActivity.map((activity) => (
-                  <Table.Tr key={activity.id}>
-                    <Table.Td fw={500}>{activity.user_name}</Table.Td>
-                    <Table.Td>{activity.action}</Table.Td>
-                    <Table.Td>{formatTime(activity.timestamp)}</Table.Td>
-                    <Table.Td>
-                      <Badge
-                        leftSection={<IconCheck size={10} />}
-                        color="green"
-                        variant="light"
-                      >
-                        {t('dashboard.present')}
-                      </Badge>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          ) : (
-            <Alert variant="light" color="blue" radius="md" icon={<IconAlertCircle size={16} />}>
-              {t('dashboard.noAttendanceActivityToday')}
-            </Alert>
-          )}
-        </Paper>
+        {/* Today's Status Card */}
+        {myAttendance && (
+          <Card withBorder p="md" radius="md" shadow="sm">
+            <Group justify="space-between" align="flex-start">
+              <Box className="flex-1">
+                <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.todaysStatus')}</Text>
+                <Group mt="xs" wrap="nowrap">
+                  <Stack gap={4}>
+                    <Badge
+                      color={
+                        myAttendance.status === 'present' ? 'green' :
+                        myAttendance.status === 'late' ? 'yellow' :
+                        myAttendance.status === 'absent' ? 'red' :
+                        'blue'
+                      }
+                      className="text-lg md:text-xl lg:text-2xl"
+                    >
+                      {myAttendance.status.toUpperCase()}
+                    </Badge>
+                    {myAttendance.status === 'late' && myAttendance.clock_in && (() => {
+                      const lateMinutes = calculateLateTime(myAttendance.clock_in)
+                      return lateMinutes !== null ? (
+                        <Text className="text-xs md:text-sm" c="orange" fw={500}>
+                          {formatLateTime(lateMinutes)} late
+                        </Text>
+                      ) : null
+                    })()}
+                  </Stack>
+                  <Text className="text-lg md:text-xl lg:text-2xl" fw={500}>
+                    In: {formatTime(myAttendance.clock_in)}
+                  </Text>
+                  {myAttendance.clock_out && (
+                    <Text className="text-lg md:text-xl lg:text-2xl" fw={500}>
+                      Out: {formatTime(myAttendance.clock_out)}
+                    </Text>
+                  )}
+                </Group>
+                {myAttendance.break_in && myAttendance.break_in.length > 0 && (
+                  <Stack mt="xs" gap={2}>
+                    <Text className="text-xs md:text-sm" c="dimmed" fw={500}>{t('hrm.attendance.breaks')}:</Text>
+                    <Stack gap={2}>
+                      {formatBreakTimes(myAttendance.break_in, myAttendance.break_out, myAttendance.break_notes)}
+                    </Stack>
+                  </Stack>
+                )}
+              </Box>
+              {myAttendance.clock_in && myAttendance.clock_out && (() => {
+                const { total, overtime } = calculateWorkingHoursWithOvertime(
+                  myAttendance.clock_in,
+                  myAttendance.clock_out,
+                  myAttendance.break_in,
+                  myAttendance.break_out
+                )
+                return (
+                  <Box>
+                    <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
+                    <Stack gap={4}>
+                      <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
+                        {total}
+                      </Text>
+                      {overtime && (
+                        <Text className="text-sm md:text-base lg:text-lg" c="green" fw={600}>
+                          {overtime}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Box>
+                )
+              })()}
+            </Group>
+          </Card>
         )}
 
         {/* Attendance History */}

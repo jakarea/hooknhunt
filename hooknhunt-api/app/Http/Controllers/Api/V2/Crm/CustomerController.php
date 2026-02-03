@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\CustomerProfile;
 use App\Models\Address;
 use App\Traits\ApiResponse;
+use App\Services\AlphaSmsService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -263,6 +264,58 @@ class CustomerController extends Controller
             ->findOrFail($id);
 
         return $this->sendSuccess($user, 'Customer retrieved successfully.');
+    }
+
+    /**
+     * Send New Password via SMS
+     */
+    public function sendPasswordSms($id)
+    {
+        $user = User::whereIn('role_id', [10, 11])->findOrFail($id);
+
+        // Permission check: Need crm.customers.edit permission
+        if (!auth()->user()->hasPermissionTo('crm.customers.edit')) {
+            return $this->sendError('You do not have permission to send password SMS.', null, 403);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Generate random 8-character alphanumeric password
+            $newPassword = $this->generateRandomPassword();
+
+            // 2. Update user password
+            $user->update([
+                'password' => Hash::make($newPassword),
+            ]);
+
+            // 3. Send SMS with new password
+            $smsService = new AlphaSmsService();
+            $smsMessage = "Your password has been reset for Hook & Hunt. New Password: {$newPassword} Please login and change your password for security.";
+            $smsService->sendSms($smsMessage, $user->phone);
+
+            DB::commit();
+            return $this->sendSuccess([
+                'phone' => $this->maskPhoneNumber($user->phone),
+            ], 'New password has been sent via SMS successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Failed to send password SMS: ' . $e->getMessage(), [], 500);
+        }
+    }
+
+    /**
+     * Mask phone number for privacy (show first 4 and last 2 digits)
+     */
+    private function maskPhoneNumber($phone)
+    {
+        if (strlen($phone) < 6) {
+            return $phone;
+        }
+        $start = substr($phone, 0, 4);
+        $end = substr($phone, -2);
+        $middle = str_repeat('x', strlen($phone) - 6);
+        return $start . $middle . $end;
     }
 
     /**

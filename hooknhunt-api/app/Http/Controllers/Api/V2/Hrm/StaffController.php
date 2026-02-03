@@ -279,6 +279,101 @@ class StaffController extends Controller
     }
 
     /**
+     * Change Staff Password
+     */
+    public function changePassword(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $currentUser = auth()->user();
+
+        // Permission check: User can change own password OR super_admin can change any password
+        if ($currentUser->id != $id && !$currentUser->hasRole('super_admin')) {
+            return $this->sendError('You do not have permission to change this password.', null, 403);
+        }
+
+        // Validation
+        $request->validate([
+            'password' => 'required|string|min:6|confirmed', // password_confirmation field must match
+        ]);
+
+        // If changing own password, verify current password
+        if ($currentUser->id == $id) {
+            $request->validate([
+                'current_password' => 'required|string',
+            ]);
+
+            if (!Hash::check($request->current_password, $user->password)) {
+                return $this->sendError('Current password is incorrect.', null, 422);
+            }
+        }
+
+        // Update password
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return $this->sendSuccess(null, 'Password changed successfully');
+    }
+
+    /**
+     * Send New Password via SMS
+     */
+    public function sendPasswordSms($id)
+    {
+        $user = User::findOrFail($id);
+        $currentUser = auth()->user();
+
+        // Permission check: Only super_admin can send password SMS to other users
+        if (!$currentUser->hasRole('super_admin')) {
+            return $this->sendError('You do not have permission to send password SMS.', null, 403);
+        }
+
+        // Prevent sending to own account
+        if ($currentUser->id == $id) {
+            return $this->sendError('You cannot send password SMS to your own account.', null, 400);
+        }
+
+        DB::beginTransaction();
+        try {
+            // 1. Generate random 8-character alphanumeric password
+            $newPassword = $this->generateRandomPassword();
+
+            // 2. Update user password
+            $user->update([
+                'password' => Hash::make($newPassword),
+            ]);
+
+            // 3. Send SMS with new password
+            $smsService = new AlphaSmsService();
+            $smsMessage = "Your password has been reset. New Password: {$newPassword} Please login and change your password immediately for security.";
+            $smsService->sendSms($smsMessage, $user->phone);
+
+            DB::commit();
+            return $this->sendSuccess([
+                'phone' => $this->maskPhoneNumber($user->phone),
+            ], 'New password has been sent via SMS successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Failed to send password SMS: ' . $e->getMessage(), [], 500);
+        }
+    }
+
+    /**
+     * Mask phone number for privacy (show first 4 and last 2 digits)
+     */
+    private function maskPhoneNumber($phone)
+    {
+        if (strlen($phone) < 6) {
+            return $phone;
+        }
+        $start = substr($phone, 0, 4);
+        $end = substr($phone, -2);
+        $middle = str_repeat('x', strlen($phone) - 6);
+        return $start . $middle . $end;
+    }
+
+    /**
      * Terminate / Remove Staff
      */
     public function destroy($id)

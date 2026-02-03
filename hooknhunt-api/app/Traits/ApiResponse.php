@@ -16,6 +16,7 @@ trait ApiResponse
             'message' => $message,
             'data' => $data,
             'errors' => null,
+            'response_time' => round(microtime(true) - LARAVEL_START, 2),
         ], $code);
     }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Stack,
@@ -23,6 +24,7 @@ import {
   IconCheck,
   IconX,
   IconCoffee,
+  IconDownload,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { useTranslation } from 'react-i18next'
@@ -38,6 +40,7 @@ interface Attendance {
   clock_out?: string
   break_in?: string[]
   break_out?: string[]
+  break_notes?: string[]
   status: 'present' | 'late' | 'absent' | 'leave' | 'holiday'
   note?: string
   created_at: string
@@ -66,15 +69,27 @@ interface FormData {
   note: string
 }
 
+interface HRMSettings {
+  workStartTime: string
+  workEndTime: string
+  breakDuration: number
+  gracePeriod: number
+}
+
+type DateRangePreset = 'today' | 'this_week' | 'this_month' | 'this_year' | 'custom'
+
 export default function AttendancePage() {
   const { user } = useAuthStore()
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [attendance, setAttendance] = useState<Attendance[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [statusFilter, setStatusFilter] = useState<string | null>('all')
   const [employeeFilter, setEmployeeFilter] = useState<string | null>(null)
-  const [monthFilter, setMonthFilter] = useState<string | null>(new Date().toISOString().slice(0, 7))
+  const [dateRangePreset, setDateRangePreset] = useState<DateRangePreset>('today')
+  const [customStartDate, setCustomStartDate] = useState<string>(new Date().toISOString().slice(0, 10))
+  const [customEndDate, setCustomEndDate] = useState<string>(new Date().toISOString().slice(0, 10))
   const [modalOpened, setModalOpened] = useState(false)
   const [saving, setSaving] = useState(false)
   const [todayAttendance, setTodayAttendance] = useState<Attendance | null>(null)
@@ -85,6 +100,14 @@ export default function AttendancePage() {
     clock_out: null,
     status: null,
     note: '',
+  })
+
+  // HRM Settings for late calculation
+  const [hrmSettings, setHrmSettings] = useState<HRMSettings>({
+    workStartTime: '09:00',
+    workEndTime: '18:00',
+    breakDuration: 60,
+    gracePeriod: 15,
   })
 
   // Check if current user is admin (super_admin or admin)
@@ -111,13 +134,131 @@ export default function AttendancePage() {
     { value: 'holiday', label: t('hrm.attendance.status.holiday') },
   ], [t])
 
+  // Fetch HRM settings for late calculation
+  const fetchHRMSettings = async () => {
+    try {
+      const response = await api.get('/system/settings')
+      const groupedSettings = response.data
+      const hrmSettingsList = groupedSettings.hrm || []
+
+      const settings: HRMSettings = {
+        workStartTime: '09:00',
+        workEndTime: '18:00',
+        breakDuration: 60,
+        gracePeriod: 15,
+      }
+
+      hrmSettingsList.forEach((item: any) => {
+        if (item.key === 'work_start_time') {
+          settings.workStartTime = item.value || '09:00'
+        } else if (item.key === 'work_end_time') {
+          settings.workEndTime = item.value || '18:00'
+        } else if (item.key === 'break_duration_minutes') {
+          settings.breakDuration = parseInt(item.value) || 60
+        } else if (item.key === 'grace_period_minutes') {
+          settings.gracePeriod = parseInt(item.value) || 15
+        }
+      })
+
+      setHrmSettings(settings)
+    } catch (error) {
+      // Use defaults if fetch fails
+      console.error('Failed to fetch HRM settings:', error)
+    }
+  }
+
+  // Calculate late time in minutes
+  const calculateLateTime = (clockInTime: string): number | null => {
+    if (!clockInTime) return null
+
+    // Parse clock in time
+    let clockInDate: Date
+    if (clockInTime.includes('T') || clockInTime.includes('-')) {
+      clockInDate = new Date(clockInTime)
+    } else {
+      const [hours, minutes] = clockInTime.split(':').map(Number)
+      clockInDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    // Parse work start time
+    const [workHours, workMinutes] = hrmSettings.workStartTime.split(':').map(Number)
+    const workStartDate = new Date(2000, 0, 1, workHours, workMinutes)
+
+    // Add grace period to work start time
+    const workStartWithGrace = new Date(workStartDate.getTime() + hrmSettings.gracePeriod * 60000)
+
+    // Calculate difference in minutes
+    const diffMs = clockInDate.getTime() - workStartWithGrace.getTime()
+    const diffMinutes = Math.floor(diffMs / 60000)
+
+    return diffMinutes > 0 ? diffMinutes : null
+  }
+
+  // Format late time
+  const formatLateTime = (minutes: number): string => {
+    if (minutes >= 60) {
+      const hours = Math.floor(minutes / 60)
+      const mins = minutes % 60
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`
+    }
+    return `${minutes}m`
+  }
+
+  // Get date range based on preset
+  const getDateRange = (): { start: string; end: string } => {
+    const today = new Date()
+
+    // Helper to format date as YYYY-MM-DD in local timezone
+    const formatDate = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    switch (dateRangePreset) {
+      case 'today':
+        const todayStr = formatDate(today)
+        return { start: todayStr, end: todayStr }
+
+      case 'this_week': {
+        const startOfWeek = new Date(today)
+        const day = startOfWeek.getDay()
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1) // Adjust for Monday start
+        startOfWeek.setDate(diff)
+        const endOfWeek = new Date(startOfWeek)
+        endOfWeek.setDate(startOfWeek.getDate() + 6)
+        return { start: formatDate(startOfWeek), end: formatDate(endOfWeek) }
+      }
+
+      case 'this_month':
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
+        return { start: formatDate(startOfMonth), end: formatDate(endOfMonth) }
+
+      case 'this_year':
+        const startOfYear = new Date(today.getFullYear(), 0, 1)
+        const endOfYear = new Date(today.getFullYear(), 11, 31)
+        return { start: formatDate(startOfYear), end: formatDate(endOfYear) }
+
+      case 'custom':
+        return { start: customStartDate, end: customEndDate }
+
+      default:
+        const todayStrDefault = formatDate(today)
+        return { start: todayStrDefault, end: todayStrDefault }
+    }
+  }
+
   // Fetch attendance records
   const fetchAttendance = async () => {
     try {
       setLoading(true)
+      const { start, end } = getDateRange()
+
       const params: Record<string, string> = {
-        start_date: monthFilter ? `${monthFilter}-01` : new Date().toISOString().slice(0, 7) + '-01',
-        end_date: monthFilter ? `${monthFilter}-31` : new Date().toISOString().slice(0, 7) + '-31',
+        start_date: start,
+        end_date: end,
       }
 
       if (statusFilter && statusFilter !== 'all') {
@@ -143,6 +284,7 @@ export default function AttendancePage() {
         clock_out: record.clockOut || record.clock_out,
         break_in: record.breakIn || record.break_in,
         break_out: record.breakOut || record.break_out,
+        break_notes: record.breakNotes || record.break_notes,
         status: record.status,
         note: record.note,
         created_at: record.createdAt || record.created_at,
@@ -189,6 +331,7 @@ export default function AttendancePage() {
               clock_out: myRecord.clockOut || myRecord.clock_out,
               break_in: myRecord.breakIn || myRecord.break_in,
               break_out: myRecord.breakOut || myRecord.break_out,
+              break_notes: myRecord.breakNotes || myRecord.break_notes,
               status: myRecord.status,
               note: myRecord.note,
               created_at: myRecord.createdAt || myRecord.created_at,
@@ -224,23 +367,37 @@ export default function AttendancePage() {
     if (!isAdmin) return
 
     try {
-      const response = await api.get('/user-management/users')
-      const employeesData = response.data.data || []
-      setEmployees(employeesData)
+      const response = await api.get('/user-management/users', {
+        params: {
+          type: 'staff',
+          status: 'active',
+          per_page: 100 // Get more employees for dropdown
+        }
+      })
+      // Handle paginated response: { data: { data: [...], current_page, ... } }
+      const employeesData = response.data.data?.data || response.data.data || []
+      setEmployees(Array.isArray(employeesData) ? employeesData : [])
     } catch (error: unknown) {
       if (import.meta.env.DEV) console.error('Failed to fetch employees:', error)
+      setEmployees([]) // Ensure employees is always an array
     }
   }
 
   // Initial load
   useEffect(() => {
+    fetchHRMSettings()
     fetchAttendance()
     fetchEmployees()
-  }, [statusFilter, employeeFilter, monthFilter])
+  }, [statusFilter, employeeFilter, dateRangePreset, customStartDate, customEndDate])
 
   // Handle refresh
   const handleRefresh = () => {
     fetchAttendance()
+  }
+
+  // Open employee history page
+  const openEmployeeHistory = (employeeId: number) => {
+    navigate(`/hrm/employee-attendance/${employeeId}`)
   }
 
   // Open edit modal (admin only)
@@ -378,6 +535,95 @@ export default function AttendancePage() {
     return `${hours}h ${minutes}m`
   }
 
+  // Calculate working hours with overtime
+  const calculateWorkingHoursWithOvertime = (
+    clockIn: string,
+    clockOut?: string,
+    breakIns?: string[],
+    breakOuts?: string[]
+  ): { total: string; overtime: string | null } => {
+    if (!clockOut) return { total: '-', overtime: null }
+
+    // Parse clock in and clock out times
+    let inDate: Date
+    let outDate: Date
+
+    if (clockIn.includes('T') || clockIn.includes('-')) {
+      inDate = new Date(clockIn)
+    } else {
+      const [hours, minutes] = clockIn.split(':').map(Number)
+      inDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    if (clockOut.includes('T') || clockOut.includes('-')) {
+      outDate = new Date(clockOut)
+    } else {
+      const [hours, minutes] = clockOut.split(':').map(Number)
+      outDate = new Date(2000, 0, 1, hours, minutes)
+    }
+
+    let totalWorkTime = outDate.getTime() - inDate.getTime()
+
+    // Subtract break times
+    if (breakIns && breakOuts && Array.isArray(breakIns) && Array.isArray(breakOuts)) {
+      for (let i = 0; i < breakOuts.length; i++) {
+        const breakInTime = breakIns[i]
+        const breakOutTime = breakOuts[i]
+
+        if (breakInTime && breakOutTime) {
+          let breakIn: Date
+          let breakOut: Date
+
+          if (breakInTime.includes('T') || breakInTime.includes('-')) {
+            breakIn = new Date(breakInTime)
+          } else {
+            const [hours, minutes] = breakInTime.split(':').map(Number)
+            breakIn = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          if (breakOutTime.includes('T') || breakOutTime.includes('-')) {
+            breakOut = new Date(breakOutTime)
+          } else {
+            const [hours, minutes] = breakOutTime.split(':').map(Number)
+            breakOut = new Date(2000, 0, 1, hours, minutes)
+          }
+
+          const breakDuration = breakOut.getTime() - breakIn.getTime()
+          totalWorkTime -= breakDuration
+        }
+      }
+    }
+
+    // Calculate total hours worked
+    const totalHours = Math.floor(totalWorkTime / (1000 * 60 * 60))
+    const totalMinutes = Math.floor((totalWorkTime % (1000 * 60 * 60)) / (1000 * 60))
+    const totalFormatted = `${totalHours}h ${totalMinutes}m`
+
+    // Calculate standard working hours (from settings)
+    const [workStartHours, workStartMinutes] = hrmSettings.workStartTime.split(':').map(Number)
+    const [workEndHours, workEndMinutes] = hrmSettings.workEndTime.split(':').map(Number)
+
+    const workStartDate = new Date(2000, 0, 1, workStartHours, workStartMinutes)
+    const workEndDate = new Date(2000, 0, 1, workEndHours, workEndMinutes)
+
+    // Subtract break duration from standard working hours
+    const standardWorkTime = workEndDate.getTime() - workStartDate.getTime() - (hrmSettings.breakDuration * 60000)
+
+    // Calculate overtime
+    const overtimeWorkTime = totalWorkTime - standardWorkTime
+
+    if (overtimeWorkTime > 0) {
+      const overtimeHours = Math.floor(overtimeWorkTime / (1000 * 60 * 60))
+      const overtimeMinutes = Math.floor((overtimeWorkTime % (1000 * 60 * 60)) / (1000 * 60))
+      return {
+        total: totalFormatted,
+        overtime: `+${overtimeHours}h ${overtimeMinutes}m ${t('hrm.attendance.tableHeaders.overtime')}`
+      }
+    }
+
+    return { total: totalFormatted, overtime: null }
+  }
+
   // Format time to 12-hour format
   const formatTime = (timeString: string | null | undefined): string => {
     if (!timeString) return '--'
@@ -447,17 +693,19 @@ export default function AttendancePage() {
   }
 
   // Format break times for display
-  const formatBreakTimes = (breakIns: string[] | undefined, breakOuts: string[] | undefined) => {
+  const formatBreakTimes = (breakIns: string[] | undefined, breakOuts: string[] | undefined, breakNotes?: string[]) => {
     if (!breakIns || breakIns.length === 0) return '--'
 
     const ins = Array.isArray(breakIns) ? breakIns : []
     const outs = Array.isArray(breakOuts) ? breakOuts : []
+    const notes = Array.isArray(breakNotes) ? breakNotes : []
 
     return ins.map((breakIn, i) => {
       const inTime = formatTime(breakIn)
       const outTime = i < outs.length ? formatTime(outs[i]) : 'Active'
       const duration = i < outs.length ? calculateBreakDuration(breakIn, outs[i]) : null
       const isActive = i >= outs.length
+      const note = notes[i] || null
 
       return (
         <Group key={i} gap={4} wrap="nowrap">
@@ -467,10 +715,208 @@ export default function AttendancePage() {
             {duration && (
               <Text span c="orange" fw={500}> ({duration})</Text>
             )}
+            {note && (
+              <Text span c="blue" fw={500}> - {note}</Text>
+            )}
           </Text>
         </Group>
       )
     })
+  }
+
+  // Download as CSV
+  const downloadCSV = () => {
+    if (attendance.length === 0) {
+      notifications.show({
+        title: t('common.warning'),
+        message: 'No data to export',
+        color: 'yellow',
+      })
+      return
+    }
+
+    // CSV Headers - include Employee column for admin
+    const headers = isAdmin
+      ? ['Employee', 'Date', 'Clock In', 'Clock Out', 'Breaks', 'Working Hours', 'Status', 'Note']
+      : ['Date', 'Clock In', 'Clock Out', 'Breaks', 'Working Hours', 'Status', 'Note']
+
+    // CSV Data
+    const csvData = attendance.map((record) => {
+      const { total, overtime } = calculateWorkingHoursWithOvertime(
+        record.clock_in,
+        record.clock_out,
+        record.break_in,
+        record.break_out
+      )
+
+      const breaks = record.break_in && record.break_in.length > 0
+        ? `${record.break_in.length} breaks`
+        : '0'
+
+      const rowData = isAdmin
+        ? [
+            record.user?.name || 'N/A',
+            new Date(record.date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            formatTime(record.clock_in),
+            formatTime(record.clock_out),
+            breaks,
+            total,
+            record.status.charAt(0).toUpperCase() + record.status.slice(1),
+            record.note || '',
+          ]
+        : [
+            new Date(record.date).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            }),
+            formatTime(record.clock_in),
+            formatTime(record.clock_out),
+            breaks,
+            total,
+            record.status.charAt(0).toUpperCase() + record.status.slice(1),
+            record.note || '',
+          ]
+
+      return rowData.join(',')
+    })
+
+    // Combine headers and data
+    const csvContent = [headers.join(','), ...csvData].join('\n')
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+
+    const { start, end } = getDateRange()
+
+    link.setAttribute('href', url)
+    link.setAttribute(
+      'download',
+      `attendance_report_${start}_to_${end}.csv`
+    )
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    notifications.show({
+      title: t('common.success'),
+      message: 'Attendance report downloaded successfully',
+      color: 'green',
+    })
+  }
+
+  // Download as PDF
+  const downloadPDF = () => {
+    if (attendance.length === 0) {
+      notifications.show({
+        title: t('common.warning'),
+        message: 'No data to export',
+        color: 'yellow',
+      })
+      return
+    }
+
+    const { start, end } = getDateRange()
+
+    // Create a simple HTML table for PDF
+    const tableContent = `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #4CAF50; color: white; }
+            tr:nth-child(even) { background-color: #f2f2f2; }
+            .present { color: green; font-weight: bold; }
+            .late { color: orange; font-weight: bold; }
+            .absent { color: red; font-weight: bold; }
+            .leave { color: blue; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h1>Attendance Report</h1>
+          <p><strong>Date Range:</strong> ${start === end ? start : `${start} to ${end}`}</p>
+          <p><strong>Total Records:</strong> ${attendance.length} |
+             <strong>Present:</strong> ${attendance.filter(a => a.status === 'present' || a.status === 'late').length} |
+             <strong>Late:</strong> ${attendance.filter(a => a.status === 'late').length} |
+             <strong>Absent:</strong> ${attendance.filter(a => a.status === 'absent').length} |
+             <strong>Leave:</strong> ${attendance.filter(a => a.status === 'leave').length}</p>
+          <table>
+            <thead>
+              <tr>
+                ${isAdmin ? '<th>Employee</th>' : ''}
+                <th>Date</th>
+                <th>Clock In</th>
+                <th>Clock Out</th>
+                <th>Breaks</th>
+                <th>Working Hours</th>
+                <th>Status</th>
+                <th>Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${attendance.map((record) => {
+                const { total, overtime } = calculateWorkingHoursWithOvertime(
+                  record.clock_in,
+                  record.clock_out,
+                  record.break_in,
+                  record.break_out
+                )
+
+                const breaks = record.break_in && record.break_in.length > 0
+                  ? `${record.break_in.length} breaks`
+                  : '0'
+
+                return `
+                  <tr>
+                    ${isAdmin ? `<td>${record.user?.name || 'N/A'}</td>` : ''}
+                    <td>${new Date(record.date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}</td>
+                    <td>${formatTime(record.clock_in)}</td>
+                    <td>${formatTime(record.clock_out)}</td>
+                    <td>${breaks}</td>
+                    <td>${total}${overtime ? `<br><small style="color: green">${overtime}</small>` : ''}</td>
+                    <td class="${record.status}">${record.status.charAt(0).toUpperCase() + record.status.slice(1)}</td>
+                    <td>${record.note || '-'}</td>
+                  </tr>
+                `
+              }).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `
+
+    // Create a new window and print
+    const printWindow = window.open('', '_blank')
+    if (printWindow) {
+      printWindow.document.write(tableContent)
+      printWindow.document.close()
+      printWindow.focus()
+
+      // Wait for content to load, then trigger print
+      setTimeout(() => {
+        printWindow.print()
+      }, 250)
+
+      notifications.show({
+        title: t('common.success'),
+        message: 'PDF ready for printing. Save as PDF from the print dialog.',
+        color: 'green',
+      })
+    }
   }
 
   // Stats
@@ -488,14 +934,34 @@ export default function AttendancePage() {
             <Box className="flex-1">
               <AttendanceActions myAttendance={todayAttendance} onRefresh={fetchAttendance} />
             </Box>
-            <ActionIcon
-              variant="light"
-              className="text-lg md:text-xl lg:text-2xl"
-              onClick={handleRefresh}
-              loading={loading}
-            >
-              <IconRefresh size={18} />
-            </ActionIcon>
+            <Group>
+              <Button
+                variant="light"
+                size="sm"
+                leftSection={<IconDownload size={16} />}
+                onClick={downloadCSV}
+                disabled={attendance.length === 0}
+              >
+                CSV
+              </Button>
+              <Button
+                variant="light"
+                size="sm"
+                leftSection={<IconDownload size={16} />}
+                onClick={downloadPDF}
+                disabled={attendance.length === 0}
+              >
+                PDF
+              </Button>
+              <ActionIcon
+                variant="light"
+                className="text-lg md:text-xl lg:text-2xl"
+                onClick={handleRefresh}
+                loading={loading}
+              >
+                <IconRefresh size={18} />
+              </ActionIcon>
+            </Group>
           </Group>
         </Box>
 
@@ -506,17 +972,27 @@ export default function AttendancePage() {
               <Box className="flex-1">
                 <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.todaysStatus')}</Text>
                 <Group mt="xs" wrap="nowrap">
-                  <Badge
-                    color={
-                      todayAttendance.status === 'present' ? 'green' :
-                      todayAttendance.status === 'late' ? 'yellow' :
-                      todayAttendance.status === 'absent' ? 'red' :
-                      'blue'
-                    }
-                    className="text-lg md:text-xl lg:text-2xl"
-                  >
-                    {todayAttendance.status.toUpperCase()}
-                  </Badge>
+                  <Stack gap={4}>
+                    <Badge
+                      color={
+                        todayAttendance.status === 'present' ? 'green' :
+                        todayAttendance.status === 'late' ? 'yellow' :
+                        todayAttendance.status === 'absent' ? 'red' :
+                        'blue'
+                      }
+                      className="text-lg md:text-xl lg:text-2xl"
+                    >
+                      {todayAttendance.status.toUpperCase()}
+                    </Badge>
+                    {todayAttendance.status === 'late' && todayAttendance.clock_in && (() => {
+                      const lateMinutes = calculateLateTime(todayAttendance.clock_in)
+                      return lateMinutes !== null ? (
+                        <Text className="text-xs md:text-sm" c="orange" fw={500}>
+                          {formatLateTime(lateMinutes)} late
+                        </Text>
+                      ) : null
+                    })()}
+                  </Stack>
                   <Text className="text-lg md:text-xl lg:text-2xl" fw={500}>
                     In: {formatTime(todayAttendance.clock_in)}
                   </Text>
@@ -530,19 +1006,34 @@ export default function AttendancePage() {
                   <Stack mt="xs" gap={2}>
                     <Text className="text-xs md:text-sm" c="dimmed" fw={500}>{t('hrm.attendance.breaks')}:</Text>
                     <Stack gap={2}>
-                      {formatBreakTimes(todayAttendance.break_in, todayAttendance.break_out)}
+                      {formatBreakTimes(todayAttendance.break_in, todayAttendance.break_out, todayAttendance.break_notes)}
                     </Stack>
                   </Stack>
                 )}
               </Box>
-              {todayAttendance.clock_in && todayAttendance.clock_out && (
-                <Box>
-                  <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
-                  <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
-                    {calculateHours(todayAttendance.clock_in, todayAttendance.clock_out, todayAttendance.break_in, todayAttendance.break_out)}
-                  </Text>
-                </Box>
-              )}
+              {todayAttendance.clock_in && todayAttendance.clock_out && (() => {
+                const { total, overtime } = calculateWorkingHoursWithOvertime(
+                  todayAttendance.clock_in,
+                  todayAttendance.clock_out,
+                  todayAttendance.break_in,
+                  todayAttendance.break_out
+                )
+                return (
+                  <Box>
+                    <Text className="text-sm md:text-base" c="dimmed">{t('hrm.attendance.workingHours')}</Text>
+                    <Stack gap={4}>
+                      <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
+                        {total}
+                      </Text>
+                      {overtime && (
+                        <Text className="text-sm md:text-base lg:text-lg" c="green" fw={600}>
+                          {overtime}
+                        </Text>
+                      )}
+                    </Stack>
+                  </Box>
+                )
+              })()}
             </Group>
           </Card>
         )}
@@ -587,14 +1078,40 @@ export default function AttendancePage() {
         {/* Filters */}
         <Group justify="space-between">
           <Group >
-            <TextInput
-              type="month"
-              label={t('hrm.attendance.selectMonth')}
-              value={monthFilter || ''}
-              onChange={(e) => setMonthFilter(e.currentTarget.value)}
+            <Select
+              label={t('hrm.attendance.dateRange')}
+              data={[
+                { value: 'today', label: t('hrm.attendance.today') },
+                { value: 'this_week', label: t('hrm.attendance.thisWeek') },
+                { value: 'this_month', label: t('hrm.attendance.thisMonth') },
+                { value: 'this_year', label: t('hrm.attendance.thisYear') },
+                { value: 'custom', label: t('hrm.attendance.customRange') },
+              ]}
+              value={dateRangePreset}
+              onChange={(value) => setDateRangePreset(value as DateRangePreset)}
               style={{ width: '150px' }}
               className="text-base md:text-lg"
             />
+            {dateRangePreset === 'custom' && (
+              <>
+                <TextInput
+                  type="date"
+                  label={t('hrm.attendance.startDate')}
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.currentTarget.value)}
+                  style={{ width: '150px' }}
+                  className="text-base md:text-lg"
+                />
+                <TextInput
+                  type="date"
+                  label={t('hrm.attendance.endDate')}
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.currentTarget.value)}
+                  style={{ width: '150px' }}
+                  className="text-base md:text-lg"
+                />
+              </>
+            )}
             <Select
               placeholder={t('hrm.attendance.filterByStatus')}
               label={t('hrm.attendance.status.label')}
@@ -651,7 +1168,15 @@ export default function AttendancePage() {
                   <Table.Tr key={record.id}>
                     {isAdmin && (
                       <Table.Td>
-                        <Text fw={500} className="text-sm md:text-base">{record.user?.name || 'N/A'}</Text>
+                        <Text
+                          fw={500}
+                          className="text-sm md:text-base"
+                          c="blue"
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => record.user && openEmployeeHistory(record.user_id)}
+                        >
+                          {record.user?.name || 'N/A'}
+                        </Text>
                       </Table.Td>
                     )}
                     <Table.Td>
@@ -671,28 +1196,57 @@ export default function AttendancePage() {
                     </Table.Td>
                     <Table.Td>
                       <Stack gap={4}>
-                        {formatBreakTimes(record.break_in, record.break_out)}
+                        {formatBreakTimes(record.break_in, record.break_out, record.break_notes)}
                       </Stack>
                     </Table.Td>
                     <Table.Td>
-                      <Text fw={500} className="text-sm md:text-base">
-                        {record.clock_out ? calculateHours(record.clock_in, record.clock_out, record.break_in, record.break_out) : '-'}
-                      </Text>
+                      {record.clock_out ? (() => {
+                        const { total, overtime } = calculateWorkingHoursWithOvertime(
+                          record.clock_in,
+                          record.clock_out,
+                          record.break_in,
+                          record.break_out
+                        )
+                        return (
+                          <Stack gap={2}>
+                            <Text fw={500} className="text-sm md:text-base">
+                              {total}
+                            </Text>
+                            {overtime && (
+                              <Text className="text-xs" c="green" fw={500}>
+                                {overtime}
+                              </Text>
+                            )}
+                          </Stack>
+                        )
+                      })() : (
+                        <Text fw={500} className="text-sm md:text-base">-</Text>
+                      )}
                     </Table.Td>
                     <Table.Td>
-                      <Badge
-                        color={
-                          record.status === 'present' ? 'green' :
-                          record.status === 'late' ? 'yellow' :
-                          record.status === 'absent' ? 'red' :
-                          record.status === 'leave' ? 'blue' :
-                          'gray'
-                        }
-                        variant="light"
-                        className="text-sm md:text-base"
-                      >
-                        {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                      </Badge>
+                      <Stack gap={2}>
+                        <Badge
+                          color={
+                            record.status === 'present' ? 'green' :
+                            record.status === 'late' ? 'yellow' :
+                            record.status === 'absent' ? 'red' :
+                            record.status === 'leave' ? 'blue' :
+                            'gray'
+                          }
+                          variant="light"
+                          className="text-sm md:text-base"
+                        >
+                          {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                        </Badge>
+                        {record.status === 'late' && record.clock_in && (() => {
+                          const lateMinutes = calculateLateTime(record.clock_in)
+                          return lateMinutes !== null ? (
+                            <Text className="text-xs" c="orange" fw={500}>
+                              {formatLateTime(lateMinutes)} late
+                            </Text>
+                          ) : null
+                        })()}
+                      </Stack>
                     </Table.Td>
                     <Table.Td>
                       <Text className="text-sm md:text-base" c="dimmed">{record.note || '-'}</Text>

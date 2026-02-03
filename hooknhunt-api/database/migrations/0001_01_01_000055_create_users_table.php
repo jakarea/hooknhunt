@@ -21,6 +21,14 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes(); // Soft delete - no data loss
+
+            $table->index(['role_id', 'is_active'], 'users_role_status_index');
+
+            // Index for created_at sorting (common in listings)
+            $table->index('created_at', 'users_created_at_index');
+
+            // Index for name searches
+            $table->index('name', 'users_name_index');
         });
     }
 

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->time('clock_out')->nullable();
             $table->enum('status', ['present', 'late', 'absent', 'leave', 'holiday'])->default('absent');
             $table->text('note')->nullable();
+            $table->json('break_notes')->nullable();
             $table->foreignId('updated_by')->nullable()->constrained('users');
             $table->unique(['user_id', 'date']);
             $table->timestamps();

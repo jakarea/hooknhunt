@@ -19,6 +19,7 @@ import {
   IconChartPie,
   IconCurrency,
   IconHistory,
+  IconClock,
 } from "@tabler/icons-react"
 import {
   Box,
@@ -294,6 +295,11 @@ export function AppSidebarMantine({
             title: t("settings.permissions"),
             url: "/settings/permissions",
             icon: IconShield,
+          },
+          {
+            title: t("settings.workingHours"),
+            url: "/settings/working-hours",
+            icon: IconClock,
           },
         ],
       },

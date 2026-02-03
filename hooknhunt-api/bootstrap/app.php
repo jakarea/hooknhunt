@@ -41,6 +41,18 @@ return Application::configure(basePath: dirname(__DIR__))
             // Apply CamelCaseResponse middleware to API routes only
             $middleware->api(CamelCaseResponse::class);
 
+            // Configure authentication redirect - API routes should NOT redirect
+            // CRITICAL: This prevents "Route [login] not defined" errors
+            // Our API uses Bearer tokens (Sanctum), not session-based redirects
+            $middleware->redirectGuestsTo(function (Request $request) {
+                // For API routes, don't redirect - just let the exception handler return JSON
+                if ($request->is('api/*')) {
+                    return null; // This prevents redirect and triggers exception instead
+                }
+                // For web routes, you could redirect to a login page
+                return '/login';
+            });
+
             $middleware->alias([
                 // 'auth' => \App\Http\Middleware\Authenticate::class, // Use default Laravel auth
                 'permission' => \App\Http\Middleware\CheckPermission::class, // এটি যুক্ত করুন

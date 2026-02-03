@@ -11,13 +11,13 @@ import {
   Paper,
   TextInput,
   Select,
-  PasswordInput,
   Textarea,
   SimpleGrid,
   Checkbox,
   Radio,
   Anchor,
   LoadingOverlay,
+  Alert,
 } from '@mantine/core'
 import {
   IconChevronRight,
@@ -33,6 +33,7 @@ import {
   IconSettings,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
+import { modals } from '@mantine/modals'
 import api from '@/lib/api'
 
 interface FormData {
@@ -40,7 +41,6 @@ interface FormData {
   name: string
   email: string
   phone: string
-  password: string
 
   // Customer Type
   type: 'retail' | 'wholesale'
@@ -69,7 +69,6 @@ const initialFormData: FormData = {
   name: '',
   email: '',
   phone: '',
-  password: '',
   type: 'retail',
   trade_license_no: '',
   tax_id: '',
@@ -131,11 +130,9 @@ export default function EditCustomerPage() {
         setLoading(true)
         const response = await api.get(`/user-management/users/${id}`)
 
-
         if (response.data?.status && response.data?.data?.user) {
           const user = response.data.data.user
           const profile = response.data.data.user.customerProfile
-
 
           setCustomerName(user.name)
 
@@ -146,18 +143,17 @@ export default function EditCustomerPage() {
             name: user.name || '',
             email: user.email || '',
             phone: user.phone || '',
-            password: '', // Don't populate password for security
             type: type as 'retail' | 'wholesale',
-            trade_license_no: profile?.trade_license_no || '',
-            tax_id: profile?.tax_id || '',
+            trade_license_no: profile?.tradeLicenseNo || profile?.trade_license_no || '',
+            tax_id: profile?.taxId || profile?.tax_id || '',
             dob: profile?.dob ? new Date(profile.dob).toISOString().split('T')[0] : '',
             gender: profile?.gender || '',
             address: profile?.address || '',
             division: profile?.division || '',
             district: profile?.district || '',
             thana: profile?.thana || '',
-            preferred_language: profile?.preferred_language || 'en',
-            marketing_consent: profile?.marketing_consent || false,
+            preferred_language: profile?.preferredLanguage || profile?.preferred_language || 'en',
+            marketing_consent: profile?.marketingConsent || profile?.marketing_consent || false,
             notes: profile?.notes || '',
           })
         } else {
@@ -193,14 +189,63 @@ export default function EditCustomerPage() {
     index === self.findIndex((t) => t.name === thana.name)
   )
 
-  // Generate random password
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    let password = ''
-    for (let i = 0; i < 8; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    setFormData(prev => ({ ...prev, password }))
+  // Send password via SMS
+  const sendPasswordSms = async () => {
+    if (!id) return
+
+    // Show confirmation modal
+    modals.openConfirmModal({
+      title: (
+        <Group gap="sm">
+          <IconDeviceMobile size={20} style={{ color: 'var(--mantine-color-blue-filled)' }} />
+          <Text fw={500}>Send New Password via SMS</Text>
+        </Group>
+      ),
+      centered: true,
+      children: (
+        <Stack>
+          <Alert variant="light" color="blue" icon={<IconDeviceMobile size={16} />}>
+            <Text size="sm">
+              This will generate a <strong>new random password</strong> and send it to the customer's phone number via SMS.
+              The old password will no longer work after this action.
+            </Text>
+          </Alert>
+          <Text size="sm" c="dimmed">
+            Phone: {formData.phone}
+          </Text>
+          <Text size="sm" c="dimmed">
+            Are you sure you want to proceed?
+          </Text>
+        </Stack>
+      ),
+      labels: { confirm: 'Send Password', cancel: 'Cancel' },
+      confirmProps: { color: 'blue' },
+      onConfirm: async () => {
+        try {
+          const response = await api.post(`/crm/customers/${id}/send-password-sms`)
+          const maskedPhone = response.data.data?.phone || formData.phone
+
+          notifications.show({
+            title: 'Password Sent',
+            message: `New password has been sent to ${maskedPhone} via SMS.`,
+            color: 'green',
+            icon: <IconCheck size={20} />,
+          })
+
+          // Clear password field since it's sent via SMS
+          setFormData(prev => ({ ...prev, password: '' }))
+          return true
+        } catch (error: any) {
+          const message = error?.response?.data?.message || 'Failed to send password SMS. Please try again.'
+          notifications.show({
+            title: 'Error',
+            message,
+            color: 'red',
+          })
+          return false
+        }
+      },
+    })
   }
 
   // Handle form submission
@@ -219,10 +264,6 @@ export default function EditCustomerPage() {
       errors.phone = 'Phone is required'
     } else if (!/^01[3-9]\d{8}$/.test(formData.phone.replace(/\s/g, ''))) {
       errors.phone = 'Invalid phone number format (e.g., 01712345678)'
-    }
-    // Password is optional for updates
-    if (formData.password && formData.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters'
     }
 
     // Validate role_id
@@ -245,18 +286,11 @@ export default function EditCustomerPage() {
     setFieldErrors({})
 
     try {
-      // Log for debugging
-
       const updateData: any = {
         name: formData.name.trim(),
         email: formData.email.trim() || null,
         phone: formData.phone.replace(/\s/g, ''),
         role_id: roleId,
-      }
-
-      // Only include password if provided
-      if (formData.password) {
-        updateData.password = formData.password
       }
 
       // Add profile fields
@@ -405,7 +439,7 @@ export default function EditCustomerPage() {
         <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" component="form" onSubmit={handleSubmit} pos="relative">
           <LoadingOverlay visible={submitting} overlayProps={{ blur: 2 }} />
           <Stack>
-            {/* Customer Type (Read-only) */}
+            {/* Customer Type */}
             <Box>
               <Group gap="xs" mb="md">
                 <IconBriefcase size={20} style={{ color: 'var(--mantine-color-red-filled)' }} />
@@ -414,27 +448,28 @@ export default function EditCustomerPage() {
               <Radio.Group
                 value={formData.type}
                 onChange={(value) => handleInputChange('type', value as 'retail' | 'wholesale')}
+                name="customer_type"
               >
                 <Group gap="xl">
                   <Radio
                     value="retail"
                     label="Retail Customer"
-                    description="Individual customers"
+                    description="Individual customers (B2C)"
                     color="red"
-                    disabled
                   />
                   <Radio
                     value="wholesale"
                     label="Wholesale Customer"
                     description="Business/B2B customers"
-                    color="red"
-                    disabled
+                    color="blue"
                   />
                 </Group>
               </Radio.Group>
-              <Text className="text-xs md:text-sm" c="dimmed" mt="xs">
-                Customer type cannot be changed after creation.
-              </Text>
+              <Alert variant="light" color="yellow" icon={<IconInfoCircle size={16} />} mt="xs">
+                <Text className="text-xs md:text-sm">
+                  Changing customer type will update their role and pricing structure. Wholesale customers get bulk pricing.
+                </Text>
+              </Alert>
             </Box>
 
             {/* Account Information */}
@@ -474,23 +509,19 @@ export default function EditCustomerPage() {
                 />
 
                 <Box style={{ gridColumn: '1 / -1' }}>
-                  <PasswordInput
-                    label="Password"
-                    placeholder="Leave blank to keep current password"
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    error={fieldErrors.password}
-                    rightSection={
-                      <Button
-                        className="text-xs md:text-sm"
-                        variant="subtle"
-                        onClick={generatePassword}
-                        leftSection={<IconDeviceMobile size={14} />}
-                      >
-                        Generate
-                      </Button>
-                    }
-                  />
+                  <Group gap="md">
+                    <Button
+                      variant="light"
+                      color="blue"
+                      onClick={sendPasswordSms}
+                      leftSection={<IconDeviceMobile size={16} />}
+                    >
+                      Send New Password via SMS
+                    </Button>
+                    <Text className="text-sm md:text-base" c="dimmed">
+                      Generate and send a new password to {formData.phone || 'customer'}
+                    </Text>
+                  </Group>
                 </Box>
               </SimpleGrid>
             </Box>

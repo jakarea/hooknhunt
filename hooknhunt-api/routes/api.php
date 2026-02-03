@@ -148,6 +148,8 @@ Route::group([
             Route::get('stats', 'StaffController@getStats');
             Route::apiResource('departments', 'DepartmentController');
             Route::apiResource('staff', 'StaffController');
+            Route::post('staff/{id}/change-password', 'StaffController@changePassword');
+            Route::post('staff/{id}/send-password-sms', 'StaffController@sendPasswordSms');
             Route::apiResource('leaves', 'LeaveController');
             // Attendance routes
             Route::get('attendance', 'AttendanceController@index');
@@ -163,9 +165,13 @@ Route::group([
         });
 
         // System Controllers (Roles & Permissions)
-        Route::apiResource('roles', 'RoleController');
+        // Custom routes must come before apiResource to avoid conflicts
+        Route::get('roles/trashed', 'RoleController@trashed');
+        Route::post('roles/{id}/restore', 'RoleController@restore');
+        Route::delete('roles/{id}/force-delete', 'RoleController@forceDelete');
         Route::get('roles/{id}/permissions', 'RoleController@getPermissions');
         Route::post('roles/{id}/sync-permissions', 'RoleController@syncPermissions');
+        Route::apiResource('roles', 'RoleController');
         Route::post('permissions', 'PermissionController@store');
         Route::get('permissions', 'PermissionController@list');
         Route::get('permissions/grouped', 'PermissionController@grouped');
@@ -176,6 +182,7 @@ Route::group([
         Route::get('stats', 'LeadController@getStats');
         Route::apiResource('leads', 'LeadController');
         Route::apiResource('customers', 'CustomerController', ['names' => 'crm.customers']);
+        Route::post('customers/{id}/send-password-sms', 'CustomerController@sendPasswordSms');
         Route::post('activities', 'ActivityController@store');
         Route::post('activities/{id}/done', 'ActivityController@markAsDone');
         Route::post('segments/auto-run', 'CampaignController@runAutoSegmentation');

@@ -105,9 +105,15 @@ class AttendanceController extends Controller
      */
     public function breakIn(Request $request)
     {
+        $request->validate([
+            'note' => 'required|string|max:500',
+            'break_time' => 'nullable|date_format:H:i:s'
+        ]);
+
         $userId = $request->user_id ?? auth()->id();
         $date = date('Y-m-d');
-        $time = date('H:i:s');
+        // Use the provided break_time from client, or fallback to current server time
+        $time = $request->break_time ?? date('H:i:s');
 
         $attendance = Attendance::where('user_id', $userId)->where('date', $date)->first();
 
@@ -128,8 +134,13 @@ class AttendanceController extends Controller
         $breakIn = $attendance->break_in ?? [];
         $breakIn[] = $time;
 
+        // Add break note to array
+        $breakNotes = $attendance->break_notes ?? [];
+        $breakNotes[] = $request->note;
+
         $attendance->update([
-            'break_in' => $breakIn
+            'break_in' => $breakIn,
+            'break_notes' => $breakNotes,
         ]);
 
         return $this->sendSuccess($attendance->fresh(), 'Break started successfully');

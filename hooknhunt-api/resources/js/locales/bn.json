@@ -6,6 +6,7 @@
     "quickCreate": "দ্রুত তৈরি",
     "success": "সফল হয়েছে",
     "error": "ত্রুটি",
+    "warning": "সতর্কতা",
     "loading": "লোড হচ্ছে",
     "confirm": "নিশ্চিত করুন",
     "cancel": "বাতিল",
@@ -498,11 +499,21 @@
       "filterAllStatus": "সব স্ট্যাটাস",
       "todaysStatus": "আজকের স্ট্যাটাস",
       "workingHours": "কর্মঘণ্টা",
+      "attendanceHistory": "উপস্থিতির ইতিহাস",
       "presentDays": "উপস্থিত দিন",
       "lateDays": "দেরিতে আসা দিন",
       "absentDays": "অনুপস্থিত দিন",
       "leaveDays": "ছুটির দিন",
       "selectMonth": "মাস নির্বাচন করুন",
+      "selectDate": "তারিখ নির্বাচন করুন",
+      "dateRange": "তারিখ সীমা",
+      "today": "আজ",
+      "thisWeek": "এই সপ্তাহ",
+      "thisMonth": "এই মাস",
+      "thisYear": "এই বছর",
+      "customRange": "কাস্টম সীমা",
+      "startDate": "শুরু",
+      "endDate": "শেষ",
       "filterByStatus": "স্ট্যাটাস দিয়ে ফিল্টার করুন",
       "allStatus": "সব স্ট্যাটাস",
       "filterByEmployee": "স্টাফ দিয়ে ফিল্টার করুন",
@@ -526,6 +537,7 @@
         "clockOut": "ক্লক-আউট",
         "breaks": "ব্রেক",
         "workingHours": "কর্মঘণ্টা",
+        "overtime": "ওটি",
         "status": "স্ট্যাটাস",
         "note": "নোট",
         "actions": "পদক্ষেপ"
@@ -2127,7 +2139,39 @@
     "taxes": "ট্যাক্স",
     "apiKeys": "এপিআই কী",
     "backup": "ব্যাকআপ",
-    "profile": "প্রোফাইল"
+    "profile": "প্রোফাইল",
+    "workingHours": "কর্ম সময়",
+    "workingHoursTitle": "কর্ম সময় সেটিংস",
+    "workingHoursConfig": {
+      "title": "কর্ম সময়",
+      "subtitle": "অফিসের কর্ম সময় এবং উপস্থিতি নিয়ম কনফিগার করুন",
+      "workStartTime": "কাজের শুরু সময়",
+      "workStartTimeLabel": "কাজের দিন কখন শুরু হয়?",
+      "workStartTimeHint": "কর্মীরা এই সময়ের পরে + অনুগ্রহ সময়ে উপস্থিত হলে বিলম্ব হিসাবে চিহ্নিত করা হবে",
+      "workEndTime": "কাজের শেষ সময়",
+      "workEndTimeLabel": "কাজের দিন কখন শেষ হয়?",
+      "workEndTimeHint": "অসম্পূর্ণ উপস্থিতি রেকর্ড স্বয়ংক্রিয়ভাবে সম্পূর্ণ করার জন্য মানক সময়",
+      "breakDuration": "বিরতির সময়",
+      "breakDurationLabel": "মানক বিরতি কতক্ষণ?",
+      "breakDurationHint": "মিনিটে মানক বিরতির সময় (ডিফল্ট: ৬০ মিনিট = ১ ঘন্টা)",
+      "gracePeriod": "অনুগ্রহ সময়",
+      "gracePeriodLabel": "বিলম্ব আসার জন্য কত মিনিট অনুগ্রহ সময়?",
+      "gracePeriodHint": "কর্মীরা যারা শুরুর সময়ের পরে এই সময়ের মধ্যে আসেন তারা বিলম্ব হিসাবে চিহ্নিত হবেন না",
+      "minutes": "মিনিট",
+      "summaryTitle": "সারাংশ",
+      "summary": "কর্ম দিবস: {{start}} - {{end}} | বিরতি: {{breakHours}}ঘ {{breakMinutes}}মি | অনুগ্রহ: {{grace}}মি",
+      "resetToDefaults": "ডিফল্ট রিসেট করুন",
+      "success": {
+        "saved": "সেটিংস সফলভাবে সংরক্ষণ করা হয়েছে"
+      },
+      "error": {
+        "loadFailed": "সেটিংস লোড করতে ব্যর্থ হয়েছে",
+        "saveFailed": "সেটিংস সংরক্ষণ করতে ব্যর্থ হয়েছে"
+      },
+      "info": {
+        "resetToDefaults": "সেটিংস ডিফল্ট মানে রিসেট করা হয়েছে। প্রয়োগ করতে সংরক্ষণ করুন ক্লিক করুন।"
+      }
+    }
   },
   "logistics": {
     "title": "লজিস্টিকস",

@@ -8,6 +8,7 @@ import {
   Text,
   Button,
   TextInput,
+  NumberInput,
   Checkbox,
   Paper,
   SimpleGrid,
@@ -42,6 +43,7 @@ interface ModulePermissions {
 interface ValidationErrors {
   roleName?: string
   description?: string
+  position?: string
 }
 
 export default function CreateRolePage() {
@@ -49,6 +51,7 @@ export default function CreateRolePage() {
 
   const [roleName, setRoleName] = useState('')
   const [roleDescription, setRoleDescription] = useState('')
+  const [position, setPosition] = useState(1)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([])
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
@@ -154,9 +157,13 @@ export default function CreateRolePage() {
       errors.description = 'Description must not exceed 500 characters'
     }
 
+    if (!position || position < 1) {
+      errors.position = 'Position must be at least 1'
+    }
+
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
-  }, [roleName, roleDescription])
+  }, [roleName, roleDescription, position])
 
   // Handle select all permissions
   const handleSelectAll = useCallback(() => {
@@ -276,6 +283,7 @@ export default function CreateRolePage() {
       const response = await api.post('/hrm/roles', {
         name: roleName.trim(),
         description: roleDescription.trim() || null,
+        position: position,
         permissions: selectedPermissions, // Send slugs instead of IDs
       })
 
@@ -344,6 +352,21 @@ export default function CreateRolePage() {
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="Position"
+                    placeholder="Enter position"
+                    value={position}
+                    onChange={(value) => {
+                      setPosition(value || 1)
+                      setValidationErrors((prev) => ({ ...prev, position: undefined }))
+                    }}
+                    error={validationErrors.position}
+                    min={1}
+                    required
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={12}>
                   <TextInput
                     label="Description"
                     placeholder="Enter role description"

@@ -8,6 +8,7 @@ import {
   Text,
   Button,
   TextInput,
+  NumberInput,
   Checkbox,
   Paper,
   SimpleGrid,
@@ -43,6 +44,7 @@ interface ModulePermissions {
 interface ValidationErrors {
   roleName?: string
   description?: string
+  position?: string
 }
 
 export default function EditRolePage() {
@@ -51,6 +53,7 @@ export default function EditRolePage() {
 
   const [roleName, setRoleName] = useState('')
   const [roleDescription, setRoleDescription] = useState('')
+  const [position, setPosition] = useState(1)
   const [usersCount, setUsersCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedPermissionSlugs, setSelectedPermissionSlugs] = useState<string[]>([])
@@ -76,6 +79,7 @@ export default function EditRolePage() {
           const role = roleResponse.data.data
           setRoleName(role.name)
           setRoleDescription(role.description || '')
+          setPosition(role.position || 1)
           setUsersCount(role.users?.length || 0)
 
           // Extract permission slugs from role (filter out nulls)
@@ -206,9 +210,13 @@ export default function EditRolePage() {
       errors.description = 'Description must not exceed 500 characters'
     }
 
+    if (!position || position < 1) {
+      errors.position = 'Position must be at least 1'
+    }
+
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
-  }, [roleName, roleDescription])
+  }, [roleName, roleDescription, position])
 
   // Handle select all permissions
   const handleSelectAll = useCallback(() => {
@@ -328,6 +336,7 @@ export default function EditRolePage() {
       const response = await api.put(`/hrm/roles/${id}`, {
         name: roleName.trim(),
         description: roleDescription.trim() || null,
+        position: position,
         permissions: selectedPermissionSlugs,
       })
 
@@ -421,6 +430,21 @@ export default function EditRolePage() {
                   />
                 </Grid.Col>
                 <Grid.Col span={{ base: 12, md: 6 }}>
+                  <NumberInput
+                    label="Position"
+                    placeholder="Enter position"
+                    value={position}
+                    onChange={(value) => {
+                      setPosition(value || 1)
+                      setValidationErrors((prev) => ({ ...prev, position: undefined }))
+                    }}
+                    error={validationErrors.position}
+                    min={1}
+                    required
+                    size="md"
+                  />
+                </Grid.Col>
+                <Grid.Col span={12}>
                   <TextInput
                     label="Description"
                     placeholder="Enter role description"
