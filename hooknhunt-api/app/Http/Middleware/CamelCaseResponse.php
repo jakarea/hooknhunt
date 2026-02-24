@@ -19,11 +19,20 @@ class CamelCaseResponse
 
         // Only modify JSON responses
         if ($response->headers->get('content-type') === 'application/json') {
-            $content = json_decode($response->getContent(), true);
+            $content = $response->getContent();
 
-            if (json_last_error() === JSON_ERROR_NONE && is_array($content)) {
-                $camelCaseContent = $this->convertKeysToCamelCase($content);
-                $response->setContent(json_encode($camelCaseContent));
+            try {
+                $decoded = json_decode($content, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $camelCaseContent = $this->convertKeysToCamelCase($decoded);
+                    $response->setContent(json_encode($camelCaseContent));
+                }
+            } catch (\Exception $e) {
+                // If camel case conversion fails, log but don't break the response
+                \Log::error('CamelCaseResponse error: ' . $e->getMessage(), [
+                    'content_preview' => substr($content, 0, 500)
+                ]);
             }
         }
 

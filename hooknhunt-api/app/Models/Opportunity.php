@@ -42,7 +42,7 @@ class Opportunity extends Model
     protected $casts = [
         'value' => 'decimal:2',
         'probability' => 'integer',
-        'expected_close_date' => 'date',
+        'expected_close_date' => 'date:Y-m-d', // Fixed timezone offset
         'stage_order' => 'integer',
     ];
 

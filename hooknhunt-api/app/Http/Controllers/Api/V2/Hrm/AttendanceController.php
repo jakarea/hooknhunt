@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2\Hrm;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Setting;
 use App\Models\User;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
@@ -13,9 +14,28 @@ class AttendanceController extends Controller
 {
     use ApiResponse;
 
-    // Standard times for auto-completion of incomplete attendance
-    const STANDARD_CLOCK_OUT = '18:00:00'; // 6:00 PM
-    const STANDARD_BREAK_OUT = '18:00:00'; // If on break, close both
+    /**
+     * Get work end time from settings for auto-completion
+     * Falls back to 12:00:00 if setting not found
+     */
+    private function getStandardClockOutTime(): string
+    {
+        $setting = Setting::where('key', 'work_end_time')
+            ->where('group', 'hrm')
+            ->first();
+
+        if ($setting && $setting->value) {
+            // Convert HH:MM format to HH:MM:SS
+            $time = $setting->value;
+            if (strlen($time) === 5) { // HH:MM format
+                return $time . ':00';
+            }
+            return $time;
+        }
+
+        // Fallback to default
+        return '12:00:00';
+    }
 
     /**
      * 1. Clock In (Staff or Admin for Staff)
@@ -37,13 +57,36 @@ class AttendanceController extends Controller
         $time = date('H:i:s');
 
         // Check for incomplete attendance from previous day
-        $this->checkAndFixIncompleteAttendance($userId, $date);
+        $wasFixed = $this->checkAndFixIncompleteAttendance($userId, $date);
 
         // Check already clocked in today?
         $exists = Attendance::where('user_id', $userId)->where('date', $date)->first();
 
         if ($exists) {
-            return $this->sendError('Already clocked in for today.');
+            // Check if today's attendance is incomplete (clocked in but not clocked out)
+            if ($exists->clock_in && !$exists->clock_out) {
+                // Auto-complete today's incomplete attendance
+                $standardClockOut = $this->getStandardClockOutTime();
+                $updateData = ['clock_out' => $standardClockOut];
+
+                // If on break, also close the break
+                if ($exists->isOnBreak()) {
+                    $breakOut = $exists->break_out ?? [];
+                    $breakOut[] = $standardClockOut;
+                    $updateData['break_out'] = $breakOut;
+                }
+
+                $displayTime = substr($standardClockOut, 0, 5);
+                $updateData['note'] = ($exists->note ?? '') . " [Auto-completed at {$displayTime} due to incomplete attendance]";
+                $exists->update($updateData);
+                $wasFixed = true;
+            } else {
+                // Already completed today, don't allow clock in again
+                $status = $exists->status ?? 'completed';
+                $clockIn = $exists->clock_in ?? '--:--';
+                $clockOut = $exists->clock_out ?? '--:--';
+                return $this->sendError("You have already completed attendance for today (Clock In: {$clockIn}, Clock Out: {$clockOut}, Status: {$status}).");
+            }
         }
 
         // Late Calculation Logic (Office starts at 10:00 AM with 15 mins grace)
@@ -64,7 +107,13 @@ class AttendanceController extends Controller
             'updated_by' => auth()->id()
         ]);
 
-        return $this->sendSuccess($attendance, "Clock In Successful ({$status})");
+        $message = "Clock In Successful ({$status})";
+        if ($wasFixed) {
+            $standardTime = substr($this->getStandardClockOutTime(), 0, 5);
+            $message .= ". Your previous day's attendance was auto-completed at {$standardTime}.";
+        }
+
+        return $this->sendSuccess($attendance, $message);
     }
 
     /**
@@ -183,15 +232,61 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Get my current attendance status
+     * Debug endpoint to check current attendance state
+     */
+    public function myStatus(Request $request)
+    {
+        $userId = auth()->id();
+        $today = date('Y-m-d');
+        $currentTime = date('H:i:s');
+
+        // Get today's attendance
+        $todayAttendance = Attendance::where('user_id', $userId)
+            ->where('date', $today)
+            ->first();
+
+        // Get last attendance (could be today or previous)
+        $lastAttendance = Attendance::where('user_id', $userId)
+            ->latest('date')
+            ->first();
+
+        $standardClockOut = $this->getStandardClockOutTime();
+
+        return response()->json([
+            'current_time' => $currentTime,
+            'today' => $today,
+            'today_attendance' => $todayAttendance ? [
+                'id' => $todayAttendance->id,
+                'date' => $todayAttendance->date,
+                'clock_in' => $todayAttendance->clock_in,
+                'clock_out' => $todayAttendance->clock_out,
+                'break_in_count' => is_array($todayAttendance->break_in) ? count($todayAttendance->break_in) : 0,
+                'break_out_count' => is_array($todayAttendance->break_out) ? count($todayAttendance->break_out) : 0,
+                'is_on_break' => $todayAttendance->isOnBreak(),
+                'status' => $todayAttendance->getCurrentStatus(),
+                'issues' => $todayAttendance->getIncompleteState(),
+            ] : null,
+            'last_attendance' => $lastAttendance ? [
+                'id' => $lastAttendance->id,
+                'date' => $lastAttendance->date,
+                'clock_in' => $lastAttendance->clock_in,
+                'clock_out' => $lastAttendance->clock_out,
+                'is_on_break' => $lastAttendance->isOnBreak(),
+                'issues' => $lastAttendance->getIncompleteState(),
+            ] : null,
+            'standard_clock_out_time' => $standardClockOut,
+            'can_clock_in' => !$todayAttendance || ($todayAttendance->clock_in && !$todayAttendance->clock_out),
+            'can_clock_out' => $todayAttendance && $todayAttendance->clock_in && !$todayAttendance->clock_out && !$todayAttendance->isOnBreak(),
+        ]);
+    }
+
+    /**
      * 5. Monthly Attendance Report (Admin View)
      */
     public function index(Request $request)
     {
-        // Permission check
-        if (!auth()->user()->hasPermissionTo('hrm.attendance.view')) {
-            return $this->sendError('You do not have permission to view attendance records.', null, 403);
-        }
-
+        $user = auth()->user();
         $startDate = $request->start_date ?? date('Y-m-01');
         $endDate = $request->end_date ?? date('Y-m-t');
 
@@ -199,8 +294,20 @@ class AttendanceController extends Controller
             ->whereBetween('date', [$startDate, $endDate])
             ->latest('date');
 
-        // Filter by specific employee
+        // Permission check: users can see their own attendance, managers need permission to see others
+        if (!$user->hasPermissionTo('hrm.attendance.view')) {
+            // Non-admin users can only see their own attendance
+            $query->where('user_id', $user->id);
+        }
+
+        // Filter by specific employee (only for those with permission)
         if ($request->user_id) {
+            if (!$user->hasPermissionTo('hrm.attendance.view')) {
+                // Non-admin trying to view someone else's attendance
+                if ($request->user_id != $user->id) {
+                    return $this->sendError('You do not have permission to view other attendance records.', null, 403);
+                }
+            }
             $query->where('user_id', $request->user_id);
         }
 
@@ -249,8 +356,9 @@ class AttendanceController extends Controller
     /**
      * Check and fix incomplete attendance from previous day
      * This is called automatically on clock in for a new day
+     * @return bool True if attendance was fixed, false otherwise
      */
-    private function checkAndFixIncompleteAttendance(int $userId, string $currentDate)
+    private function checkAndFixIncompleteAttendance(int $userId, string $currentDate): bool
     {
         // Find the most recent attendance record
         $lastAttendance = Attendance::where('user_id', $userId)
@@ -259,35 +367,43 @@ class AttendanceController extends Controller
             ->first();
 
         if (!$lastAttendance) {
-            return;
+            return false;
         }
 
         $issues = $lastAttendance->getIncompleteState();
         if (empty($issues)) {
-            return; // No issues found
+            return false; // No issues found
         }
+
+        // Get standard clock out time from settings
+        $standardClockOut = $this->getStandardClockOutTime();
 
         // Fix incomplete states with standard times
         $updateData = [];
 
         if (in_array('clocked_in_without_out', $issues)) {
-            $updateData['clock_out'] = self::STANDARD_CLOCK_OUT;
+            $updateData['clock_out'] = $standardClockOut;
         }
 
         if (in_array('on_break_without_out', $issues)) {
             $breakOut = $lastAttendance->break_out ?? [];
-            $breakOut[] = self::STANDARD_BREAK_OUT;
+            $breakOut[] = $standardClockOut;
             $updateData['break_out'] = $breakOut;
 
             // If clocked in without out, also set clock out
             if (in_array('clocked_in_without_out', $issues)) {
-                $updateData['clock_out'] = self::STANDARD_CLOCK_OUT;
+                $updateData['clock_out'] = $standardClockOut;
             }
         }
 
         if (!empty($updateData)) {
-            $updateData['note'] = ($lastAttendance->note ?? '') . ' [Auto-completed with standard time]';
+            // Format time for display in note (remove seconds if present)
+            $displayTime = substr($standardClockOut, 0, 5); // HH:MM format
+            $updateData['note'] = ($lastAttendance->note ?? '') . " [Auto-completed at {$displayTime} due to incomplete attendance]";
             $lastAttendance->update($updateData);
+            return true;
         }
+
+        return false;
     }
 }

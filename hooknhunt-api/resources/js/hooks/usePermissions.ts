@@ -34,6 +34,11 @@ export function usePermissions() {
   const refreshPermissions = useCallback(async () => {
     if (!user?.id || !token) {
       console.warn('Cannot refresh permissions: No user or token')
+      notifications.show({
+        title: 'Cannot Refresh',
+        message: 'Please login first',
+        color: 'orange',
+      })
       return false
     }
 
@@ -41,27 +46,49 @@ export function usePermissions() {
       // Fetch fresh user data with permissions
       const response = await api.get(`/auth/me`)
 
-      if (response.data?.data?.user) {
-        const userData = response.data.data.user
+      // Handle different response structures
+      const userData = response.data?.data?.user || response.data?.user || response.data?.data
+
+      if (userData) {
+        // Get permissions from role
         const rolePermissions = userData.role?.permissions || []
-        const newPermissions = rolePermissions.map((p: { slug: string }) => p.slug)
+
+        // Handle both array of objects and array of strings
+        const newPermissions = rolePermissions.map((p: any) => {
+          return typeof p === 'string' ? p : p.slug
+        })
+
+        // Also check for direct permissions on user
+        const directPermissions = userData.directPermissions || []
+        const directPermissionSlugs = directPermissions.map((p: any) => {
+          return typeof p === 'string' ? p : p.slug
+        })
+
+        // Merge role and direct permissions
+        const allPermissions = [...new Set([...newPermissions, ...directPermissionSlugs])]
 
         // Update store with both slugs and full objects
-        setPermissions(newPermissions, rolePermissions)
+        setPermissions(allPermissions, rolePermissions)
+
+        notifications.show({
+          title: 'Success',
+          message: `Permissions refreshed (${allPermissions.length} permissions loaded)`,
+          color: 'green',
+        })
 
         return true
+      } else {
+        throw new Error('No user data in response')
       }
     } catch (err) {
       console.error('Failed to refresh permissions:', err)
       notifications.show({
         title: 'Error',
-        message: 'Failed to refresh permissions',
+        message: 'Failed to refresh permissions. Please try again.',
         color: 'red',
       })
       return false
     }
-
-    return false
   }, [user?.id, token, setPermissions])
 
   /**

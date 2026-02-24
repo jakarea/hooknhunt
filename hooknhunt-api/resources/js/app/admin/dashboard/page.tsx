@@ -22,7 +22,6 @@ import {
   IconCalendarClock,
   IconCoffee,
   IconAlertCircle,
-  IconCheck,
 } from '@tabler/icons-react'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/authStore'
@@ -84,59 +83,75 @@ export default function AdminDashboardPage() {
   })
 
   useEffect(() => {
-    fetchHRMSettings()
-    fetchDashboardData()
-    // Set daily quote based on day of year
+    // Set daily quote immediately (no delay)
     const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 1000 / 60 / 60 / 24)
     const quotes = QUOTES.DASHBOARD_QUOTES
     setDailyQuote(quotes[dayOfYear % quotes.length])
+
+    // Fetch all data in parallel (much faster)
+    fetchDashboardData()
   }, [])
-
-  // Fetch HRM settings for late calculation
-  const fetchHRMSettings = async () => {
-    try {
-      const response = await api.get('/system/settings')
-      const groupedSettings = response.data
-      const hrmSettingsList = groupedSettings.hrm || []
-
-      const settings: HRMSettings = {
-        workStartTime: '09:00',
-        workEndTime: '18:00',
-        breakDuration: 60,
-        gracePeriod: 15,
-      }
-
-      hrmSettingsList.forEach((item: any) => {
-        if (item.key === 'work_start_time') {
-          settings.workStartTime = item.value || '09:00'
-        } else if (item.key === 'work_end_time') {
-          settings.workEndTime = item.value || '18:00'
-        } else if (item.key === 'break_duration_minutes') {
-          settings.breakDuration = parseInt(item.value) || 60
-        } else if (item.key === 'grace_period_minutes') {
-          settings.gracePeriod = parseInt(item.value) || 15
-        }
-      })
-
-      setHrmSettings(settings)
-    } catch (error) {
-      // Use defaults if fetch fails
-      console.error('Failed to fetch HRM settings:', error)
-    }
-  }
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true)
 
-      const today = new Date().toISOString().split('T')[0]
-      const endDate = new Date().toISOString().split('T')[0]
-      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      // Helper function to format date as YYYY-MM-DD in LOCAL timezone (not UTC)
+      const formatDateLocal = (date: Date): string => {
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
 
-      // Fetch attendance history
-      const historyResponse = await api.get(`/hrm/attendance?start_date=${startDate}&end_date=${endDate}`)
+      const today = formatDateLocal(new Date())
+      // Fetch current month's data (from 1st of current month to today)
+      const currentDate = new Date()
+      const startDate = formatDateLocal(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
+      const endDate = today
+console.log({endDate})
+      // Parallel API calls for maximum speed
+      const [historyResponse, settingsResponse, staffResponse, deptResponse] = await Promise.all([
+        // Fetch current month's attendance with high pagination limit to get all records
+        api.get(`/hrm/attendance?start_date=${startDate}&end_date=${endDate}&per_page=1000&page=1`),
+        api.get('/system/settings').catch(() => null), // Non-critical, don't fail on error
+        isAdmin ? api.get('/hrm/staff').catch(() => null) : Promise.resolve(null),
+        isAdmin ? api.get('/hrm/departments').catch(() => null) : Promise.resolve(null),
+      ])
 
-      // Extract data array - handle different response structures
+      console.log('=== API RESPONSES ===')
+      console.log('History response:', historyResponse)
+      console.log('Staff response:', staffResponse)
+      console.log('Dept response:', deptResponse)
+
+      // Process HRM settings if available
+      if (settingsResponse?.data) {
+        const groupedSettings = settingsResponse.data
+        const hrmSettingsList = groupedSettings.hrm || []
+
+        const settings: HRMSettings = {
+          workStartTime: '09:00',
+          workEndTime: '18:00',
+          breakDuration: 60,
+          gracePeriod: 15,
+        }
+
+        hrmSettingsList.forEach((item: any) => {
+          if (item.key === 'work_start_time') {
+            settings.workStartTime = item.value || '09:00'
+          } else if (item.key === 'work_end_time') {
+            settings.workEndTime = item.value || '18:00'
+          } else if (item.key === 'break_duration_minutes') {
+            settings.breakDuration = parseInt(item.value) || 60
+          } else if (item.key === 'grace_period_minutes') {
+            settings.gracePeriod = parseInt(item.value) || 15
+          }
+        })
+
+        setHrmSettings(settings)
+      }
+
+      // Extract attendance data
       let allAttendanceData: any[] = []
       if (historyResponse.data?.data?.data) {
         allAttendanceData = historyResponse.data.data.data
@@ -144,60 +159,98 @@ export default function AdminDashboardPage() {
         allAttendanceData = Array.isArray(historyResponse.data.data) ? historyResponse.data.data : []
       }
 
+      console.log('=== DATA EXTRACTION ===')
+      console.log('Date range:', { startDate, endDate, today })
+      console.log('All attendance data:', allAttendanceData.length, 'records')
+      console.log('First 3 records:', allAttendanceData.slice(0, 3))
+      console.log('All dates in data:', allAttendanceData.map(a => a.date))
+
       // Filter today's attendance
       const todayAttendance = allAttendanceData.filter((a: any) => a.date === today)
-      const presentCount = todayAttendance.filter((a: any) => a.clock_in).length
+      console.log('Today attendance filter results:', todayAttendance.length, 'records for', today)
+
+      // Count present employees (both 'present' and 'late' status)
+      const presentCount = todayAttendance.filter((a: any) => {
+        const status = (a.status || '').toLowerCase()
+        return status === 'present' || status === 'late'
+      }).length
       const onBreakCount = todayAttendance.filter((a: any) => {
-        const breakInCount = Array.isArray(a.break_in) ? a.break_in.length : 0
-        const breakOutCount = Array.isArray(a.break_out) ? a.break_out.length : 0
+        const breakIns = a.breakIn || a.break_in
+        const breakOuts = a.breakOut || a.break_out
+        const breakInCount = Array.isArray(breakIns) ? breakIns.length : 0
+        const breakOutCount = Array.isArray(breakOuts) ? breakOuts.length : 0
         return breakInCount > breakOutCount
       }).length
 
-      // Fetch today's attendance for current user (same approach as HRM attendance page)
+      console.log('Dashboard - Stats:', { presentCount, onBreakCount })
+
+      // Build stats object
+      const statsData: DashboardStats = {
+        total_staff: 0,
+        total_departments: 0,
+        today_attendance: presentCount,
+        on_break: onBreakCount,
+        pending_payroll: 0,
+      }
+
+      // Process staff data
+      if (staffResponse?.data?.data?.data) {
+        const staffData = staffResponse.data.data.data
+        statsData.total_staff = Array.isArray(staffData) ? staffData.length : 0
+      }
+
+      // Process department data
+      if (deptResponse?.data?.data) {
+        const deptData = deptResponse.data.data
+        statsData.total_departments = Array.isArray(deptData) ? deptData.length : 0
+      }
+
+      setStats(statsData)
+
+      // Build recent activity from today's attendance
+      const activityData: RecentActivity[] = todayAttendance.slice(0, 5).map((a: any) => ({
+        id: a.id,
+        user_name: a.user?.name || 'Unknown',
+        action: (a.clockOut || a.clock_out) ? 'Clocked out' : (a.clockIn || a.clock_in) ? 'Clocked in' : 'No activity',
+        timestamp: a.clockIn || a.clock_in || a.date,
+      }))
+      setRecentActivity(activityData)
+
+      // Extract current user's TODAY attendance from the data we already fetched (no extra API call)
       if (user?.id) {
-        try {
-          // Fetch all attendance for today (without user filter to avoid permission issues)
-          const myAttendanceResponse = await api.get(`/hrm/attendance?start_date=${today}&end_date=${today}`)
+        const myRecord = allAttendanceData.find((a: any) => {
+          const recordUserId = a.userId || a.user_id
+          const recordDate = a.date
+          return String(recordUserId) === String(user.id) && recordDate === today
+        })
 
-          // API returns paginated data with camelCase fields
-          let myAttendanceData = []
+        console.log('=== MY ATTENDANCE CHECK ===')
+        console.log('Current user ID:', user.id)
+        console.log('Today:', today)
+        console.log('My record found:', myRecord ? 'YES' : 'NO')
+        if (myRecord) {
+          console.log('My record data:', myRecord)
+        }
 
-          if (myAttendanceResponse.data?.data?.data) {
-            myAttendanceData = myAttendanceResponse.data.data.data
-          } else if (myAttendanceResponse.data?.data) {
-            myAttendanceData = Array.isArray(myAttendanceResponse.data.data) ? myAttendanceResponse.data.data : []
+        if (myRecord) {
+          const normalizedRecord: MyAttendance = {
+            id: myRecord.id,
+            user_id: myRecord.userId || myRecord.user_id,
+            date: myRecord.date,
+            clock_in: myRecord.clockIn || myRecord.clock_in,
+            clock_out: myRecord.clockOut || myRecord.clock_out,
+            break_in: myRecord.breakIn || myRecord.break_in,
+            break_out: myRecord.breakOut || myRecord.break_out,
+            break_notes: myRecord.breakNotes || myRecord.break_notes,
+            status: myRecord.status,
+            note: myRecord.note,
           }
-
-          // Find my attendance - handle both camelCase/snake_case and string/number
-          const myRecord = myAttendanceData.find((a: any) => {
-            const recordUserId = a.userId || a.user_id
-            return String(recordUserId) === String(user.id)
-          })
-
-          if (myRecord) {
-            // Convert camelCase to snake_case for consistency
-            const normalizedRecord: MyAttendance = {
-              id: myRecord.id,
-              user_id: myRecord.userId || myRecord.user_id,
-              date: myRecord.date,
-              clock_in: myRecord.clockIn || myRecord.clock_in,
-              clock_out: myRecord.clockOut || myRecord.clock_out,
-              break_in: myRecord.breakIn || myRecord.break_in,
-              break_out: myRecord.breakOut || myRecord.break_out,
-              break_notes: myRecord.breakNotes || myRecord.break_notes,
-              status: myRecord.status,
-              note: myRecord.note,
-            }
-            setMyAttendance(normalizedRecord)
-          } else {
-            setMyAttendance(null)
-          }
-        } catch (error) {
-          console.error('Error fetching my attendance:', error)
+          setMyAttendance(normalizedRecord)
+        } else {
           setMyAttendance(null)
         }
 
-        // Filter to current user's records for history (last 30 days)
+        // Filter to current user's records for history (current month)
         const userHistory = allAttendanceData
           .filter((a: any) => (a.userId === user.id || a.user_id === user.id))
           .map((record: any) => ({
@@ -215,43 +268,6 @@ export default function AdminDashboardPage() {
 
         setAttendanceHistory(userHistory)
       }
-
-      // Build stats object
-      const statsData: DashboardStats = {
-        total_staff: 0,
-        total_departments: 0,
-        today_attendance: presentCount,
-        on_break: onBreakCount,
-        pending_payroll: 0,
-      }
-
-      // Fetch staff count (optional - only for admins)
-      if (isAdmin) {
-        try {
-          const staffResponse = await api.get('/hrm/staff')
-          const staffData = staffResponse.data?.data?.data || []
-          statsData.total_staff = Array.isArray(staffData) ? staffData.length : (staffData.data?.length || 0)
-        } catch (error) {
-        }
-
-        try {
-          const deptResponse = await api.get('/hrm/departments')
-          const deptData = deptResponse.data?.data || []
-          statsData.total_departments = Array.isArray(deptData) ? deptData.length : (deptData.data?.length || 0)
-        } catch (error) {
-        }
-      }
-
-      setStats(statsData)
-
-      // Build recent activity from today's attendance
-      const activityData: RecentActivity[] = todayAttendance.slice(0, 5).map((a: any) => ({
-        id: a.id,
-        user_name: a.user?.name || 'Unknown',
-        action: a.clock_out ? 'Clocked out' : a.clock_in ? 'Clocked in' : 'No activity',
-        timestamp: a.clock_in || a.date,
-      }))
-      setRecentActivity(activityData)
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
@@ -489,14 +505,6 @@ export default function AdminDashboardPage() {
     })
   }
 
-  if (loading) {
-    return (
-      <Center style={{ height: '100vh' }}>
-        <Loader size="xl" />
-      </Center>
-    )
-  }
-
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
       <Stack>
@@ -520,70 +528,126 @@ export default function AdminDashboardPage() {
           )}
         </Group>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Show immediately with loading state */}
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
           <Card padding="lg" radius="md" withBorder shadow="sm">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={0}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  {t('dashboard.totalStaff')}
-                </Text>
-                <Text size="xl" fw={500}>
-                  {stats?.total_staff || 0}
-                </Text>
-              </Stack>
-              <ThemeIcon color="blue" size={40} radius="md">
-                <IconUsers size={24} />
-              </ThemeIcon>
-            </Group>
+            {loading ? (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.totalStaff')}
+                  </Text>
+                  <Loader size="sm" />
+                </Stack>
+                <ThemeIcon color="blue" size={40} radius="md">
+                  <IconUsers size={24} />
+                </ThemeIcon>
+              </Group>
+            ) : (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.totalStaff')}
+                  </Text>
+                  <Text size="xl" fw={500}>
+                    {stats?.total_staff || 0}
+                  </Text>
+                </Stack>
+                <ThemeIcon color="blue" size={40} radius="md">
+                  <IconUsers size={24} />
+                </ThemeIcon>
+              </Group>
+            )}
           </Card>
 
           <Card padding="lg" radius="md" withBorder shadow="sm">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={0}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  {t('dashboard.departments')}
-                </Text>
-                <Text size="xl" fw={500}>
-                  {stats?.total_departments || 0}
-                </Text>
-              </Stack>
-              <ThemeIcon color="cyan" size={40} radius="md">
-                <IconBuilding size={24} />
-              </ThemeIcon>
-            </Group>
+            {loading ? (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.departments')}
+                  </Text>
+                  <Loader size="sm" />
+                </Stack>
+                <ThemeIcon color="cyan" size={40} radius="md">
+                  <IconBuilding size={24} />
+                </ThemeIcon>
+              </Group>
+            ) : (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.departments')}
+                  </Text>
+                  <Text size="xl" fw={500}>
+                    {stats?.total_departments || 0}
+                  </Text>
+                </Stack>
+                <ThemeIcon color="cyan" size={40} radius="md">
+                  <IconBuilding size={24} />
+                </ThemeIcon>
+              </Group>
+            )}
           </Card>
 
           <Card padding="lg" radius="md" withBorder shadow="sm">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={0}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  {t('dashboard.todayPresent')}
-                </Text>
-                <Text size="xl" fw={500}>
-                  {stats?.today_attendance || 0}
-                </Text>
-              </Stack>
-              <ThemeIcon color="green" size={40} radius="md">
-                <IconCalendarClock size={24} />
-              </ThemeIcon>
-            </Group>
+            {loading ? (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.todayPresent')} - 101
+                  </Text>
+                  <Loader size="sm" />
+                </Stack>
+                <ThemeIcon color="green" size={40} radius="md">
+                  <IconCalendarClock size={24} />
+                </ThemeIcon>
+              </Group>
+            ) : (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.todayPresent')} - 102
+                  </Text>
+                  <Text size="xl" fw={500}>
+                    {stats?.today_attendance || 0}
+                  </Text>
+                </Stack>
+                <ThemeIcon color="green" size={40} radius="md">
+                  <IconCalendarClock size={24} />
+                </ThemeIcon>
+              </Group>
+            )}
           </Card>
 
           <Card padding="lg" radius="md" withBorder shadow="sm">
-            <Group justify="space-between" align="flex-start">
-              <Stack gap={0}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  {t('dashboard.onBreak')}
-                </Text>
-                <Text size="xl" fw={500}>
-                  {stats?.on_break || 0}
-                </Text>
-              </Stack>
-              <ThemeIcon color="yellow" size={40} radius="md">
-                <IconCoffee size={24} />
-              </ThemeIcon>
-            </Group>
+            {loading ? (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.onBreak')}
+                  </Text>
+                  <Loader size="sm" />
+                </Stack>
+                <ThemeIcon color="yellow" size={40} radius="md">
+                  <IconCoffee size={24} />
+                </ThemeIcon>
+              </Group>
+            ) : (
+              <Group justify="space-between" align="flex-start">
+                <Stack gap={0}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    {t('dashboard.onBreak')}
+                  </Text>
+                  <Text size="xl" fw={500}>
+                    {stats?.on_break || 0}
+                  </Text>
+                </Stack>
+                <ThemeIcon color="yellow" size={40} radius="md">
+                  <IconCoffee size={24} />
+                </ThemeIcon>
+              </Group>
+            )}
           </Card>
         </SimpleGrid>
 

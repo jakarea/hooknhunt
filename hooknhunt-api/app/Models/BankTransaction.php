@@ -41,7 +41,7 @@ class BankTransaction extends Model
         'amount' => 'decimal:2',
         'balance_before' => 'decimal:2',
         'balance_after' => 'decimal:2',
-        'transaction_date' => 'date',
+        'transaction_date' => 'date:Y-m-d', // Fixed timezone offset
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
@@ -108,7 +108,8 @@ class BankTransaction extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        $type = $this->type ?? 'unknown';
+        return match($type) {
             'deposit' => 'Deposit',
             'withdrawal' => 'Withdrawal',
             'transfer_in' => 'Transfer In',
@@ -122,7 +123,8 @@ class BankTransaction extends Model
      */
     public function getSignedAmountAttribute(): float
     {
-        return match($this->type) {
+        $type = $this->type ?? 'unknown';
+        return match($type) {
             'deposit', 'transfer_in' => $this->amount,
             'withdrawal', 'transfer_out' => -$this->amount,
             default => 0,

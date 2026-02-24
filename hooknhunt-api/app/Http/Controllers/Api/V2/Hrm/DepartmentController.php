@@ -17,21 +17,20 @@ class DepartmentController extends Controller
      */
     public function index(Request $request)
     {
-        // Permission check
-        if (!auth()->user()->hasPermissionTo('hrm.department.index')) {
-            return $this->sendError('You do not have permission to view departments.', null, 403);
-        }
-
         $query = Department::query();
 
-        // Filter by active status if requested
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
-
-        // Default to active departments only if no filter specified
-        if (!$request->has('is_active')) {
+        // Non-admin users can only see active departments (for dropdowns, profile display, etc.)
+        if (!auth()->user()->hasPermissionTo('hrm.department.index')) {
             $query->where('is_active', true);
+        } else {
+            // Admins can filter by active status if requested
+            if ($request->has('is_active')) {
+                $query->where('is_active', $request->boolean('is_active'));
+            }
+            // Default to active departments only if no filter specified
+            if (!$request->has('is_active')) {
+                $query->where('is_active', true);
+            }
         }
 
         // With employee count

@@ -7,17 +7,28 @@ use App\Models\VendorBill;
 use App\Models\VendorBillItem;
 use App\Models\VendorPayment;
 use App\Models\VendorPaymentBill;
+use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
 class AccountsPayableController extends Controller
 {
+    use ApiResponse;
+
     /**
      * Get all vendor bills (Accounts Payable)
      */
     public function index(Request $request): JsonResponse
     {
+        // Permission check - super_admin bypasses this check
+        if (!auth()->user()->hasPermissionTo('finance.accounts_payable.view')) {
+            return response()->json([
+                'status' => false,
+                'message' => 'You do not have permission to view accounts payable.',
+            ], 403);
+        }
+
         $query = VendorBill::with(['supplier', 'chartAccount', 'items', 'creator']);
 
         // Filter by status

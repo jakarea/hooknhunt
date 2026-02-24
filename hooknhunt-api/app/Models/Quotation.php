@@ -44,7 +44,7 @@ class Quotation extends Model
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'total' => 'decimal:2',
-        'valid_until' => 'date',
+        'valid_until' => 'date:Y-m-d', // Fixed timezone offset
         'converted_to_order_at' => 'datetime',
     ];
 

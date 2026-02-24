@@ -10,7 +10,7 @@ class BankReconciliation extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'statement_date' => 'date',
+        'statement_date' => 'date:Y-m-d', // Fixed timezone offset
         'opening_balance' => 'decimal:2',
         'closing_balance' => 'decimal:2',
         'book_balance' => 'decimal:2',

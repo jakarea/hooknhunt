@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseOrderItem extends Model
 {
+    protected $table = 'purchase_order_items';
+
     protected $fillable = [
         'po_number',
         'product_id',
@@ -14,23 +16,31 @@ class PurchaseOrderItem extends Model
         'inventory_batch_id',
         'china_price',
         'quantity',
-        'unit_price',
+        'bd_price',
         'total_price',
         'unit_weight',
         'extra_weight',
+        'shipping_cost',
+        'shipping_cost_per_kg',
         'received_quantity',
         'stocked_quantity',
+        'lost_quantity',
+        'lost_item_price',
         'final_unit_cost',
     ];
 
     protected $casts = [
         'china_price' => 'decimal:2',
-        'unit_price' => 'decimal:2',
+        'bd_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'unit_weight' => 'decimal:2',
         'extra_weight' => 'decimal:2',
+        'shipping_cost' => 'decimal:2',
+        'shipping_cost_per_kg' => 'decimal:2',
         'received_quantity' => 'integer',
         'stocked_quantity' => 'integer',
+        'lost_quantity' => 'integer',
+        'lost_item_price' => 'decimal:2',
         'final_unit_cost' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

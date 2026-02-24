@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class Expense extends Model
 {
@@ -20,6 +21,7 @@ class Expense extends Model
         'amount',
         'expense_date',
         'account_id',
+        'payment_account_id',  // Bank/Cash account to pay from
         'paid_by',
         'reference_number',
         'notes',
@@ -39,6 +41,9 @@ class Expense extends Model
         'expense_department_id',
         // Multi-Currency
         'currency_id',
+        // Source tracking (e.g., payroll_id for salary expenses)
+        'source_type',
+        'source_id',
     ];
 
     /**
@@ -52,7 +57,7 @@ class Expense extends Model
         'vat_amount' => 'decimal:2',
         'tax_percentage' => 'decimal:2',
         'tax_amount' => 'decimal:2',
-        'expense_date' => 'date',
+        'expense_date' => 'date:Y-m-d', // Fixed timezone offset
         'is_approved' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -72,7 +77,7 @@ class Expense extends Model
      *
      * @var array<string, string>
      */
-    protected $with = ['account'];
+    protected $with = ['account', 'paymentAccount'];
 
     /**
      * Relationship: Expense belongs to a Chart of Account (Expense Head)
@@ -80,6 +85,14 @@ class Expense extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(ChartOfAccount::class, 'account_id');
+    }
+
+    /**
+     * Relationship: Expense is paid from a Payment Account (Bank/Cash)
+     */
+    public function paymentAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'payment_account_id');
     }
 
     /**
@@ -102,7 +115,7 @@ class Expense extends Model
         }
 
         // If not loaded and we have a paid_by ID, load the user
-        if ($this->attributes['paid_by'] ?? null) {
+        if (isset($this->attributes['paid_by']) && $this->attributes['paid_by']) {
             return $this->user()->getResults();
         }
 
@@ -139,6 +152,14 @@ class Expense extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * Relationship: Get the source of this expense (e.g., Payroll for salary expenses)
+     */
+    public function source(): MorphTo
+    {
+        return $this->morphTo();
     }
 
     /**

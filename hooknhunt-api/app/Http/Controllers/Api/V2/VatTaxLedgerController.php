@@ -19,6 +19,10 @@ class VatTaxLedgerController extends Controller
      */
     public function index(Request $request)
     {
+        if (!auth()->user()->hasPermissionTo('finance.vat_tax.view')) {
+            return $this->sendError('You do not have permission to view VAT/Tax ledgers.', null, 403);
+        }
+
         $query = VatTaxLedger::with(['chartAccount', 'creator', 'updater']);
 
         // Filter by tax type
@@ -86,6 +90,10 @@ class VatTaxLedgerController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->hasPermissionTo('finance.vat_tax.create')) {
+            return $this->sendError('You do not have permission to create VAT/Tax entries.', null, 403);
+        }
+
         $request->validate([
             'transaction_type' => 'required|in:purchase,sale,expense,adjustment',
             'tax_type' => 'required|in:vat,tax,ait',
@@ -110,6 +118,7 @@ class VatTaxLedgerController extends Controller
         try {
             $ledger = VatTaxLedger::create([
                 'transaction_type' => $request->transaction_type,
+                'transaction_id' => $request->reference_id ?? 0, // Use reference_id as transaction_id
                 'tax_type' => $request->tax_type,
                 'base_amount' => $request->base_amount,
                 'tax_rate' => $request->tax_rate,
@@ -146,6 +155,10 @@ class VatTaxLedgerController extends Controller
      */
     public function show($id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.vat_tax.view')) {
+            return $this->sendError('You do not have permission to view VAT/Tax entries.', null, 403);
+        }
+
         $ledger = VatTaxLedger::with(['chartAccount', 'creator', 'updater'])->findOrFail($id);
 
         // Add computed values
@@ -163,6 +176,10 @@ class VatTaxLedgerController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.vat_tax.edit')) {
+            return $this->sendError('You do not have permission to edit VAT/Tax entries.', null, 403);
+        }
+
         $request->validate([
             'transaction_type' => 'sometimes|in:purchase,sale,expense,adjustment',
             'base_amount' => 'sometimes|numeric|min:0',
@@ -221,6 +238,10 @@ class VatTaxLedgerController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.vat_tax.delete')) {
+            return $this->sendError('You do not have permission to delete VAT/Tax entries.', null, 403);
+        }
+
         $ledger = VatTaxLedger::findOrFail($id);
 
         // Prevent deletion if paid

@@ -13,15 +13,15 @@ class FixedAsset extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'purchase_date' => 'date',
+        'purchase_date' => 'date:Y-m-d', // Fixed timezone offset
         'purchase_price' => 'decimal:2',
         'salvage_value' => 'decimal:2',
         'depreciation_rate' => 'decimal:2',
         'accumulated_depreciation' => 'decimal:2',
         'net_book_value' => 'decimal:2',
-        'disposal_date' => 'date',
+        'disposal_date' => 'date:Y-m-d', // Fixed timezone offset
         'disposal_value' => 'decimal:2',
-        'warranty_expiry' => 'date',
+        'warranty_expiry' => 'date:Y-m-d', // Fixed timezone offset
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

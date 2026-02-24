@@ -14,9 +14,9 @@ class Project extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'deadline' => 'date',
+        'start_date' => 'date:Y-m-d', // Fixed timezone offset
+        'end_date' => 'date:Y-m-d', // Fixed timezone offset
+        'deadline' => 'date:Y-m-d', // Fixed timezone offset
         'budget_amount' => 'decimal:2',
         'estimated_revenue' => 'decimal:2',
         'actual_cost' => 'decimal:2',

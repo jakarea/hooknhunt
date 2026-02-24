@@ -73,7 +73,13 @@ class StaffController extends Controller
             'dob' => 'nullable|date',
             'gender' => 'nullable|in:male,female,other',
             'office_email' => 'nullable|email',
-            'whatsapp_number' => 'nullable|string'
+            'whatsapp_number' => 'nullable|string',
+
+            // Bank Account Information (for salary transfer)
+            'bank_account_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_branch' => 'nullable|string|max:255',
         ]);
 
         DB::beginTransaction();
@@ -117,6 +123,11 @@ class StaffController extends Controller
                 'office_email' => $request->office_email,
                 'office_email_password' => $request->office_email_password, // Will be saved as provided
                 'whatsapp_number' => $request->whatsapp_number,
+                // Bank Account Information (for salary transfer)
+                'bank_account_name' => $request->bank_account_name,
+                'bank_account_number' => $request->bank_account_number,
+                'bank_name' => $request->bank_name,
+                'bank_branch' => $request->bank_branch,
             ]);
 
             DB::commit();
@@ -226,6 +237,12 @@ class StaffController extends Controller
             'office_email_password' => 'nullable|string',
             'whatsapp_number' => 'nullable|string',
 
+            // Bank Account Information (for salary transfer)
+            'bank_account_name' => 'nullable|string|max:255',
+            'bank_account_number' => 'nullable|string|max:255',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_branch' => 'nullable|string|max:255',
+
             // Password - optional
             'password' => 'nullable|string|min:6',
         ]);
@@ -261,6 +278,11 @@ class StaffController extends Controller
                 'office_email',
                 'office_email_password',
                 'whatsapp_number',
+                // Bank Account Information (for salary transfer)
+                'bank_account_name',
+                'bank_account_number',
+                'bank_name',
+                'bank_branch',
             ]);
 
             // updateOrCreate ব্যবহার করছি যাতে প্রোফাইল না থাকলে তৈরি হয়ে যায়
@@ -287,7 +309,8 @@ class StaffController extends Controller
         $currentUser = auth()->user();
 
         // Permission check: User can change own password OR super_admin can change any password
-        if ($currentUser->id != $id && !$currentUser->hasRole('super_admin')) {
+        $isSuperAdmin = $currentUser->role && ($currentUser->role->slug === 'super_admin' || $currentUser->role_id == 1);
+        if ($currentUser->id != $id && !$isSuperAdmin) {
             return $this->sendError('You do not have permission to change this password.', null, 403);
         }
 
@@ -324,7 +347,8 @@ class StaffController extends Controller
         $currentUser = auth()->user();
 
         // Permission check: Only super_admin can send password SMS to other users
-        if (!$currentUser->hasRole('super_admin')) {
+        $isSuperAdmin = $currentUser->role && ($currentUser->role->slug === 'super_admin' || $currentUser->role_id == 1);
+        if (!$isSuperAdmin) {
             return $this->sendError('You do not have permission to send password SMS.', null, 403);
         }
 

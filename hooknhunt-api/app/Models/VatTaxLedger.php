@@ -13,13 +13,13 @@ class VatTaxLedger extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'transaction_date' => 'date',
+        'transaction_date' => 'date:Y-m-d', // Fixed timezone offset
         'base_amount' => 'decimal:2',
         'tax_rate' => 'decimal:2',
         'tax_amount' => 'decimal:2',
-        'challan_date' => 'date',
+        'challan_date' => 'date:Y-m-d', // Fixed timezone offset
         'is_paid' => 'boolean',
-        'payment_date' => 'date',
+        'payment_date' => 'date:Y-m-d', // Fixed timezone offset
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

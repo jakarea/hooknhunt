@@ -28,6 +28,8 @@
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
+    "notSet": "Not set",
+    "published": "Published",
     "close": "Close",
     "open": "Open",
     "yes": "Yes",
@@ -53,7 +55,9 @@
     "english": "English",
     "bengali": "Bengali",
     "toggleColorScheme": "Toggle color scheme",
-    "somethingWentWrong": "Something went wrong. Please try again."
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "noData": "No data found",
+    "addProduct": "Add Product"
   },
   "nav": {
     "main": "Main",
@@ -274,6 +278,103 @@
         "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
       }
     },
+    "productsPage": {
+      "title": "All Products",
+      "subtitle": "Manage your product catalog",
+      "addProduct": "Add Product",
+      "accessDenied": "You don't have permission to view products.",
+      "filters": {
+        "searchPlaceholder": "Search products...",
+        "status": "Status",
+        "allStatus": "All Status",
+        "category": "Category",
+        "brand": "Brand"
+      },
+      "table": {
+        "product": "Product",
+        "variants": "Variants",
+        "category": "Category",
+        "brand": "Brand",
+        "stock": "Stock",
+        "status": "Status",
+        "actions": "Actions",
+        "noProducts": "No products found"
+      },
+      "status": {
+        "draft": "Draft",
+        "published": "Published",
+        "archived": "Archived",
+        "changeStatus": "Change Status"
+      },
+      "stock": {
+        "outOfStock": "Out of Stock",
+        "lowStock": "{{count}} left",
+        "inStock": "{{count}} in stock"
+      },
+      "menu": {
+        "actions": "Actions",
+        "duplicate": "Duplicate",
+        "viewDetails": "View Details"
+      },
+      "pagination": {
+        "page": "Page {{current}} of {{total}}"
+      },
+      "notification": {
+        "fetchError": "Failed to load products",
+        "deletePermission": "You don't have permission to delete products",
+        "duplicatePermission": "You don't have permission to duplicate products",
+        "statusPermission": "You don't have permission to change product status",
+        "deleteTitle": "Delete Product",
+        "deleteConfirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
+        "deleteSuccess": "Product deleted successfully",
+        "deleteError": "Failed to delete product",
+        "duplicateSuccess": "Product duplicated successfully",
+        "duplicateError": "Failed to duplicate product",
+        "statusSuccess": "Product status updated successfully",
+        "statusError": "Failed to update product status"
+      }
+    },
+    "productsCreate": {
+      "title": "Add New Product",
+      "subtitle": "Create a new product with variants",
+      "infoAlert": "Fill in the product details below. After creating the product, you can add variants with different SKUs, sizes, and colors.",
+      "basicInfo": "Basic Information",
+      "productName": "Product Name",
+      "productNamePlaceholder": "Enter product name",
+      "category": "Category",
+      "selectCategory": "Select category",
+      "brand": "Brand",
+      "selectBrand": "Select brand",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter product description",
+      "videoUrl": "Video URL (Optional)",
+      "status": "Status",
+      "productImage": "Product Image",
+      "clickToUpload": "Click to upload product image",
+      "suppliers": "Suppliers",
+      "supplierUrl": "Supplier URL",
+      "supplierInfo": "Supplier Information",
+      "supplierInfoDesc": "Manage supplier relationships and product sourcing for this item.",
+      "variants": "Product Variants",
+      "addVariant": "Add Variant",
+      "variant": "Variant",
+      "sku": "SKU",
+      "customSku": "Custom SKU",
+      "customSkuPlaceholder": "Owner code",
+      "variantName": "Variant Name",
+      "unit": "Unit",
+      "size": "Size",
+      "color": "Color",
+      "retailPrice": "Retail Price",
+      "wholesalePrice": "Wholesale Price",
+      "purchaseCost": "Purchase Cost",
+      "alertQty": "Alert Quantity",
+      "saveProduct": "Save Product",
+      "notification": {
+        "saved": "Product saved successfully (Static UI)",
+        "atLeastOneVariant": "At least one variant is required"
+      }
+    },
     "attributesPage": {
       "title": "Attributes",
       "subtitle": "Manage product attributes (Warranty, Origin, Dimensions, etc.)",
@@ -359,6 +460,8 @@
     "purchaseOrders": "Purchase Orders",
     "createPO": "Create PO",
     "purchaseReturns": "Purchase Returns",
+    "returns": "Purchase Returns",
+    "products": "Products",
     "suppliersPage": {
       "title": "Suppliers",
       "subtitle": "Manage supplier information and contacts",
@@ -370,6 +473,7 @@
       "noSuppliersFound": "No suppliers found",
       "active": "Active",
       "inactive": "Inactive",
+      "shopName": "Shop Name",
       "tableHeaders": {
         "name": "Name",
         "email": "Email",
@@ -459,6 +563,277 @@
         "errorDeleting": "Failed to delete supplier. Please try again.",
         "deleteConfirm": "Delete Supplier?",
         "deleteConfirmMessage": "Are you sure you want to delete {{name}}? This action cannot be undone."
+      },
+      "viewSupplier": "View Details",
+      "products": "Products"
+    },
+    "returnsPage": {
+      "title": "Purchase Returns",
+      "subtitle": "Manage purchase returns and refunds"
+    },
+    "productsPage": {
+      "title": "Procurement Products",
+      "subtitle": "Manage products for purchase from suppliers",
+      "addProduct": "Add Product",
+      "editProduct": "Edit Product",
+      "name": "Name",
+      "namePlaceholder": "Enter product name",
+      "category": "Category",
+      "brand": "Brand",
+      "suppliers": "Suppliers",
+      "status": "Status",
+      "basicInfo": "Basic Information",
+      "selectCategory": "Select category",
+      "selectBrand": "Select brand",
+      "selectThumbnail": "Select Thumbnail",
+      "changeThumbnail": "Change Thumbnail",
+      "selectSupplier": "Select supplier",
+      "costPrice": "Cost Price",
+      "supplierSku": "Supplier SKU",
+      "productLinks": "Product URLs",
+      "noSuppliers": "No suppliers added yet",
+      "supplier": "Supplier",
+      "productId": "Product ID",
+      "productInfo": "Product Information",
+      "thumbnail": "Thumbnail",
+      "slug": "Slug",
+      "productUrls": "Product URLs",
+      "noProductUrls": "No product URLs added",
+      "viewSupplier": "View Details",
+      "statusOptions": {
+        "draft": "Draft",
+        "published": "Published"
+      }
+    },
+    "ordersPage": {
+      "title": "Purchase Orders",
+      "subtitle": "Manage purchase orders from Chinese suppliers",
+      "statistics": {
+        "totalOrders": "Total Orders",
+        "draftOrders": "Draft Orders",
+        "activeOrders": "Active Orders",
+        "completedOrders": "Completed Orders",
+        "totalValueRmb": "Total Value (RMB)"
+      },
+      "filters": {
+        "title": "Filters",
+        "status": "Status",
+        "allStatuses": "All Statuses",
+        "supplier": "Supplier",
+        "allSuppliers": "All Suppliers",
+        "search": "Search",
+        "searchPlaceholder": "PO number",
+        "fromDate": "From Date",
+        "toDate": "To Date"
+      },
+      "statuses": {
+        "draft": "Draft",
+        "paymentConfirmed": "Payment Confirmed",
+        "supplierDispatched": "Supplier Dispatched",
+        "warehouseReceived": "Warehouse Received",
+        "shippedBd": "Shipped to BD",
+        "arrivedBd": "Arrived BD",
+        "inTransitBogura": "In Transit to Bogura",
+        "receivedHub": "Received at Hub",
+        "partiallyCompleted": "Partially Completed",
+        "completed": "Completed",
+        "lost": "Lost"
+      },
+      "tableHeaders": {
+        "poNumber": "PO Number",
+        "supplier": "Supplier",
+        "orderDate": "Order Date",
+        "status": "Status",
+        "totalRmb": "Total (RMB)",
+        "totalBdt": "Total (BDT)",
+        "items": "Items",
+        "actions": "Actions"
+      },
+      "actions": {
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "notifications": {
+        "loading": "Loading orders...",
+        "refreshed": "Data refreshed",
+        "noOrdersFound": "No purchase orders found",
+        "created": "Purchase order created successfully",
+        "updated": "Purchase order updated successfully",
+        "deleted": "Purchase order deleted successfully",
+        "errorLoading": "Failed to load purchase orders",
+        "errorCreating": "Failed to create purchase order",
+        "errorUpdating": "Failed to update purchase order",
+        "errorDeleting": "Failed to delete purchase order"
+      },
+      "deleteConfirm": {
+        "title": "Delete Purchase Order?",
+        "message": "Are you sure you want to delete {{poNumber}}?",
+        "warning": "This action cannot be undone. All order data will be permanently removed.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "details": {
+        "title": "Purchase Order Details",
+        "orderInformation": "Order Information",
+        "orderDate": "Order Date",
+        "expectedDate": "Expected Date",
+        "exchangeRate": "Exchange Rate",
+        "courierTracking": "Courier / Tracking",
+        "lotNumber": "Lot Number",
+        "bdTracking": "BD Tracking",
+        "statusTimeline": "Status Timeline",
+        "orderItems": "Order Items",
+        "items": "Items ({{count}})",
+        "product": "Product",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price (RMB)",
+        "total": "Total",
+        "shippingCost": "Shipping Cost",
+        "totals": {
+          "itemsTotalRmb": "Items Total (RMB)",
+          "itemsTotalBdt": "Items Total (BDT)",
+          "shippingCost": "Shipping Cost",
+          "itemShippingCosts": "Item Shipping Costs",
+          "extraCost": "Extra Cost",
+          "grandTotal": "Grand Total",
+          "note": "* Additional costs will be added as order progresses"
+        },
+        "alerts": {
+          "draft": "This order is in Draft status. You can still edit the order items and details. Once you confirm the order, it will be locked and the PO number will be generated.",
+          "partiallyCompleted": "This order has been partially completed. Some items were missing during receiving. The order has been processed with the received quantities and refunds have been auto-credited to the supplier wallet. The order is now locked and cannot be modified.",
+          "completed": "This order has been completed. All status updates and inventory have been processed. The order is now locked and cannot be modified."
+        },
+        "actions": {
+          "editOrder": "Edit Order",
+          "back": "Back",
+          "confirmOrder": "Confirm Order",
+          "nextStatus": "Next: {{status}}",
+          "approveStock": "Approve & Stock",
+          "approveConfirm": {
+            "title": "Approve & Stock Order?",
+            "message": "Are you sure you want to approve {{poNumber}} and update inventory?",
+            "warning": "This will process the received items and update stock levels. This action cannot be undone.",
+            "partialWarning": "This order was partially completed with some missing items. Only the received quantities will be stocked.",
+            "cancel": "Cancel",
+            "confirm": "Approve & Stock"
+          },
+          "editComments": "Edit Comments",
+          "editData": {
+            "title": "Edit {{status}} Data",
+            "success": "Data updated successfully"
+          }
+        },
+        "statusUpdate": {
+          "draft": {
+            "title": "Confirm Order",
+            "message": "You are about to confirm this order. Please verify and set the CNY to BDT exchange rate. This rate will be used for all calculations and will update the currency table.",
+            "exchangeRate": "Exchange Rate (¥1 = ৳?)",
+            "exchangeRateDescription": "How much ৳ (BDT) for ¥1 (CNY)?"
+          },
+          "paymentConfirmed": {
+            "title": "Supplier Dispatching",
+            "message": "Supplier is dispatching the order. Please enter the international courier details.",
+            "courierName": "Courier Name",
+            "courierPlaceholder": "DHL, FedEx, UPS, etc.",
+            "trackingNumber": "Tracking Number",
+            "trackingPlaceholder": "International tracking number"
+          },
+          "warehouseReceived": {
+            "title": "Ship to Bangladesh",
+            "message": "Shipment is being sent to Bangladesh. Please enter the lot number for tracking.",
+            "lotNumber": "Lot Number",
+            "lotPlaceholder": "e.g., LOT-202602-001"
+          },
+          "shippedBd": {
+            "title": "Arrived in Bangladesh",
+            "message": "Goods have arrived in Bangladesh. Please enter the transport type and total shipping cost. This cost will be distributed across items by their price when calculating actual product cost.",
+            "transportType": "Transport Type",
+            "selectTransport": "Select transport type",
+            "byAir": "By Air",
+            "byShip": "By Ship",
+            "shippingCost": "Total Shipping Cost (BDT)",
+            "shippingCostDescription": "Total cost for this transport (will be distributed across items)",
+            "itemsList": "Items in this order ({{count}}):",
+            "total": "Total"
+          },
+          "arrivedBd": {
+            "title": "In Transit to Bogura",
+            "message": "Goods are in transit to Bogura. Please enter the BD courier tracking number.",
+            "bdCourierTracking": "BD Courier Tracking",
+            "bdPlaceholder": "Pathao, Steadfast, RedX, etc."
+          },
+          "comments": "Comments / Notes",
+          "commentsPlaceholder": "Add any notes or comments about this status change...",
+          "commentsDescription": "Optional: Document any important details, issues, or notes",
+          "update": "Update Status",
+          "transitionDescription": "Update order status to the next stage"
+        }
+      }
+    },
+    "receivingModal": {
+      "title": "Receive Goods - PO {{poNumber}}",
+      "validation": {
+        "error": "Validation Error",
+        "unitWeightRequired": "Please enter unit weight for {{productName}}"
+      },
+      "summary": {
+        "title": "Receiving Summary",
+        "manualReviewRequired": "Manual Review Required",
+        "partialCompletion": "Partial Completion",
+        "total": "Total",
+        "units": "units",
+        "received": "Received",
+        "lost": "Lost",
+        "found": "Found",
+        "extra": "extra",
+        "manualReviewWarning": "⚠️ Lost percentage exceeds 10% threshold. Refund of {{lostValue}} BDT requires manual review.",
+        "partialWarning": "⚠️ Some items are missing ({{lostUnits}} units). Order will be marked as <strong>Partially Completed</strong> and refund of {{lostValue}} BDT will be auto-credited to supplier wallet.",
+        "foundItemsInfo": "✓ {{foundUnits}} extra units received. Found items reduce cost proportionally.",
+        "autoCreditSuccess": "✓ Lost percentage within 10% threshold. Refund will be auto-credited to supplier wallet."
+      },
+      "extraCost": {
+        "label": "Extra Cost (BDT)",
+        "description": "Additional shipping, handling, or customs costs. Will be distributed across items by value ratio."
+      },
+      "shippingCost": {
+        "label": "Shipping Cost (BDT)",
+        "description": "Total shipping cost from China to Bangladesh. Will be distributed across received items by value ratio."
+      },
+      "table": {
+        "headers": {
+          "item": "Item",
+          "ordered": "Ordered",
+          "received": "Received",
+          "lost": "Lost",
+          "found": "Found",
+          "unitWeight": "Unit Weight (g)",
+          "extraWeight": "Extra Weight (g)",
+          "originalCost": "Original Cost",
+          "adjustment": "Adjustment",
+          "finalCost": "Final Cost"
+        },
+        "chinaPrice": "China Price"
+      },
+      "costAdjustment": {
+        "title": "Cost Adjustment (Lost Items Distributed)",
+        "itemBreakdown": "Lost items value ({{lostValue}} BDT) has been distributed across {{receivedUnits}} received units. Adjustment per unit: ৳ {{adjustmentPerUnit}}",
+        "itemNote": "Original cost: ৳ {{originalCost}} → Final cost: ৳ {{finalCost}} (Increase: ৳ {{increase}})"
+      },
+      "costDistribution": {
+        "title": "Cost Distribution Method",
+        "description": "Extra cost is distributed across items based on their received value ratio (china_price × received_quantity). Final unit cost = china_price + (extra_cost ÷ received_quantity)"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submitForReview": "Submit for Review",
+        "confirmPartial": "Confirm Partial Receipt",
+        "confirm": "Confirm Receipt"
+      },
+      "comments": {
+        "label": "Comments",
+        "placeholder": "Add any notes about this receiving (optional)",
+        "description": "Optional: Document any important details, issues, or notes about this receiving"
       }
     }
   },
@@ -514,7 +889,8 @@
       "quickActions": "Quick Actions",
       "viewAll": "View All",
       "noRecentLeads": "No recent leads",
-      "noRecentActivities": "No recent activities"
+      "noRecentActivities": "No recent activities",
+      "errorLoading": "Failed to load CRM dashboard. Please try again."
     },
     "leads": {
       "title": "Leads",
@@ -988,6 +1364,8 @@
     "fixedAssets": "Fixed Assets",
     "cheques": "Cheques/PDC",
     "vatTax": "VAT/Tax Ledger",
+    "vat": "VAT",
+    "tax": "Tax",
     "journalEntries": "Journal Entries",
     "budgets": "Budgets",
     "costCenters": "Cost Centers",
@@ -1028,6 +1406,7 @@
       "financeCharges": "Finance Charges",
       "netProfit": "Net Profit",
       "profit": "Profit",
+      "loss": "Loss",
       "recentTransactions": "Recent Transactions",
       "viewAll": "View All",
       "date": "Date",
@@ -1090,6 +1469,8 @@
       "withdrawModal": {
         "title": "Withdraw Funds",
         "availableBalance": "Available Balance:",
+        "amount": "Amount",
+        "amountPlaceholder": "Enter amount",
         "withdrawalMethod": "Withdrawal Method",
         "methodCash": "Cash Withdrawal",
         "methodTransfer": "Bank Transfer",
@@ -1189,13 +1570,16 @@
           "deposits": "Deposits",
           "withdrawals": "Withdrawals",
           "transfersIn": "Transfers In",
-          "transfersOut": "Transfers Out"
+          "transfersOut": "Transfers Out",
+          "expenses": "Expenses",
+          "bankTransactions": "Bank Transactions"
         },
         "transactionTypes": {
           "deposit": "Deposit",
           "withdrawal": "Withdrawal",
           "transferIn": "Transfer In",
           "transferOut": "Transfer Out",
+          "expense": "Expense",
           "unknown": "Unknown"
         },
         "notification": {
@@ -1410,6 +1794,7 @@
         "subAccount": "Sub-account",
         "active": "Active",
         "inactive": "Inactive",
+        "accessDenied": "You don't have permission to view Chart of Accounts.",
         "types": {
           "asset": "Asset",
           "liability": "Liability",
@@ -1732,7 +2117,11 @@
     "accountsPayablePage": {
       "title": "Accounts Payable",
       "subtitle": "Vendor bills and payments management",
+      "accessDenied": "You don't have permission to view Accounts Payable.",
       "newBill": "New Bill",
+      "createBillModal": {
+        "comingSoon": "Create bill feature coming soon. Please use the API for now."
+      },
       "tabs": {
         "bills": "Bills",
         "aging": "Aging Report"
@@ -2033,6 +2422,7 @@
         "createSuccess": "Cheque created successfully",
         "updateSuccess": "Cheque updated successfully",
         "saveError": "Failed to save cheque",
+        "validationError": "Please fix the validation errors below.",
         "deleteTitle": "Delete Cheque",
         "deleteConfirm": "Are you sure you want to delete this cheque? This action cannot be undone.",
         "deleteSuccess": "Cheque deleted successfully",
@@ -2045,8 +2435,9 @@
         "bounceError": "Failed to mark cheque as bounced",
         "cancelSuccess": "Cheque cancelled successfully",
         "cancelError": "Failed to cancel cheque"
-      },
-      "fixedAssetsPage": {
+      }
+    },
+    "fixedAssetsPage": {
         "title": "Fixed Asset Register",
         "subtitle": "Track company assets and depreciation",
         "addAsset": "Add Asset",
@@ -2261,7 +2652,9 @@
           "purchase": "Purchase",
           "sale": "Sale",
           "expense": "Expense",
-          "adjustment": "Adjustment"
+          "adjustment": "Adjustment",
+          "transferIn": "Transfer In",
+          "transferOut": "Transfer Out"
         },
         "directions": {
           "input": "Input (Paid on purchases)",
@@ -2357,8 +2750,9 @@
           "paidError": "Failed to mark as paid",
           "filedSuccess": "Entry marked as filed",
           "filedError": "Failed to mark as filed"
-        },
-        "journalEntriesPage": {
+        }
+      },
+      "journalEntriesPage": {
           "title": "Journal Entries",
           "subtitle": "Manage double-entry bookkeeping journals",
           "addEntry": "Add Entry",
@@ -2379,6 +2773,7 @@
             "debits": "Total Debits",
             "credits": "Total Credits",
             "status": "Status",
+            "createdBy": "Created By",
             "actions": "Actions",
             "loading": "Loading entries...",
             "noEntriesFound": "No journal entries found",
@@ -2388,9 +2783,32 @@
             "delete": "Delete"
           },
           "statusBadges": {
+            "active": "Active",
             "balanced": "Balanced",
             "unbalanced": "Unbalanced",
             "reversed": "Reversed"
+          },
+          "viewModal": {
+            "title": "Entry Details",
+            "entryNumber": "Entry Number",
+            "date": "Date",
+            "status": "Status",
+            "description": "Description",
+            "journalItems": "Journal Items",
+            "account": "Account",
+            "debit": "Debit",
+            "credit": "Credit",
+            "total": "Total",
+            "close": "Close"
+          },
+          "reverseModal": {
+            "title": "Reverse Journal Entry",
+            "confirmMessage": "Are you sure you want to reverse this journal entry? This will create a new entry with opposite debits and credits.",
+            "description": "Reversal Reason",
+            "reason": "Why are you reversing this entry?",
+            "reasonPlaceholder": "Enter the reason for reversing this entry...",
+            "reverseEntry": "Reverse Entry",
+            "cancel": "Cancel"
           },
           "modal": {
             "newTitle": "New Journal Entry",
@@ -2403,9 +2821,12 @@
             "description": "Description",
             "descriptionPlaceholder": "Enter entry description",
             "items": "Journal Items",
+            "journalItems": "Journal Items",
+            "addItem": "Add Item",
             "add": "Add",
             "remove": "Remove",
             "account": "Account",
+            "selectAccount": "Select Account",
             "accountPlaceholder": "Select account",
             "debit": "Debit",
             "debitPlaceholder": "0.00",
@@ -2463,8 +2884,6 @@
             "balanced": "This entry is balanced."
           }
         }
-      }
-    }
   },
   "reports": {
     "title": "Reports",

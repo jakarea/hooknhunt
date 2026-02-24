@@ -82,7 +82,8 @@ class ChartOfAccount extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        $type = $this->type ?? 'unknown';
+        return match($type) {
             'asset' => 'Asset',
             'liability' => 'Liability',
             'equity' => 'Equity',

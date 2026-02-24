@@ -19,8 +19,8 @@ class Budget extends Model
         'variance_percentage' => 'decimal:2',
         'alert_threshold' => 'decimal:2',
         'alert_sent' => 'boolean',
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'date:Y-m-d', // Fixed timezone offset
+        'end_date' => 'date:Y-m-d', // Fixed timezone offset
         'approved_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

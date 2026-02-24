@@ -23,7 +23,11 @@ class BankController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Bank::with(['createdBy', 'updatedBy'])->withCount('transactions');
+        if (!auth()->user()->hasPermissionTo('finance.banks.view')) {
+            return $this->sendError('You do not have permission to view bank accounts.', null, 403);
+        }
+
+        $query = Bank::with(['createdBy', 'updatedBy', 'chartOfAccount'])->withCount('transactions');
 
         // Filter by type
         if ($request->has('type')) {
@@ -56,6 +60,10 @@ class BankController extends Controller
      */
     public function store(Request $request)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.create')) {
+            return $this->sendError('You do not have permission to create bank accounts.', null, 403);
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'account_number' => 'nullable|string|max:255|unique:banks,account_number',
@@ -65,10 +73,55 @@ class BankController extends Controller
             'initial_balance' => 'nullable|numeric|min:0',
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
+            'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
         ]);
 
         DB::beginTransaction();
         try {
+            // Find or create chart of account for this bank
+            $chartOfAccountId = $request->chart_of_account_id;
+
+            if (!$chartOfAccountId) {
+                // Check if bank name already exists as chart of account
+                $existingAccount = ChartOfAccount::where('name', 'like', '%' . $request->name . '%')
+                    ->where('type', 'asset')
+                    ->first();
+
+                if ($existingAccount) {
+                    $chartOfAccountId = $existingAccount->id;
+                } else {
+                    // Auto-create chart of account with validation
+                    // Generate a unique code based on account type
+                    $prefix = match($request->type) {
+                        'cash' => 'CASH',
+                        'bank' => 'BANK',
+                        'bkash' => 'BKASH',
+                        'nagad' => 'NAGAD',
+                        'rocket' => 'ROCKET',
+                        default => 'OTHER',
+                    };
+
+                    // Find the next available number for this account type
+                    $lastAccount = ChartOfAccount::where('code', 'like', $prefix . '%')
+                        ->orderBy('code', 'desc')
+                        ->first();
+
+                    $nextNumber = $lastAccount
+                        ? (int) str_replace($prefix, '', $lastAccount->code) + 1
+                        : 1;
+
+                    $code = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+                    $chartOfAccount = ChartOfAccount::create([
+                        'code' => $code,
+                        'name' => "{$request->type} - {$request->name}",
+                        'type' => 'asset',
+                        'is_active' => true,
+                    ]);
+                    $chartOfAccountId = $chartOfAccount->id;
+                }
+            }
+
             $bank = Bank::create([
                 'name' => $request->name,
                 'account_number' => $request->account_number,
@@ -79,6 +132,7 @@ class BankController extends Controller
                 'phone' => $request->phone,
                 'status' => 'active',
                 'notes' => $request->notes,
+                'chart_of_account_id' => $chartOfAccountId,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
@@ -101,7 +155,7 @@ class BankController extends Controller
             }
 
             DB::commit();
-            return $this->sendSuccess($bank->load('createdBy'), 'Bank account created successfully.', 201);
+            return $this->sendSuccess($bank->load('createdBy', 'chartOfAccount'), 'Bank account created successfully.', 201);
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->sendError('Failed to create bank account.', ['error' => $e->getMessage()], 500);
@@ -115,9 +169,14 @@ class BankController extends Controller
      */
     public function show($id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.view')) {
+            return $this->sendError('You do not have permission to view bank accounts.', null, 403);
+        }
+
         $bank = Bank::with([
             'createdBy',
             'updatedBy',
+            'chartOfAccount',
             'transactions' => function ($q) {
                 $q->orderBy('transaction_date', 'desc')->orderBy('created_at', 'desc')->limit(50);
             },
@@ -143,6 +202,10 @@ class BankController extends Controller
      */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.edit')) {
+            return $this->sendError('You do not have permission to edit bank accounts.', null, 403);
+        }
+
         $bank = Bank::findOrFail($id);
 
         $request->validate([
@@ -154,6 +217,7 @@ class BankController extends Controller
             'phone' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
             'status' => 'nullable|in:active,inactive',
+            'chart_of_account_id' => 'nullable|exists:chart_of_accounts,id',
         ]);
 
         $bank->update([
@@ -165,6 +229,7 @@ class BankController extends Controller
             'phone' => $request->phone,
             'notes' => $request->notes,
             'status' => $request->status ?? $bank->status,
+            'chart_of_account_id' => $request->chart_of_account_id ?? $bank->chart_of_account_id,
             'updated_by' => auth()->id(),
         ]);
 
@@ -178,6 +243,10 @@ class BankController extends Controller
      */
     public function destroy($id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.delete')) {
+            return $this->sendError('You do not have permission to delete bank accounts.', null, 403);
+        }
+
         $bank = Bank::findOrFail($id);
 
         // Check if bank has transactions
@@ -225,6 +294,10 @@ class BankController extends Controller
      */
     public function deposit(Request $request, $id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.deposit')) {
+            return $this->sendError('You do not have permission to deposit funds.', null, 403);
+        }
+
         $bank = Bank::findOrFail($id);
 
         if ($bank->status === 'inactive') {
@@ -290,6 +363,10 @@ class BankController extends Controller
      */
     public function withdraw(Request $request, $id)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.withdraw')) {
+            return $this->sendError('You do not have permission to withdraw funds.', null, 403);
+        }
+
         $bank = Bank::findOrFail($id);
 
         if ($bank->status === 'inactive') {
@@ -304,9 +381,8 @@ class BankController extends Controller
             'account_id' => 'required|exists:chart_of_accounts,id', // Expense account to debit
         ]);
 
-        if ($bank->current_balance < $request->amount) {
-            return $this->sendError('Insufficient balance.', null, 400);
-        }
+        // Allow overdraft - transaction will complete even if balance is insufficient
+        // Resulting balance can be negative, user will adjust manually if needed
 
         DB::beginTransaction();
         try {
@@ -360,6 +436,10 @@ class BankController extends Controller
      */
     public function transfer(Request $request)
     {
+        if (!auth()->user()->hasPermissionTo('finance.banks.transfer')) {
+            return $this->sendError('You do not have permission to transfer funds.', null, 403);
+        }
+
         $request->validate([
             'from_bank_id' => 'required|exists:banks,id',
             'to_bank_id' => 'required|exists:banks,id|different:from_bank_id',
@@ -375,9 +455,8 @@ class BankController extends Controller
             return $this->sendError('Cannot transfer to/from inactive accounts.', null, 400);
         }
 
-        if ($fromBank->current_balance < $request->amount) {
-            return $this->sendError('Insufficient balance in source account.', null, 400);
-        }
+        // Allow overdraft - transfer will complete even if source balance is insufficient
+        // Resulting balance can be negative, user will adjust manually if needed
 
         DB::beginTransaction();
         try {
@@ -642,5 +721,33 @@ class BankController extends Controller
         }
 
         return $journalEntry;
+    }
+
+    /**
+     * Get payment accounts (bank accounts linked to chart of accounts).
+     * Used for expense payment account dropdown.
+     *
+     * GET /api/v2/finance/payment-accounts
+     */
+    public function getPaymentAccounts()
+    {
+        // Get all banks with their linked chart accounts
+        $banks = Bank::with('chartOfAccount')
+            ->where('status', 'active')
+            ->whereNotNull('chart_of_account_id')
+            ->get()
+            ->map(function ($bank) {
+                return [
+                    'id' => $bank->chart_of_account_id,
+                    'name' => $bank->chartOfAccount->name ?? $bank->name,
+                    'code' => $bank->chartOfAccount->code ?? '',
+                    'type' => 'asset',
+                    'bank_id' => $bank->id,
+                    'bank_name' => $bank->name,
+                    'bank_type' => $bank->type,
+                ];
+            });
+
+        return $this->sendSuccess($banks, 'Payment accounts retrieved successfully.');
     }
 }

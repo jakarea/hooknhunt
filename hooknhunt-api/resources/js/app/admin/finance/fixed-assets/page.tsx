@@ -181,14 +181,23 @@ export default function FixedAssetsPage() {
 
   const handleSubmit = async (values: AssetFormData) => {
     try {
-      const payload = {
-        ...values,
-        purchase_price: parseFloat(values.purchasePrice as string),
+      const payload: any = {
+        name: values.name,
+        category: values.category,
+        subcategory: values.subcategory || undefined,
+        location: values.location || undefined,
+        serial_number: values.serialNumber || undefined,
+        description: values.description || undefined,
+        purchase_price: typeof values.purchasePrice === 'number' ? values.purchasePrice : parseFloat(values.purchasePrice as string || '0'),
         purchase_date: values.purchaseDate ? new Date(values.purchaseDate).toISOString().split('T')[0] : undefined,
-        salvage_value: parseFloat(values.salvageValue as string),
-        useful_life: parseInt(values.usefulLife as string),
-        depreciation_rate: values.depreciationMethod === 'declining_balance' ? parseFloat(values.depreciationRate as string) : 0,
+        supplier: values.supplier || undefined,
+        invoice_number: values.invoiceNumber || undefined,
+        salvage_value: typeof values.salvageValue === 'number' ? values.salvageValue : parseFloat(values.salvageValue as string || '0'),
+        useful_life: typeof values.usefulLife === 'number' ? values.usefulLife : parseInt(values.usefulLife as string || '5'),
+        depreciation_method: values.depreciationMethod,
+        depreciation_rate: values.depreciationMethod === 'declining_balance' ? (typeof values.depreciationRate === 'number' ? values.depreciationRate : parseFloat(values.depreciationRate as string || '0')) : 0,
         warranty_expiry: values.warrantyExpiry ? new Date(values.warrantyExpiry).toISOString().split('T')[0] : undefined,
+        notes: values.notes || undefined,
       }
 
       if (editId) {
@@ -316,7 +325,7 @@ export default function FixedAssetsPage() {
   }
 
   const getStatusBadge = (asset: FixedAsset) => {
-    if (asset.status === 'active' && asset.is_fully_depreciated) {
+    if (asset.status === 'active' && asset.isFullyDepreciated) {
       return <Badge color="gray">{t('finance.fixedAssetsPage.statusBadges.fullyDepreciated')}</Badge>
     }
     if (asset.status === 'active') {
@@ -354,7 +363,7 @@ export default function FixedAssetsPage() {
                 {t('finance.fixedAssetsPage.summary.totalAssets')}
               </Text>
               <Text size="xl" fw={700} mt={5}>
-                {summary.total_assets}
+                {summary.totalAssets ?? 0}
               </Text>
             </Card>
             <Card padding="lg" radius="md" withBorder>
@@ -362,7 +371,7 @@ export default function FixedAssetsPage() {
                 {t('finance.fixedAssetsPage.summary.activeAssets')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="green">
-                {summary.active_assets}
+                {summary.activeAssets ?? 0}
               </Text>
             </Card>
             <Card padding="lg" radius="md" withBorder>
@@ -370,7 +379,7 @@ export default function FixedAssetsPage() {
                 {t('finance.fixedAssetsPage.summary.totalValue')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="blue">
-                {summary.total_purchase_value?.toFixed(2)}৳
+                {summary.totalPurchaseValue?.toFixed(2) ?? '0.00'}৳
               </Text>
             </Card>
             <Card padding="lg" radius="md" withBorder>
@@ -378,7 +387,7 @@ export default function FixedAssetsPage() {
                 {t('finance.fixedAssetsPage.summary.netBookValue')}
               </Text>
               <Text size="xl" fw={700} mt={5} c="cyan">
-                {summary.total_net_book_value?.toFixed(2)}৳
+                {summary.totalNetBookValue?.toFixed(2) ?? '0.00'}৳
               </Text>
             </Card>
           </SimpleGrid>
@@ -481,31 +490,31 @@ export default function FixedAssetsPage() {
                         <Text size="sm">{new Date(asset.purchaseDate).toLocaleDateString()}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text ta="right">{asset.purchasePrice.toFixed(2)}৳</Text>
+                        <Text ta="right">{parseFloat(asset.purchasePrice || 0).toFixed(2)}৳</Text>
                       </Table.Td>
                       <Table.Td>
                         <Text ta="right" size="sm" c="red">
-                          {asset.accumulatedDepreciation.toFixed(2)}৳
+                          {parseFloat(asset.accumulatedDepreciation || 0).toFixed(2)}৳
                         </Text>
                         <Text ta="right" size="xs" c="dimmed">
                           {getDepreciationMethodLabel(asset.depreciationMethod)}
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text ta="right" fw={500} c={asset.netBookValue > 0 ? 'green' : 'gray'}>
-                          {asset.netBookValue.toFixed(2)}৳
+                        <Text ta="right" fw={500} c={parseFloat(asset.netBookValue || 0) > 0 ? 'green' : 'gray'}>
+                          {parseFloat(asset.netBookValue || 0).toFixed(2)}৳
                         </Text>
                       </Table.Td>
                       <Table.Td>
                         {asset.depreciationMethod !== 'none' && (
                           <Box w={80}>
                             <Progress
-                              value={asset.depreciation_progress || 0}
+                              value={asset.depreciationProgress || 0}
                               size="sm"
-                              color={asset.is_fully_depreciated ? 'gray' : 'blue'}
+                              color={asset.isFullyDepreciated ? 'gray' : 'blue'}
                             />
                             <Text size="xs" c="dimmed" mt={2}>
-                              {Math.round(asset.depreciation_progress || 0)}%
+                              {Math.round(asset.depreciationProgress || 0)}%
                             </Text>
                           </Box>
                         )}
@@ -703,7 +712,7 @@ export default function FixedAssetsPage() {
                         {t('finance.fixedAssetsPage.modal.view.purchasePrice')}
                       </Text>
                       <Text size="md" fw={500}>
-                        {viewAsset.purchasePrice.toFixed(2)}৳
+                        {parseFloat(viewAsset.purchasePrice || 0).toFixed(2)}৳
                       </Text>
                     </Box>
                     <Box>
@@ -716,7 +725,7 @@ export default function FixedAssetsPage() {
                       <Text size="sm" c="dimmed">
                         {t('finance.fixedAssetsPage.modal.salvageValue')}
                       </Text>
-                      <Text size="md">{viewAsset.salvageValue.toFixed(2)}৳</Text>
+                      <Text size="md">{parseFloat(viewAsset.salvageValue || 0).toFixed(2)}৳</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
@@ -743,7 +752,7 @@ export default function FixedAssetsPage() {
                         {t('finance.fixedAssetsPage.modal.view.accumulatedDepreciation')}
                       </Text>
                       <Text size="md" c="red" fw={500}>
-                        {viewAsset.accumulatedDepreciation.toFixed(2)}৳
+                        {parseFloat(viewAsset.accumulatedDepreciation || 0).toFixed(2)}৳
                       </Text>
                     </Box>
                     <Box>
@@ -751,7 +760,7 @@ export default function FixedAssetsPage() {
                         {t('finance.fixedAssetsPage.modal.view.netBookValue')}
                       </Text>
                       <Text size="md" c="green" fw={500}>
-                        {viewAsset.netBookValue.toFixed(2)}৳
+                        {parseFloat(viewAsset.netBookValue || 0).toFixed(2)}৳
                       </Text>
                     </Box>
                     <Box>
@@ -792,9 +801,9 @@ export default function FixedAssetsPage() {
                           {viewAsset.depreciation_schedule.map((item) => (
                             <Table.Tr key={item.year}>
                               <Table.Td>{item.year}</Table.Td>
-                              <Table.Td>{item.depreciation.toFixed(2)}৳</Table.Td>
-                              <Table.Td>{item.accumulated.toFixed(2)}৳</Table.Td>
-                              <Table.Td>{item.book_value.toFixed(2)}৳</Table.Td>
+                              <Table.Td>{parseFloat(item.depreciation || 0).toFixed(2)}৳</Table.Td>
+                              <Table.Td>{parseFloat(item.accumulated || 0).toFixed(2)}৳</Table.Td>
+                              <Table.Td>{parseFloat(item.book_value || 0).toFixed(2)}৳</Table.Td>
                             </Table.Tr>
                           ))}
                         </Table.Tbody>

@@ -51,7 +51,7 @@ api.interceptors.response.use(
     // Network error (no internet connection)
     if (!error.response) {
       showErrorToast('network_error')
-      return Promise.reject(new Error('Network error'))
+      return Promise.reject({ ...error, handled: true, message: 'Network error. Please check your connection.' })
     }
 
     const status = error.response.status
@@ -60,10 +60,14 @@ api.interceptors.response.use(
     // Handle specific error status codes
     switch (status) {
       case 401:
-        // Unauthorized - clear auth and redirect to login
-        useAuthStore.getState().logout()
-        showErrorToast('session_expired')
-        window.location.href = '/login'
+        // Don't redirect if we're already on login page (let the login form handle the error)
+        const currentPath = window.location.pathname
+        if (currentPath !== '/login') {
+          // Unauthorized - clear auth and redirect to login
+          useAuthStore.getState().logout()
+          showErrorToast('session_expired')
+          window.location.href = '/login'
+        }
         break
 
       case 403:

@@ -19,7 +19,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'brand', 'thumbnail']);
+        $query = Product::with(['category', 'brand', 'thumbnail', 'variants.batches']);
 
         if ($request->search) {
             $query->where('name', 'like', "%{$request->search}%")
@@ -32,7 +32,18 @@ class ProductController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        return $this->sendSuccess($query->paginate(20));
+        if ($request->status && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->brand_id) {
+            $query->where('brand_id', $request->brand_id);
+        }
+
+        $perPage = $request->per_page ?? 20;
+        $page = $request->page ?? 1;
+
+        return $this->sendSuccess($query->paginate($perPage, ['*'], 'page', $page));
     }
 
     /**
@@ -154,5 +165,119 @@ class ProductController extends Controller
         ]);
 
         return $this->sendSuccess($product->load('suppliers'), 'Supplier linked with multiple URLs');
+    }
+
+    /**
+     * Update Product
+     * PUT/PATCH /api/v2/catalog/products/{id}
+     */
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'name' => 'sometimes|required|string',
+            'category_id' => 'sometimes|required|exists:categories,id',
+            'brand_id' => 'nullable|exists:brands,id',
+            'status' => 'in:draft,published,archived'
+        ]);
+
+        $product = Product::findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $product->update([
+                'name' => $request->name ?? $product->name,
+                'slug' => $request->name ? Str::slug($request->name) . '-' . time() : $product->slug,
+                'category_id' => $request->category_id ?? $product->category_id,
+                'brand_id' => $request->brand_id ?? $product->brand_id,
+                'thumbnail_id' => $request->thumbnail_id ?? $product->thumbnail_id,
+                'gallery_images' => $request->gallery_images ?? $product->gallery_images,
+                'description' => $request->description ?? $product->description,
+                'status' => $request->status ?? $product->status,
+                'video_url' => $request->video_url ?? $product->video_url
+            ]);
+
+            DB::commit();
+            return $this->sendSuccess($product->load(['category', 'brand', 'thumbnail']), 'Product updated successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Product update failed', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Delete Product (Soft Delete)
+     * DELETE /api/v2/catalog/products/{id}
+     */
+    public function destroy($id)
+    {
+        $product = Product::findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $product->delete();
+            DB::commit();
+            return $this->sendSuccess(null, 'Product deleted successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Product deletion failed', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Duplicate Product
+     * POST /api/v2/catalog/products/{id}/duplicate
+     */
+    public function duplicate($id)
+    {
+        $product = Product::with(['variants', 'category', 'brand', 'thumbnail'])->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            // Create new product from existing
+            $newProduct = Product::create([
+                'name' => $product->name . ' (Copy)',
+                'slug' => Str::slug($product->name) . '-copy-' . time(),
+                'category_id' => $product->category_id,
+                'brand_id' => $product->brand_id,
+                'thumbnail_id' => $product->thumbnail_id,
+                'gallery_images' => $product->gallery_images,
+                'description' => $product->description,
+                'status' => 'draft', // Always start as draft
+                'video_url' => $product->video_url
+            ]);
+
+            // Duplicate variants
+            foreach ($product->variants as $variant) {
+                $newVariant = $variant->replicate();
+                $newVariant->product_id = $newProduct->id;
+                $newVariant->sku = $variant->sku . '-COPY';
+                $newVariant->save();
+            }
+
+            DB::commit();
+            return $this->sendSuccess($newProduct->load(['variants', 'category', 'brand', 'thumbnail']), 'Product duplicated successfully');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->sendError('Product duplication failed', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Quick Status Change
+     * PATCH /api/v2/catalog/products/{id}/status
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,published,archived'
+        ]);
+
+        $product = Product::findOrFail($id);
+        $product->update(['status' => $request->status]);
+
+        return $this->sendSuccess($product, 'Product status updated successfully');
     }
 }

@@ -26,7 +26,7 @@ import {
   PasswordInput,
   Modal,
 } from '@mantine/core'
-import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser, IconKey, IconMail } from '@tabler/icons-react'
+import { IconChevronRight, IconDeviceFloppy, IconArrowLeft, IconSearch, IconCheck, IconX, IconRefresh, IconLock, IconUser, IconKey, IconMail, IconCoin } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { modals } from '@mantine/modals'
 import api from '@/lib/api'
@@ -93,6 +93,13 @@ export default function EditStaffPage() {
   const [whatsappNumber, setWhatsappNumber] = useState('')
   const [officeEmail, setOfficeEmail] = useState('')
   const [officeEmailPassword, setOfficeEmailPassword] = useState('')
+
+  // Bank account states
+  const [bankAccountName, setBankAccountName] = useState('')
+  const [bankAccountNumber, setBankAccountNumber] = useState('')
+  const [bankName, setBankName] = useState('')
+  const [bankBranch, setBankBranch] = useState('')
+
   const [grantedPermissions, setGrantedPermissions] = useState<number[]>([])
   const [blockedPermissions, setBlockedPermissions] = useState<number[]>([])
   const [permissionSearch, setPermissionSearch] = useState('')
@@ -229,6 +236,10 @@ export default function EditStaffPage() {
           setWhatsappNumber(userData.staffProfile.whatsappNumber || '')
           setOfficeEmail(userData.staffProfile.officeEmail || '')
           setOfficeEmailPassword(userData.staffProfile.officeEmailPassword || '')
+          setBankAccountName(userData.staffProfile.bankAccountName || '')
+          setBankAccountNumber(userData.staffProfile.bankAccountNumber || '')
+          setBankName(userData.staffProfile.bankName || '')
+          setBankBranch(userData.staffProfile.bankBranch || '')
         }
 
         // Fetch user permissions separately
@@ -354,6 +365,10 @@ export default function EditStaffPage() {
         whatsapp_number: string | null
         office_email: string | null
         office_email_password: string | null
+        bank_account_name: string | null
+        bank_account_number: string | null
+        bank_name: string | null
+        bank_branch: string | null
       } = {
         name,
         phone,
@@ -377,6 +392,10 @@ export default function EditStaffPage() {
         whatsapp_number: whatsappNumber || null,
         office_email: officeEmail || null,
         office_email_password: officeEmailPassword || null,
+        bank_account_name: bankAccountName || null,
+        bank_account_number: bankAccountNumber || null,
+        bank_name: bankName || null,
+        bank_branch: bankBranch || null,
       }
 
       // Update user
@@ -1077,6 +1096,48 @@ export default function EditStaffPage() {
                   />
                 </Grid.Col>
               </Grid>
+            </Stack>
+          </Paper>
+
+          {/* Bank Account Information */}
+          <Paper withBorder p={{ base: 'md', md: 'xl' }} radius="lg" pos="relative">
+            <LoadingOverlay visible={saving} overlayProps={{ blur: 2 }} />
+            <Stack>
+              <Group gap="xs">
+                <IconCoin size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
+                <Title order={3} className="text-base md:text-lg lg:text-xl">Bank Account Information</Title>
+                <Text size="xs" c="dimmed">(For automatic salary transfer)</Text>
+              </Group>
+              <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                <TextInput
+                  label="Account Holder Name"
+                  placeholder="Name as per bank account"
+                  value={bankAccountName}
+                  onChange={(e) => setBankAccountName(e.currentTarget.value)}
+                  className="text-base md:text-lg"
+                />
+                <TextInput
+                  label="Bank Account Number"
+                  placeholder="Enter bank account number"
+                  value={bankAccountNumber}
+                  onChange={(e) => setBankAccountNumber(e.currentTarget.value)}
+                  className="text-base md:text-lg"
+                />
+                <TextInput
+                  label="Bank Name"
+                  placeholder="e.g., Dutch-Bangla Bank, BRAC Bank"
+                  value={bankName}
+                  onChange={(e) => setBankName(e.currentTarget.value)}
+                  className="text-base md:text-lg"
+                />
+                <TextInput
+                  label="Branch Name"
+                  placeholder="e.g., Gulshan Avenue Branch"
+                  value={bankBranch}
+                  onChange={(e) => setBankBranch(e.currentTarget.value)}
+                  className="text-base md:text-lg"
+                />
+              </SimpleGrid>
             </Stack>
           </Paper>
 

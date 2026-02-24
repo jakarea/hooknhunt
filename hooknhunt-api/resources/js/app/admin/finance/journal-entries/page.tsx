@@ -171,28 +171,41 @@ export default function JournalEntriesPage() {
 
   const handleOpenEdit = useCallback(async (id: number) => {
     try {
+      console.log('Fetching journal entry:', id)
       const response = await getJournalEntry(id)
-      const entry = response.data
+      console.log('API response:', response)
+
+      const entry = response.data?.data || response.data
+      console.log('Entry data:', entry)
+
+      if (!entry) {
+        throw new Error('No entry data received')
+      }
 
       setEditId(id)
+
+      // Map items safely with default values
+      const items = entry.items?.map((item: any) => ({
+        account_id: item.account_id?.toString() || item.account?.id?.toString() || '',
+        debit: item.debit?.toString() || '0',
+        credit: item.credit?.toString() || '0',
+      })) || [
+        { account_id: '', debit: '', credit: '' },
+        { account_id: '', debit: '', credit: '' },
+      ]
+
       form.setValues({
-        entry_number: entry.entryNumber || entry.entry_number,
-        date: new Date(entry.date),
+        entry_number: entry.entryNumber || entry.entry_number || '',
+        date: entry.date ? new Date(entry.date) : new Date(),
         description: entry.description || '',
-        items: entry.items?.map((item: JournalItem) => ({
-          account_id: item.account_id.toString(),
-          debit: item.debit.toString(),
-          credit: item.credit.toString(),
-        })) || [
-          { account_id: '', debit: '', credit: '' },
-          { account_id: '', debit: '', credit: '' },
-        ],
+        items,
       })
       setModalOpened(true)
     } catch (error: any) {
+      console.error('Failed to load journal entry:', error)
       notifications.show({
         title: 'Error',
-        message: 'Failed to load journal entry',
+        message: error.response?.data?.message || error.message || 'Failed to load journal entry',
         color: 'red',
       })
     }
@@ -201,7 +214,7 @@ export default function JournalEntriesPage() {
   const handleOpenView = useCallback(async (id: number) => {
     try {
       const response = await getJournalEntry(id)
-      setSelectedEntry(response.data)
+      setSelectedEntry(response.data.data || response.data)
       setViewModalOpened(true)
     } catch (error: any) {
       notifications.show({
@@ -479,7 +492,7 @@ export default function JournalEntriesPage() {
                   <Table.Th>{t('finance.journalEntriesPage.table.debits')}</Table.Th>
                   <Table.Th>{t('finance.journalEntriesPage.table.credits')}</Table.Th>
                   <Table.Th>{t('finance.journalEntriesPage.table.status')}</Table.Th>
-                  <Table.Th>Created By</Table.Th>
+                  <Table.Th>{t('finance.journalEntriesPage.table.createdBy')}</Table.Th>
                   <Table.Th ta="right">{t('finance.journalEntriesPage.table.actions')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>

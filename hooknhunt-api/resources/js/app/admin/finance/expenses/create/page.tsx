@@ -25,6 +25,7 @@ import {
   IconReceipt,
   IconUpload,
   IconInfoCircle,
+  IconWallet,
 } from '@tabler/icons-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
@@ -34,8 +35,10 @@ import {
   createExpense,
   getAccounts,
   getUsers,
+  getPaymentAccounts,
   type ChartOfAccount,
   type User,
+  type BankAccount,
 } from '@/utils/api'
 
 export default function CreateExpensePage() {
@@ -43,6 +46,7 @@ export default function CreateExpensePage() {
   const navigate = useNavigate()
 
   const [accounts, setAccounts] = useState<ChartOfAccount[]>([])
+  const [paymentAccounts, setPaymentAccounts] = useState<(ChartOfAccount | BankAccount)[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -50,6 +54,7 @@ export default function CreateExpensePage() {
     title: '',
     amount: '',
     accountId: '',
+    paymentAccountId: '',
     expenseDate: new Date(),
     referenceNumber: '',
     paidById: '',
@@ -76,10 +81,13 @@ export default function CreateExpensePage() {
         // Fetch accounts
         const accountsResponse = await getAccounts()
 
+        console.log('DEBUG: Raw accountsResponse:', accountsResponse)
+
         let accountsData: ChartOfAccount[] = []
         if (accountsResponse && typeof accountsResponse === 'object') {
           if ('data' in accountsResponse) {
             const innerData = accountsResponse.data
+            console.log('DEBUG: innerData:', innerData)
             if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
               accountsData = innerData.data
             } else if (Array.isArray(innerData)) {
@@ -90,12 +98,57 @@ export default function CreateExpensePage() {
           }
         }
 
+        console.log('DEBUG: accountsData count:', accountsData.length)
+        console.log('DEBUG: First 3 accounts:', accountsData.slice(0, 3))
+
         // Filter only expense accounts (case-insensitive)
         const expenseAccounts = accountsData.filter((acc) => {
           const accountType = typeof acc.type === 'string' ? acc.type.toLowerCase() : ''
           return accountType === 'expense'
         })
+        console.log('DEBUG: expenseAccounts count:', expenseAccounts.length)
         setAccounts(expenseAccounts)
+
+        // Fetch payment accounts (bank accounts linked to chart of accounts)
+        try {
+          const paymentAccountsResponse = await getPaymentAccounts()
+          let paymentAccountsData: any[] = []
+
+          if (paymentAccountsResponse && typeof paymentAccountsResponse === 'object') {
+            if (Array.isArray(paymentAccountsResponse)) {
+              paymentAccountsData = paymentAccountsResponse
+            } else if ('data' in paymentAccountsResponse) {
+              if (Array.isArray(paymentAccountsResponse.data)) {
+                paymentAccountsData = paymentAccountsResponse.data
+              } else if (typeof paymentAccountsResponse.data === 'object' && 'data' in paymentAccountsResponse.data && Array.isArray(paymentAccountsResponse.data.data)) {
+                paymentAccountsData = paymentAccountsResponse.data.data
+              }
+            }
+          }
+
+          console.log('DEBUG: paymentAccounts count:', paymentAccountsData.length)
+          setPaymentAccounts(paymentAccountsData)
+        } catch (paymentError) {
+          console.error('Failed to fetch payment accounts:', paymentError)
+          // Fallback to filtered chart of accounts
+          const fallbackAccounts = accountsData.filter((acc) => {
+            const accountType = typeof acc.type === 'string' ? acc.type.toLowerCase() : ''
+            const name = typeof acc.name === 'string' ? acc.name.toLowerCase() : ''
+            const code = typeof acc.code === 'string' ? acc.code.toLowerCase() : ''
+
+            if (accountType !== 'asset') return false
+
+            // Only include liquid assets (cash, bank, mobile banking)
+            const isLiquidAsset = name.includes('cash') || name.includes('bank') ||
+                                  name.includes('bkash') || name.includes('bKash') ||
+                                  name.includes('nagad') || name.includes('rocket') ||
+                                  code.includes('bkash') || code.includes('bank') ||
+                                  code.includes('rocket') || code.includes('cash')
+
+            return isLiquidAsset && acc.isActive !== false
+          })
+          setPaymentAccounts(fallbackAccounts)
+        }
 
         // Fetch users
         const usersResponse = await getUsers()
@@ -215,11 +268,22 @@ export default function CreateExpensePage() {
     setIsSubmitting(true)
 
     try {
+      // Format date safely
+      let formattedDate = new Date().toISOString().split('T')[0]
+      if (formData.expenseDate) {
+        if (formData.expenseDate instanceof Date) {
+          formattedDate = formData.expenseDate.toISOString().split('T')[0]
+        } else if (typeof formData.expenseDate === 'string') {
+          formattedDate = formData.expenseDate
+        }
+      }
+
       const payload = {
         title: formData.title,
         amount: parseFloat(formData.amount as string),
         accountId: parseInt(formData.accountId),
-        expenseDate: formData.expenseDate ? formData.expenseDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        paymentAccountId: formData.paymentAccountId ? parseInt(formData.paymentAccountId) : null,
+        expenseDate: formattedDate,
         referenceNumber: formData.referenceNumber || undefined,
         paidById: formData.paidById ? parseInt(formData.paidById) : undefined,
         notes: formData.notes || undefined,
@@ -377,6 +441,29 @@ export default function CreateExpensePage() {
                 error={errors.expenseDate}
                 maxDate={new Date()}
                 // clearable temporarily removed for debugging
+              />
+
+              {/* Payment From (Bank/Cash Account) */}
+              <Select
+                label="Payment From"
+                placeholder="Select bank or cash account"
+                description="Which account will pay for this expense?"
+                data={paymentAccounts.map((acc) => ({
+                  value: acc.id.toString(),
+                  // Handle both BankAccount (has accountNumber) and ChartOfAccount (has code)
+                  label: acc.code
+                    ? `${acc.name} (${acc.code})`
+                    : acc.accountNumber
+                      ? `${acc.name} - ${acc.accountNumber}`
+                      : acc.name,
+                }))}
+                value={formData.paymentAccountId}
+                onChange={(value) => {
+                  handleChange('paymentAccountId', value || '')
+                }}
+                searchable
+                clearable
+                leftSection={<IconWallet size={16} />}
               />
 
               {/* Reference Number */}

@@ -123,6 +123,16 @@ export const getBanksSummary = async () => {
   return response.data
 }
 
+/**
+ * Get payment accounts (bank accounts linked to chart of accounts)
+ * Used for expense payment account dropdown
+ * GET /api/v2/finance/payment-accounts
+ */
+export const getPaymentAccounts = async () => {
+  const response = await api.get('finance/payment-accounts')
+  return response.data
+}
+
 // ============================================
 // BANK TRANSACTION API METHODS
 // ============================================
@@ -145,7 +155,7 @@ export type BankTransaction = {
   createdAt: string
 }
 
-export type TransactionType = 'all' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out'
+export type TransactionType = 'all' | 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'expense' | 'bank'
 
 export type TransactionFilters = {
   search?: string
@@ -233,6 +243,89 @@ export const createTransfer = async (fromBankId: number, data: {
   reference_number?: string
 }) => {
   const response = await api.post(`finance/banks/transfer`, { ...data, from_bank_id: fromBankId })
+  return response.data
+}
+
+// ============================================
+// UNIFIED TRANSACTIONS API METHODS (Bank + Expenses)
+// ============================================
+
+export type UnifiedTransaction = {
+  id: string // 'bt_123' for bank transactions, 'exp_456' for expenses
+  transactionType: 'bank_transaction' | 'expense'
+  type: 'deposit' | 'withdrawal' | 'transfer_in' | 'transfer_out' | 'expense'
+  transactionDate: string | null
+  description: string
+  referenceNumber?: string | null
+  amount: number
+  balanceBefore: number | null
+  balanceAfter: number | null
+  bank: {
+    id: number
+    name: string
+  } | null
+  createdBy: {
+    id: number
+    name: string
+  } | null
+  transactionableType: string
+  transactionableId: number
+  createdAt: string | null
+  expenseData?: {
+    account: {
+      id: number
+      name: string
+    } | null
+    vatAmount: number
+    taxAmount: number
+  }
+}
+
+export type UnifiedTransactionFilters = {
+  search?: string
+  bank_id?: number | null
+  type?: TransactionType
+  start_date?: string
+  end_date?: string
+  per_page?: number
+  page?: number
+}
+
+/**
+ * Get all transactions (bank + expenses)
+ * GET /api/v2/finance/transactions
+ */
+export const getTransactions = async (filters?: UnifiedTransactionFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.bank_id) params.append('bank_id', filters.bank_id)
+  if (filters?.type && filters.type !== 'all') params.append('type', filters.type)
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+  if (filters?.page) params.append('page', filters.page.toString())
+
+  const response = await api.get(`finance/transactions${params.toString() ? '?' + params.toString() : ''}`)
+  return response.data
+}
+
+/**
+ * Get unified transaction statistics
+ * GET /api/v2/finance/transactions/statistics
+ */
+export const getTransactionStatistics = async (filters?: {
+  start_date?: string
+  end_date?: string
+  bank_id?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.start_date) params.append('start_date', filters.start_date)
+  if (filters?.end_date) params.append('end_date', filters.end_date)
+  if (filters?.bank_id) params.append('bank_id', filters.bank_id)
+
+  const response = await api.get(`finance/transactions/statistics${params.toString() ? '?' + params.toString() : ''}`)
   return response.data
 }
 
@@ -710,20 +803,39 @@ export const createExpense = async (data: {
   title: string
   amount: number
   accountId: number
+  paymentAccountId?: number | null
   expenseDate: string
   referenceNumber?: string
   notes?: string
   attachment?: string | File
+  // VAT fields
+  vatPercentage?: number | null
+  vatAmount?: number | null
+  vatChallanNo?: string | null
+  // Tax fields
+  taxPercentage?: number | null
+  taxAmount?: number | null
+  taxChallanNo?: string | null
 }) => {
-  const payload = {
+  const payload: any = {
     title: data.title,
     amount: data.amount,
     account_id: data.accountId,
+    payment_account_id: data.paymentAccountId,
     expense_date: data.expenseDate,
     reference_number: data.referenceNumber,
     notes: data.notes,
     attachment: data.attachment,
   }
+  // VAT fields
+  if (data.vatPercentage !== undefined) payload.vat_percentage = data.vatPercentage
+  if (data.vatAmount !== undefined) payload.vat_amount = data.vatAmount
+  if (data.vatChallanNo !== undefined) payload.vat_challan_no = data.vatChallanNo
+  // Tax fields
+  if (data.taxPercentage !== undefined) payload.tax_percentage = data.taxPercentage
+  if (data.taxAmount !== undefined) payload.tax_amount = data.taxAmount
+  if (data.taxChallanNo !== undefined) payload.tax_challan_no = data.taxChallanNo
+
   const response = await api.post('finance/expenses', payload)
   return response.data
 }
@@ -745,19 +857,37 @@ export const updateExpense = async (id: number, data: {
   title?: string
   amount?: number
   accountId?: number
+  paymentAccountId?: number | null
   expenseDate?: string
   referenceNumber?: string
   notes?: string
   attachment?: string | File
+  // VAT fields
+  vatPercentage?: number | null
+  vatAmount?: number | null
+  vatChallanNo?: string | null
+  // Tax fields
+  taxPercentage?: number | null
+  taxAmount?: number | null
+  taxChallanNo?: string | null
 }) => {
   const payload: any = {}
   if (data.title !== undefined) payload.title = data.title
   if (data.amount !== undefined) payload.amount = data.amount
   if (data.accountId !== undefined) payload.account_id = data.accountId
+  if (data.paymentAccountId !== undefined) payload.payment_account_id = data.paymentAccountId
   if (data.expenseDate !== undefined) payload.expense_date = data.expenseDate
   if (data.referenceNumber !== undefined) payload.reference_number = data.referenceNumber
   if (data.notes !== undefined) payload.notes = data.notes
   if (data.attachment !== undefined) payload.attachment = data.attachment
+  // VAT fields
+  if (data.vatPercentage !== undefined) payload.vat_percentage = data.vatPercentage
+  if (data.vatAmount !== undefined) payload.vat_amount = data.vatAmount
+  if (data.vatChallanNo !== undefined) payload.vat_challan_no = data.vatChallanNo
+  // Tax fields
+  if (data.taxPercentage !== undefined) payload.tax_percentage = data.taxPercentage
+  if (data.taxAmount !== undefined) payload.tax_amount = data.taxAmount
+  if (data.taxChallanNo !== undefined) payload.tax_challan_no = data.taxChallanNo
 
   const response = await api.put(`finance/expenses/${id}`, payload)
   return response.data
@@ -998,15 +1128,15 @@ export type FixedAsset = {
   createdAt: string
   updatedAt: string
   // Computed fields
-  remaining_life?: number
-  depreciation_progress?: number
-  depreciation_schedule?: Array<{
+  remainingLife?: number
+  depreciationProgress?: number
+  depreciationSchedule?: Array<{
     year: number
     depreciation: number
     accumulated: number
-    book_value: number
+    bookValue: number
   }>
-  is_fully_depreciated?: boolean
+  isFullyDepreciated?: boolean
 }
 
 export type FixedAssetFilters = {
@@ -1360,34 +1490,34 @@ export const getChequesSummary = async () => {
 
 export type VatTaxLedger = {
   id: number
-  transaction_type: 'purchase' | 'sale' | 'expense' | 'adjustment'
-  tax_type: 'vat' | 'tax' | 'ait'
-  base_amount: number
-  tax_rate: number
-  tax_amount: number
+  transactionType: 'purchase' | 'sale' | 'expense' | 'adjustment'
+  taxType: 'vat' | 'tax' | 'ait'
+  baseAmount: number
+  taxRate: number
+  taxAmount: number
   direction: 'input' | 'output'
-  flow_type: 'debit' | 'credit'
-  transaction_date: string
-  chart_account_id?: number
-  fiscal_year?: string
-  tax_period?: string
-  challan_number?: string
-  challan_date?: string
-  is_paid: boolean
-  payment_date?: string
-  payment_reference?: string
+  flowType: 'debit' | 'credit'
+  transactionDate: string
+  chartAccountId?: number
+  fiscalYear?: string
+  taxPeriod?: string
+  challanNumber?: string
+  challanDate?: string
+  isPaid: boolean
+  paymentDate?: string
+  paymentReference?: string
   status: 'pending' | 'filed' | 'paid'
   description?: string
   notes?: string
-  tax_type_label?: string
-  direction_label?: string
-  status_label?: string
-  status_badge?: string
-  chart_account?: any
+  taxTypeLabel?: string
+  directionLabel?: string
+  statusLabel?: string
+  statusBadge?: string
+  chartAccount?: any
   creator?: any
   updater?: any
-  created_at: string
-  updated_at: string
+  createdAt: string
+  updatedAt: string
 }
 
 export type VatTaxLedgerFilters = {
@@ -2607,6 +2737,9 @@ export type Supplier = {
   alipayQrUrl?: string | null
   address?: string | null
   isActive: boolean
+  walletBalance?: number | null
+  creditLimit?: number | null
+  walletNotes?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -3641,5 +3774,563 @@ export const getEntityHistory = async (entityType: string, entityId: number) => 
  */
 export const getEntityTimeline = async (entityType: string, entityId: number) => {
   const response = await api.get(`finance/audit/timeline?entity_type=${entityType}&entity_id=${entityId}`)
+  return response.data
+}
+
+// ============================================
+// PRODUCTS API METHODS
+// ============================================
+
+export type Product = {
+  id: number
+  name: string
+  slug: string
+  categoryId: number
+  brandId?: number | null
+  thumbnailId?: number | null
+  galleryImages?: number[] | null
+  description?: string | null
+  status: 'draft' | 'published' | 'archived'
+  videoUrl?: string | null
+  createdAt: string
+  updatedAt: string
+  category?: {
+    id: number
+    name: string
+  }
+  brand?: {
+    id: number
+    name: string
+  }
+  thumbnail?: {
+    id: number
+    fileName: string
+    filePath: string
+  }
+  variants?: ProductVariant[]
+}
+
+export type ProductVariant = {
+  id: number
+  productId: number
+  sku: string
+  customSku?: string | null
+  variantName?: string | null
+  size?: string | null
+  color?: string | null
+  unitId: number
+  defaultRetailPrice: number
+  defaultWholesalePrice?: number | null
+  defaultPurchaseCost: number
+  stockAlertLevel: number
+  currentStock?: number
+  fullName?: string
+  channelSettings?: ProductChannelSetting[]
+}
+
+export type ProductChannelSetting = {
+  id: number
+  productVariantId: number
+  channel: 'retail_web' | 'wholesale_web' | 'daraz' | 'pos'
+  price: number
+  customName?: string | null
+  isActive: boolean
+}
+
+export type ProductFilters = {
+  search?: string
+  category_id?: number
+  status?: 'draft' | 'published' | 'archived'
+  per_page?: number
+  page?: number
+}
+
+/**
+ * Get products with optional filters
+ * GET /api/v2/catalog/products
+ */
+export const getProducts = async (filters?: ProductFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.category_id) params.append('category_id', filters.category_id.toString())
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+  if (filters?.page) params.append('page', filters.page.toString())
+
+  const response = await api.get(`catalog/products?${params}`)
+  return response.data
+}
+
+/**
+ * Get single product by ID
+ * GET /api/v2/catalog/products/{id}
+ */
+export const getProduct = async (id: number) => {
+  const response = await api.get(`catalog/products/${id}`)
+  return response.data
+}
+
+/**
+ * Create new product
+ * POST /api/v2/catalog/products
+ */
+export const createProduct = async (data: {
+  name: string
+  categoryId: number
+  brandId?: number
+  thumbnailId?: number
+  galleryImages?: number[]
+  description?: string
+  status?: 'draft' | 'published' | 'archived'
+  videoUrl?: string
+}) => {
+  const response = await api.post('catalog/products', {
+    name: data.name,
+    category_id: data.categoryId,
+    brand_id: data.brandId,
+    thumbnail_id: data.thumbnailId,
+    gallery_images: data.galleryImages,
+    description: data.description,
+    status: data.status || 'draft',
+    video_url: data.videoUrl,
+  })
+  return response.data
+}
+
+/**
+ * Update product
+ * PUT/PATCH /api/v2/catalog/products/{id}
+ */
+export const updateProduct = async (id: number, data: {
+  name?: string
+  categoryId?: number
+  brandId?: number
+  thumbnailId?: number
+  galleryImages?: number[]
+  description?: string
+  status?: 'draft' | 'published' | 'archived'
+  videoUrl?: string
+}) => {
+  const response = await api.put(`catalog/products/${id}`, {
+    name: data.name,
+    category_id: data.categoryId,
+    brand_id: data.brandId,
+    thumbnail_id: data.thumbnailId,
+    gallery_images: data.galleryImages,
+    description: data.description,
+    status: data.status,
+    video_url: data.videoUrl,
+  })
+  return response.data
+}
+
+/**
+ * Delete product (soft delete)
+ * DELETE /api/v2/catalog/products/{id}
+ */
+export const deleteProduct = async (id: number) => {
+  const response = await api.delete(`catalog/products/${id}`)
+  return response.data
+}
+
+/**
+ * Duplicate product
+ * POST /api/v2/catalog/products/{id}/duplicate
+ */
+export const duplicateProduct = async (id: number) => {
+  const response = await api.post(`catalog/products/${id}/duplicate`)
+  return response.data
+}
+
+/**
+ * Generate unique SKU
+ * POST /api/v2/catalog/products/generate-sku
+ */
+export const generateSku = async (categoryName: string) => {
+  const response = await api.post('catalog/products/generate-sku', {
+    category_name: categoryName,
+  })
+  return response.data
+}
+
+/**
+ * Add variant to product
+ * POST /api/v2/catalog/products/{id}/variants
+ */
+export const createProductVariant = async (productId: number, data: {
+  sku: string
+  customSku?: string
+  variantName?: string
+  size?: string
+  color?: string
+  unitId: number
+  price: number
+  cost?: number
+  alertQty?: number
+}) => {
+  const response = await api.post(`catalog/products/${productId}/variants`, {
+    sku: data.sku,
+    custom_sku: data.customSku,
+    variant_name: data.variantName,
+    size: data.size,
+    color: data.color,
+    unit_id: data.unitId,
+    price: data.price,
+    cost: data.cost,
+    alert_qty: data.alertQty,
+  })
+  return response.data
+}
+
+/**
+ * Update variant
+ * PUT/PATCH /api/v2/catalog/variants/{id}
+ */
+export const updateProductVariant = async (id: number, data: {
+  sku?: string
+  customSku?: string
+  variantName?: string
+  size?: string
+  color?: string
+  unitId?: number
+  defaultRetailPrice?: number
+  defaultWholesalePrice?: number
+  defaultPurchaseCost?: number
+  stockAlertLevel?: number
+}) => {
+  const response = await api.put(`catalog/variants/${id}`, data)
+  return response.data
+}
+
+/**
+ * Delete variant
+ * DELETE /api/v2/catalog/variants/{id}
+ */
+export const deleteProductVariant = async (id: number) => {
+  const response = await api.delete(`catalog/variants/${id}`)
+  return response.data
+}
+
+/**
+ * Get categories for dropdown
+ * GET /api/v2/catalog/categories/dropdown
+ */
+export const getCategoriesDropdown = async () => {
+  const response = await api.get('catalog/categories/dropdown')
+  return response.data
+}
+
+/**
+ * Update product status
+ * PATCH /api/v2/catalog/products/{id}/status
+ */
+export const updateProductStatus = async (id: number, status: 'draft' | 'published' | 'archived') => {
+  const response = await api.patch(`catalog/products/${id}/status`, { status })
+  return response.data
+}
+
+// ====================================================
+// PROCUREMENT PRODUCTS API
+// ====================================================
+
+export interface ProcurementProductFilters {
+  search?: string
+  category_id?: number
+  brand_id?: number
+  status?: 'draft' | 'published'
+  per_page?: number
+  page?: number
+}
+
+export interface ProcurementProductSupplier {
+  supplierId: number
+  productLinks?: string[]
+}
+
+/**
+ * Get procurement products with optional filters
+ * GET /api/v2/procurement/products
+ */
+export const getProcurementProducts = async (filters?: ProcurementProductFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.search) params.append('search', filters.search)
+  if (filters?.category_id) params.append('category_id', filters.category_id.toString())
+  if (filters?.brand_id) params.append('brand_id', filters.brand_id.toString())
+  if (filters?.status) params.append('status', filters.status)
+  if (filters?.per_page) params.append('per_page', filters.per_page.toString())
+  if (filters?.page) params.append('page', filters.page.toString())
+
+  const response = await api.get(`procurement/products?${params}`)
+  return response.data
+}
+
+/**
+ * Get single procurement product by ID
+ * GET /api/v2/procurement/products/{id}
+ */
+export const getProcurementProduct = async (id: number) => {
+  const response = await api.get(`procurement/products/${id}`)
+  return response.data
+}
+
+/**
+ * Create new procurement product
+ * POST /api/v2/procurement/products
+ */
+export const createProcurementProduct = async (data: {
+  name: string
+  categoryId: number
+  brandId?: number
+  thumbnailId?: number
+  suppliers: ProcurementProductSupplier[]
+  status?: 'draft' | 'published'
+}) => {
+  const response = await api.post('procurement/products', {
+    name: data.name,
+    category_id: data.categoryId,
+    brand_id: data.brandId,
+    thumbnail_id: data.thumbnailId,
+    suppliers: data.suppliers.map(s => ({
+      supplier_id: s.supplierId,
+      product_links: s.productLinks || [],
+      cost_price: s.costPrice,
+      supplier_sku: s.supplierSku,
+    })),
+    status: data.status || 'draft',
+  })
+  return response.data
+}
+
+/**
+ * Update procurement product
+ * PUT/PATCH /api/v2/procurement/products/{id}
+ */
+export const updateProcurementProduct = async (id: number, data: {
+  name?: string
+  categoryId?: number
+  brandId?: number
+  thumbnailId?: number
+  suppliers?: ProcurementProductSupplier[]
+  status?: 'draft' | 'published'
+}) => {
+  const response = await api.put(`procurement/products/${id}`, {
+    name: data.name,
+    category_id: data.categoryId,
+    brand_id: data.brandId,
+    thumbnail_id: data.thumbnailId,
+    suppliers: data.suppliers?.map(s => ({
+      supplier_id: s.supplierId,
+      product_links: s.productLinks || [],
+      cost_price: s.costPrice,
+      supplier_sku: s.supplierSku,
+    })),
+    status: data.status,
+  })
+  return response.data
+}
+
+/**
+ * Delete procurement product (soft delete)
+ * DELETE /api/v2/procurement/products/{id}
+ */
+export const deleteProcurementProduct = async (id: number) => {
+  const response = await api.delete(`procurement/products/${id}`)
+  return response.data
+}
+
+/**
+ * Update procurement product status
+ * PATCH /api/v2/procurement/products/{id}/status
+ */
+export const updateProcurementProductStatus = async (id: number, status: 'draft' | 'published') => {
+  const response = await api.patch(`procurement/products/${id}/status`, { status })
+  return response.data
+}
+
+/**
+ * Get procurement statistics
+ * GET /api/v2/procurement/statistics
+ */
+export const getProcurementStatistics = async () => {
+  const response = await api.get('procurement/statistics')
+  return response.data
+}
+
+/**
+ * Get procurement products by supplier
+ * GET /api/v2/procurement/suppliers/{id}/products
+ */
+export const getProcurementProductsBySupplier = async (supplierId: number, filters?: {
+  status?: 'draft' | 'published' | 'all'
+  per_page?: number
+  page?: number
+}) => {
+  const params = new URLSearchParams()
+
+  if (filters?.status && filters.status !== 'all') {
+    params.append('status', filters.status)
+  }
+  if (filters?.per_page) {
+    params.append('per_page', filters.per_page.toString())
+  }
+  if (filters?.page) {
+    params.append('page', filters.page.toString())
+  }
+
+  const response = await api.get(`procurement/suppliers/${supplierId}/products${params.toString() ? '?' + params.toString() : ''}`)
+  return response.data
+}
+
+// ============================================
+// PURCHASE ORDERS API METHODS
+// ============================================
+
+export type PurchaseOrderItem = {
+  productId: number
+  quantity: number
+  chinaPrice: number
+}
+
+export type PurchaseOrder = {
+  id?: number
+  supplierId: number
+  orderDate: string
+  expectedDate?: string
+  exchangeRate: number
+  items: PurchaseOrderItem[]
+}
+
+export type PurchaseOrderFilters = {
+  status?: string
+  supplier_id?: number
+  search?: string
+  from_date?: string
+  to_date?: string
+  per_page?: number
+  page?: number
+}
+
+/**
+ * Get all purchase orders
+ * GET /api/v2/procurement/orders
+ */
+export const getPurchaseOrders = async (filters?: PurchaseOrderFilters) => {
+  const params = new URLSearchParams()
+
+  if (filters?.status && filters.status !== 'all') {
+    params.append('status', filters.status)
+  }
+  if (filters?.supplier_id) {
+    params.append('supplier_id', filters.supplier_id.toString())
+  }
+  if (filters?.search) {
+    params.append('search', filters.search)
+  }
+  if (filters?.from_date) {
+    params.append('from_date', filters.from_date)
+  }
+  if (filters?.to_date) {
+    params.append('to_date', filters.to_date)
+  }
+  if (filters?.per_page) {
+    params.append('per_page', filters.per_page.toString())
+  }
+  if (filters?.page) {
+    params.append('page', filters.page.toString())
+  }
+
+  const response = await api.get(`procurement/orders${params.toString() ? '?' + params.toString() : ''}`)
+  return response.data
+}
+
+/**
+ * Get single purchase order
+ * GET /api/v2/procurement/orders/{id}
+ */
+export const getPurchaseOrder = async (id: number) => {
+  const response = await api.get(`procurement/orders/${id}`)
+  return response.data
+}
+
+/**
+ * Create new purchase order
+ * POST /api/v2/procurement/orders
+ */
+export const createPurchaseOrder = async (data: PurchaseOrder) => {
+  const response = await api.post('procurement/orders', {
+    supplier_id: data.supplierId,
+    order_date: data.orderDate,
+    expected_date: data.expectedDate,
+    exchange_rate: data.exchangeRate,
+    items: data.items.map(item => ({
+      product_id: item.productId,
+      quantity: item.quantity,
+      china_price: item.chinaPrice,
+    })),
+  })
+  return response.data
+}
+
+/**
+ * Update purchase order
+ * PUT /api/v2/procurement/orders/{id}
+ */
+export const updatePurchaseOrder = async (id: number, data: PurchaseOrder) => {
+  const response = await api.put(`procurement/orders/${id}`, {
+    order_date: data.orderDate,
+    expected_date: data.expectedDate,
+    exchange_rate: data.exchangeRate,
+    items: data.items.map(item => ({
+      product_id: item.productId,
+      quantity: item.quantity,
+      china_price: item.chinaPrice,
+    })),
+  })
+  return response.data
+}
+
+/**
+ * Update purchase order status
+ * PATCH /api/v2/procurement/orders/{id}/status
+ */
+export const updatePurchaseOrderStatus = async (id: number, status: string, exchangeRate?: number, fullPayload?: any) => {
+  // If fullPayload is provided, use it; otherwise build minimal payload
+  const payload = fullPayload || { status }
+
+  // Only add exchange_rate if it's provided and we're not using full payload
+  if (!fullPayload && exchangeRate !== undefined) {
+    payload.exchange_rate = exchangeRate
+  }
+
+  const response = await api.patch(`procurement/orders/${id}/status`, payload)
+  return response.data
+}
+
+/**
+ * Delete purchase order
+ * DELETE /api/v2/procurement/orders/{id}
+ */
+export const deletePurchaseOrder = async (id: number) => {
+  const response = await api.delete(`procurement/orders/${id}`)
+  return response.data
+}
+
+/**
+ * Get purchase order statistics
+ * GET /api/v2/procurement/orders/statistics
+ */
+export const getPurchaseOrderStatistics = async () => {
+  const response = await api.get('procurement/orders/statistics')
+  return response.data
+}
+
+/**
+ * Update status history comments
+ * PATCH /api/v2/procurement/orders/{poId}/status-history/{historyId}/comments
+ */
+export const updateStatusHistoryComments = async (poId: number, historyId: number, comments: string) => {
+  const response = await api.patch(`procurement/orders/${poId}/status-history/${historyId}/comments`, { comments })
   return response.data
 }

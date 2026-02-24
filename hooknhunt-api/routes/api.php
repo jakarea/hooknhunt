@@ -37,6 +37,11 @@ Route::group([
     'namespace' => 'App\Http\Controllers\Api\V2'
 ], function () {
 
+    // ====================================================
+    // PUBLIC ROUTES (No Middleware) - System Optimization
+    // ====================================================
+    Route::get('system/optimize', 'App\Http\Controllers\Api\V2\System\OptimizeController@invoke');
+
     // --- Profile & Personal Actions ---
     Route::post('auth/logout', 'AuthController@logout');
     Route::get('auth/me', 'AuthController@profile');
@@ -48,9 +53,13 @@ Route::group([
     // --- Module: SYSTEM & ACCESS CONTROL ---
     Route::group(['prefix' => 'system'], function () {
         Route::apiResource('units', 'UnitController');
+        Route::get('units/dropdown', 'UnitController@dropdown');
         Route::get('helpers/units', 'UnitController@dropdown');
         Route::apiResource('settings', 'SettingController');
         Route::post('settings/update', 'SettingController@update');
+
+        // System optimization endpoint (admin only, inside auth middleware)
+        Route::get('optimize', 'System\OptimizeInvokeController');
     });
 
     Route::group(['prefix' => 'user-management'], function () {
@@ -89,16 +98,21 @@ Route::group([
 
     // --- Module: PRODUCT CATALOG ---
     Route::group(['prefix' => 'catalog'], function () {
-        Route::apiResource('categories', 'CategoryController');
+        // Specific routes must come BEFORE apiResource to avoid route matching conflicts
+        Route::get('categories/dropdown', 'CategoryController@dropdown');
         Route::get('helpers/categories/tree', 'CategoryController@treeStructure');
-        Route::apiResource('brands', 'BrandController');
-        Route::apiResource('attributes', 'AttributeController');
-        Route::apiResource('products', 'ProductController');
+        Route::get('brands/dropdown', 'BrandController@dropdown');
         Route::post('products/{id}/duplicate', 'ProductController@duplicate');
+        Route::patch('products/{id}/status', 'ProductController@updateStatus');
         Route::post('products/{id}/variants', 'ProductController@storeVariant');
         Route::get('variants/{id}/channel-prices', 'PricingController@getChannelPrices');
         Route::post('variants/{id}/channel-prices', 'PricingController@setChannelPrice');
         Route::post('pricing/update', 'ProductPricingController@updatePrices');
+
+        Route::apiResource('categories', 'CategoryController');
+        Route::apiResource('brands', 'BrandController');
+        Route::apiResource('attributes', 'AttributeController');
+        Route::apiResource('products', 'ProductController');
         Route::apiResource('discounts', 'DiscountController');
     });
 
@@ -153,6 +167,7 @@ Route::group([
             Route::apiResource('leaves', 'LeaveController');
             // Attendance routes
             Route::get('attendance', 'AttendanceController@index');
+            Route::get('attendance/my-status', 'AttendanceController@myStatus');
             Route::post('attendance', 'AttendanceController@store');
             Route::post('clock-in', 'AttendanceController@clockIn');
             Route::post('clock-out', 'AttendanceController@clockOut');
@@ -162,6 +177,8 @@ Route::group([
             Route::post('payrolls/generate', 'PayrollController@generate');
             Route::put('payrolls/{id}', 'PayrollController@update');
             Route::post('payrolls/{id}/pay', 'PayrollController@pay');
+            Route::post('payrolls/process-sheet', 'PayrollController@processSalarySheet');
+            Route::post('payrolls/confirm-payment', 'PayrollController@confirmPayment');
         });
 
         // System Controllers (Roles & Permissions)
@@ -214,6 +231,7 @@ Route::group([
 
         // Bank Accounts - Specific routes BEFORE apiResource
         Route::get('banks/summary', 'BankController@summary');
+        Route::get('payment-accounts', 'BankController@getPaymentAccounts');
         Route::apiResource('banks', 'BankController');
         Route::get('banks/{id}/transactions', 'BankController@transactions');
         Route::post('banks/{id}/deposit', 'BankController@deposit');
@@ -224,6 +242,10 @@ Route::group([
         Route::get('bank-transactions', 'BankTransactionController@index');
         Route::get('bank-transactions/statistics', 'BankTransactionController@statistics');
         Route::get('bank-transactions/{id}', 'BankTransactionController@show');
+
+        // Unified Transactions (bank + expenses)
+        Route::get('transactions', 'TransactionController@index');
+        Route::get('transactions/statistics', 'TransactionController@statistics');
 
         // Expenses
         Route::apiResource('expenses', 'ExpenseController');
@@ -247,21 +269,21 @@ Route::group([
         Route::get('bank-reconciliations/summary', 'BankReconciliationController@summary');
 
         // Fixed Assets
-        Route::apiResource('fixed-assets', 'FixedAssetController');
-        Route::post('fixed-assets/{id}/dispose', 'FixedAssetController@dispose');
-        Route::post('fixed-assets/update-depreciation', 'FixedAssetController@updateDepreciationAll');
+        Route::get('fixed-assets/summary', 'FixedAssetController@summary');
         Route::get('fixed-assets/categories', 'FixedAssetController@getCategories');
         Route::get('fixed-assets/locations', 'FixedAssetController@getLocations');
-        Route::get('fixed-assets/summary', 'FixedAssetController@summary');
+        Route::post('fixed-assets/update-depreciation', 'FixedAssetController@updateDepreciationAll');
+        Route::apiResource('fixed-assets', 'FixedAssetController');
+        Route::post('fixed-assets/{id}/dispose', 'FixedAssetController@dispose');
 
         // Cheque/PDC Management
+        Route::get('cheques/summary', 'ChequeController@summary');
+        Route::get('cheques/alerts', 'ChequeController@alerts');
         Route::apiResource('cheques', 'ChequeController');
         Route::post('cheques/{id}/deposit', 'ChequeController@deposit');
         Route::post('cheques/{id}/clear', 'ChequeController@clear');
         Route::post('cheques/{id}/bounce', 'ChequeController@bounce');
         Route::post('cheques/{id}/cancel', 'ChequeController@cancel');
-        Route::get('cheques/alerts', 'ChequeController@alerts');
-        Route::get('cheques/summary', 'ChequeController@summary');
 
         // Currencies
         Route::get('currencies/default', 'CurrencyController@getDefault');
@@ -363,6 +385,22 @@ Route::group([
         Route::apiResource('menus', 'MenuController');
         Route::apiResource('banners', 'BannerController');
         Route::post('payment/bkash/init/{order_id}', 'PaymentController@payWithBkash');
+    });
+
+    // --- Module: PROCUREMENT ---
+    Route::group(['prefix' => 'procurement'], function () {
+        // Statistics - must come before apiResource
+        Route::get('statistics', 'ProcurementController@statistics');
+        Route::get('suppliers/{id}/products', 'ProcurementController@getBySupplier');
+        Route::patch('products/{id}/status', 'ProcurementController@updateStatus');
+        Route::apiResource('products', 'ProcurementController');
+
+        // Purchase Orders
+        Route::get('orders/statistics', 'PurchaseOrderController@statistics');
+        Route::patch('orders/{id}/status', 'PurchaseOrderController@updateStatus');
+        Route::post('orders/{id}/approve-and-stock', 'PurchaseOrderController@approveAndStock');
+        Route::patch('orders/{poId}/status-history/{historyId}/comments', 'PurchaseOrderController@updateStatusHistoryComments');
+        Route::apiResource('orders', 'PurchaseOrderController');
     });
 
     // --- Others ---

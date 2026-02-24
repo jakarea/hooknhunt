@@ -27,6 +27,7 @@ import {
   IconReceipt,
   IconUpload,
   IconAlertTriangle,
+  IconWallet,
 } from '@tabler/icons-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { notifications } from '@mantine/notifications'
@@ -36,6 +37,7 @@ import {
   updateExpense,
   getExpense,
   getAccounts,
+  getPaymentAccounts,
   type ChartOfAccount,
 } from '@/utils/api'
 
@@ -46,6 +48,7 @@ export default function EditExpensePage() {
 
   const [expense, setExpense] = useState<any>(null)
   const [accounts, setAccounts] = useState<ChartOfAccount[]>([])
+  const [paymentAccounts, setPaymentAccounts] = useState<ChartOfAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -53,6 +56,7 @@ export default function EditExpensePage() {
     title: '',
     amount: '',
     accountId: '',
+    paymentAccountId: '',
     expenseDate: new Date(),
     referenceNumber: '',
     notes: '',
@@ -91,7 +95,7 @@ export default function EditExpensePage() {
             })
           }
 
-          // Set form data
+          // Set form data - API returns camelCase due to CamelCaseResponse middleware
           setFormData({
             title: expenseData.title || '',
             amount: expenseData.amount?.toString() || '',
@@ -102,18 +106,18 @@ export default function EditExpensePage() {
             referenceNumber: expenseData.reference_number || expenseData.referenceNumber || '',
             notes: expenseData.notes || '',
             attachment: null, // File inputs don't support pre-loading files
-            // VAT fields
-            vatPercentage: expenseData.vat_percentage?.toString() || '',
-            vatAmount: expenseData.vat_amount?.toString() || '',
-            vatChallanNo: expenseData.vat_challan_no || expenseData.vatChallanNo || '',
-            // Tax fields
-            taxPercentage: expenseData.tax_percentage?.toString() || '',
-            taxAmount: expenseData.tax_amount?.toString() || '',
-            taxChallanNo: expenseData.tax_challan_no || expenseData.taxChallanNo || '',
+            // VAT fields - API returns camelCase
+            vatPercentage: expenseData.vatPercentage?.toString() || expenseData.vat_percentage?.toString() || '',
+            vatAmount: expenseData.vatAmount?.toString() || expenseData.vat_amount?.toString() || '',
+            vatChallanNo: expenseData.vatChallanNo || expenseData.vat_challan_no || '',
+            // Tax fields - API returns camelCase
+            taxPercentage: expenseData.taxPercentage?.toString() || expenseData.tax_percentage?.toString() || '',
+            taxAmount: expenseData.taxAmount?.toString() || expenseData.tax_amount?.toString() || '',
+            taxChallanNo: expenseData.taxChallanNo || expenseData.tax_challan_no || '',
           })
         }
 
-        // Fetch expense accounts
+        // Fetch accounts
         const accountsResponse = await getAccounts()
         let accountsData: ChartOfAccount[] = []
         if (accountsResponse && typeof accountsResponse === 'object') {
@@ -135,7 +139,47 @@ export default function EditExpensePage() {
           return accountType === 'expense'
         })
 
-        setAccounts(expenseAccounts)
+        // Fetch payment accounts (bank accounts linked to chart of accounts)
+        try {
+          const paymentAccountsResponse = await getPaymentAccounts()
+          let paymentAccountsData: any[] = []
+
+          if (paymentAccountsResponse && typeof paymentAccountsResponse === 'object') {
+            if (Array.isArray(paymentAccountsResponse)) {
+              paymentAccountsData = paymentAccountsResponse
+            } else if ('data' in paymentAccountsResponse) {
+              if (Array.isArray(paymentAccountsResponse.data)) {
+                paymentAccountsData = paymentAccountsResponse.data
+              } else if (typeof paymentAccountsResponse.data === 'object' && 'data' in paymentAccountsResponse.data && Array.isArray(paymentAccountsResponse.data.data)) {
+                paymentAccountsData = paymentAccountsResponse.data.data
+              }
+            }
+          }
+
+          setAccounts(expenseAccounts)
+          setPaymentAccounts(paymentAccountsData)
+        } catch (paymentError) {
+          console.error('Failed to fetch payment accounts:', paymentError)
+          // Fallback to filtered chart of accounts
+          const assetAccounts = accountsData.filter((acc) => {
+            const accountType = typeof acc.type === 'string' ? acc.type.toLowerCase() : ''
+            if (accountType !== 'asset') return false
+
+            const name = typeof acc.name === 'string' ? acc.name.toLowerCase() : ''
+            const code = typeof acc.code === 'string' ? acc.code.toLowerCase() : ''
+
+            const isLiquidAsset = name.includes('cash') || name.includes('bank') ||
+                                  name.includes('bkash') || name.includes('bkash') ||
+                                  name.includes('nagad') || name.includes('rocket') ||
+                                  code.includes('bkash') || code.includes('bank') ||
+                                  code.includes('rocket') || code.includes('cash')
+
+            return isLiquidAsset && acc.isActive !== false
+          })
+
+          setAccounts(expenseAccounts)
+          setPaymentAccounts(assetAccounts)
+        }
       } catch (error: any) {
         console.error('Failed to fetch data:', error)
         notifications.show({
@@ -243,20 +287,35 @@ export default function EditExpensePage() {
       const payload: any = {
         title: formData.title,
         amount: parseFloat(formData.amount),
-        account_id: parseInt(formData.accountId),
-        expense_date: formData.expenseDate instanceof Date
+        accountId: parseInt(formData.accountId),
+        paymentAccountId: formData.paymentAccountId ? parseInt(formData.paymentAccountId) : null,
+        expenseDate: formData.expenseDate instanceof Date
           ? formData.expenseDate.toISOString().split('T')[0]
           : formData.expenseDate,
-        reference_number: formData.referenceNumber || null,
+        referenceNumber: formData.referenceNumber || null,
         notes: formData.notes || null,
-        // VAT fields
-        vat_percentage: formData.vatPercentage ? parseFloat(formData.vatPercentage) : null,
-        vat_amount: formData.vatAmount ? parseFloat(formData.vatAmount) : null,
-        vat_challan_no: formData.vatChallanNo || null,
-        // Tax fields
-        tax_percentage: formData.taxPercentage ? parseFloat(formData.taxPercentage) : null,
-        tax_amount: formData.taxAmount ? parseFloat(formData.taxAmount) : null,
-        tax_challan_no: formData.taxChallanNo || null,
+      }
+
+      // VAT fields - only include if has a value (use !== '' to check for non-empty)
+      if (formData.vatPercentage !== '' && formData.vatPercentage != null) {
+        payload.vatPercentage = parseFloat(formData.vatPercentage as string)
+      }
+      if (formData.vatAmount !== '' && formData.vatAmount != null) {
+        payload.vatAmount = parseFloat(formData.vatAmount as string)
+      }
+      if (formData.vatChallanNo) {
+        payload.vatChallanNo = formData.vatChallanNo
+      }
+
+      // Tax fields - only include if has a value
+      if (formData.taxPercentage !== '' && formData.taxPercentage != null) {
+        payload.taxPercentage = parseFloat(formData.taxPercentage as string)
+      }
+      if (formData.taxAmount !== '' && formData.taxAmount != null) {
+        payload.taxAmount = parseFloat(formData.taxAmount as string)
+      }
+      if (formData.taxChallanNo) {
+        payload.taxChallanNo = formData.taxChallanNo
       }
 
       // Only include attachment if a new file is selected
@@ -401,6 +460,22 @@ export default function EditExpensePage() {
                   allowDeselect
                 />
               </SimpleGrid>
+
+              <Select
+                label="Payment From"
+                placeholder="Select bank or cash account"
+                description="Which account will pay for this expense?"
+                data={paymentAccounts.map((acc) => ({
+                  value: acc.id.toString(),
+                  label: `${acc.name} (${acc.code})`,
+                }))}
+                value={formData.paymentAccountId}
+                onChange={(value) => handleChange('paymentAccountId', value || '')}
+                searchable
+                clearable
+                leftSection={<IconWallet size={16} />}
+                disabled={isApproved}
+              />
 
               <TextInput
                 label="Reference Number"

@@ -10,8 +10,8 @@ class FiscalYear extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'start_date' => 'date',
-        'end_date' => 'date',
+        'start_date' => 'date:Y-m-d', // Fixed timezone offset
+        'end_date' => 'date:Y-m-d', // Fixed timezone offset
         'is_active' => 'boolean',
         'is_closed' => 'boolean',
         'closed_at' => 'datetime',

@@ -21,6 +21,11 @@ class FinanceController extends Controller
      */
     public function dashboard(Request $request)
     {
+        // Permission check
+        if (!auth()->user()->hasPermissionTo('finance.dashboard.view')) {
+            return $this->sendError('You do not have permission to view finance dashboard.', null, 403);
+        }
+
         // Get date range (default to current month)
         $startDate = $request->start_date ?? now()->startOfMonth();
         $endDate = $request->end_date ?? now()->endOfMonth();

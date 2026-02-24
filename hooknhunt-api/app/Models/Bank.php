@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Bank extends Model
@@ -28,6 +29,7 @@ class Bank extends Model
         'status',
         'notes',
         'currency_id',
+        'chart_of_account_id',
         'created_by',
         'updated_by',
     ];
@@ -70,6 +72,14 @@ class Bank extends Model
     }
 
     /**
+     * Get the chart of account for this bank.
+     */
+    public function chartOfAccount(): BelongsTo
+    {
+        return $this->belongsTo(ChartOfAccount::class, 'chart_of_account_id');
+    }
+
+    /**
      * Get all transactions for this bank account.
      */
     public function transactions(): HasMany
@@ -91,6 +101,14 @@ class Bank extends Model
     public function withdrawals(): HasMany
     {
         return $this->hasMany(BankTransaction::class)->where('type', 'withdrawal');
+    }
+
+    /**
+     * Get all transactions including related models (payroll, expenses, etc.)
+     */
+    public function allTransactions(): HasMany
+    {
+        return $this->transactions()->with(['transactionable', 'journalEntry']);
     }
 
     /**
@@ -122,7 +140,8 @@ class Bank extends Model
      */
     public function getTypeLabelAttribute(): string
     {
-        return match($this->type) {
+        $type = $this->type ?? 'unknown';
+        return match($type) {
             'cash' => 'Cash',
             'bank' => 'Bank Account',
             'bkash' => 'bKash',

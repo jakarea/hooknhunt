@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Box, Image, SimpleGrid, Group } from '@mantine/core'
 import { LoginForm } from '@/components/login-form'
 import { LoginQuotes } from '@/components/login-quotes'
@@ -8,14 +7,14 @@ import { useAuthStore } from '@/stores/authStore'
 export default function LoginPage() {
   const token = useAuthStore((state) => state.token)
   const hydrated = useAuthStore((state) => state.hydrated)
-  const navigate = useNavigate()
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to dashboard immediately
   useEffect(() => {
     if (hydrated && token) {
-      navigate('/dashboard', { replace: true })
+      // Use window.location.href for instant hard redirect (faster than React Router)
+      window.location.href = '/dashboard'
     }
-  }, [hydrated, token, navigate])
+  }, [hydrated, token])
 
   // Show loading while hydrating
   if (!hydrated) {
