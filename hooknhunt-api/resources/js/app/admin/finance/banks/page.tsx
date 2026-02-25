@@ -117,9 +117,19 @@ export default function BanksPage() {
   const fetchChartOfAccounts = useCallback(async () => {
     try {
       const response = await getAccounts()
-      const accounts = response.data || response || []
+      let accounts: any[] = []
+
+      // Handle paginated response structure
+      if (response?.data) {
+        if (Array.isArray(response.data)) {
+          accounts = response.data
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          accounts = response.data.data
+        }
+      }
+
       const expenseAccounts = accounts.filter((acc: any) =>
-        acc.type === 'expense' && acc.is_active
+        acc.type === 'expense' && acc.isActive !== false
       )
       setChartOfAccounts(expenseAccounts)
     } catch (err) {
@@ -666,7 +676,6 @@ export default function BanksPage() {
             prefix="৳"
             thousandSeparator=","
             min={0}
-            max={selectedBank?.currentBalance}
             value={withdrawAmount}
             onChange={(value) => setWithdrawAmount(value)}
           />
@@ -726,7 +735,6 @@ export default function BanksPage() {
             prefix="৳"
             thousandSeparator=","
             min={0}
-            max={selectedBank?.currentBalance}
             value={transferAmount}
             onChange={(value) => setTransferAmount(value)}
           />

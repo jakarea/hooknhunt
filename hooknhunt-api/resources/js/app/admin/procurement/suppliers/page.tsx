@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Paper,
@@ -24,7 +25,8 @@ import {
   Tabs,
   Avatar,
   Tooltip,
-  Modal,
+  Drawer,
+  Menu,
   Progress,
   FileInput,
   Image,
@@ -47,6 +49,7 @@ import {
   IconUpload,
   IconX,
   IconPhoto,
+  IconDots,
 } from '@tabler/icons-react'
 import { modals } from '@mantine/modals'
 import { notifications } from '@mantine/notifications'
@@ -55,6 +58,7 @@ import { getSuppliers, createSupplier, updateSupplier, deleteSupplier, type Supp
 
 export default function SuppliersPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -491,35 +495,19 @@ export default function SuppliersPage() {
                       <Text fw={600} className="text-sm md:text-base">{supplier.name}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
-                        <IconMail size={14} c="dimmed" />
-                        <Text className="text-sm md:text-base">{supplier.email}</Text>
-                      </Group>
+                      <Text className="text-sm md:text-base">{supplier.email}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
-                        <IconPhone size={14} c="dimmed" />
-                        <Text className="text-sm md:text-base">{supplier.phone || '-'}</Text>
-                      </Group>
+                      <Text className="text-sm md:text-base">{supplier.phone || '-'}</Text>
                     </Table.Td>
                     <Table.Td>
-                      {supplier.whatsapp ? (
-                        <Group gap="xs">
-                          <IconBrandWhatsapp size={14} c="dimmed" />
-                          <Text className="text-sm md:text-base">{supplier.whatsapp}</Text>
-                        </Group>
-                      ) : (
-                        <Text c="dimmed" className="text-sm md:text-base">-</Text>
-                      )}
+                      <Text className="text-sm md:text-base">{supplier.whatsapp || '-'}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Text className="text-sm md:text-base">{supplier.shopName || '-'}</Text>
                     </Table.Td>
                     <Table.Td>
-                      <Group gap="xs">
-                        <IconUsers size={14} c="dimmed" />
-                        <Text className="text-sm md:text-base">{supplier.contactPerson || '-'}</Text>
-                      </Group>
+                      <Text className="text-sm md:text-base">{supplier.contactPerson || '-'}</Text>
                     </Table.Td>
                     <Table.Td>
                       <Badge
@@ -534,26 +522,36 @@ export default function SuppliersPage() {
                     </Table.Td>
                     <Table.Td>
                       <Group gap="xs" justify="right">
-                        <Tooltip label={t('procurement.suppliersPage.actions.edit')}>
-                          <ActionIcon
-                            variant="subtle"
-                            color="blue"
-                            className="text-sm md:text-base"
-                            onClick={() => openEditModal(supplier)}
-                          >
-                            <IconEdit size={16} />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label={t('procurement.suppliersPage.actions.delete')}>
-                          <ActionIcon
-                            variant="subtle"
-                            color="red"
-                            className="text-sm md:text-base"
-                            onClick={() => handleDelete(supplier)}
-                          >
-                            <IconTrash size={16} />
-                          </ActionIcon>
-                        </Tooltip>
+                        <Menu shadow="md" width={200} position="bottom-end">
+                          <Menu.Target>
+                            <ActionIcon variant="subtle" color="gray" className="text-sm md:text-base">
+                              <IconDots size={16} />
+                            </ActionIcon>
+                          </Menu.Target>
+
+                          <Menu.Dropdown>
+                            <Menu.Label>Actions</Menu.Label>
+                            <Menu.Item
+                              leftSection={<IconEye size={14} />}
+                              onClick={() => navigate(`/procurement/suppliers/${supplier.id}`)}
+                            >
+                              View
+                            </Menu.Item>
+                            <Menu.Item
+                              leftSection={<IconEdit size={14} />}
+                              onClick={() => openEditModal(supplier)}
+                            >
+                              Edit
+                            </Menu.Item>
+                            <Menu.Item
+                              leftSection={<IconTrash size={14} />}
+                              color="red"
+                              onClick={() => handleDelete(supplier)}
+                            >
+                              Delete
+                            </Menu.Item>
+                          </Menu.Dropdown>
+                        </Menu>
                       </Group>
                     </Table.Td>
                   </Table.Tr>
@@ -586,24 +584,36 @@ export default function SuppliersPage() {
                       </Text>
                     )}
                   </Box>
-                  <Group gap="xs">
-                    <ActionIcon
-                      variant="subtle"
-                      color="blue"
-                      className="text-lg md:text-xl lg:text-2xl"
-                      onClick={() => openEditModal(supplier)}
-                    >
-                      <IconEdit size={18} />
-                    </ActionIcon>
-                    <ActionIcon
-                      variant="subtle"
-                      color="red"
-                      className="text-lg md:text-xl lg:text-2xl"
-                      onClick={() => handleDelete(supplier)}
-                    >
-                      <IconTrash size={18} />
-                    </ActionIcon>
-                  </Group>
+                  <Menu shadow="md" width={200} position="bottom-end">
+                    <Menu.Target>
+                      <ActionIcon variant="subtle" color="gray" className="text-lg md:text-xl lg:text-2xl">
+                        <IconDots size={18} />
+                      </ActionIcon>
+                    </Menu.Target>
+
+                    <Menu.Dropdown>
+                      <Menu.Label>Actions</Menu.Label>
+                      <Menu.Item
+                        leftSection={<IconEye size={14} />}
+                        onClick={() => {/* TODO: Implement view functionality */}}
+                      >
+                        View
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconEdit size={14} />}
+                        onClick={() => openEditModal(supplier)}
+                      >
+                        Edit
+                      </Menu.Item>
+                      <Menu.Item
+                        leftSection={<IconTrash size={14} />}
+                        color="red"
+                        onClick={() => handleDelete(supplier)}
+                      >
+                        Delete
+                      </Menu.Item>
+                    </Menu.Dropdown>
+                  </Menu>
                 </Group>
 
                 <Divider />
@@ -611,36 +621,24 @@ export default function SuppliersPage() {
                 {/* Contact Info */}
                 <Stack gap={4}>
                   {supplier.email && (
-                    <Group gap="xs" wrap="nowrap">
-                      <IconMail size={14} c="dimmed" />
-                      <Text className="text-sm md:text-base flex-1" truncate>
-                        {supplier.email}
-                      </Text>
-                    </Group>
+                    <Text className="text-sm md:text-base" truncate>
+                      {supplier.email}
+                    </Text>
                   )}
                   {supplier.phone && (
-                    <Group gap="xs" wrap="nowrap">
-                      <IconPhone size={14} c="dimmed" />
-                      <Text className="text-sm md:text-base flex-1" truncate>
-                        {supplier.phone}
-                      </Text>
-                    </Group>
+                    <Text className="text-sm md:text-base" truncate>
+                      {supplier.phone}
+                    </Text>
                   )}
                   {supplier.whatsapp && (
-                    <Group gap="xs" wrap="nowrap">
-                      <IconBrandWhatsapp size={14} c="dimmed" />
-                      <Text className="text-sm md:text-base flex-1" truncate>
-                        {supplier.whatsapp}
-                      </Text>
-                    </Group>
+                    <Text className="text-sm md:text-base" truncate>
+                      {supplier.whatsapp}
+                    </Text>
                   )}
                   {supplier.contactPerson && (
-                    <Group gap="xs" wrap="nowrap">
-                      <IconUsers size={14} c="dimmed" />
-                      <Text className="text-sm md:text-base flex-1" truncate>
-                        {supplier.contactPerson}
-                      </Text>
-                    </Group>
+                    <Text className="text-sm md:text-base" truncate>
+                      {supplier.contactPerson}
+                    </Text>
                   )}
                 </Stack>
 
@@ -662,13 +660,15 @@ export default function SuppliersPage() {
         )}
       </Stack>
 
-      {/* Create/Edit Modal */}
-      <Modal
+      {/* Create/Edit Drawer */}
+      <Drawer
         opened={modalOpened}
         onClose={() => {
           setModalOpened(false)
           resetForm()
         }}
+        position="right"
+        size={{ base: '100%', md: '600px', lg: '700px' }}
         title={
           <Stack gap={4}>
             <Text className="text-lg md:text-xl lg:text-2xl" fw={600}>
@@ -684,38 +684,15 @@ export default function SuppliersPage() {
           </Stack>
         }
         className="text-xl md:text-2xl lg:text-3xl"
-        centered
-        radius="lg"
-        transitionProps={{ transition: 'fade', duration: 300 }}
+        radius={0}
+        transitionProps={{ transition: 'slide-left', duration: 300 }}
+        scrollAreaComponent={ScrollArea.Autosize}
       >
         <form onSubmit={handleSubmit}>
           <Stack gap="xl">
-            {/* Progress indicator */}
-            <Box>
-              <Text className="text-xs md:text-sm" c="dimmed" mb="xs" tt="uppercase" fw={500}>
-                Fill in the information below
-              </Text>
-              <Paper withBorder p="xs" radius="sm">
-                <Progress
-                  value={
-                    (formData.name ? 20 : 0) +
-                    (formData.email ? 20 : 0) +
-                    (formData.phone ? 15 : 0) +
-                    (formData.shop_name ? 15 : 0) +
-                    (formData.address ? 15 : 0) +
-                    (formData.is_active ? 15 : 0)
-                  }
-                  className="text-sm md:text-base"
-                  color="blue"
-                  radius="xl"
-                />
-              </Paper>
-            </Box>
-
-            <ScrollArea.Autosize mah={{ base: '45vh', md: '55vh' }} offsetScrollbars>
-              <Stack gap="lg">
+            <Stack gap="lg">
                 {/* Basic Information Section */}
-                <Paper withBorder p="md" radius="md" bg="gray.0">
+                <Paper withBorder p="md" radius={0} bg="gray.0">
                   <Group gap="sm" mb="md">
                     <IconBuilding size={20} c="blue" />
                     <Text fw={600} className="text-sm md:text-base">Basic Information</Text>
@@ -777,7 +754,7 @@ export default function SuppliersPage() {
                 </Paper>
 
                 {/* Contact Information Section */}
-                <Paper withBorder p="md" radius="md" bg="blue.0">
+                <Paper withBorder p="md" radius={0} bg="blue.0">
                   <Group gap="sm" mb="md">
                     <IconUsers size={20} c="blue" />
                     <Text fw={600} className="text-sm md:text-base">Contact Information</Text>
@@ -831,7 +808,7 @@ export default function SuppliersPage() {
                 </Paper>
 
                 {/* Payment Information Section */}
-                <Paper withBorder p="md" radius="md" bg="green.0">
+                <Paper withBorder p="md" radius={0} bg="green.0">
                   <Group gap="sm" mb="md">
                     <IconCoin size={20} c="green" />
                     <Text fw={600} className="text-sm md:text-base">Payment Information</Text>
@@ -881,7 +858,7 @@ export default function SuppliersPage() {
 
                         {/* WeChat QR Preview */}
                         {(wechatQrPreview || formData.wechat_qr_url) && (
-                          <Paper withBorder p="sm" radius="md" bg="white">
+                          <Paper withBorder p="sm" radius={0} bg="white">
                             <Group gap="sm" align="flex-start">
                               <Box>
                                 <Image
@@ -960,7 +937,7 @@ export default function SuppliersPage() {
 
                         {/* Alipay QR Preview */}
                         {(alipayQrPreview || formData.alipay_qr_url) && (
-                          <Paper withBorder p="sm" radius="md" bg="white">
+                          <Paper withBorder p="sm" radius={0} bg="white">
                             <Group gap="sm" align="flex-start">
                               <Box>
                                 <Image
@@ -1000,7 +977,6 @@ export default function SuppliersPage() {
                   </Stack>
                 </Paper>
               </Stack>
-            </ScrollArea.Autosize>
 
             {/* Action Buttons */}
             <Group justify="flex-end" gap="sm" mt="md">
@@ -1028,7 +1004,7 @@ export default function SuppliersPage() {
             </Group>
           </Stack>
         </form>
-      </Modal>
+      </Drawer>
     </Stack>
   )
 }

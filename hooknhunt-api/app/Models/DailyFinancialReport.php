@@ -38,7 +38,7 @@ class DailyFinancialReport extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'report_date' => 'date',
+        'report_date' => 'date:Y-m-d', // Fixed timezone offset
         'total_revenue' => 'decimal:2',
         'total_expenses' => 'decimal:2',
         'net_profit' => 'decimal:2',

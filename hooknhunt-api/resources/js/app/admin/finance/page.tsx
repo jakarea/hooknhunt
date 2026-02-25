@@ -11,6 +11,7 @@ import {
   getFinanceDashboard,
   getBankTransactions,
   getExpenses,
+  approveExpense,
   type BankTransaction,
   type Expense,
 } from '@/utils/api'
@@ -165,6 +166,30 @@ export default function FinanceDashboardPage() {
       message: 'Dashboard data has been refreshed',
       color: 'blue',
     })
+  }
+
+  // Handle approve expense
+  const handleApproveExpense = async (expenseId: number) => {
+    try {
+      await approveExpense(expenseId)
+      notifications.show({
+        title: 'Expense Approved',
+        message: 'Expense has been approved and posted to ledger.',
+        color: 'green',
+      })
+      fetchDashboardData(false)
+    } catch (error: any) {
+      console.error('Failed to approve expense:', error)
+      const errorMessage = error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+        || 'Failed to approve expense'
+      notifications.show({
+        title: 'Error',
+        message: errorMessage,
+        color: 'red',
+      })
+    }
   }
 
   // Loading skeleton
@@ -424,7 +449,7 @@ export default function FinanceDashboardPage() {
                       color={tx.type === 'deposit' ? 'green' : tx.type === 'withdrawal' ? 'red' : 'blue'}
                       variant="light"
                     >
-                      {t(`finance.banksPage.transactionsPage.transactionTypes.${tx.type}`) || tx.type}
+                      {t(`finance.banksPage.transactionsPage.transactionTypes.${tx.type.replace(/_([a-z])/g, (_, c) => c.toUpperCase())}`) || tx.type}
                     </Badge>
                   </Table.Td>
                   <Table.Td>
@@ -474,8 +499,8 @@ export default function FinanceDashboardPage() {
                     <Button
                       className="text-xs md:text-sm"
                       variant="light"
-                      component={Link}
-                      to={`/finance/expenses/${expense.id}/approve`}
+                      color="green"
+                      onClick={() => handleApproveExpense(expense.id)}
                     >
                       {t('finance.dashboardPage.approve')}
                     </Button>

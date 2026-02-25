@@ -49,14 +49,15 @@ import {
 
 export default function AccountsPayablePage() {
   const { t } = useTranslation()
-  const { hasPermission } = usePermissions()
+  const { hasPermission, isSuperAdmin } = usePermissions()
 
-  if (!hasPermission('finance.view')) {
+  // Super admins have access to everything
+  if (!isSuperAdmin() && !hasPermission('finance.view')) {
     return (
       <Stack p="xl">
         <Paper withBorder p="xl" shadow="sm" ta="center">
-          <Title order={3}>Access Denied</Title>
-          <Text c="dimmed">You don't have permission to view Accounts Payable.</Text>
+          <Title order={3}>{t('common.accessDenied')}</Title>
+          <Text c="dimmed">{t('finance.accountsPayablePage.accessDenied')}</Text>
         </Paper>
       </Stack>
     )
@@ -197,7 +198,14 @@ export default function AccountsPayablePage() {
             <ActionIcon variant="light" onClick={fetchData}>
               <IconRefresh size={18} />
             </ActionIcon>
-            <Button leftSection={<IconPlus size={16} />}>
+            <Button leftSection={<IconPlus size={18} />} onClick={() => modals.open({
+              title: t('finance.accountsPayablePage.newBill'),
+              children: (
+                <Text c="dimmed">
+                  {t('finance.accountsPayablePage.createBillModal.comingSoon') || 'Create bill feature coming soon. Please use the API for now.'}
+                </Text>
+              ),
+            })}>
               {t('finance.accountsPayablePage.newBill')}
             </Button>
           </Group>

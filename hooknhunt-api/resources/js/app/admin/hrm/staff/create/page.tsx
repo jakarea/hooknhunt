@@ -28,6 +28,7 @@ import {
   IconMail,
   IconBriefcase,
   IconCoin,
+  IconBuilding,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
@@ -71,6 +72,12 @@ interface FormData {
   // Office Info
   office_email: string
   office_email_password: string
+
+  // Bank Account Info (for salary transfer)
+  bank_account_name: string
+  bank_account_number: string
+  bank_name: string
+  bank_branch: string
 }
 
 const initialFormData: FormData = {
@@ -97,6 +104,12 @@ const initialFormData: FormData = {
 
   office_email: '',
   office_email_password: '',
+
+  // Bank Account Info
+  bank_account_name: '',
+  bank_account_number: '',
+  bank_name: '',
+  bank_branch: '',
 }
 
 interface FieldErrors {
@@ -301,6 +314,12 @@ export default function CreateStaffPage() {
         overtime_hourly_rate: formData.overtime_hourly_rate || 0,
         office_email: formData.office_email || null,
         office_email_password: formData.office_email_password || null,
+
+        // Bank account fields (for salary transfer)
+        bank_account_name: formData.bank_account_name || null,
+        bank_account_number: formData.bank_account_number || null,
+        bank_name: formData.bank_name || null,
+        bank_branch: formData.bank_branch || null,
 
         // Personal info fields
         gender: formData.gender || null,
@@ -574,6 +593,48 @@ export default function CreateStaffPage() {
                     value={formData.office_email_password}
                     onChange={(e) => handleInputChange('office_email_password', e.target.value)}
                     error={fieldErrors.office_email_password}
+                  />
+                </SimpleGrid>
+              </Box>
+
+              {/* Bank Account Information */}
+              <Box>
+                <Group gap="xs" mb="md">
+                  <IconCoin size={20} style={{ color: 'var(--mantine-color-orange-filled)' }} />
+                  <Title order={4}>Bank Account Information</Title>
+                  <Text size="xs" c="dimmed">(For automatic salary transfer)</Text>
+                </Group>
+                <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }}>
+                  <TextInput
+                    label="Account Holder Name"
+                    placeholder="Name as per bank account"
+                    value={formData.bank_account_name}
+                    onChange={(e) => handleInputChange('bank_account_name', e.target.value)}
+                    error={fieldErrors.bank_account_name}
+                  />
+
+                  <TextInput
+                    label="Bank Account Number"
+                    placeholder="Enter bank account number"
+                    value={formData.bank_account_number}
+                    onChange={(e) => handleInputChange('bank_account_number', e.target.value)}
+                    error={fieldErrors.bank_account_number}
+                  />
+
+                  <TextInput
+                    label="Bank Name"
+                    placeholder="e.g., Dutch-Bangla Bank, BRAC Bank"
+                    value={formData.bank_name}
+                    onChange={(e) => handleInputChange('bank_name', e.target.value)}
+                    error={fieldErrors.bank_name}
+                  />
+
+                  <TextInput
+                    label="Branch Name"
+                    placeholder="e.g., Gulshan Avenue Branch"
+                    value={formData.bank_branch}
+                    onChange={(e) => handleInputChange('bank_branch', e.target.value)}
+                    error={fieldErrors.bank_branch}
                   />
                 </SimpleGrid>
               </Box>

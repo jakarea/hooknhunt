@@ -52,6 +52,7 @@ export default function ChequesPage() {
   const [cheques, setCheques] = useState<Cheque[]>([])
   const [banks, setBanks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [modalOpened, setModalOpened] = useState(false)
   const [bounceModalOpened, setBounceModalOpened] = useState(false)
   const [viewModalOpened, setViewModalOpened] = useState(false)
@@ -169,14 +170,30 @@ export default function ChequesPage() {
   }, [fetchCheques])
 
   const handleSubmit = async (values: ChequeFormData) => {
+    setSubmitting(true)
     try {
       const payload = {
-        ...values,
+        cheque_number: values.chequeNumber,
         issue_date: values.issueDate ? new Date(values.issueDate).toISOString().split('T')[0] : undefined,
         due_date: values.dueDate ? new Date(values.dueDate).toISOString().split('T')[0] : undefined,
         amount: parseFloat(values.amount as string),
+        payee_name: values.payeeName,
         bank_id: values.bankId ? parseInt(values.bankId as string) : undefined,
+        branch_name: values.branchName || undefined,
+        type: values.type,
+        party_name: values.partyName || undefined,
+        party_contact: values.partyContact || undefined,
+        notes: values.notes || undefined,
       }
+
+      // Remove undefined values
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === undefined) {
+          delete payload[key]
+        }
+      })
+
+      console.log('Submitting payload:', payload)
 
       if (editId) {
         await updateCheque(editId, payload)
@@ -193,11 +210,56 @@ export default function ChequesPage() {
       fetchSummary()
       fetchAlerts()
     } catch (error: any) {
-      notifications.show({
-        title: t('common.error') || 'Error',
-        message: error.response?.data?.message || t('finance.chequesPage.notification.saveError'),
-        color: 'red',
-      })
+      console.error('Submit error:', error)
+      // Handle validation errors from API
+      const apiErrors = error.response?.data?.errors
+      if (apiErrors) {
+        // Map API errors to form fields
+        // API returns: { chequeNumber: ["error"], dueDate: ["error"], ... }
+        const formErrors: Record<string, string> = {}
+
+        // Map API field names to form field names
+        // API returns snake_case, form uses camelCase
+        const fieldMap: Record<string, string> = {
+          // snake_case from API → camelCase for form
+          cheque_number: 'chequeNumber',
+          issue_date: 'issueDate',
+          due_date: 'dueDate',
+          amount: 'amount',
+          payee_name: 'payeeName',
+          bank_id: 'bankId',
+          branch_name: 'branchName',
+          type: 'type',
+          party_name: 'partyName',
+          party_contact: 'partyContact',
+          notes: 'notes',
+        }
+
+        Object.keys(apiErrors).forEach((apiField) => {
+          const formField = fieldMap[apiField] || apiField
+          const errorMessage = Array.isArray(apiErrors[apiField]) ? apiErrors[apiField][0] : apiErrors[apiField]
+          formErrors[formField] = errorMessage
+        })
+
+        // Set errors on the form
+        form.setErrors(formErrors)
+
+        // Show a general notification too
+        notifications.show({
+          title: t('common.error') || 'Error',
+          message: t('finance.chequesPage.notification.validationError') || 'Please fix the validation errors below.',
+          color: 'red',
+        })
+      } else {
+        // Generic error
+        notifications.show({
+          title: t('common.error') || 'Error',
+          message: error.response?.data?.message || t('finance.chequesPage.notification.saveError'),
+          color: 'red',
+        })
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -366,17 +428,17 @@ export default function ChequesPage() {
         {/* Header */}
         <Flex justify="space-between" align="center">
           <Group>
-            <IconCash size={32} style={{ color: 'var(--mantine-color-blue-6)' }} />
+            <IconCash size={32} className="text-blue-600" />
             <div>
-              <Title order={2}>{t('finance.chequesPage.title')}</Title>
-              <Text c="dimmed" size="sm">{t('finance.chequesPage.subtitle')}</Text>
+              <Title order={2} className="text-xl md:text-2xl lg:text-3xl">{t('finance.chequesPage.title')}</Title>
+              <Text c="dimmed" className="text-sm md:text-base">{t('finance.chequesPage.subtitle')}</Text>
             </div>
           </Group>
           <Group>
-            <Button variant="light" leftSection={<IconAlertTriangle size={16} />} onClick={fetchAlerts}>
+            <Button variant="light" leftSection={<IconAlertTriangle size={18} />} onClick={fetchAlerts} className="text-sm md:text-base">
               {t('finance.chequesPage.refreshAlerts')}
             </Button>
-            <Button leftSection={<IconPlus size={16} />} onClick={openCreateModal}>
+            <Button leftSection={<IconPlus size={18} />} onClick={openCreateModal} className="text-sm md:text-base">
               {t('finance.chequesPage.addCheque')}
             </Button>
           </Group>
@@ -472,8 +534,8 @@ export default function ChequesPage() {
               placeholder={t('finance.chequesPage.filters.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.currentTarget.value)}
-              leftSection={<IconCash size={16} />}
-              style={{ flex: 1 }}
+              leftSection={<IconCash size={18} />}
+              className="flex-1"
             />
             <Select
               placeholder={t('finance.chequesPage.filters.filterType')}
@@ -500,7 +562,7 @@ export default function ChequesPage() {
               onChange={setFilterStatus}
               w={120}
             />
-            <Button leftSection={<IconRefresh size={16} />} variant="light" onClick={fetchCheques}>
+            <Button leftSection={<IconRefresh size={18} />} variant="light" onClick={fetchCheques}>
               {t('finance.chequesPage.refresh')}
             </Button>
           </Group>
@@ -540,39 +602,39 @@ export default function ChequesPage() {
                   cheques.map((cheque) => (
                     <Table.Tr key={cheque.id}>
                       <Table.Td>
-                        <Text size="sm" fw={500}>
+                        <Text className="text-sm md:text-base" fw={500}>
                           {cheque.chequeNumber}
                         </Text>
                       </Table.Td>
                       <Table.Td>{getTypeBadge(cheque.type)}</Table.Td>
                       <Table.Td>
-                        <Text size="sm">{cheque.payeeName}</Text>
+                        <Text className="text-sm md:text-base">{cheque.payeeName}</Text>
                         {cheque.partyName && (
-                          <Text size="xs" c="dimmed">
+                          <Text className="text-xs md:text-sm" c="dimmed">
                             {cheque.partyName}
                           </Text>
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{cheque.bank?.name || cheque.bankName || '-'}</Text>
+                        <Text className="text-sm md:text-base">{cheque.bank?.name || cheque.bankName || '-'}</Text>
                         {cheque.branchName && (
-                          <Text size="xs" c="dimmed">
+                          <Text className="text-xs md:text-sm" c="dimmed">
                             {cheque.branchName}
                           </Text>
                         )}
                       </Table.Td>
                       <Table.Td>
-                        <Text ta="right" fw={500}>
-                          {cheque.amount.toFixed(2)}৳
+                        <Text className="text-sm md:text-base" ta="right" fw={500}>
+                          {parseFloat(cheque.amount).toFixed(2)}৳
                         </Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{new Date(cheque.issueDate).toLocaleDateString()}</Text>
+                        <Text className="text-sm md:text-base">{new Date(cheque.issueDate).toLocaleDateString()}</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{new Date(cheque.dueDate).toLocaleDateString()}</Text>
+                        <Text className="text-sm md:text-base">{new Date(cheque.dueDate).toLocaleDateString()}</Text>
                         {cheque.days_until_due !== undefined && (
-                          <Text size="xs" c={cheque.days_until_due < 0 ? 'red' : 'dimmed'}>
+                          <Text className="text-xs md:text-sm" c={cheque.days_until_due < 0 ? 'red' : 'dimmed'}>
                             {cheque.days_until_due < 0 ? `${Math.abs(cheque.days_until_due)} days overdue` : `In ${cheque.days_until_due} days`}
                           </Text>
                         )}
@@ -581,35 +643,35 @@ export default function ChequesPage() {
                       <Table.Td ta="center">
                         <Group gap="xs" justify="center" wrap="nowrap">
                           <Tooltip label={t('finance.chequesPage.actions.viewDetails')}>
-                            <ActionIcon size="sm" variant="light" color="blue" onClick={() => openViewModal(cheque.id)}>
-                              <IconEye size={16} />
+                            <ActionIcon size="lg" variant="light" color="blue" onClick={() => openViewModal(cheque.id)}>
+                              <IconEye size={18} />
                             </ActionIcon>
                           </Tooltip>
                           {cheque.status === 'pending' && (
                             <>
                               <Tooltip label={t('finance.chequesPage.actions.deposit')}>
-                                <ActionIcon size="sm" variant="light" color="blue" onClick={() => handleDeposit(cheque.id)}>
-                                  <IconCash size={16} />
+                                <ActionIcon size="lg" variant="light" color="blue" onClick={() => handleDeposit(cheque.id)}>
+                                  <IconCash size={18} />
                                 </ActionIcon>
                               </Tooltip>
                               <Tooltip label={t('finance.chequesPage.actions.clear')}>
-                                <ActionIcon size="sm" variant="light" color="green" onClick={() => handleClear(cheque.id)}>
-                                  <IconCheck size={16} />
+                                <ActionIcon size="lg" variant="light" color="green" onClick={() => handleClear(cheque.id)}>
+                                  <IconCheck size={18} />
                                 </ActionIcon>
                               </Tooltip>
                               <Tooltip label={t('finance.chequesPage.actions.bounce')}>
-                                <ActionIcon size="sm" variant="light" color="red" onClick={() => openBounceModal(cheque.id)}>
-                                  <IconBan size={16} />
+                                <ActionIcon size="lg" variant="light" color="red" onClick={() => openBounceModal(cheque.id)}>
+                                  <IconBan size={18} />
                                 </ActionIcon>
                               </Tooltip>
                               <Tooltip label={t('finance.chequesPage.actions.cancel')}>
-                                <ActionIcon size="sm" variant="light" color="gray" onClick={() => handleCancel(cheque.id)}>
-                                  <IconX size={16} />
+                                <ActionIcon size="lg" variant="light" color="gray" onClick={() => handleCancel(cheque.id)}>
+                                  <IconX size={18} />
                                 </ActionIcon>
                               </Tooltip>
                               <Tooltip label={t('finance.chequesPage.actions.edit')}>
-                                <ActionIcon size="sm" variant="light" color="orange" onClick={() => openEditModal(cheque)}>
-                                  <IconPencil size={16} />
+                                <ActionIcon size="lg" variant="light" color="orange" onClick={() => openEditModal(cheque)}>
+                                  <IconPencil size={18} />
                                 </ActionIcon>
                               </Tooltip>
                             </>
@@ -617,20 +679,20 @@ export default function ChequesPage() {
                           {cheque.status === 'deposited' && (
                             <>
                               <Tooltip label={t('finance.chequesPage.actions.clear')}>
-                                <ActionIcon size="sm" variant="light" color="green" onClick={() => handleClear(cheque.id)}>
-                                  <IconCheck size={16} />
+                                <ActionIcon size="lg" variant="light" color="green" onClick={() => handleClear(cheque.id)}>
+                                  <IconCheck size={18} />
                                 </ActionIcon>
                               </Tooltip>
                               <Tooltip label={t('finance.chequesPage.actions.bounce')}>
-                                <ActionIcon size="sm" variant="light" color="red" onClick={() => openBounceModal(cheque.id)}>
-                                  <IconBan size={16} />
+                                <ActionIcon size="lg" variant="light" color="red" onClick={() => openBounceModal(cheque.id)}>
+                                  <IconBan size={18} />
                                 </ActionIcon>
                               </Tooltip>
                             </>
                           )}
                           <Tooltip label={t('finance.chequesPage.actions.delete')}>
-                            <ActionIcon size="sm" variant="light" color="red" onClick={() => handleDelete(cheque.id)}>
-                              <IconTrash size={16} />
+                            <ActionIcon size="lg" variant="light" color="red" onClick={() => handleDelete(cheque.id)}>
+                              <IconTrash size={18} />
                             </ActionIcon>
                           </Tooltip>
                         </Group>
@@ -644,13 +706,17 @@ export default function ChequesPage() {
         </Paper>
 
         {/* Create/Edit Modal */}
-        <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={editId ? t('finance.chequesPage.modal.editTitle') : t('finance.chequesPage.modal.newTitle')} size="md">
-          <form onSubmit={form.onSubmit(handleSubmit)}>
+        <Modal opened={modalOpened} onClose={() => setModalOpened(false)} title={editId ? t('finance.chequesPage.modal.editTitle') : t('finance.chequesPage.modal.newTitle')} size="90%">
+          <form onSubmit={form.onSubmit((values) => handleSubmit(values))}>
             <Stack>
-              <Group grow>
-                <TextInput label={t('finance.chequesPage.modal.chequeNumber')} required {...form.getInputProps('chequeNumber')} />
+              <SimpleGrid cols={{ base: 1, md: 2 }}>
+                <TextInput
+                  label={<>{t('finance.chequesPage.modal.chequeNumber')} <span className="text-red-500">*</span></>}
+                  required
+                  {...form.getInputProps('chequeNumber')}
+                />
                 <Select
-                  label={t('finance.chequesPage.modal.type')}
+                  label={<>{t('finance.chequesPage.modal.type')} <span className="text-red-500">*</span></>}
                   required
                   data={[
                     { value: 'incoming', label: t('finance.chequesPage.modal.typeIncoming') },
@@ -658,33 +724,66 @@ export default function ChequesPage() {
                   ]}
                   {...form.getInputProps('type')}
                 />
-              </Group>
+              </SimpleGrid>
 
-              <Group grow>
-                <DatePicker label={t('finance.chequesPage.modal.issueDate')} required {...form.getInputProps('issueDate')} />
-                <DatePicker label={t('finance.chequesPage.modal.dueDate')} required {...form.getInputProps('dueDate')} />
-              </Group>
+              <SimpleGrid cols={{ base: 1, md: 2 }}>
+                <div>
+                  <Text className="text-sm font-medium mb-1">
+                    {t('finance.chequesPage.modal.issueDate')} <span className="text-red-500">*</span>
+                  </Text>
+                  <DatePicker
+                    required
+                    {...form.getInputProps('issueDate', { label: null })}
+                  />
+                </div>
+                <div>
+                  <Text className="text-sm font-medium mb-1">
+                    {t('finance.chequesPage.modal.dueDate')} <span className="text-red-500">*</span>
+                  </Text>
+                  <DatePicker
+                    required
+                    {...form.getInputProps('dueDate', { label: null })}
+                  />
+                </div>
+              </SimpleGrid>
 
-              <Group grow>
-                <NumberInput label={t('finance.chequesPage.modal.amount')} required prefix="৳" decimalScale={2} {...form.getInputProps('amount')} />
-                <TextInput label={t('finance.chequesPage.modal.payeeName')} required {...form.getInputProps('payeeName')} />
-              </Group>
+              <SimpleGrid cols={{ base: 1, md: 2 }}>
+                <NumberInput
+                  label={<>{t('finance.chequesPage.modal.amount')} <span className="text-red-500">*</span></>}
+                  required
+                  prefix="৳"
+                  decimalScale={2}
+                  min={0}
+                  {...form.getInputProps('amount')}
+                />
+                <TextInput
+                  label={<>{t('finance.chequesPage.modal.payeeName')} <span className="text-red-500">*</span></>}
+                  required
+                  {...form.getInputProps('payeeName')}
+                />
+              </SimpleGrid>
 
-              <Select label={t('finance.chequesPage.modal.bank')} required data={banks.map((b) => ({ value: b.id.toString(), label: b.name }))} {...form.getInputProps('bankId')} />
+              <Select
+                label={<>{t('finance.chequesPage.modal.bank')} <span className="text-red-500">*</span></>}
+                required
+                searchable
+                data={banks.map((b) => ({ value: b.id.toString(), label: b.name }))}
+                {...form.getInputProps('bankId')}
+              />
               <TextInput label={t('finance.chequesPage.modal.branchName')} {...form.getInputProps('branchName')} />
 
-              <Group grow>
+              <SimpleGrid cols={{ base: 1, md: 2 }}>
                 <TextInput label={t('finance.chequesPage.modal.partyName')} {...form.getInputProps('partyName')} />
                 <TextInput label={t('finance.chequesPage.modal.partyContact')} {...form.getInputProps('partyContact')} />
-              </Group>
+              </SimpleGrid>
 
               <Textarea label={t('finance.chequesPage.modal.notes')} {...form.getInputProps('notes')} />
 
-              <Group justify="flex-end">
-                <Button variant="light" onClick={() => setModalOpened(false)}>
+              <Group justify="flex-end" mt="md">
+                <Button variant="default" onClick={() => setModalOpened(false)}>
                   {t('finance.chequesPage.modal.cancel')}
                 </Button>
-                <Button type="submit">{editId ? t('finance.chequesPage.modal.update') : t('finance.chequesPage.modal.create')}</Button>
+                <Button type="submit" loading={submitting}>{editId ? t('finance.chequesPage.modal.update') : t('finance.chequesPage.modal.create')}</Button>
               </Group>
             </Stack>
           </form>
@@ -694,10 +793,15 @@ export default function ChequesPage() {
         <Modal opened={bounceModalOpened} onClose={() => setBounceModalOpened(false)} title={t('finance.chequesPage.modal.bounceTitle')} size="sm">
           <form onSubmit={bounceForm.onSubmit(handleBounce)}>
             <Stack>
-              <Textarea label={t('finance.chequesPage.modal.bounceReason')} required placeholder={t('finance.chequesPage.modal.bounceReasonPlaceholder')} {...bounceForm.getInputProps('bounceReason')} />
+              <Textarea
+                label={<>{t('finance.chequesPage.modal.bounceReason')} <span className="text-red-500">*</span></>}
+                required
+                placeholder={t('finance.chequesPage.modal.bounceReasonPlaceholder')}
+                {...bounceForm.getInputProps('bounceReason')}
+              />
 
               <Group justify="flex-end">
-                <Button variant="light" onClick={() => setBounceModalOpened(false)}>
+                <Button variant="default" onClick={() => setBounceModalOpened(false)}>
                   {t('finance.chequesPage.modal.cancel')}
                 </Button>
                 <Button type="submit" color="red">
@@ -714,15 +818,15 @@ export default function ChequesPage() {
             <Stack>
               <Group grow>
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.chequeNumber')}
                   </Text>
-                  <Text size="lg" fw={500}>
+                  <Text className="text-lg md:text-xl" fw={500}>
                     {viewCheque.chequeNumber}
                   </Text>
                 </Box>
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.type')}
                   </Text>
                   {getTypeBadge(viewCheque.type)}
@@ -731,15 +835,15 @@ export default function ChequesPage() {
 
               <Group grow>
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.amount')}
                   </Text>
-                  <Text size="lg" fw={500}>
-                    {viewCheque.amount.toFixed(2)}৳
+                  <Text className="text-lg md:text-xl" fw={500}>
+                    {parseFloat(viewCheque.amount).toFixed(2)}৳
                   </Text>
                 </Box>
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.status')}
                   </Text>
                   {getStatusBadge(viewCheque)}
@@ -752,31 +856,31 @@ export default function ChequesPage() {
                 </Text>
                 <SimpleGrid cols={2}>
                   <Box>
-                    <Text size="sm" c="dimmed">
+                    <Text className="text-sm md:text-base" c="dimmed">
                       {t('finance.chequesPage.modal.view.issueDate')}
                     </Text>
-                    <Text size="md">{new Date(viewCheque.issueDate).toLocaleDateString()}</Text>
+                    <Text className="text-base md:text-lg">{new Date(viewCheque.issueDate).toLocaleDateString()}</Text>
                   </Box>
                   <Box>
-                    <Text size="sm" c="dimmed">
+                    <Text className="text-sm md:text-base" c="dimmed">
                       {t('finance.chequesPage.modal.view.dueDate')}
                     </Text>
-                    <Text size="md">{new Date(viewCheque.dueDate).toLocaleDateString()}</Text>
+                    <Text className="text-base md:text-lg">{new Date(viewCheque.dueDate).toLocaleDateString()}</Text>
                   </Box>
                   {viewCheque.depositDate && (
                     <Box>
-                      <Text size="sm" c="dimmed">
+                      <Text className="text-sm md:text-base" c="dimmed">
                         {t('finance.chequesPage.modal.view.depositDate')}
                       </Text>
-                      <Text size="md">{new Date(viewCheque.depositDate).toLocaleDateString()}</Text>
+                      <Text className="text-base md:text-lg">{new Date(viewCheque.depositDate).toLocaleDateString()}</Text>
                     </Box>
                   )}
                   {viewCheque.clearanceDate && (
                     <Box>
-                      <Text size="sm" c="dimmed">
+                      <Text className="text-sm md:text-base" c="dimmed">
                         {t('finance.chequesPage.modal.view.clearanceDate')}
                       </Text>
-                      <Text size="md">{new Date(viewCheque.clearanceDate).toLocaleDateString()}</Text>
+                      <Text className="text-base md:text-lg">{new Date(viewCheque.clearanceDate).toLocaleDateString()}</Text>
                     </Box>
                   )}
                 </SimpleGrid>
@@ -786,42 +890,42 @@ export default function ChequesPage() {
                 <Text fw={500} mb="xs">
                   {t('finance.chequesPage.modal.bankInformation')}
                 </Text>
-                <Text size="md">{viewCheque.bank?.name || viewCheque.bankName || '-'}</Text>
+                <Text className="text-base md:text-lg">{viewCheque.bank?.name || viewCheque.bankName || '-'}</Text>
                 {viewCheque.branchName && (
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.branch', { branch: viewCheque.branchName })}
                   </Text>
                 )}
               </Paper>
 
               <Box>
-                <Text size="sm" c="dimmed">
+                <Text className="text-sm md:text-base" c="dimmed">
                   {t('finance.chequesPage.modal.view.payeeName')}
                 </Text>
-                <Text size="md">{viewCheque.payeeName}</Text>
+                <Text className="text-base md:text-lg">{viewCheque.payeeName}</Text>
               </Box>
 
               {viewCheque.partyName && (
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.partyName')}
                   </Text>
-                  <Text size="md">{viewCheque.partyName}</Text>
+                  <Text className="text-base md:text-lg">{viewCheque.partyName}</Text>
                 </Box>
               )}
 
               {viewCheque.bounceReason && (
                 <Box>
-                  <Text size="sm" c="red">
+                  <Text className="text-sm md:text-base" c="red">
                     {t('finance.chequesPage.modal.view.bounceReason')}
                   </Text>
-                  <Text size="md">{viewCheque.bounceReason}</Text>
+                  <Text className="text-base md:text-lg">{viewCheque.bounceReason}</Text>
                 </Box>
               )}
 
               {viewCheque.notes && (
                 <Box>
-                  <Text size="sm" c="dimmed">
+                  <Text className="text-sm md:text-base" c="dimmed">
                     {t('finance.chequesPage.modal.view.notes')}
                   </Text>
                   <Text size="sm">{viewCheque.notes}</Text>

@@ -265,19 +265,19 @@ export default function VatTaxLedgerPage() {
   const openEditModal = async (ledger: VatTaxLedger) => {
     setEditId(ledger.id)
     form.setValues({
-      transactionType: ledger.transaction_type,
-      taxType: ledger.tax_type,
-      baseAmount: ledger.base_amount,
-      taxRate: ledger.tax_rate,
-      taxAmount: ledger.tax_amount,
+      transactionType: ledger.transactionType,
+      taxType: ledger.taxType,
+      baseAmount: ledger.baseAmount,
+      taxRate: ledger.taxRate,
+      taxAmount: ledger.taxAmount,
       direction: ledger.direction,
-      flowType: ledger.flow_type,
-      transactionDate: new Date(ledger.transaction_date),
-      chartAccountId: ledger.chart_account_id?.toString() || '',
-      fiscalYear: ledger.fiscal_year || '',
-      taxPeriod: ledger.tax_period || '',
-      challanNumber: ledger.challan_number || '',
-      challanDate: ledger.challan_date ? new Date(ledger.challan_date) : null,
+      flowType: ledger.flowType,
+      transactionDate: new Date(ledger.transactionDate),
+      chartAccountId: ledger.chartAccountId?.toString() || '',
+      fiscalYear: ledger.fiscalYear || '',
+      taxPeriod: ledger.taxPeriod || '',
+      challanNumber: ledger.challanNumber || '',
+      challanDate: ledger.challanDate ? new Date(ledger.challanDate) : null,
       description: ledger.description || '',
       notes: ledger.notes || '',
     })
@@ -541,24 +541,24 @@ export default function VatTaxLedgerPage() {
                   ledgers.map((ledger) => (
                     <Table.Tr key={ledger.id}>
                       <Table.Td>
-                        <Text size="sm">{new Date(ledger.transaction_date).toLocaleDateString()}</Text>
+                        <Text size="sm">{new Date(ledger.transactionDate).toLocaleDateString()}</Text>
                       </Table.Td>
-                      <Table.Td>{getTaxTypeBadge(ledger.tax_type)}</Table.Td>
+                      <Table.Td>{getTaxTypeBadge(ledger.taxType)}</Table.Td>
                       <Table.Td>{getDirectionBadge(ledger.direction)}</Table.Td>
                       <Table.Td>
-                        <Text ta="right">{ledger.base_amount.toFixed(2)}৳</Text>
+                        <Text ta="right">{parseFloat(ledger.baseAmount || 0).toFixed(2)}৳</Text>
                       </Table.Td>
                       <Table.Td>
-                        <Text size="sm">{ledger.tax_rate}%</Text>
+                        <Text size="sm">{parseFloat(ledger.taxRate || 0)}%</Text>
                       </Table.Td>
                       <Table.Td>
                         <Text ta="right" fw={500}>
-                          {ledger.tax_amount.toFixed(2)}৳
+                          {parseFloat(ledger.taxAmount || 0).toFixed(2)}৳
                         </Text>
                       </Table.Td>
                       <Table.Td>{getStatusBadge(ledger.status)}</Table.Td>
                       <Table.Td>
-                        <Text size="sm">{ledger.challan_number || '-'}</Text>
+                        <Text size="sm">{ledger.challanNumber || '-'}</Text>
                       </Table.Td>
                       <Table.Td ta="center">
                         <Group gap="xs" justify="center" wrap="nowrap">
@@ -703,7 +703,7 @@ export default function VatTaxLedgerPage() {
                   <Text size="sm" c="dimmed">
                     {t('finance.vatTaxPage.modal.view.taxType')}
                   </Text>
-                  {getTaxTypeBadge(selectedEntry.tax_type)}
+                  {getTaxTypeBadge(selectedEntry.taxType)}
                 </Box>
                 <Box>
                   <Text size="sm" c="dimmed">
@@ -719,14 +719,14 @@ export default function VatTaxLedgerPage() {
                     {t('finance.vatTaxPage.modal.view.baseAmount')}
                   </Text>
                   <Text size="lg" fw={500}>
-                    {selectedEntry.base_amount.toFixed(2)}৳
+                    {parseFloat(selectedEntry.baseAmount || 0).toFixed(2)}৳
                   </Text>
                 </Box>
                 <Box>
                   <Text size="sm" c="dimmed">
                     {t('finance.vatTaxPage.modal.view.taxRate')}
                   </Text>
-                  <Text size="md">{selectedEntry.tax_rate}%</Text>
+                  <Text size="md">{parseFloat(selectedEntry.taxRate || 0)}%</Text>
                 </Box>
               </Group>
 
@@ -735,7 +735,7 @@ export default function VatTaxLedgerPage() {
                   {t('finance.vatTaxPage.modal.view.taxAmount')}
                 </Text>
                 <Text size="xl" fw={700} c="blue">
-                  {selectedEntry.tax_amount.toFixed(2)}৳
+                  {parseFloat(selectedEntry.taxAmount || 0).toFixed(2)}৳
                 </Text>
               </Paper>
 
@@ -748,7 +748,7 @@ export default function VatTaxLedgerPage() {
                     <Text size="sm" c="dimmed">
                       {t('finance.vatTaxPage.modal.view.transactionDate')}
                     </Text>
-                    <Text size="md">{new Date(selectedEntry.transaction_date).toLocaleDateString()}</Text>
+                    <Text size="md">{new Date(selectedEntry.transactionDate).toLocaleDateString()}</Text>
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
@@ -760,18 +760,18 @@ export default function VatTaxLedgerPage() {
                     <Text size="sm" c="dimmed">
                       {t('finance.vatTaxPage.modal.view.fiscalYear')}
                     </Text>
-                    <Text size="md">{selectedEntry.fiscal_year || '-'}</Text>
+                    <Text size="md">{selectedEntry.fiscalYear || '-'}</Text>
                   </Box>
                   <Box>
                     <Text size="sm" c="dimmed">
                       {t('finance.vatTaxPage.modal.view.taxPeriod')}
                     </Text>
-                    <Text size="md">{selectedEntry.tax_period || '-'}</Text>
+                    <Text size="md">{selectedEntry.taxPeriod || '-'}</Text>
                   </Box>
                 </SimpleGrid>
               </Paper>
 
-              {selectedEntry.challan_number && (
+              {selectedEntry.challanNumber && (
                 <Paper withBorder p="sm" radius="md">
                   <Text fw={500} mb="xs">
                     {t('finance.vatTaxPage.modal.view.challanDetails')}
@@ -781,21 +781,21 @@ export default function VatTaxLedgerPage() {
                       <Text size="sm" c="dimmed">
                         {t('finance.vatTaxPage.modal.view.challanNumber')}
                       </Text>
-                      <Text size="md">{selectedEntry.challan_number}</Text>
+                      <Text size="md">{selectedEntry.challanNumber}</Text>
                     </Box>
-                    {selectedEntry.challan_date && (
+                    {selectedEntry.challanDate && (
                       <Box>
                         <Text size="sm" c="dimmed">
                           {t('finance.vatTaxPage.modal.view.challanDate')}
                         </Text>
-                        <Text size="md">{new Date(selectedEntry.challan_date).toLocaleDateString()}</Text>
+                        <Text size="md">{new Date(selectedEntry.challanDate).toLocaleDateString()}</Text>
                       </Box>
                     )}
                   </SimpleGrid>
                 </Paper>
               )}
 
-              {selectedEntry.is_paid && (
+              {selectedEntry.isPaid && (
                 <Paper withBorder p="sm" radius="md" bg="green.0">
                   <Text fw={500} mb="xs" c="green">
                     {t('finance.vatTaxPage.modal.view.paymentDetails')}
@@ -805,13 +805,13 @@ export default function VatTaxLedgerPage() {
                       <Text size="sm" c="dimmed">
                         {t('finance.vatTaxPage.modal.view.paymentDate')}
                       </Text>
-                      <Text size="md">{selectedEntry.payment_date ? new Date(selectedEntry.payment_date).toLocaleDateString() : '-'}</Text>
+                      <Text size="md">{selectedEntry.paymentDate ? new Date(selectedEntry.paymentDate).toLocaleDateString() : '-'}</Text>
                     </Box>
                     <Box>
                       <Text size="sm" c="dimmed">
                         {t('finance.vatTaxPage.modal.view.paymentReference')}
                       </Text>
-                      <Text size="md">{selectedEntry.payment_reference || '-'}</Text>
+                      <Text size="md">{selectedEntry.paymentReference || '-'}</Text>
                     </Box>
                   </SimpleGrid>
                 </Paper>

@@ -156,9 +156,12 @@ export default function LeavesPage() {
     if (!isAdmin) return // Non-admins don't need employee list
 
     try {
-      const response = await api.get('/user-management/users')
-      const employeesData = response.data.data || []
-      setEmployees(employeesData)
+      const response = await api.get('/user-management/users', {
+        params: { type: 'staff', status: 'active', per_page: 100 }
+      })
+      // Handle paginated response: { data: { data: [...], current_page, ... } }
+      const employeesData = response.data.data?.data || response.data.data || []
+      setEmployees(Array.isArray(employeesData) ? employeesData : [])
     } catch (error: unknown) {
       console.error('Failed to fetch employees:', error)
     }
@@ -683,6 +686,8 @@ export default function LeavesPage() {
                 value={formData.user_id}
                 onChange={(value) => setFormData({ ...formData, user_id: value })}
                 searchable
+                nothingFoundMessage="No employees found"
+                limit={100}
                 className="text-base md:text-lg"
               />
             </Stack>

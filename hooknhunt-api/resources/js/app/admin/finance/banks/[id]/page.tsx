@@ -140,12 +140,20 @@ export default function BankDetailsPage() {
     try {
       const response = await getAccounts()
 
-      // Access the data property from the API response
-      const accounts = response.data || response || []
+      let accounts: any[] = []
+
+      // Handle paginated response structure
+      if (response?.data) {
+        if (Array.isArray(response.data)) {
+          accounts = response.data
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          accounts = response.data.data
+        }
+      }
 
       // Filter for expense accounts only
       const expenseAccounts = accounts.filter((acc: any) =>
-        acc.type === 'expense' && acc.is_active
+        acc.type === 'expense' && acc.isActive !== false
       )
 
       setChartOfAccounts(expenseAccounts)
@@ -366,7 +374,7 @@ export default function BankDetailsPage() {
       <Stack p="xl">
         <Paper withBorder p="xl" shadow="sm" pos="relative">
           <LoadingOverlay visible={loading} />
-          <div style={{ height: '400px' }} />
+          <div className="h-96" />
         </Paper>
       </Stack>
     )
@@ -669,7 +677,6 @@ export default function BankDetailsPage() {
             prefix="৳"
             thousandSeparator=","
             min={0}
-            max={bank?.currentBalance}
             value={withdrawAmount}
             onChange={(value) => setWithdrawAmount(value)}
           />
@@ -729,7 +736,6 @@ export default function BankDetailsPage() {
             prefix="৳"
             thousandSeparator=","
             min={0}
-            max={bank?.currentBalance}
             value={transferAmount}
             onChange={(value) => setTransferAmount(value)}
           />

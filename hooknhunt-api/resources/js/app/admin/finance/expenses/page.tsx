@@ -112,9 +112,11 @@ export default function ExpensesPage() {
       }
 
       // Convert is_approved from 0/1 to boolean, and handle snake_case to camelCase
+      // API returns camelCase due to CamelCaseResponse middleware
       expensesData = expensesData.map((expense: any) => ({
         ...expense,
-        isApproved: expense.is_approved === 1 || expense.is_approved === true,
+        isApproved: expense.is_approved === 1 || expense.is_approved === true
+          || expense.isApproved === 1 || expense.isApproved === true,
         expenseDate: expense.expense_date || expense.expenseDate,
         referenceNumber: expense.reference_number || expense.referenceNumber,
         accountId: expense.account_id || expense.accountId,
@@ -180,7 +182,7 @@ export default function ExpensesPage() {
 
   // Filter expenses client-side (for date range and additional filtering)
   const filteredExpenses = useMemo(() => {
-    return expenses.filter((expense) => {
+    const filtered = expenses.filter((expense) => {
       // Date filter
       if (startDate) {
         const expenseDate = new Date(expense.expenseDate)
@@ -193,6 +195,13 @@ export default function ExpensesPage() {
       }
 
       return true
+    })
+
+    // Sort by created_at desc (newest first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime()
+      const dateB = new Date(b.createdAt).getTime()
+      return dateB - dateA
     })
   }, [expenses, startDate, endDate])
 
@@ -242,17 +251,26 @@ export default function ExpensesPage() {
   // Handle approve
   const handleApprove = async (expenseId: number) => {
     try {
-      await approveExpense(expenseId)
+      console.log('Approving expense:', expenseId)
+      const response = await approveExpense(expenseId)
+      console.log('Approve response:', response)
+
       notifications.show({
         title: t('finance.banksPage.expensesPage.notification.approved'),
         message: t('finance.banksPage.expensesPage.notification.approvedMessage', { id: expenseId }),
         color: 'green',
       })
       fetchExpenses(false)
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Failed to approve expense:', error)
+      // Extract actual error message from API response
+      const errorMessage = error?.response?.data?.message
+        || error?.response?.data?.error
+        || error?.message
+        || t('common.somethingWentWrong')
       notifications.show({
         title: t('common.error'),
-        message: t('common.somethingWentWrong'),
+        message: errorMessage,
         color: 'red',
       })
     }
@@ -471,9 +489,9 @@ export default function ExpensesPage() {
                   <Table.Th>{t('finance.banksPage.expensesPage.tableHeaders.reference')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.expensesPage.tableHeaders.account')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.expensesPage.tableHeaders.paidBy')}</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.expensesPage.tableHeaders.amount')}</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>VAT</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>Tax</Table.Th>
+                  <Table.Th ta="right">{t('finance.banksPage.expensesPage.tableHeaders.amount')}</Table.Th>
+                  <Table.Th ta="right">{t('finance.vat')}</Table.Th>
+                  <Table.Th ta="right">{t('finance.tax')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.expensesPage.tableHeaders.status')}</Table.Th>
                   <Table.Th style={{ textAlign: 'center' }}>{t('finance.banksPage.expensesPage.tableHeaders.actions')}</Table.Th>
                 </Table.Tr>
@@ -558,7 +576,7 @@ export default function ExpensesPage() {
                               onClick={() => handleApprove(expense.id)}
                               title={t('finance.banksPage.expensesPage.actions.approve')}
                             >
-                              <IconCheck size={14} />
+                              <IconCheck size={18} />
                             </ActionIcon>
                           )}
                           <ActionIcon
@@ -568,7 +586,7 @@ export default function ExpensesPage() {
                             onClick={() => handleEdit(expense.id)}
                             title={t('finance.banksPage.expensesPage.actions.edit')}
                           >
-                            <IconPencil size={14} />
+                            <IconPencil size={18} />
                           </ActionIcon>
                           <ActionIcon
                             className="text-sm md:text-base"
@@ -577,7 +595,7 @@ export default function ExpensesPage() {
                             onClick={() => handleDelete(expense.id, expense.title)}
                             title={t('finance.banksPage.expensesPage.actions.delete')}
                           >
-                            <IconTrash size={14} />
+                            <IconTrash size={18} />
                           </ActionIcon>
                         </Group>
                       </Table.Td>
@@ -663,7 +681,7 @@ export default function ExpensesPage() {
                       variant="light"
                       onClick={() => handleApprove(expense.id)}
                     >
-                      <IconCheck size={14} />
+                      <IconCheck size={18} />
                     </ActionIcon>
                   )}
                   <ActionIcon
@@ -672,7 +690,7 @@ export default function ExpensesPage() {
                     variant="light"
                     onClick={() => handleEdit(expense.id)}
                   >
-                    <IconPencil size={14} />
+                    <IconPencil size={18} />
                   </ActionIcon>
                   <ActionIcon
                     className="text-sm md:text-base"
@@ -680,7 +698,7 @@ export default function ExpensesPage() {
                     variant="light"
                     onClick={() => handleDelete(expense.id, expense.title)}
                   >
-                    <IconTrash size={14} />
+                    <IconTrash size={18} />
                   </ActionIcon>
                 </Group>
               </Card>

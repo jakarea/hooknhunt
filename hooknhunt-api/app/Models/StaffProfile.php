@@ -30,12 +30,17 @@ class StaffProfile extends Model
         'dob',
         'gender',
         'profile_photo_id',
+        // Bank account details for salary transfer
+        'bank_account_name',
+        'bank_account_number',
+        'bank_name',
+        'bank_branch',
     ];
 
     // Date casting
     protected $casts = [
-        'dob' => 'date',
-        'joining_date' => 'date',
+        'dob' => 'date:Y-m-d', // Fixed timezone offset
+        'joining_date' => 'date:Y-m-d', // Fixed timezone offset
     ];
 
     // Append accessors to JSON

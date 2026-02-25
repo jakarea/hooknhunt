@@ -27,15 +27,16 @@ import {
   IconArrowUp,
   IconArrowDown,
   IconArrowsExchange,
+  IconReceipt,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { DateInput } from '@mantine/dates'
 import { useTranslation } from 'react-i18next'
 import {
-  getBankTransactions,
-  getBankTransactionStatistics,
+  getTransactions,
+  getTransactionStatistics,
   getBanks,
-  type BankTransaction,
+  type UnifiedTransaction,
   type TransactionType,
 } from '@/utils/api'
 
@@ -44,7 +45,7 @@ export default function TransactionsPage() {
   const { hasPermission } = usePermissions()
 
   // Permission check - user needs finance transactions view permission
-  if (!hasPermission('finance_transactions_view')) {
+  if (!hasPermission('finance.transactions.index')) {
     return (
       <Stack p="xl">
         <Card withBorder p="xl" shadow="sm" ta="center">
@@ -57,9 +58,14 @@ export default function TransactionsPage() {
 
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const [transactions, setTransactions] = useState<BankTransaction[]>([])
+  const [transactions, setTransactions] = useState<UnifiedTransaction[]>([])
   const [banks, setBanks] = useState<any[]>([])
   const [statistics, setStatistics] = useState<any>(null)
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('')
@@ -67,7 +73,6 @@ export default function TransactionsPage() {
   const [selectedType, setSelectedType] = useState<TransactionType>('all')
   const [startDate, setStartDate] = useState<Date | null>(null)
   const [endDate, setEndDate] = useState<Date | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
 
   // Fetch transactions
   const fetchTransactions = useCallback(async (showLoading = true) => {
@@ -78,22 +83,39 @@ export default function TransactionsPage() {
         setRefreshing(true)
       }
 
-      const filters: any = {}
+      const filters: any = {
+        page: currentPage,
+        per_page: 50,
+      }
       if (searchQuery) filters.search = searchQuery
       if (selectedBank) filters.bank_id = parseInt(selectedBank)
       if (selectedType !== 'all') filters.type = selectedType
       if (startDate) filters.start_date = startDate.toISOString().split('T')[0]
       if (endDate) filters.end_date = endDate.toISOString().split('T')[0]
 
-      const response = await getBankTransactions(filters)
+      const response = await getTransactions(filters)
 
-      // Handle nested response structure: { data: { data: [...], ... } }
-      let transactionsData: BankTransaction[] = []
+      console.log('DEBUG: Raw response:', response)
+
+      // Handle response structure - backend returns { data: { transactions: [], meta: {} } }
+      let transactionsData: UnifiedTransaction[] = []
+      let meta: any = null
+
       if (response && typeof response === 'object') {
         if ('data' in response) {
           const innerData = response.data
-          if (typeof innerData === 'object' && 'data' in innerData && Array.isArray(innerData.data)) {
-            transactionsData = innerData.data
+          console.log('DEBUG: response.data:', innerData)
+
+          if (typeof innerData === 'object' && 'transactions' in innerData) {
+            // Backend returns { data: { transactions: [], meta: {} } }
+            transactionsData = innerData.transactions || []
+            meta = innerData.meta || null
+          } else if ('meta' in innerData) {
+            // Handle case where data includes meta directly
+            meta = innerData.meta
+            if (Array.isArray(innerData.transactions)) {
+              transactionsData = innerData.transactions
+            }
           } else if (Array.isArray(innerData)) {
             transactionsData = innerData
           }
@@ -102,8 +124,15 @@ export default function TransactionsPage() {
         }
       }
 
+      console.log('DEBUG: transactionsData count:', transactionsData.length)
+      console.log('DEBUG: First transaction:', transactionsData[0])
+      console.log('DEBUG: transactionDate of first:', transactionsData[0]?.transactionDate)
+
       setTransactions(transactionsData)
-      setCurrentPage(1)
+      if (meta) {
+        setTotalPages(meta.lastPage || 1)
+        setTotalItems(meta.total || 0)
+      }
     } catch (error) {
       notifications.show({
         title: t('finance.banksPage.transactionsPage.notification.errorLoading'),
@@ -115,7 +144,7 @@ export default function TransactionsPage() {
       setLoading(false)
       setRefreshing(false)
     }
-  }, [searchQuery, selectedBank, selectedType, startDate, endDate, t])
+  }, [searchQuery, selectedBank, selectedType, startDate, endDate, currentPage, t])
 
   // Fetch statistics
   const fetchStatistics = useCallback(async () => {
@@ -125,8 +154,9 @@ export default function TransactionsPage() {
       if (startDate) filters.start_date = startDate.toISOString().split('T')[0]
       if (endDate) filters.end_date = endDate.toISOString().split('T')[0]
 
-      const response = await getBankTransactionStatistics(filters)
+      const response = await getTransactionStatistics(filters)
 
+      // Backend returns { status: true, data: { ...statistics } }
       if (response && typeof response === 'object') {
         if ('data' in response) {
           setStatistics(response.data)
@@ -166,10 +196,19 @@ export default function TransactionsPage() {
     fetchStatistics()
   }, [])
 
-  // Refresh statistics when filters change
+  // Refresh when filters change (reset to page 1)
   useEffect(() => {
+    setCurrentPage(1)
+    fetchTransactions(false)
     fetchStatistics()
-  }, [fetchStatistics])
+  }, [searchQuery, selectedBank, selectedType, startDate, endDate])
+
+  // Refresh when page changes
+  useEffect(() => {
+    if (currentPage > 1) {
+      fetchTransactions(false)
+    }
+  }, [currentPage])
 
   // Manual refresh
   const handleRefresh = () => {
@@ -182,41 +221,28 @@ export default function TransactionsPage() {
     })
   }
 
-  // Pagination
-  const itemsPerPage = 10
-  const totalPages = Math.ceil(transactions.length / itemsPerPage)
-  const paginatedTransactions = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage
-    return transactions.slice(start, start + itemsPerPage)
-  }, [transactions, currentPage])
-
   // Handle export
   const handleExport = () => {
-    // Create CSV content
     const headers = [
       t('finance.banksPage.transactionsPage.tableHeaders.date'),
       t('finance.banksPage.transactionsPage.tableHeaders.type'),
       t('finance.banksPage.transactionsPage.tableHeaders.description'),
       t('finance.banksPage.transactionsPage.tableHeaders.reference'),
-      t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore'),
       t('finance.banksPage.transactionsPage.tableHeaders.amount'),
-      t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')
     ]
-    const rows = paginatedTransactions.map((t) => [
+
+    const rows = transactions.map((t) => [
       t.transactionDate,
-      t.bank?.name ? `${t.type} (${t.bank.name})` : t.type,
+      t.type,
       t.description || '',
       t.referenceNumber || '',
-      t.balanceBefore || '0',
-      t.amount,
-      t.balanceAfter || '0',
+      t.amount?.toString() || '0',
     ])
 
     const csvContent = [headers, ...rows]
       .map((row) => row.map((cell) => `"${cell}"`).join(','))
       .join('\n')
 
-    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
@@ -234,8 +260,11 @@ export default function TransactionsPage() {
     })
   }
 
-  // Get transaction type badge color and label
-  const getTypeBadge = (type: string) => {
+  // Get transaction type badge color, label and icon
+  const getTypeBadge = (transaction: UnifiedTransaction) => {
+    const isExpense = transaction.transactionType === 'expense'
+    const type = transaction.type
+
     const config: Record<string, { color: string; label: string; icon: any }> = {
       deposit: {
         color: 'green',
@@ -257,27 +286,50 @@ export default function TransactionsPage() {
         label: t('finance.banksPage.transactionsPage.transactionTypes.transferOut'),
         icon: IconArrowUp
       },
+      expense: {
+        color: 'violet',
+        label: t('finance.banksPage.transactionsPage.transactionTypes.expense') || 'Expense',
+        icon: IconReceipt
+      },
     }
-    return config[type] || {
+
+    const baseConfig = config[type] || {
       color: 'gray',
       label: t('finance.banksPage.transactionsPage.transactionTypes.unknown'),
       icon: IconArrowsExchange
     }
+
+    // Add bank name to label if available
+    const fullLabel = transaction.bank?.name
+      ? `${baseConfig.label} (${transaction.bank.name})`
+      : baseConfig.label
+
+    return { ...baseConfig, fullLabel }
   }
 
   // Format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-'
+    const date = new Date(dateString)
+    // Check if date is valid
+    if (isNaN(date.getTime())) return '-'
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     })
   }
 
-  // Format amount (handle string from API)
-  const formatAmount = (amount: string | number) => {
+  // Format amount
+  const formatAmount = (amount: number | string) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount
     return num.toLocaleString()
+  }
+
+  // Check if transaction is inflow
+  const isInflow = (transaction: UnifiedTransaction) => {
+    if (transaction.transactionType === 'expense') return false
+    return ['deposit', 'transfer_in'].includes(transaction.type)
   }
 
   // Bank options for select
@@ -290,13 +342,15 @@ export default function TransactionsPage() {
     [banks]
   )
 
-  // Type options
+  // Type options (including expense)
   const typeOptions = [
     { value: 'all', label: t('finance.banksPage.transactionsPage.typeLabels.all') },
     { value: 'deposit', label: t('finance.banksPage.transactionsPage.typeLabels.deposits') },
     { value: 'withdrawal', label: t('finance.banksPage.transactionsPage.typeLabels.withdrawals') },
     { value: 'transfer_in', label: t('finance.banksPage.transactionsPage.typeLabels.transfersIn') },
     { value: 'transfer_out', label: t('finance.banksPage.transactionsPage.typeLabels.transfersOut') },
+    { value: 'expense', label: t('finance.banksPage.transactionsPage.typeLabels.expenses') || 'Expenses' },
+    { value: 'bank', label: t('finance.banksPage.transactionsPage.typeLabels.bankTransactions') || 'Bank Transactions' },
   ]
 
   // Loading state
@@ -328,11 +382,11 @@ export default function TransactionsPage() {
                 {t('finance.banksPage.transactionsPage.title')}
               </Title>
               <Text c="dimmed" className="text-sm md:text-base">
-                {t('finance.banksPage.transactionsPage.subtitle')}
+                All financial transactions including bank transactions and expenses
               </Text>
             </Box>
             <Group>
-              <ActionIcon variant="light" className="text-lg md:text-xl lg:text-2xl" onClick={handleRefresh} loading={refreshing}>
+              <ActionIcon variant="light" onClick={handleRefresh} loading={refreshing}>
                 <IconRefresh size={18} />
               </ActionIcon>
               <Button leftSection={<IconDownload size={16} />} variant="light" onClick={handleExport}>
@@ -347,7 +401,7 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowUp size={20} style={{ color: 'var(--mantine-color-green-6)' }} />
-              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalInflow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Inflow</Text>
             </Group>
             <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               <NumberFormatter value={statistics?.total_inflow || 0} prefix="৳" thousandSeparator />
@@ -357,7 +411,7 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowDown size={20} style={{ color: 'var(--mantine-color-red-6)' }} />
-              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.totalOutflow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Total Outflow</Text>
             </Group>
             <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>
               <NumberFormatter value={statistics?.total_outflow || 0} prefix="৳" thousandSeparator />
@@ -367,7 +421,7 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconArrowsExchange size={20} style={{ color: 'var(--mantine-color-blue-6)' }} />
-              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.netFlow')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Net Flow</Text>
             </Group>
             <Text
               className="text-xl md:text-2xl lg:text-3xl"
@@ -381,9 +435,9 @@ export default function TransactionsPage() {
           <Card withBorder p="md" radius="md">
             <Group mb="xs">
               <IconRefresh size={20} style={{ color: 'var(--mantine-color-purple-6)' }} />
-              <Text className="text-xs md:text-sm" c="dimmed">{t('finance.banksPage.transactionsPage.transactionsCount')}</Text>
+              <Text className="text-xs md:text-sm" c="dimmed">Transactions</Text>
             </Group>
-            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{statistics?.transaction_count || 0}</Text>
+            <Text className="text-xl md:text-2xl lg:text-3xl" fw={700}>{totalItems || statistics?.transaction_count || 0}</Text>
           </Card>
         </SimpleGrid>
 
@@ -431,7 +485,7 @@ export default function TransactionsPage() {
 
         {/* Desktop Table */}
         <Card withBorder p="0" radius="md" display={{ base: 'none', md: 'block' }} shadow="sm">
-          <Table.ScrollContainer minWidth={900}>
+          <Table.ScrollContainer minWidth={800}>
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
@@ -439,35 +493,36 @@ export default function TransactionsPage() {
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.type')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.description')}</Table.Th>
                   <Table.Th>{t('finance.banksPage.transactionsPage.tableHeaders.reference')}</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore')}</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.amount')}</Table.Th>
-                  <Table.Th style={{ textAlign: 'right' }}>{t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
-                {paginatedTransactions.length === 0 ? (
+                {transactions.length === 0 ? (
                   <Table.Tr>
-                    <Table.Td colSpan={7}>
+                    <Table.Td colSpan={5}>
                       <Box py="xl" ta="center">
                         <Text c="dimmed">{t('finance.banksPage.transactionsPage.noTransactions')}</Text>
                       </Box>
                     </Table.Td>
                   </Table.Tr>
                 ) : (
-                  paginatedTransactions.map((transaction) => {
-                    const typeConfig = getTypeBadge(transaction.type)
+                  transactions.map((transaction) => {
+                    const typeConfig = getTypeBadge(transaction)
                     return (
                       <Table.Tr key={transaction.id}>
                         <Table.Td>
                           <Text className="text-sm md:text-base">{formatDate(transaction.transactionDate)}</Text>
                         </Table.Td>
                         <Table.Td>
-                          <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
-                            {transaction.bank?.name ? `${typeConfig.label} (${transaction.bank.name})` : typeConfig.label}
+                          <Badge color={typeConfig.color} variant="light" leftSection={<typeConfig.icon size={12} />}>
+                            {typeConfig.fullLabel}
                           </Badge>
                         </Table.Td>
                         <Table.Td>
                           <Text className="text-sm md:text-base">{transaction.description || '-'}</Text>
+                          {transaction.expenseData?.account && (
+                            <Text size="xs" c="dimmed">Account: {transaction.expenseData.account.name}</Text>
+                          )}
                         </Table.Td>
                         <Table.Td>
                           <Text className="text-sm md:text-base" c="dimmed">
@@ -475,24 +530,14 @@ export default function TransactionsPage() {
                           </Text>
                         </Table.Td>
                         <Table.Td>
-                          <Text className="text-sm md:text-base" fw={500} ta="right">
-                            <NumberFormatter value={parseFloat(transaction.balanceBefore || '0')} prefix="৳" thousandSeparator />
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
                           <Text
                             className="text-sm md:text-base"
                             fw={600}
                             ta="right"
-                            c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
+                            c={isInflow(transaction) ? 'green' : 'red'}
                           >
-                            {['deposit', 'transfer_in'].includes(transaction.type) ? '+' : '-'}৳{' '}
+                            {isInflow(transaction) ? '+' : '-'}৳{' '}
                             {formatAmount(transaction.amount)}
-                          </Text>
-                        </Table.Td>
-                        <Table.Td>
-                          <Text className="text-sm md:text-base" fw={500} ta="right">
-                            <NumberFormatter value={parseFloat(transaction.balanceAfter || '0')} prefix="৳" thousandSeparator />
                           </Text>
                         </Table.Td>
                       </Table.Tr>
@@ -506,56 +551,46 @@ export default function TransactionsPage() {
 
         {/* Mobile Card View */}
         <Stack display={{ base: 'block', md: 'none' }}>
-          {paginatedTransactions.length === 0 ? (
+          {transactions.length === 0 ? (
             <Card withBorder p="xl" ta="center" shadow="sm">
               <Text c="dimmed">{t('finance.banksPage.transactionsPage.noTransactions')}</Text>
             </Card>
           ) : (
-            paginatedTransactions.map((transaction) => {
-              const typeConfig = getTypeBadge(transaction.type)
+            transactions.map((transaction) => {
+              const typeConfig = getTypeBadge(transaction)
               return (
                 <Card key={transaction.id} shadow="sm" p="sm" radius="md" withBorder>
                   <Group justify="space-between" mb="xs">
-                    <Badge color={typeConfig.color} className="text-sm md:text-base" variant="light" leftSection={<typeConfig.icon size={12} />}>
-                      {transaction.bank?.name ? `${typeConfig.label} (${transaction.bank.name})` : typeConfig.label}
+                    <Badge color={typeConfig.color} variant="light" leftSection={<typeConfig.icon size={12} />}>
+                      {typeConfig.fullLabel}
                     </Badge>
-                    <Text className="text-xs md:text-sm" c="dimmed">{formatDate(transaction.transactionDate)}</Text>
+                    <Text size="xs" c="dimmed">{formatDate(transaction.transactionDate)}</Text>
                   </Group>
 
                   <Group justify="space-between" mb="xs">
-                    <Text className="text-sm md:text-base" fw={500} truncate style={{ maxWidth: '60%' }}>
+                    <Text fw={500} truncate style={{ maxWidth: '60%' }}>
                       {transaction.description || '-'}
                     </Text>
                     <Text
-                      className="text-sm md:text-base"
                       fw={700}
-                      c={['deposit', 'transfer_in'].includes(transaction.type) ? 'green' : 'red'}
+                      c={isInflow(transaction) ? 'green' : 'red'}
                     >
-                      {['deposit', 'transfer_in'].includes(transaction.type) ? '+' : '-'}৳{' '}
+                      {isInflow(transaction) ? '+' : '-'}৳{' '}
                       {formatAmount(transaction.amount)}
                     </Text>
                   </Group>
 
                   {transaction.referenceNumber && (
-                    <Text className="text-xs md:text-sm" c="dimmed">
+                    <Text size="xs" c="dimmed">
                       Ref: {transaction.referenceNumber}
                     </Text>
                   )}
 
-                  <Group justify="space-between" mt="xs">
-                    <Text className="text-xs md:text-sm" c="dimmed">
-                      {t('finance.banksPage.transactionsPage.tableHeaders.balanceBefore')}:{' '}
-                      <Text span fw={500} c="bright">
-                        <NumberFormatter value={parseFloat(transaction.balanceBefore || '0')} prefix="৳" thousandSeparator />
-                      </Text>
+                  {transaction.expenseData?.account && (
+                    <Text size="xs" c="dimmed">
+                      Account: {transaction.expenseData.account.name}
                     </Text>
-                    <Text className="text-xs md:text-sm" c="dimmed">
-                      {t('finance.banksPage.transactionsPage.tableHeaders.balanceAfter')}:{' '}
-                      <Text span fw={500} c="bright">
-                        <NumberFormatter value={parseFloat(transaction.balanceAfter || '0')} prefix="৳" thousandSeparator />
-                      </Text>
-                    </Text>
-                  </Group>
+                  )}
                 </Card>
               )
             })
@@ -569,7 +604,6 @@ export default function TransactionsPage() {
               total={totalPages}
               value={currentPage}
               onChange={setCurrentPage}
-              className="text-sm md:text-base"
             />
           </Group>
         )}

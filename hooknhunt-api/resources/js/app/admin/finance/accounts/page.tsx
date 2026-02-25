@@ -61,8 +61,8 @@ export default function AccountsPage() {
     return (
       <Stack p="xl">
         <Paper withBorder p="xl" shadow="sm" ta="center">
-          <Title order={3}>Access Denied</Title>
-          <Text c="dimmed">You don't have permission to view Chart of Accounts.</Text>
+          <Title order={3}>{t('common.accessDenied')}</Title>
+          <Text c="dimmed">{t('finance.accountsPage.accessDenied')}</Text>
         </Paper>
       </Stack>
     )
@@ -569,12 +569,12 @@ export default function AccountsPage() {
         {/* Tabs for account types */}
         <Tabs value={activeTab} onChange={(value) => setActiveTab(value as AccountType)}>
           <Tabs.List>
-            <Tabs.Tab value="all">{t('finance.accountsPage.tabs.all')} ({filteredAccounts.length})</Tabs.Tab>
-            <Tabs.Tab value="asset">{t('finance.accountsPage.tabs.assets')}</Tabs.Tab>
-            <Tabs.Tab value="liability">{t('finance.accountsPage.tabs.liabilities')}</Tabs.Tab>
-            <Tabs.Tab value="equity">{t('finance.accountsPage.tabs.equity')}</Tabs.Tab>
-            <Tabs.Tab value="revenue">{t('finance.accountsPage.tabs.revenue')}</Tabs.Tab>
-            <Tabs.Tab value="expense">{t('finance.accountsPage.tabs.expenses')}</Tabs.Tab>
+            <Tabs.Tab value="all">{t('finance.accountsPage.tabs.all')} ({accounts.length})</Tabs.Tab>
+            <Tabs.Tab value="asset">{t('finance.accountsPage.tabs.assets')} ({accounts.filter(a => a.type === 'asset').length})</Tabs.Tab>
+            <Tabs.Tab value="liability">{t('finance.accountsPage.tabs.liabilities')} ({accounts.filter(a => a.type === 'liability').length})</Tabs.Tab>
+            <Tabs.Tab value="equity">{t('finance.accountsPage.tabs.equity')} ({accounts.filter(a => a.type === 'equity').length})</Tabs.Tab>
+            <Tabs.Tab value="revenue">{t('finance.accountsPage.tabs.revenue')} ({accounts.filter(a => a.type === 'revenue' || a.type === 'income').length})</Tabs.Tab>
+            <Tabs.Tab value="expense">{t('finance.accountsPage.tabs.expenses')} ({accounts.filter(a => a.type === 'expense').length})</Tabs.Tab>
           </Tabs.List>
 
           <Tabs.Panel value={activeTab}>
@@ -586,6 +586,7 @@ export default function AccountsPage() {
                     <Table.Tr>
                       <Table.Th>{t('finance.accountsPage.tableHeaders.code')}</Table.Th>
                       <Table.Th>{t('finance.accountsPage.tableHeaders.accountName')}</Table.Th>
+                      <Table.Th>Description</Table.Th>
                       <Table.Th>{t('finance.accountsPage.tableHeaders.type')}</Table.Th>
                       <Table.Th style={{ textAlign: 'right' }}>{t('finance.accountsPage.tableHeaders.balance')}</Table.Th>
                       <Table.Th>{t('finance.accountsPage.tableHeaders.status')}</Table.Th>
@@ -595,7 +596,7 @@ export default function AccountsPage() {
                   <Table.Tbody>
                     {filteredAccounts.length === 0 ? (
                       <Table.Tr>
-                        <Table.Td colSpan={6}>
+                        <Table.Td colSpan={7}>
                           <Box py="xl" ta="center">
                             <Text c="dimmed">{t('finance.accountsPage.noAccounts')}</Text>
                           </Box>
@@ -615,6 +616,11 @@ export default function AccountsPage() {
                                     {t('finance.accountsPage.subAccount')}
                                   </Text>
                                 )}
+                              </Text>
+                            </Table.Td>
+                            <Table.Td>
+                              <Text className="text-sm md:text-base" c="dimmed">
+                                {account.description || '-'}
                               </Text>
                             </Table.Td>
                             <Table.Td>
@@ -716,6 +722,13 @@ export default function AccountsPage() {
                       {account.parent_id && (
                         <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
                           {t('finance.accountsPage.subAccount')}
+                        </Text>
+                      )}
+
+                      {/* Description */}
+                      {account.description && (
+                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
+                          {account.description}
                         </Text>
                       )}
 

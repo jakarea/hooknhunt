@@ -36,6 +36,20 @@ class CategoryController extends Controller
         return $this->sendSuccess($categories);
     }
 
+    /**
+     * Dropdown List (For UI Select Components)
+     * GET /api/v2/catalog/categories/dropdown
+     */
+    public function dropdown()
+    {
+        $categories = Category::select('id', 'name')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        return $this->sendSuccess($categories);
+    }
+
     public function store(Request $request)
     {
         $request->validate([

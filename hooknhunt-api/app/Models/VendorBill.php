@@ -32,8 +32,8 @@ class VendorBill extends Model
     ];
 
     protected $casts = [
-        'bill_date' => 'date',
-        'due_date' => 'date',
+        'bill_date' => 'date:Y-m-d', // Fixed timezone offset
+        'due_date' => 'date:Y-m-d', // Fixed timezone offset
         'subtotal' => 'decimal:2',
         'tax_amount' => 'decimal:2',
         'discount_amount' => 'decimal:2',

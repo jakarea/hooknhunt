@@ -13,11 +13,11 @@ class Cheque extends Model
     protected $guarded = ['id'];
 
     protected $casts = [
-        'issue_date' => 'date',
-        'due_date' => 'date',
+        'issue_date' => 'date:Y-m-d', // Fixed timezone offset
+        'due_date' => 'date:Y-m-d', // Fixed timezone offset
         'amount' => 'decimal:2',
-        'deposit_date' => 'date',
-        'clearance_date' => 'date',
+        'deposit_date' => 'date:Y-m-d', // Fixed timezone offset
+        'clearance_date' => 'date:Y-m-d', // Fixed timezone offset
         'alert_sent' => 'boolean',
         'alert_sent_at' => 'datetime',
         'created_at' => 'datetime',

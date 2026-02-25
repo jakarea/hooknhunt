@@ -14,7 +14,7 @@ class DocumentAttachment extends Model
 
     protected $casts = [
         'file_size' => 'integer',
-        'document_date' => 'date',
+        'document_date' => 'date:Y-m-d', // Fixed timezone offset
         'is_confidential' => 'boolean',
         'allowed_roles' => 'array',
         'created_at' => 'datetime',

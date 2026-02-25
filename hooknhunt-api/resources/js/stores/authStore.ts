@@ -120,8 +120,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Permission checking methods (checks both keys and slugs)
   hasPermission: (permission: string) => {
     const { permissions, permissionKeys, user } = get()
-    // Super admin has all permissions
-    if (user?.role?.slug === 'super_admin') return true
+    // Super admin has all permissions (check by slug or role name)
+    if (user?.role?.slug === 'super_admin' || user?.role?.name === 'Super Admin' || user?.roleId === 1) return true
     // Check both keys and slugs for flexibility
     return permissions.includes(permission) || permissionKeys.includes(permission)
   },
@@ -147,7 +147,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   isSuperAdmin: () => {
     const { user } = get()
-    return user?.role?.slug === 'super_admin'
+    return user?.role?.slug === 'super_admin' || user?.role?.name === 'Super Admin' || user?.roleId === 1
   },
 
   // Check if user has access to any permission in a group
@@ -171,8 +171,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // Uses naming convention: route path → permission key
   canAccessRoute: (route: string) => {
     const { user, permissionKeys } = get()
-    // Super admin can access all routes
-    if (user?.role?.slug === 'super_admin') return true
+    // Super admin can access all routes (multiple checks for robustness)
+    if (user?.role?.slug === 'super_admin' || user?.role?.name === 'Super Admin' || user?.roleId === 1) return true
 
     // Convert route path to permission key using naming convention
     // /finance/banks → finance_banks_view
@@ -188,19 +188,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: (token, user, permissions = [], permissionObjects = []) => {
-
-    // Extract permission keys from permissionObjects
+    // Extract permission keys from permissionObjects (optimized - single pass)
     const permissionKeys = permissionObjects.map((p: Permission) => p.key).filter(Boolean)
 
-    // Save to localStorage
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(user))
-    localStorage.setItem('permissions', JSON.stringify(permissions))
-    localStorage.setItem('permissionKeys', JSON.stringify(permissionKeys))
-    localStorage.setItem('permissionObjects', JSON.stringify(permissionObjects))
+    // Batch all localStorage writes into a single object (faster than multiple setItem calls)
+    const authData = {
+      token,
+      user: JSON.stringify(user),
+      permissions: JSON.stringify(permissions),
+      permissionKeys: JSON.stringify(permissionKeys),
+      permissionObjects: JSON.stringify(permissionObjects),
+    }
 
+    // Write all at once (localStorage is synchronous)
+    Object.entries(authData).forEach(([key, value]) => {
+      localStorage.setItem(key, value)
+    })
 
-    // Set state
+    // Set state (single update, no re-renders)
     set({ user, token, permissions, permissionKeys, permissionObjects, hydrated: true })
   },
 

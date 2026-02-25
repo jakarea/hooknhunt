@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Stack,
@@ -12,7 +11,42 @@ import {
 } from '@mantine/core'
 import { notifications } from '@mantine/notifications'
 import { useAuthStore } from '@/stores/authStore'
-import api from '@/lib/api'
+import { apiMethods } from '@/lib/api'
+
+interface LoginResponse {
+  status: boolean
+  message: string
+  data: {
+    accessToken: string
+    token?: string
+    access_token?: string
+    tokenType: string
+    user: {
+      id: number
+      roleId: number
+      name: string
+      phone: string
+      email: string
+      isActive: boolean
+      phoneVerifiedAt: string | null | undefined
+      lastLoginAt: string | null | undefined
+      createdAt: string
+      updatedAt: string
+      deletedAt: string | null | undefined
+      role: {
+        id: number
+        position: number
+        name: string
+        slug: string
+        description: string
+        createdAt: string
+        updatedAt: string
+        deletedAt: string | null | undefined
+        permissions: Array<{ slug: string }>
+      }
+    }
+  }
+}
 
 interface FormErrors {
   phone?: string
@@ -21,7 +55,6 @@ interface FormErrors {
 
 export function LoginForm() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const { login } = useAuthStore()
 
   const [phoneNumber, setPhoneNumber] = useState('')
@@ -59,19 +92,22 @@ export function LoginForm() {
     setLoading(true)
 
     try {
-      const response = await api.post('/auth/login', {
+      const response = await apiMethods.post<LoginResponse>('/auth/login', {
         login_id: phoneNumber,
         password,
       })
 
+      console.log('Login full response:', response)
 
-      // Check response status
-      if (!response.data?.status) {
-        throw new Error(response.data?.message || 'Login failed')
+      // Check response status (apiMethods.post already unwraps response.data)
+      if (!response?.status) {
+        const errorMsg = response?.message || 'Login failed'
+        setErrors({ password: errorMsg })
+        throw new Error(errorMsg)
       }
 
-      // API V2 response structure: { status, message, data: { token/accessToken, user } }
-      const { data } = response.data
+      // API V2 response structure: { status, message, data: { access_token, user } }
+      const { data } = response
 
       // Handle different token field names (token, accessToken, access_token)
       const token = data.token || data.accessToken || data.access_token
@@ -90,8 +126,15 @@ export function LoginForm() {
       const rolePermissions = user?.role?.permissions || []
       const permissions = rolePermissions.map((p: { slug: string }) => p.slug)
 
+      // Convert null values to undefined for store compatibility
+      const normalizedUser = {
+        ...user,
+        phoneVerifiedAt: user?.phoneVerifiedAt ?? undefined,
+        lastLoginAt: user?.lastLoginAt ?? undefined,
+        deletedAt: user?.deletedAt ?? undefined,
+      }
 
-      login(token, user, permissions, rolePermissions)
+      login(token, normalizedUser, permissions, rolePermissions)
 
 
       notifications.show({
@@ -100,43 +143,53 @@ export function LoginForm() {
         color: 'green',
       })
 
-      // Small delay to ensure localStorage is written before navigation
-      setTimeout(() => {
-        navigate('/dashboard')
-      }, 300)
-    } catch (error) {
+      // Immediate redirect - localStorage is synchronous, no delay needed
+      // Use window.location.href for hard redirect (more reliable than React Router)
+      window.location.href = '/dashboard'
+    } catch (error: any) {
       console.error('Login error:', error)
-      const apiError = error as { response?: { data?: { message?: string; errors?: string | { action?: string }; error?: string } }, message?: string }
 
-      // Handle different response structures
-      let errorMessage = t('auth.login.errors.loginFailed')
+      // Handle different error types
+      if (error && typeof error === 'object' && 'handled' in error) {
+        // Error was already handled by API interceptor
+        const apiError = error as { response?: { data?: { message?: string; errors?: string | { action?: string }; error?: string } } }
 
-      if (apiError?.response?.data) {
-        const responseData = apiError.response.data
+        if (apiError.response?.data) {
+          const responseData = apiError.response.data
 
-        // Check for message in different possible locations
-        if (responseData.message) {
-          errorMessage = responseData.message
-        } else if (responseData.errors && typeof responseData.errors === 'string') {
-          errorMessage = responseData.errors
-        } else if (responseData.error) {
-          errorMessage = responseData.error
+          // Check for phone verification action
+          if (responseData.errors && typeof responseData.errors === 'object' && 'action' in responseData.errors && responseData.errors.action === 'verify_otp') {
+            const msg = responseData.message || 'Phone verification required'
+            setErrors({ phone: msg })
+            notifications.show({
+              title: 'Verification Required',
+              message: msg,
+              color: 'yellow',
+            })
+          } else {
+            // Show inline error for password field
+            const msg = responseData.message || responseData.error || 'Invalid credentials. Please try again.'
+            console.log('Showing error message:', msg)
+            setErrors({ password: msg })
+            notifications.show({
+              title: 'Login Failed',
+              message: msg,
+              color: 'red',
+              autoClose: 5000,
+            })
+          }
         }
-      } else if (apiError?.message) {
-        errorMessage = apiError.message
-      }
-
-
-      // Show error notification
-      notifications.show({
-        title: 'Error',
-        message: errorMessage,
-        color: 'red',
-      })
-
-      // Also show inline validation error if phone verification is needed
-      if (apiError?.response?.data?.errors && typeof apiError.response.data.errors === 'object' && 'action' in apiError.response.data.errors && apiError.response.data.errors.action === 'verify_otp') {
-        setErrors({ phone: errorMessage })
+      } else {
+        // Direct error (not from API interceptor)
+        const errorMessage = (error as Error)?.message || 'Login failed. Please try again.'
+        console.log('Showing direct error:', errorMessage)
+        setErrors({ password: errorMessage })
+        notifications.show({
+          title: 'Login Failed',
+          message: errorMessage,
+          color: 'red',
+          autoClose: 5000,
+        })
       }
     } finally {
       setLoading(false)

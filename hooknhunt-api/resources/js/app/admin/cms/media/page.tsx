@@ -61,7 +61,7 @@ export default function MediaLibraryPage() {
 
   // Page-level permission check
   if (!hasPermission('cms.media.view')) {
-    return <AccessDenied message="You don't have permission to access the Media Library" />
+    return <AccessDenied message={t('cms.mediaPage.accessDenied')} />
   }
 
   const [loading, setLoading] = useState(true)
@@ -212,8 +212,8 @@ export default function MediaLibraryPage() {
       await fetchFolders()
     } catch (error: any) {
       notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to create folder',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('cms.mediaPage.errorCreatingFolder'),
         color: 'red',
       })
     }
@@ -666,7 +666,7 @@ export default function MediaLibraryPage() {
                   </Menu.Target>
 
                   <Menu.Dropdown>
-                    <Menu.Label>Folder Actions</Menu.Label>
+                    <Menu.Label>{t('cms.mediaPage.folderActions')}</Menu.Label>
                     {hasPermission('cms.media.folders.edit') && (
                       <Menu.Item
                         leftSection={<IconEdit size={14} />}
@@ -675,7 +675,7 @@ export default function MediaLibraryPage() {
                           handleRenameFolder(folder)
                         }}
                       >
-                        Rename
+                        {t('cms.mediaPage.rename')}
                       </Menu.Item>
                     )}
                     {hasPermission('cms.media.folders.delete') && (
@@ -687,7 +687,7 @@ export default function MediaLibraryPage() {
                           handleDeleteFolder(folder)
                         }}
                       >
-                        Delete
+                        {t('cms.mediaPage.deleteFolder')}
                       </Menu.Item>
                     )}
                   </Menu.Dropdown>

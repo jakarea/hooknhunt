@@ -7,10 +7,24 @@ use Illuminate\Database\Eloquent\Builder;
 
 class JournalEntry extends Model
 {
-    protected $guarded = ['id'];
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
+    protected $fillable = [
+        'entry_number',
+        'date',
+        'description',
+        'is_reversed',
+        'reference_type',
+        'reference_id',
+        'created_by',
+        'updated_by',
+    ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d', // Explicit format to prevent timezone offset
         'is_reversed' => 'boolean',
     ];
 

@@ -31,6 +31,8 @@ import {
   rem,
   Drawer,
   ActionIcon,
+  UnstyledButton,
+  Collapse,
 } from "@mantine/core"
 import { useMediaQuery } from "@mantine/hooks"
 import { useAuthStore } from "@/stores/authStore"
@@ -65,7 +67,11 @@ export function AppSidebarMantine({
   const { permissions, permissionObjects, isSuperAdmin } = usePermissions()
 
   const toggleSection = (label: string) => {
-    setOpened((prev) => ({ ...prev, [label]: !prev[label] }))
+    setOpened((prev) => {
+      // Accordion behavior: only one section open at a time
+      // Always close all and open the clicked one
+      return { [label]: !prev[label] }
+    })
   }
 
   const data = React.useMemo(() => ({
@@ -127,6 +133,7 @@ export function AppSidebarMantine({
               { title: t("procurement.orders"), url: "/procurement/orders" },
               { title: t("procurement.createPO"), url: "/procurement/create" },
               { title: t("procurement.suppliers"), url: "/procurement/suppliers" },
+              { title: t("procurement.products"), url: "/procurement/products" },
               { title: t("procurement.returns"), url: "/procurement/returns" },
             ],
           },
@@ -512,7 +519,7 @@ export function AppSidebarMantine({
 
   const renderNavLink = (item: NavItem, index: number, allItems: NavItem[]) => {
     const hasChildren = 'children' in item && item.children && item.children.length > 0
-    const isOpen = opened[item.title] || searchValue.trim() !== '' // Auto-expand when searching
+    const isOpen = opened[item.title]
 
     // Smart URL matching for active state (computed directly, no useMemo needed)
     const isActive = (() => {
@@ -552,32 +559,51 @@ export function AppSidebarMantine({
       })
     })()
 
+    // Auto-open when searching or when has active child
+    const isSearching = searchValue.trim() !== ''
+    const shouldOpen = isOpen || hasActiveChild || (isSearching && hasChildren)
+
+    // If no children, render simple NavLink
+    if (!hasChildren) {
+      return (
+        <NavLink
+          key={index}
+          label={item.title}
+          leftSection={item.icon ? <item.icon style={{ width: rem(16), height: rem(16) }} /> : undefined}
+          to={item.url || '/'}
+          component={Link}
+          active={isActive}
+          styles={() => ({
+            root: {
+              backgroundColor: isActive
+                ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
+                : 'transparent',
+              color: isActive
+                ? 'light-dark(var(--mantine-color-red-filled), var(--mantine-color-red-5))'
+                : 'inherit',
+              fontWeight: isActive ? 600 : 400,
+              '&:hover': {
+                backgroundColor: !isActive
+                  ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
+                  : undefined,
+              },
+            },
+            label: {
+              fontSize: '0.875rem',
+            },
+          })}
+        />
+      )
+    }
+
+    // If has children, render custom accordion with Collapse
     return (
-      <NavLink
-        key={index}
-        label={item.title}
-        leftSection={item.icon ? <item.icon style={{ width: rem(16), height: rem(16) }} /> : undefined}
-        rightSection={
-          hasChildren ? (
-            <IconChevronRight
-              size={14}
-              style={{
-                width: rem(14),
-                height: rem(14),
-                transform: (isOpen || hasActiveChild) ? 'rotate(90deg)' : 'none',
-                transition: 'transform 200ms ease',
-              }}
-            />
-          ) : null
-        }
-        to={('url' in item && item.url) || '/'}
-        component={('url' in item) ? Link : undefined}
-        childrenOffset={28}
-        defaultOpened={isActive || isOpen || hasActiveChild}
-        onClick={hasChildren ? () => toggleSection(item.title) : undefined}
-        active={isActive}
-        styles={() => ({
-          root: {
+      <Box key={index}>
+        <UnstyledButton
+          onClick={() => toggleSection(item.title)}
+          style={{ width: '100%' }}
+        >
+          <Group gap="xs" px="sm" py={8} style={{
             backgroundColor: isActive
               ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
               : 'transparent',
@@ -585,58 +611,80 @@ export function AppSidebarMantine({
               ? 'light-dark(var(--mantine-color-red-filled), var(--mantine-color-red-5))'
               : 'inherit',
             fontWeight: isActive ? 600 : 400,
-            '&:hover': {
-              backgroundColor: !isActive
-                ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
-                : undefined,
-            },
-          },
-          label: {
-            fontSize: '0.875rem',
-          },
-        })}
-      >
-        {hasChildren &&
-          Array.isArray(item.children) && item.children.map((child: NavItem, childIndex: number) => {
-            // Smart child matching (computed directly, no useMemo needed)
-            const isChildActive = (() => {
-              // Exact match
-              if (location.pathname === child.url) return true
-              // Child route match (e.g., /users/roles matches /users/roles/create)
-              if (location.pathname.startsWith(child.url + '/')) return true
-              return false
-            })()
+            borderRadius: '4px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+          onMouseEnter={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isActive) {
+              e.currentTarget.style.backgroundColor = 'transparent'
+            }
+          }}
+        >
+          <Group gap="sm">
+            {item.icon && <item.icon style={{ width: rem(16), height: rem(16) }} />}
+            <Text style={{ fontSize: '0.875rem' }}>{item.title}</Text>
+          </Group>
+          <IconChevronRight
+            size={14}
+            style={{
+              transform: shouldOpen ? 'rotate(90deg)' : 'none',
+              transition: 'transform 200ms ease',
+            }}
+          />
+        </Group>
+        </UnstyledButton>
+        <Collapse in={shouldOpen}>
+          <Box pl={28}>
+            {Array.isArray(item.children) && item.children.map((child: NavItem, childIndex: number) => {
+              // Smart child matching (computed directly, no useMemo needed)
+              const isChildActive = (() => {
+                // Exact match
+                if (location.pathname === child.url) return true
+                // Child route match (e.g., /users/roles matches /users/roles/create)
+                if (location.pathname.startsWith(child.url + '/')) return true
+                return false
+              })()
 
-            return (
-              <NavLink
-                key={childIndex}
-                label={child.title}
-                to={child.url || '/'}
-                component={Link}
-                active={isChildActive}
-                styles={() => ({
-                  root: {
-                    backgroundColor: isChildActive
-                      ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
-                      : 'transparent',
-                    color: isChildActive
-                      ? 'light-dark(var(--mantine-color-red-filled), var(--mantine-color-red-5))'
-                      : 'inherit',
-                    fontWeight: isChildActive ? 600 : 400,
-                    '&:hover': {
-                      backgroundColor: !isChildActive
-                        ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
-                        : undefined,
+              return (
+                <NavLink
+                  key={childIndex}
+                  label={child.title}
+                  to={child.url || '/'}
+                  component={Link}
+                  active={isChildActive}
+                  styles={() => ({
+                    root: {
+                      backgroundColor: isChildActive
+                        ? 'light-dark(var(--mantine-color-red-0), var(--mantine-color-dark-8))'
+                        : 'transparent',
+                      color: isChildActive
+                        ? 'light-dark(var(--mantine-color-red-filled), var(--mantine-color-red-5))'
+                        : 'inherit',
+                      fontWeight: isChildActive ? 600 : 400,
+                      '&:hover': {
+                        backgroundColor: !isChildActive
+                          ? 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-6))'
+                          : undefined,
+                      },
                     },
-                  },
-                  label: {
-                    fontSize: '0.875rem',
-                  },
-                })}
-              />
-            )
-          })}
-      </NavLink>
+                    label: {
+                      fontSize: '0.875rem',
+                    },
+                  })}
+                />
+              )
+            })}
+          </Box>
+        </Collapse>
+      </Box>
     )
   }
 

@@ -38,6 +38,14 @@ class Role extends Model
         return $query->withoutGlobalScope('excludeSuperAdmin');
     }
 
+    /**
+     * Get the admin role (for permission checks - includes admin and super_admin)
+     */
+    public function scopeAdmin($query)
+    {
+        return $query->whereIn('slug', ['admin', 'super_admin']);
+    }
+
     // Relation: A role has many users
     public function users()
     {

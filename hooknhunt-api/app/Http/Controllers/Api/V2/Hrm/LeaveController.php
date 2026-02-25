@@ -17,14 +17,14 @@ class LeaveController extends Controller
      */
     public function index(Request $request)
     {
-        // Permission check
-        if (!auth()->user()->hasPermissionTo('hrm.leave.index')) {
-            return $this->sendError('You do not have permission to view leave requests.', null, 403);
-        }
-
+        $user = auth()->user();
         $query = Leave::with(['user:id,name', 'approver:id,name'])->latest();
 
-        $user = auth()->user();
+        // Permission check: users can see their own leaves, managers need permission to see others
+        if (!$user->hasPermissionTo('hrm.leave.index')) {
+            // Non-admin users can only see their own leave requests
+            $query->where('user_id', $user->id);
+        }
 
         // Debug logging
         \Log::info('Leave Index - User Info:', [
@@ -89,20 +89,29 @@ class LeaveController extends Controller
      */
     public function store(Request $request)
     {
-        // Permission check
-        if (!auth()->user()->hasPermissionTo('hrm.leave.create')) {
-            return $this->sendError('You do not have permission to create leave requests.', null, 403);
-        }
+        $user = auth()->user();
 
         $request->validate([
-            'user_id' => 'nullable|exists:users,id', // Admin can apply for others
+            'user_id' => 'nullable|integer|exists:users,id', // Admin can apply for others
             'type' => 'required|in:sick,casual,unpaid',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string'
         ]);
 
-        $userId = $request->user_id ?? auth()->id();
+        // Determine target user ID - default to logged-in user
+        $requestedUserId = $request->input('user_id') ? (int) $request->input('user_id') : (int) $user->id;
+
+        // Permission check: users can create their own leave requests, managers need permission for others
+        // Use loose comparison for type safety (string vs int)
+        if ($requestedUserId != $user->id) {
+            // Trying to create leave for someone else - requires permission
+            if (!$user->hasPermissionTo('hrm.leave.create')) {
+                return $this->sendError('You do not have permission to create leave requests for others.', null, 403);
+            }
+        }
+
+        $userId = $requestedUserId;
 
         // Parse dates (supports both date and datetime formats)
         $start = Carbon::parse($request->start_date);
@@ -112,9 +121,9 @@ class LeaveController extends Controller
         $days = $start->diffInDays($end) + 1;
 
         // Auto-approve if Admin creates it
-        $isAdmin = in_array(auth()->user()->role_id, [1, 2]);
+        $isAdmin = in_array($user->role_id, [1, 2]) || in_array($user->role->slug ?? '', ['super_admin', 'admin']);
         $status = $isAdmin ? 'approved' : 'pending';
-        $approvedBy = $isAdmin ? auth()->id() : null;
+        $approvedBy = $isAdmin ? $user->id : null;
 
         $leave = Leave::create([
             'user_id' => $userId,

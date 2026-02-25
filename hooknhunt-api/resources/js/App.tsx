@@ -4,6 +4,7 @@ import '@mantine/notifications/styles.css';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
+import { GlobalMediaSelectorProvider } from '@/hooks/useMediaSelector';
 import { theme } from '@/lib/mantine-theme';
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { AdminLayout } from '@/components/admin-layout'
@@ -21,8 +22,14 @@ import Units from "@/app/admin/catalog/units/page"
 import PrintLabels from "@/app/admin/catalog/print-labels/page"
 import PurchaseOrders from "@/app/admin/procurement/orders/page"
 import CreatePO from "@/app/admin/procurement/create/page"
+import PurchaseOrderDetails from "@/app/admin/procurement/orders/[id]/page"
+import EditPO from "@/app/admin/procurement/orders/[id]/edit/page"
 import Suppliers from "@/app/admin/procurement/suppliers/page"
+import SupplierDetails from "@/app/admin/procurement/suppliers/[id]/page"
 import PurchaseReturns from "@/app/admin/procurement/returns/page"
+import ProcurementProducts from "@/app/admin/procurement/products/page"
+import ProcurementProductDetail from "@/app/admin/procurement/products/[id]/page"
+import EditProcurementProduct from "@/app/admin/procurement/products/[id]/edit/page"
 import Shipments from "@/app/admin/shipments/page"
 import CreateShipment from "@/app/admin/shipments/create/page"
 import ViewShipment from "@/app/admin/shipments/view/page"
@@ -139,7 +146,8 @@ function App() {
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <ModalsProvider>
         <Notifications />
-        <BrowserRouter>
+        <GlobalMediaSelectorProvider>
+          <BrowserRouter>
           <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -164,8 +172,8 @@ function App() {
               <Route path="dashboard/analytics" element={<Analytics />} />
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="catalog/products" element={<Products />} />
               <Route path="catalog/products/create" element={<CreateProduct />} />
+              <Route path="catalog/products" element={<Products />} />
               <Route path="catalog/variants" element={<Variants />} />
               <Route path="catalog/categories" element={<Categories />} />
               <Route path="catalog/brands" element={<Brands />} />
@@ -174,7 +182,13 @@ function App() {
               <Route path="catalog/print-labels" element={<PrintLabels />} />
               <Route path="procurement/orders" element={<PurchaseOrders />} />
               <Route path="procurement/create" element={<CreatePO />} />
+              <Route path="procurement/orders/:id" element={<PurchaseOrderDetails />} />
+              <Route path="procurement/orders/:id/edit" element={<EditPO />} />
               <Route path="procurement/suppliers" element={<Suppliers />} />
+              <Route path="procurement/suppliers/:id" element={<SupplierDetails />} />
+              <Route path="procurement/products" element={<ProcurementProducts />} />
+              <Route path="procurement/products/:id/edit" element={<EditProcurementProduct />} />
+              <Route path="procurement/products/:id" element={<ProcurementProductDetail />} />
               <Route path="procurement/returns" element={<PurchaseReturns />} />
               <Route path="shipments" element={<Shipments />} />
               <Route path="shipments/create" element={<CreateShipment />} />
@@ -286,7 +300,8 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<div>404 Not Found</div>} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+        </GlobalMediaSelectorProvider>
       </ModalsProvider>
     </MantineProvider>
   )

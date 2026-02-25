@@ -10,7 +10,7 @@ class Attendance extends Model
 
     // টাইম কলামগুলো কার্বন ইনস্ট্যান্সে কনভার্ট করার জন্য
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d', // Explicit format to prevent timezone offset
         'break_in' => 'array', // JSON array of break times
         'break_out' => 'array', // JSON array of break times
         'break_notes' => 'array', // JSON array of break notes
