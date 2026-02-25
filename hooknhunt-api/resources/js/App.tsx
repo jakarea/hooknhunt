@@ -4,6 +4,7 @@ import '@mantine/notifications/styles.css';
 import { MantineProvider } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { ModalsProvider } from '@mantine/modals';
+import { GlobalMediaSelectorProvider } from '@/hooks/useMediaSelector';
 import { theme } from '@/lib/mantine-theme';
 import ProtectedRoute from '@/components/ProtectedRoute'
 import { AdminLayout } from '@/components/admin-layout'
@@ -145,7 +146,8 @@ function App() {
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <ModalsProvider>
         <Notifications />
-        <BrowserRouter>
+        <GlobalMediaSelectorProvider>
+          <BrowserRouter>
           <Routes>
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
@@ -298,7 +300,8 @@ function App() {
           {/* 404 */}
           <Route path="*" element={<div>404 Not Found</div>} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+        </GlobalMediaSelectorProvider>
       </ModalsProvider>
     </MantineProvider>
   )

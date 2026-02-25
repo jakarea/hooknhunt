@@ -5,10 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { Box, Stack, Group, Title, Text, Paper, Button, TextInput, Textarea, Select, NumberInput, Breadcrumbs, Anchor, Card, SimpleGrid, Divider, ActionIcon, MultiSelect, Modal, Image } from '@mantine/core'
 import { IconPhoto, IconX, IconPackages, IconTrash, IconDeviceFloppy, IconPlus, IconUsers, IconUpload, IconFolder } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
-import { getSuppliers, getMediaFiles, uploadMediaFiles, type Supplier, type MediaFile } from '@/utils/api'
+import { getSuppliers, type Supplier } from '@/utils/api'
+import { useMediaSelector } from '@/hooks/useMediaSelector'
+import type { MediaFile } from '@/utils/api'
 
 export default function CreateProductPage() {
   const { t } = useTranslation()
+  const { openSingleSelect } = useMediaSelector()
 
   const [productName, setProductName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
@@ -17,17 +20,13 @@ export default function CreateProductPage() {
   const [description, setDescription] = useState('')
   const [videoUrl, setVideoUrl] = useState('')
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([])
   const [supplierUrl, setSupplierUrl] = useState('')
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [suppliersLoading, setSuppliersLoading] = useState(true)
 
   // Media library state
-  const [mediaModalOpened, setMediaModalOpened] = useState(false)
-  const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([])
-  const [mediaLoading, setMediaLoading] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [selectedThumbnailMediaId, setSelectedThumbnailMediaId] = useState<number | null>(null)
 
   const [variants, setVariants] = useState([
     { id: '1', sku: '', customSku: '', variantName: '', size: '', color: '', unit: '', retailPrice: 0, wholesalePrice: 0, purchaseCost: 0, alertQty: 5 }
@@ -55,76 +54,17 @@ export default function CreateProductPage() {
     fetchSuppliers()
   }, [])
 
-  // Fetch media files when modal opens
-  const fetchMediaFiles = async () => {
-    try {
-      setMediaLoading(true)
-      const response = await getMediaFiles({ page: 1, per_page: 50 })
-      let filesData: MediaFile[] = []
-      if (response?.status && response.data) {
-        const data = response.data
-        if (Array.isArray(data.data)) {
-          filesData = data.data
-        } else if (Array.isArray(data)) {
-          filesData = data
-        }
-      } else if (Array.isArray(response)) {
-        filesData = response
-      }
-      // Filter only images
-      setMediaFiles(filesData.filter(f => f.mimeType?.startsWith('image/')))
-    } catch (error) {
-      console.error('Failed to fetch media files:', error)
-    } finally {
-      setMediaLoading(false)
-    }
-  }
-
-  const handleMediaModalOpen = () => {
-    setMediaModalOpened(true)
-    fetchMediaFiles()
-  }
-
-  const handleThumbnailSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setThumbnailFile(file)
-      const reader = new FileReader()
-      reader.onloadend = () => setThumbnailPreview(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const handleMediaUpload = async (files: FileList) => {
-    setUploading(true)
-    try {
-      await uploadMediaFiles(files)
-      notifications.show({
-        title: 'Success',
-        message: 'Files uploaded successfully',
-        color: 'green'
-      })
-      await fetchMediaFiles()
-    } catch (error) {
-      notifications.show({
-        title: 'Error',
-        message: 'Failed to upload files',
-        color: 'red'
-      })
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const handleSelectMediaImage = (mediaFile: MediaFile) => {
-    setThumbnailPreview(mediaFile.url)
-    setThumbnailFile(null)
-    setMediaModalOpened(false)
+  // Media library handlers
+  const handle_open_thumbnail_media_selector = () => {
+    openSingleSelect((mediaFile) => {
+      setSelectedThumbnailMediaId(mediaFile.id)
+      setThumbnailPreview(mediaFile.url)
+    }, selectedThumbnailMediaId ? [selectedThumbnailMediaId] : [])
   }
 
   const handleRemoveImage = () => {
     setThumbnailPreview(null)
-    setThumbnailFile(null)
+    setSelectedThumbnailMediaId(null)
   }
 
   const handleAddVariant = () => {
@@ -278,26 +218,14 @@ export default function CreateProductPage() {
                 <Divider />
 
                 <Stack gap="sm">
-                  <Group gap="sm">
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconUpload size={14} />}
-                      onClick={() => (document.getElementById('thumbnail') as HTMLInputElement)?.click()}
-                    >
-                      Upload Image
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="light"
-                      leftSection={<IconFolder size={14} />}
-                      onClick={handleMediaModalOpen}
-                    >
-                      Select from Media
-                    </Button>
-                  </Group>
-
-                  <input type="file" id="thumbnail" accept="image/*" onChange={handleThumbnailSelect} className="hidden" />
+                  <Button
+                    size="xs"
+                    variant="light"
+                    leftSection={<IconUpload size={14} />}
+                    onClick={handle_open_thumbnail_media_selector}
+                  >
+                    Upload Thumbnail
+                  </Button>
 
                   {!thumbnailPreview ? (
                     <Paper
@@ -478,71 +406,6 @@ export default function CreateProductPage() {
           </Stack>
         </form>
       </Stack>
-
-      {/* Media Library Modal */}
-      <Modal
-        opened={mediaModalOpened}
-        onClose={() => setMediaModalOpened(false)}
-        title={<Text fw={600}>Select from Media Library</Text>}
-        size="xl"
-      >
-        <Stack gap="md">
-          {/* Upload button */}
-          <Group>
-            <Button
-              component="label"
-              size="sm"
-              leftSection={<IconUpload size={16} />}
-              loading={uploading}
-            >
-              Upload New Image
-              <input
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (files && files.length > 0) {
-                    handleMediaUpload(files)
-                  }
-                }}
-              />
-            </Button>
-          </Group>
-
-          {/* Media grid */}
-          {mediaLoading ? (
-            <Text ta="center" c="dimmed" py="xl">Loading media...</Text>
-          ) : mediaFiles.length > 0 ? (
-            <SimpleGrid cols={{ base: 3, sm: 4, md: 5 }} spacing="sm">
-              {mediaFiles.map((file) => (
-                <Paper
-                  key={file.id}
-                  withBorder
-                  p="xs"
-                  radius="md"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => handleSelectMediaImage(file)}
-                  className="hover:border-blue-500"
-                >
-                  <Image
-                    src={file.url}
-                    alt={file.originalFilename}
-                    height={80}
-                    fit="contain"
-                    radius="md"
-                  />
-                  <Text size="xs" c="dimmed" mt="xs" lineClamp={1}>
-                    {file.originalFilename}
-                  </Text>
-                </Paper>
-              ))}
-            </SimpleGrid>
-          ) : (
-            <Text ta="center" c="dimmed" py="xl">No images found in media library</Text>
-          )}
-        </Stack>
-      </Modal>
     </Box>
   )
 }

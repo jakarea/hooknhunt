@@ -372,7 +372,8 @@
       "saveProduct": "Save Product",
       "notification": {
         "saved": "Product saved successfully (Static UI)",
-        "atLeastOneVariant": "At least one variant is required"
+        "atLeastOneVariant": "At least one variant is required",
+        "thumbnailRequired": "Please select a thumbnail image"
       }
     },
     "attributesPage": {
@@ -2967,6 +2968,7 @@
     "mediaPage": {
       "title": "Media Library",
       "subtitle": "Manage your media files and folders",
+      "accessDenied": "You don't have permission to access the Media Library",
       "uploadFiles": "Upload Files",
       "newFolder": "New Folder",
       "searchPlaceholder": "Search files...",
@@ -3003,6 +3005,7 @@
       "moveFailed": "Move Failed",
       "selectDestination": "Select the destination folder:",
       "moveFiles": "Move Files",
+      "folderActions": "Folder Actions",
       "rename": "Rename",
       "renameFolder": "Rename Folder",
       "folderUpdated": "Folder Updated",
@@ -3037,6 +3040,34 @@
       "fileUpdatedMessage": "File details updated successfully",
       "updateFailed": "Update Failed",
       "filesCount": "files"
+    },
+    "mediaSelector": {
+      "title": "Media Library",
+      "titleMultiple": "Media Library - Multiple Selection",
+      "uploadNewImage": "Upload New Image",
+      "searchImages": "Search images...",
+      "noImages": "No images in media library",
+      "noImagesSearch": "No images match your search",
+      "uploadFirstImage": "Upload your first image using the button above",
+      "loadingMedia": "Loading media...",
+      "useSelectedFile": "Use Selected File",
+      "useSelectedFiles": "Use Selected {{count}} Files",
+      "selectFolder": "Select folder...",
+      "fileDeleted": "File deleted successfully",
+      "failedToDelete": "Failed to delete file",
+      "filesDeleted": "Files deleted successfully",
+      "failedToDeleteFiles": "Failed to delete files",
+      "filesMoved": "Files moved successfully",
+      "failedToMove": "Failed to move files",
+      "folderCreatedSuccess": "Folder created successfully",
+      "failedToCreateFolder": "Failed to create folder",
+      "errorUploadingFile": "Failed to upload file",
+      "fileUpdateSuccess": "File details updated successfully",
+      "failedToUpdateFile": "Failed to update file details",
+      "deleteSingleConfirm": "Delete File",
+      "deleteSingleConfirmMessage": "Are you sure you want to delete this file? This action cannot be undone.",
+      "folderRenameNotImplemented": "Folder rename feature is coming soon",
+      "folderDeleteNotImplemented": "Folder delete feature is coming soon"
     }
   },
   "sections": {
