@@ -356,13 +356,13 @@ export default function CreatePurchaseOrderPage() {
                 required
               />
             </Group>
-
+hello dhaka
             <NumberInput
               label="Exchange Rate (CNY to BDT)"
               value={exchangeRate}
               onChange={(v) => setExchangeRate(typeof v === 'number' ? v : parseFloat(v) || 0)}
               precision={2}
-              min={0}
+              min={10}
               required
               disabled={loadingExchangeRate}
               leftSection={<IconCurrencyYuan size={16} />}
