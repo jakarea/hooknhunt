@@ -255,6 +255,9 @@ const calculateItemBreakdown = (
   // Total adjustment
   const adjustment = shippingCost + extraCostShare + lostCostShare - foundCostReduction
 
+  // Calculate per-unit adjustment (divide total adjustment by received quantity)
+  const finalUnitCost = receivedQty > 0 ? adjustment / receivedQty : 0
+
   return {
     orderedQty,
     receivedQty,
@@ -275,8 +278,8 @@ const calculateItemBreakdown = (
     lostCostShare,
     foundCostReduction,
     adjustment,
-    finalUnitCost: adjustment, // This is stored in DB
-    landedCost: unitPrice + adjustment, // Display only
+    finalUnitCost, // This is stored in DB (per-unit adjustment)
+    landedCost: unitPrice + finalUnitCost, // Display only
     lostValueBdt,
   }
 }
@@ -513,8 +516,8 @@ const ItemsTable = ({
             <Table.Th style={{ textAlign: 'center' }}>Weight (kg)</Table.Th>
             <Table.Th style={{ textAlign: 'center' }}>Shipping (৳/kg)</Table.Th>
             <Table.Th style={{ textAlign: 'right' }}>Unit Cost</Table.Th>
-            <Table.Th style={{ textAlign: 'right' }}>Adjustment</Table.Th>
             <Table.Th style={{ textAlign: 'right' }}>Final Cost</Table.Th>
+            <Table.Th style={{ textAlign: 'right' }}>Adjustment</Table.Th>
             <Table.Th style={{ textAlign: 'right' }}>Total</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -609,6 +612,12 @@ const ItemsTable = ({
                 </Table.Td>
 
                 <Table.Td ta="right">
+                  <Text size="sm" fw={700} c="blue">
+                    ৳{landedCost.toFixed(2)}
+                  </Text>
+                </Table.Td>
+
+                <Table.Td ta="right">
                   <Stack gap={0}>
                     <Text size="sm" c={adjustment > 0 ? 'orange' : adjustment < 0 ? 'green' : 'dimmed'} fw={500}>
                       {adjustment !== 0 ? (adjustment > 0 ? '+' : '') : ''}৳{adjustment.toFixed(2)}
@@ -620,12 +629,6 @@ const ItemsTable = ({
                       </Text>
                     )}
                   </Stack>
-                </Table.Td>
-
-                <Table.Td ta="right">
-                  <Text size="sm" fw={700} c="blue">
-                    ৳{landedCost.toFixed(2)}
-                  </Text>
                 </Table.Td>
 
                 <Table.Td ta="right">

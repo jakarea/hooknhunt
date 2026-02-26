@@ -190,6 +190,7 @@ export default function PurchaseOrderDetailsPage() {
     from_bank: number
     total: number
   } | null>(null)
+  const [paymentAccountError, setPaymentAccountError] = useState<string | null>(null)
 
   // Single timeline edit modal state (replaces 2 separate modals)
   const [timelineEditModalOpen, setTimelineEditModalOpen] = useState(false)
@@ -217,6 +218,10 @@ export default function PurchaseOrderDetailsPage() {
     value: typeof statusFormData[K]
   ) => {
     setStatusFormData(prev => ({ ...prev, [field]: value }))
+    // Clear payment account error when user selects a payment account
+    if (field === 'paymentAccountId' && value !== null) {
+      setPaymentAccountError(null)
+    }
   }
 
   // Helper to update timeline edit data
@@ -357,6 +362,11 @@ export default function PurchaseOrderDetailsPage() {
 
     const nextStatus = getNextStatus(order.status)
     if (!nextStatus) return
+
+    // Set inline error for payment account if missing
+    if (order.status === 'draft' && nextStatus === 'payment_confirmed' && !statusFormData.paymentAccountId) {
+      setPaymentAccountError('Please select a payment account')
+    }
 
     // Validate using pure function
     const isValid = validateAndShowErrors(
@@ -644,7 +654,7 @@ export default function PurchaseOrderDetailsPage() {
   const nextStatusValue = getNextStatus(order.status)
   const nextStatus = nextStatusValue ? STATUS_FLOW.find(s => s.value === nextStatusValue) || null : null
   const canEdit = order.status === 'draft' && hasPermission('procurement.orders.edit')
-  const canUpdateStatus = hasPermission('procurement.orders.edit') && order.status !== 'completed' && order.status !== 'partially_completed' && order.status !== 'payment_confirmed'
+  const canUpdateStatus = hasPermission('procurement.orders.edit') && order.status !== 'completed' && order.status !== 'partially_completed'
   const isCompleted = order.status === 'completed'
   const isPartiallyCompleted = order.status === 'partially_completed'
 
@@ -757,81 +767,265 @@ export default function PurchaseOrderDetailsPage() {
                             )}
                           </Group>
 
-                          {/* Show entered values for current and past statuses - Compact */}
-                          {(isCurrent || isPast) && (
-                            <Group gap={6} wrap="wrap" align="center">
-                              {/* Exchange Rate - Payment Confirmed */}
-                              {status.value === 'payment_confirmed' && order.exchangeRate && (
-                                <Group gap={4} wrap="nowrap">
-                                  <Text size="xs" c="dimmed">৳</Text>
-                                  <Text size="xs" c="dimmed">
-                                    {order.exchangeRate}
-                                  </Text>
-                                </Group>
-                              )}
+                          {/* Show entered values for current and past statuses - Enhanced Details */}
+                          {(isCurrent || isPast) && (() => {
+                            // Determine if there's any data to show in the details box
+                            const hasDetailsData =
+                              // Payment Confirmed
+                              (status.value === 'payment_confirmed' && (order.exchangeRate || statusHistoryEntry?.comments)) ||
+                              // Supplier Dispatched
+                              (status.value === 'supplier_dispatched' && (order.courierName || order.trackingNumber)) ||
+                              // Warehouse Received
+                              (status.value === 'warehouse_received' && (order.lotNumber || statusHistoryEntry?.comments)) ||
+                              // Shipped BD
+                              (status.value === 'shipped_bd' && (
+                                order.lotNumber ||
+                                order.totalWeight ||
+                                order.shippingCostPerKg ||
+                                order.totalShippingCost ||
+                                (statusHistoryEntry?.comments && /Total shipping cost:/i.test(statusHistoryEntry.comments))
+                              )) ||
+                              // Arrived BD
+                              (status.value === 'arrived_bd' && (order.bdCourierTracking || statusHistoryEntry?.comments)) ||
+                              // In Transit Bogura (always show transit message)
+                              status.value === 'in_transit_bogura' ||
+                              // Received Hub
+                              (status.value === 'received_hub' && (
+                                order.extraCost ||
+                                (statusHistoryEntry?.comments && /Extra cost:/i.test(statusHistoryEntry.comments)) ||
+                                statusHistoryEntry?.comments
+                              )) ||
+                              // Partially Completed
+                              (status.value === 'partially_completed' && (order.extraCost || statusHistoryEntry?.comments)) ||
+                              // Completed
+                              status.value === 'completed' ||
+                              // Other past statuses
+                              (!['payment_confirmed', 'supplier_dispatched', 'warehouse_received', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub', 'partially_completed', 'completed'].includes(status.value) && isPast)
 
-                              {/* Courier Info - Supplier Dispatched */}
-                              {status.value === 'supplier_dispatched' && order.courierName && (
-                                <Text size="xs" c="dimmed">
-                                  📦 {order.courierName}
-                                </Text>
-                              )}
+                            return (
+                              <Stack gap={6} align="flex-start">
+                                {/* Details Paper - Only show if there's data */}
+                                {hasDetailsData && (
+                                  <Paper p="xs" radius="sm" bg="gray.0" withBorder style={{ width: '100%' }}>
+                                    <Stack gap={4}>
+                                      {/* Payment Confirmed Details */}
+                                      {status.value === 'payment_confirmed' && (
+                                        <>
+                                          {order.exchangeRate && (
+                                            <Group gap={6} wrap="wrap">
+                                              <Group gap={4}>
+                                                <Text size="xs" c="dimmed" fw={500}>Exchange Rate:</Text>
+                                                <Text size="xs" fw={600} c="blue">৳{order.exchangeRate}</Text>
+                                              </Group>
+                                            </Group>
+                                          )}
+                                          {statusHistoryEntry?.comments && (
+                                            <Group gap={4}>
+                                              <Text size="xs" c="dimmed" fw={500}>Payment:</Text>
+                                              <Text size="xs" c="green" fw={500}>Confirmed</Text>
+                                            </Group>
+                                          )}
+                                        </>
+                                      )}
 
-                              {status.value === 'supplier_dispatched' && order.trackingNumber && (
-                                <Text size="xs" c="blue">
-                                  {order.trackingNumber}
-                                </Text>
-                              )}
+                                      {/* Supplier Dispatched Details */}
+                                      {status.value === 'supplier_dispatched' && (
+                                        <>
+                                          {order.courierName && (
+                                            <Group gap={6} wrap="wrap">
+                                              <Group gap={4}>
+                                                <IconPlane size={12} c="dimmed" />
+                                                <Text size="xs" c="dimmed" fw={500}>Courier:</Text>
+                                                <Text size="xs" fw={500}>{order.courierName}</Text>
+                                              </Group>
+                                            </Group>
+                                          )}
+                                          {order.trackingNumber && (
+                                            <Group gap={4}>
+                                              <IconScreenshot size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>Tracking:</Text>
+                                              <Text size="xs" c="blue" fw={500}>{order.trackingNumber}</Text>
+                                            </Group>
+                                          )}
+                                        </>
+                                      )}
 
-                              {/* Lot Number - Shipped to BD */}
-                              {status.value === 'shipped_bd' && order.lotNumber && (
-                                <Group gap={4} wrap="nowrap">
-                                  <IconHash size={12} />
-                                  <Text size="xs" c="dimmed">
-                                    {order.lotNumber}
-                                  </Text>
-                                </Group>
-                              )}
+                                      {/* Warehouse Received Details */}
+                                      {status.value === 'warehouse_received' && (
+                                        <>
+                                          {order.lotNumber && (
+                                            <Group gap={4}>
+                                              <IconHash size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>Lot Number:</Text>
+                                              <Text size="xs" fw={500}>{order.lotNumber}</Text>
+                                            </Group>
+                                          )}
+                                          {!order.lotNumber && (
+                                            <Text size="xs" c="green" fw={500}>✓ Goods Received at Warehouse</Text>
+                                          )}
+                                        </>
+                                      )}
 
-                              {/* BD Courier Tracking - In Transit */}
-                              {status.value === 'in_transit_bogura' && order.bdCourierTracking && (
-                                <Group gap={4} wrap="nowrap">
-                                  <IconTruck size={12} />
-                                  <Text size="xs" c="dimmed">
-                                    {order.bdCourierTracking}
-                                  </Text>
-                                </Group>
-                              )}
+                                      {/* Shipped BD Details */}
+                                      {status.value === 'shipped_bd' && (
+                                        <>
+                                          {order.lotNumber && (
+                                            <Group gap={4}>
+                                              <IconHash size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>Lot/Shipments:</Text>
+                                              <Text size="xs" fw={500}>{order.lotNumber}</Text>
+                                            </Group>
+                                          )}
+                                          {order.totalWeight && (
+                                            <Group gap={4}>
+                                              <IconWeight size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>Total Weight:</Text>
+                                              <Text size="xs" fw={600} c="blue">{order.totalWeight} kg</Text>
+                                            </Group>
+                                          )}
+                                          {order.shippingCostPerKg && (
+                                            <Group gap={4}>
+                                              <Text size="xs" c="dimmed" fw={500}>Shipping Cost:</Text>
+                                              <Text size="xs" fw={600} c="blue">৳{order.shippingCostPerKg}/kg</Text>
+                                            </Group>
+                                          )}
+                                          {order.totalShippingCost && (
+                                            <Group gap={4}>
+                                              <Text size="xs" c="dimmed" fw={500}>Total Shipping:</Text>
+                                              <Text size="xs" fw={700} c="green">৳{order.totalShippingCost}</Text>
+                                            </Group>
+                                          )}
+                                          {/* Extract from comments if not in order object */}
+                                          {!order.totalShippingCost && statusHistoryEntry?.comments && (() => {
+                                            const match = statusHistoryEntry.comments.match(/Total shipping cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
+                                            return match ? (
+                                              <Group gap={4}>
+                                                <Text size="xs" c="dimmed" fw={500}>Total Shipping:</Text>
+                                                <Text size="xs" fw={700} c="green">৳{Number(match[1]).toFixed(2)}</Text>
+                                              </Group>
+                                            ) : null
+                                          })()}
+                                        </>
+                                      )}
 
-                              {/* Status indicators for completed statuses */}
-                              {['warehouse_received', 'shipped_bd', 'arrived_bd', 'received_hub', 'completed'].includes(status.value) && (
-                                <Text size="xs" c={status.value === 'completed' ? 'green' : 'dimmed'}>
-                                  ✓
-                                </Text>
-                              )}
+                                      {/* Arrived BD Details */}
+                                      {status.value === 'arrived_bd' && (
+                                        <>
+                                          {order.bdCourierTracking && (
+                                            <Group gap={4}>
+                                              <IconTruck size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>BD Tracking:</Text>
+                                              <Text size="xs" c="blue" fw={500}>{order.bdCourierTracking}</Text>
+                                            </Group>
+                                          )}
+                                          {!order.bdCourierTracking && statusHistoryEntry?.comments && (
+                                            <Text size="xs" c="green" fw={500}>✓ Arrived in Bangladesh</Text>
+                                          )}
+                                        </>
+                                      )}
 
-                              {/* Timestamp - Compact */}
-                              {statusHistoryEntry && (
-                                <Text size="xs" c="dimmed">
-                                  {new Date(statusHistoryEntry.createdAt).toLocaleDateString([], {month:'short', day:'numeric'})}
-                                </Text>
-                              )}
+                                      {/* In Transit Bogura Details */}
+                                      {status.value === 'in_transit_bogura' && (
+                                        <>
+                                          {order.bdCourierTracking && (
+                                            <Group gap={4}>
+                                              <IconTruck size={12} c="dimmed" />
+                                              <Text size="xs" c="dimmed" fw={500}>BD Tracking:</Text>
+                                              <Text size="xs" c="blue" fw={500}>{order.bdCourierTracking}</Text>
+                                            </Group>
+                                          )}
+                                          <Text size="xs" c="orange" fw={500}>🚚 In Transit to Bogura</Text>
+                                        </>
+                                      )}
 
-                              {/* Changed by user - Full name */}
-                              {statusHistoryEntry?.changedByUser && (
-                                <Text size="xs" c="blue">
-                                  {statusHistoryEntry.changedByUser.name}
-                                </Text>
-                              )}
+                                      {/* Received Hub Details */}
+                                      {status.value === 'received_hub' && (
+                                        <>
+                                          <Text size="xs" c="green" fw={600}>✓ Received at Hub</Text>
+                                          {order.extraCost && (
+                                            <Group gap={4}>
+                                              <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
+                                              <Text size="xs" fw={600} c="red">৳{order.extraCost}</Text>
+                                            </Group>
+                                          )}
+                                          {/* Extract from comments if not in order object */}
+                                          {!order.extraCost && statusHistoryEntry?.comments && (() => {
+                                            const match = statusHistoryEntry.comments.match(/Extra cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
+                                            return match ? (
+                                              <Group gap={4}>
+                                                <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
+                                                <Text size="xs" fw={600} c="red">৳{Number(match[1]).toFixed(2)}</Text>
+                                              </Group>
+                                            ) : null
+                                          })()}
+                                        </>
+                                      )}
 
-                              {/* Comments - Full text */}
-                              {statusHistoryEntry?.comments && (
-                                <Text size="xs" c="blue" style={{ fontStyle: 'italic' }}>
-                                  "{statusHistoryEntry.comments}"
-                                </Text>
-                              )}
-                            </Group>
-                          )}
+                                      {/* Partially Completed Details */}
+                                      {status.value === 'partially_completed' && (
+                                        <>
+                                          <Text size="xs" c="orange" fw={600}>⚠️ Partially Completed</Text>
+                                          {order.extraCost && (
+                                            <Group gap={4}>
+                                              <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
+                                              <Text size="xs" fw={600} c="red">৳{order.extraCost}</Text>
+                                            </Group>
+                                          )}
+                                        </>
+                                      )}
+
+                                      {/* Completed Details */}
+                                      {status.value === 'completed' && (
+                                        <Text size="xs" c="green" fw={600}>✅ Order Completed</Text>
+                                      )}
+
+                                      {/* General status indicators for other statuses */}
+                                      {!['payment_confirmed', 'supplier_dispatched', 'warehouse_received', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub', 'partially_completed', 'completed'].includes(status.value) && isPast && (
+                                        <Text size="xs" c="green" fw={500}>✓ Completed</Text>
+                                      )}
+                                    </Stack>
+                                  </Paper>
+                                )}
+
+                                {/* Metadata Row - Always show if there's status history */}
+                                {statusHistoryEntry && (
+                                  <Group gap={6} wrap="wrap" align="center">
+                                    {/* Timestamp */}
+                                    <Group gap={4}>
+                                      <Text size="xs" c="dimmed">
+                                        {new Date(statusHistoryEntry.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                                      </Text>
+                                      <Text size="xs" c="dimmed">
+                                        {new Date(statusHistoryEntry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </Text>
+                                    </Group>
+
+                                    {/* Changed by user */}
+                                    {statusHistoryEntry?.changedByUser && (
+                                      <>
+                                        <Text size="xs" c="gray.4">•</Text>
+                                        <Group gap={4}>
+                                          <Text size="xs" c="blue" fw={500}>{statusHistoryEntry.changedByUser.name}</Text>
+                                        </Group>
+                                      </>
+                                    )}
+                                  </Group>
+                                )}
+
+                                {/* Comments - Full text with better styling */}
+                                {statusHistoryEntry?.comments && (
+                                  <Paper p="xs" radius="sm" bg="blue.0" style={{ width: '100%' }}>
+                                    <Group gap={6} align="flex-start">
+                                      <Text size="lg" c="blue">"</Text>
+                                      <Text size="xs" c="blue.8" style={{ flex: 1, lineHeight: 1.4 }}>
+                                        {statusHistoryEntry.comments}
+                                      </Text>
+                                    </Group>
+                                  </Paper>
+                                )}
+                              </Stack>
+                            )
+                          })()}
                         </Stack>
                       }
                     />
@@ -1296,7 +1490,7 @@ export default function PurchaseOrderDetailsPage() {
                     <Stack gap="md">
                       <Group gap="sm">
                         <IconBuilding size={20} style={{ color: '#228BE6' }} />
-                        <Text fw={600} size="sm">Select Payment Account</Text>
+                        <Text fw={600} size="sm">Select Payment Account*</Text>
                       </Group>
 
                       <Select
@@ -1310,12 +1504,20 @@ export default function PurchaseOrderDetailsPage() {
                         required
                         size="md"
                         nothingFoundMessage="No active bank accounts found"
+                        error={!!paymentAccountError}
                         styles={{
                           input: {
                             fontSize: '1rem',
                           },
                         }}
                       />
+
+                      {/* Inline Error Message */}
+                      {paymentAccountError && (
+                        <Text c="red" size="sm" mt={4}>
+                          {paymentAccountError}
+                        </Text>
+                      )}
 
                       {/* Final Balance Warning - Enhanced */}
                       {statusFormData.paymentAccountId && paymentBreakdown!.from_bank > 0 && (() => {
