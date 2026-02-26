@@ -1,0 +1,104 @@
+{
+  "title": "ক্যাটালগ",
+  "products": "পণ্য",
+  "categories": "ক্যাটাগরি",
+  "brands": "ব্র্যান্ড",
+  "productsPage": {
+    "title": "সব পণ্য",
+    "subtitle": "আপনার পণ্য ক্যাটালগ ম্যানেজ করুন",
+    "addProduct": "পণ্য যোগ করুন",
+    "accessDenied": "আপনার পণ্য দেখার অনুমতি নেই।",
+    "filters": {
+      "searchPlaceholder": "পণ্য খুঁজুন...",
+      "status": "স্ট্যাটাস",
+      "allStatus": "সব স্ট্যাটাস",
+      "category": "ক্যাটাগরি",
+      "brand": "ব্র্যান্ড"
+    },
+    "table": {
+      "product": "পণ্য",
+      "variants": "ভেরিয়েন্ট",
+      "category": "ক্যাটাগরি",
+      "brand": "ব্র্যান্ড",
+      "stock": "স্টক",
+      "status": "স্ট্যাটাস",
+      "actions": "পদক্ষেপ",
+      "noProducts": "কোনো পণ্য পাওয়া যায়নি"
+    },
+    "status": {
+      "draft": "খসড়া",
+      "published": "প্রকাশিত",
+      "archived": "আর্কাইভ",
+      "changeStatus": "স্ট্যাটাস পরিবর্তন করুন"
+    },
+    "stock": {
+      "outOfStock": "স্টক নেই",
+      "lowStock": "{{count}}টি বাকি",
+      "inStock": "{{count}}টি স্টকে আছে"
+    },
+    "menu": {
+      "actions": "পদক্ষেপ",
+      "duplicate": "ডুপ্লিকেট",
+      "viewDetails": "বিস্তারিত দেখুন"
+    },
+    "pagination": {
+      "page": "পৃষ্ঠা {{current}} / {{total}}"
+    },
+    "notification": {
+      "fetchError": "পণ্য লোড করতে ব্যর্থ হয়েছে",
+      "deletePermission": "আপনার পণ্য মুছে ফেলার অনুমতি নেই",
+      "duplicatePermission": "আপনার পণ্য ডুপ্লিকেট করার অনুমতি নেই",
+      "statusPermission": "আপনার পণ্যের স্ট্যাটাস পরিবর্তনের অনুমতি নেই",
+      "deleteTitle": "পণ্য মুছুন",
+      "deleteConfirm": "\"{{name}}\" মুছে ফেলতে চান? এটি ফিরিয়ে আনা যাবে না।",
+      "deleteSuccess": "পণ্য সফলভাবে মুছে ফেলা হয়েছে",
+      "deleteError": "পণ্য মুছে ফেলতে ব্যর্থ হয়েছে",
+      "duplicateSuccess": "পণ্য সফলভাবে ডুপ্লিকেট করা হয়েছে",
+      "duplicateError": "পণ্য ডুপ্লিকেট করতে ব্যর্থ হয়েছে",
+      "statusSuccess": "পণ্যের স্ট্যাটাস সফলভাবে আপডেট করা হয়েছে",
+      "statusError": "পণ্যের স্ট্যাটাস আপডেট করতে ব্যর্থ হয়েছে"
+    }
+  },
+  "productsCreate": {
+    "title": "নতুন পণ্য যোগ করুন",
+    "subtitle": "ভেরিয়েন্ট সহ একটি নতুন পণ্য তৈরি করুন",
+    "infoAlert": "নিচে পণ্যের বিবরণ পূরণ করুন। পণ্য তৈরি করার পরে, আপনি বিভিন্ন SKU, সাইজ এবং রঙ সহ ভেরিয়েন্ট যোগ করতে পারবেন।",
+    "basicInfo": "মৌলিক তথ্য",
+    "productName": "পণ্যের নাম",
+    "productNamePlaceholder": "পণ্যের নাম লিখুন",
+    "category": "ক্যাটাগরি",
+    "selectCategory": "ক্যাটাগরি নির্বাচন করুন",
+    "brand": "ব্র্যান্ড",
+    "selectBrand": "ব্র্যান্ড নির্বাচন করুন",
+    "description": "বিবরণ",
+    "descriptionPlaceholder": "পণ্যের বিবরণ লিখুন",
+    "videoUrl": "ভিডিও URL (ঐচ্ছিক)",
+    "status": "স্ট্যাটাস",
+    "productImage": "পণ্যের ছবি",
+    "clickToUpload": "পণ্যের ছবি আপলোড করতে ক্লিক করুন",
+    "suppliers": "সরবরাহকারী",
+    "supplierUrl": "সরবরাহকারী URL",
+    "supplierInfo": "সরবরাহকারী তথ্য",
+    "supplierInfoDesc": "এই পণ্যের জন্য সরবরাহকারী সম্পর্ক এবং উৎস পরিচালনা করুন।",
+    "variants": "পণ্য ভেরিয়েন্ট",
+    "addVariant": "ভেরিয়েন্ট যোগ করুন",
+    "variant": "ভেরিয়েন্ট",
+    "sku": "SKU",
+    "customSku": "কাস্টম SKU",
+    "customSkuPlaceholder": "মালিকের কোড",
+    "variantName": "ভেরিয়েন্ট নাম",
+    "unit": "ইউনিট",
+    "size": "সাইজ",
+    "color": "রঙ",
+    "retailPrice": "খুচরা মূল্য",
+    "wholesalePrice": "পাইকারি মূল্য",
+    "purchaseCost": "ক্রয় মূল্য",
+    "alertQty": "সতর্কতা পরিমাণ",
+    "saveProduct": "পণ্য সংরক্ষণ করুন",
+    "notification": {
+      "saved": "পণ্য সফলভাবে সংরক্ষণ করা হয়েছে (স্ট্যাটিক UI)",
+      "atLeastOneVariant": "অন্তত একটি ভেরিয়েন্ট প্রয়োজন",
+      "thumbnailRequired": "অনুগ্রহ করে একটি থাম্বনেইল ছবি নির্বাচন করুন"
+    }
+  }
+}

@@ -27,8 +27,6 @@ import {
   IconArrowLeft,
   IconTrash,
   IconPlus,
-  IconCurrencyYuan,
-  IconRefresh,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -357,26 +355,7 @@ export default function CreatePurchaseOrderPage() {
               />
             </Group>
 
-            <NumberInput
-              label="Exchange Rate (CNY to BDT)"
-              value={exchangeRate}
-              onChange={(v) => setExchangeRate(typeof v === 'number' ? v : parseFloat(v) || 0)}
-              precision={2}
-              min={0}
-              required
-              disabled={loadingExchangeRate}
-              leftSection={<IconCurrencyYuan size={16} />}
-              rightSection={
-                <ActionIcon
-                  variant="light"
-                  size="sm"
-                  onClick={fetchExchangeRate}
-                  loading={loadingExchangeRate}
-                >
-                  <IconRefresh size={14} />
-                </ActionIcon>
-              }
-            />
+            
           </Stack>
         </Paper>
 
