@@ -181,7 +181,7 @@ function OrderSuccessContent() {
             Your order has been successfully placed!
           </p>
           <p className="text-lg text-gray-600 dark:text-gray-400 animate-slideUp" style={{ animationDelay: '0.2s' }}>
-            Order ID: <span className="font-bold text-[#bc1215]">{orderId}</span>
+            Order ID: <span className="font-bold text-[#ec3137]">{orderId}</span>
           </p>
         </div>
 
@@ -203,7 +203,7 @@ function OrderSuccessContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Order Total</p>
-              <p className="text-2xl font-bold text-[#bc1215]">
+              <p className="text-2xl font-bold text-[#ec3137]">
                 <AnimatedCounter value={orderTotal} prefix="৳" duration={1000} />
               </p>
             </div>
@@ -234,7 +234,7 @@ function OrderSuccessContent() {
 
         {/* Special Offer Section */}
         {!offerAdded && (
-          <div className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] rounded-xl p-8 shadow-2xl mb-8 relative overflow-hidden animate-slideUp" style={{ animationDelay: '0.4s' }}>
+          <div className="bg-gradient-to-br from-[#ec3137] to-[#8a0f12] rounded-xl p-8 shadow-2xl mb-8 relative overflow-hidden animate-slideUp" style={{ animationDelay: '0.4s' }}>
             {/* Animated background pattern */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMzLjMxNCAwIDYgMi42ODYgNiA2cy0yLjY4NiA2LTYgNi02LTIuNjg2LTYtNiAyLjY4Ni02IDYtNiIgZmlsbD0iI2ZmZiIvPjwvZz48L3N2Zz4=')]" />
@@ -290,7 +290,7 @@ function OrderSuccessContent() {
                           {offer.name}
                         </h3>
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-2xl font-bold text-[#bc1215]">
+                          <span className="text-2xl font-bold text-[#ec3137]">
                             ৳{offer.price.toLocaleString()}
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400 line-through">
@@ -395,7 +395,7 @@ function OrderSuccessContent() {
             </p>
             <Link
               href="/orders"
-              className="text-[#bc1215] hover:underline font-semibold text-sm"
+              className="text-[#ec3137] hover:underline font-semibold text-sm"
             >
               View Orders →
             </Link>
@@ -413,7 +413,7 @@ function OrderSuccessContent() {
             </p>
             <Link
               href="/products"
-              className="text-[#bc1215] hover:underline font-semibold text-sm"
+              className="text-[#ec3137] hover:underline font-semibold text-sm"
             >
               Browse Products →
             </Link>
@@ -431,7 +431,7 @@ function OrderSuccessContent() {
             </p>
             <Link
               href="/contact"
-              className="text-[#bc1215] hover:underline font-semibold text-sm"
+              className="text-[#ec3137] hover:underline font-semibold text-sm"
             >
               Contact Us →
             </Link>

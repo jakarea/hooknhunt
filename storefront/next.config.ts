@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: __dirname,
+  },
   images: {
     unoptimized: true, // Disable image optimization for local development with private IPs
     remotePatterns: [

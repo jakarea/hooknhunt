@@ -23,7 +23,7 @@
             @endforeach
         @endif
 
-        <script defer src="{{ asset('build/' . $entry['file']) }}"></script>
+        <script type="module" defer src="{{ asset('build/' . $entry['file']) }}"></script>
     @endif
 </head>
 <body>

@@ -104,7 +104,7 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
     <div className="space-y-6">
       {/* Header */}
       <div className="text-center">
-        <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] rounded-full flex items-center justify-center mb-4">
+        <div className="mx-auto w-16 h-16 bg-gradient-to-br from-[#ec3137] to-[#8a0f12] rounded-full flex items-center justify-center mb-4">
           <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
@@ -140,7 +140,7 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
             onKeyDown={(e) => handleKeyDown(index, e)}
             onPaste={index === 0 ? handlePaste : undefined}
             disabled={isLoading}
-            className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 dark:border-gray-700 rounded-lg focus:border-[#bc1215] focus:ring-2 focus:ring-[#bc1215]/20 bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 dark:border-gray-700 rounded-lg focus:border-[#ec3137] focus:ring-2 focus:ring-[#ec3137]/20 bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           />
         ))}
       </div>
@@ -148,7 +148,7 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
       {/* Loading State */}
       {isLoading && (
         <div className="flex justify-center">
-          <svg className="animate-spin h-6 w-6 text-[#bc1215]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <svg className="animate-spin h-6 w-6 text-[#ec3137]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
@@ -161,13 +161,13 @@ export default function OtpVerification({ phone, onVerify, onResend, isLoading =
           <button
             type="button"
             onClick={handleResend}
-            className="text-sm font-medium text-[#bc1215] hover:text-[#9a0f12] transition-colors"
+            className="text-sm font-medium text-[#ec3137] hover:text-[#9a0f12] transition-colors"
           >
             Resend OTP
           </button>
         ) : (
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Resend OTP in <span className="font-semibold text-[#bc1215]">{countdown}s</span>
+            Resend OTP in <span className="font-semibold text-[#ec3137]">{countdown}s</span>
           </p>
         )}
       </div>

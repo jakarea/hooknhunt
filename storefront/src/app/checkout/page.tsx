@@ -399,13 +399,13 @@ export default function CheckoutPage() {
       <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Link href="/" className="hover:text-[#bc1215] transition-colors">
+            <Link href="/" className="hover:text-[#ec3137] transition-colors">
               Home
             </Link>
             <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
-            <Link href="/cart" className="hover:text-[#bc1215] transition-colors">
+            <Link href="/cart" className="hover:text-[#ec3137] transition-colors">
               Cart
             </Link>
             <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -447,7 +447,7 @@ export default function CheckoutPage() {
                     className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
                       isAuthenticated
                         ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137]'
                     }`}
                     placeholder="Enter your full name"
                   />
@@ -469,7 +469,7 @@ export default function CheckoutPage() {
                     className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
                       isAuthenticated
                         ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137]'
                     }`}
                     placeholder="01XXXXXXXXX"
                   />
@@ -491,7 +491,7 @@ export default function CheckoutPage() {
                     className={`w-full px-4 py-3 border-2 rounded-lg outline-none transition-colors ${
                       (isAuthenticated && !!user?.email)
                         ? 'border-gray-200 bg-gray-50 text-gray-600 cursor-not-allowed'
-                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215]'
+                        : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137]'
                     }`}
                     placeholder="your@email.com"
                   />
@@ -514,7 +514,7 @@ export default function CheckoutPage() {
                         key={address.id}
                         className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                           selectedAddress === address.id
-                            ? 'border-[#bc1215] bg-red-50 dark:bg-red-900/10'
+                            ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
                             : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                         }`}
                       >
@@ -523,7 +523,7 @@ export default function CheckoutPage() {
                           name="address"
                           checked={selectedAddress === address.id}
                           onChange={() => handleAddressSelect(address.id)}
-                          className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 focus:ring-2 focus:ring-[#bc1215] mt-0.5"
+                          className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137] mt-0.5"
                         />
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
@@ -550,7 +550,7 @@ export default function CheckoutPage() {
                       type="checkbox"
                       checked={useDifferentAddress}
                       onChange={(e) => setUseDifferentAddress(e.target.checked)}
-                      className="w-4 h-4 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215]"
+                      className="w-4 h-4 text-[#ec3137] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#ec3137]"
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                       Use a different address for this order
@@ -571,7 +571,7 @@ export default function CheckoutPage() {
                       value={formData.address}
                       onChange={handleInputChange}
                       rows={3}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
                       placeholder="House/Flat No., Road, Area"
                     />
                   </div>
@@ -590,7 +590,7 @@ export default function CheckoutPage() {
                       name="city"
                       value={formData.city}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
                       placeholder="e.g., Dhaka"
                     />
                   </div>
@@ -604,7 +604,7 @@ export default function CheckoutPage() {
                       name="district"
                       value={formData.district}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
                       placeholder="e.g., Dhaka"
                     />
                   </div>
@@ -634,7 +634,7 @@ export default function CheckoutPage() {
                 <label
                   className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'cod'
-                      ? 'border-[#bc1215] bg-red-50 dark:bg-red-900/10'
+                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -647,7 +647,7 @@ export default function CheckoutPage() {
                       setPaymentMethod('cod');
                       setSelectedWallet(null);
                     }}
-                    className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 focus:ring-2 focus:ring-[#bc1215]"
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137]"
                   />
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -666,7 +666,7 @@ export default function CheckoutPage() {
                 <label
                   className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'mobile'
-                      ? 'border-[#bc1215] bg-red-50 dark:bg-red-900/10'
+                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -676,7 +676,7 @@ export default function CheckoutPage() {
                     value="mobile"
                     checked={paymentMethod === 'mobile'}
                     onChange={() => setPaymentMethod('mobile')}
-                    className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 focus:ring-2 focus:ring-[#bc1215] mt-0.5"
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137] mt-0.5"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
@@ -743,7 +743,7 @@ export default function CheckoutPage() {
                 <label
                   className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
                     paymentMethod === 'card'
-                      ? 'border-[#bc1215] bg-red-50 dark:bg-red-900/10'
+                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
                       : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -756,7 +756,7 @@ export default function CheckoutPage() {
                       setPaymentMethod('card');
                       setSelectedWallet(null);
                     }}
-                    className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 focus:ring-2 focus:ring-[#bc1215]"
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137]"
                   />
                   <div className="flex items-center gap-3 flex-1">
                     <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
@@ -778,7 +778,7 @@ export default function CheckoutPage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-[#0a0a0a] border-2 border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden sticky top-24">
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#bc1215] to-[#8a0f12] text-white p-6">
+              <div className="bg-gradient-to-r from-[#ec3137] to-[#8a0f12] text-white p-6">
                 <h2 className="text-2xl font-bold">Checkout Summary</h2>
                 <p className="text-sm text-white/90 mt-1">
                   {cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}
@@ -833,11 +833,11 @@ export default function CheckoutPage() {
                           onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                           onKeyDown={(e) => e.key === 'Enter' && applyCoupon()}
                           placeholder="Enter code"
-                          className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors"
+                          className="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
                         />
                         <button
                           onClick={applyCoupon}
-                          className="px-6 py-2.5 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors"
+                          className="px-6 py-2.5 bg-[#ec3137] hover:bg-[#8a0f12] text-white font-semibold rounded-lg transition-colors"
                         >
                           Apply
                         </button>
@@ -935,13 +935,13 @@ export default function CheckoutPage() {
                 <div className="mb-6">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-lg font-bold text-gray-900 dark:text-white">Total</span>
-                    <span className="text-2xl font-bold text-[#bc1215]">
+                    <span className="text-2xl font-bold text-[#ec3137]">
                       <AnimatedCounter value={total} prefix="৳" duration={600} />
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-900 dark:text-white">Payable Total</span>
-                    <span className="text-2xl font-bold text-[#bc1215]">
+                    <span className="text-2xl font-bold text-[#ec3137]">
                       <AnimatedCounter value={payableTotal} prefix="৳" duration={600} />
                     </span>
                   </div>
@@ -965,11 +965,11 @@ export default function CheckoutPage() {
                     type="checkbox"
                     checked={agreeToTerms}
                     onChange={(e) => setAgreeToTerms(e.target.checked)}
-                    className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215] focus:ring-offset-0 mt-0.5"
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#ec3137] focus:ring-offset-0 mt-0.5"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
                     I agree to the{' '}
-                    <Link href="/terms" className="text-[#bc1215] hover:underline font-semibold">
+                    <Link href="/terms" className="text-[#ec3137] hover:underline font-semibold">
                       terms and conditions
                     </Link>
                   </span>
@@ -979,7 +979,7 @@ export default function CheckoutPage() {
                 <button
                   onClick={handleCheckout}
                   disabled={!agreeToTerms}
-                  className="w-full py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="w-full py-4 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1068,7 +1068,7 @@ export default function CheckoutPage() {
                   setOtpCode(value);
                   setOtpError('');
                 }}
-                className="w-full px-4 py-4 text-2xl text-center tracking-widest border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] outline-none transition-colors font-mono"
+                className="w-full px-4 py-4 text-2xl text-center tracking-widest border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors font-mono"
                 placeholder="000000"
               />
             </div>
@@ -1089,7 +1089,7 @@ export default function CheckoutPage() {
             <button
               onClick={handleOtpVerification}
               disabled={otpLoading || otpCode.length !== 6}
-              className="w-full py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mb-3"
+              className="w-full py-4 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mb-3"
             >
               {otpLoading ? (
                 <>
@@ -1114,7 +1114,7 @@ export default function CheckoutPage() {
               <button
                 onClick={handleResendOtp}
                 disabled={resendLoading}
-                className="text-sm text-[#bc1215] hover:text-[#8a0f12] dark:hover:text-red-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="text-sm text-[#ec3137] hover:text-[#8a0f12] dark:hover:text-red-400 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {resendLoading ? 'Sending...' : "Didn't receive code? Resend OTP"}
               </button>

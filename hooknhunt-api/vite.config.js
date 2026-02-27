@@ -50,6 +50,7 @@ export default defineConfig({
                 ]
             },
             workbox: {
+                maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                 runtimeCaching: [
                     {
@@ -85,6 +86,19 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './resources/js'),
         },
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    // Vendor chunks
+                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+                    'mantine-vendor': ['@mantine/core', '@mantine/hooks', '@mantine/notifications', '@mantine/dates'],
+                    'zustand-vendor': ['zustand'],
+                    'other-vendor': ['axios', 'dayjs'],
+                }
+            }
+        }
     },
     optimizeDeps: {
         include: ['react', 'react-dom', 'react-router-dom', '@mantine/core', '@mantine/hooks'],

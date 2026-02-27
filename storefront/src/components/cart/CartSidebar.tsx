@@ -70,7 +70,7 @@ export default function CartSidebar() {
           }`}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#bc1215] to-[#8a0f12] text-white p-5 flex items-center justify-between">
+        <div className="bg-gradient-to-r from-[#ec3137] to-[#8a0f12] text-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="relative">
               <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@ export default function CartSidebar() {
                 />
               </svg>
               {getCartCount() > 0 && (
-                <span className="absolute -top-2 -right-2 bg-white text-[#bc1215] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
+                <span className="absolute -top-2 -right-2 bg-white text-[#ec3137] text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
                   {getCartCount()}
                 </span>
               )}
@@ -144,7 +144,7 @@ export default function CartSidebar() {
               </p>
               <button
                 onClick={closeCart}
-                className="px-6 py-3 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold transition-colors"
+                className="px-6 py-3 bg-[#ec3137] hover:bg-[#8a0f12] text-white font-semibold transition-colors"
               >
                 {t('common.continueShopping')}
               </button>
@@ -180,7 +180,7 @@ export default function CartSidebar() {
                         onClick={closeCart}
                         className="flex-1 mr-2"
                       >
-                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 hover:text-[#bc1215] transition-colors">
+                        <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 hover:text-[#ec3137] transition-colors">
                           {item.product.name}
                         </h3>
                         {item.product.variant_name && (
@@ -192,7 +192,7 @@ export default function CartSidebar() {
 
                       {/* Price and Remove Button */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <p className="text-[#bc1215] font-bold text-base whitespace-nowrap">
+                        <p className="text-[#ec3137] font-bold text-base whitespace-nowrap">
                           ৳{(item.product.price || 0).toLocaleString()}
                         </p>
                         <button
@@ -275,7 +275,7 @@ export default function CartSidebar() {
             {/* Subtotal */}
             <div className="flex justify-between items-center text-lg">
               <span className="font-semibold text-gray-700 dark:text-gray-300">Subtotal:</span>
-              <span className="font-bold text-2xl text-[#bc1215]">
+              <span className="font-bold text-2xl text-[#ec3137]">
                 <AnimatedCounter
                   value={getCartTotal()}
                   prefix="৳"
@@ -314,7 +314,7 @@ export default function CartSidebar() {
             {/* Proceed to Checkout Button */}
             <button
               onClick={handleCheckout}
-              className="w-full py-3 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02]"
+              className="w-full py-3 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02]"
             >
               <span>{t('cart.sidebar.proceedToCheckout')}</span>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

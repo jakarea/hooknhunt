@@ -373,7 +373,7 @@ export default function RegistrationPage() {
                                     type="checkbox"
                                     checked={agreedToTerms}
                                     onChange={(e) => setAgreedToTerms(e.target.checked)}
-                                    className="h-4 w-4 text-[#bc1215] focus:ring-[#bc1215] border-gray-300 rounded"
+                                    className="h-4 w-4 text-[#ec3137] focus:ring-[#ec3137] border-gray-300 rounded"
                                 />
                             </div>
                             <div className="ml-3 text-sm">

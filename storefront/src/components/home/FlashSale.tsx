@@ -128,7 +128,7 @@ export default function FlashSale() {
   ];
 
   return (
-    <section className="w-full bg-gradient-to-br from-[#bc1215] to-[#8a0f12] py-8 lg:py-12">
+    <section className="w-full bg-gradient-to-br from-[#ec3137] to-[#8a0f12] py-8 lg:py-12">
       <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12">
         {/* Header with Countdown */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
@@ -142,7 +142,7 @@ export default function FlashSale() {
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-2">
                   {t('flashSale.title')}
-                  <span className="inline-flex items-center px-3 py-1 bg-yellow-400 text-[#bc1215] text-sm font-bold animate-pulse">
+                  <span className="inline-flex items-center px-3 py-1 bg-yellow-400 text-[#ec3137] text-sm font-bold animate-pulse">
                     {t('flashSale.save')} 30%
                   </span>
                 </h2>
@@ -176,7 +176,7 @@ export default function FlashSale() {
           {/* Previous Arrow */}
           <button
             onClick={prevSlide}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white text-[#bc1215] flex items-center justify-center transition-all duration-300 hover:scale-110"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white text-[#ec3137] flex items-center justify-center transition-all duration-300 hover:scale-110"
             aria-label="Previous slide"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -205,12 +205,12 @@ export default function FlashSale() {
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
                       </Link>
-                      <div className="absolute top-1 left-1 bg-[#bc1215] text-white px-1.5 py-0.5 text-[10px] font-bold">
+                      <div className="absolute top-1 left-1 bg-[#ec3137] text-white px-1.5 py-0.5 text-[10px] font-bold">
                         -{product.discount}%
                       </div>
 
                       {/* Add to Cart Button - Shows on Hover */}
-                      <button className="absolute inset-x-0 bottom-0 bg-[#bc1215] text-white py-2 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <button className="absolute inset-x-0 bottom-0 bg-[#ec3137] text-white py-2 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         {t('flashSale.addToCart')}
                       </button>
                     </div>
@@ -218,14 +218,14 @@ export default function FlashSale() {
                     {/* Content */}
                     <div className="p-2">
                       <Link href={`/products/${product.id}`}>
-                        <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-1 line-clamp-1 hover:text-[#bc1215] transition-colors">
+                        <h3 className="text-xs font-medium text-gray-900 dark:text-white mb-1 line-clamp-1 hover:text-[#ec3137] transition-colors">
                           {product.name}
                         </h3>
                       </Link>
 
                       {/* Price */}
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-sm font-bold text-[#bc1215]">
+                        <span className="text-sm font-bold text-[#ec3137]">
                           ৳{product.discountPrice.toLocaleString()}
                         </span>
                         <span className="text-[10px] text-gray-500 dark:text-gray-400 line-through">
@@ -242,7 +242,7 @@ export default function FlashSale() {
           {/* Next Arrow */}
           <button
             onClick={nextSlide}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white text-[#bc1215] flex items-center justify-center transition-all duration-300 hover:scale-110"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 bg-white/90 hover:bg-white text-[#ec3137] flex items-center justify-center transition-all duration-300 hover:scale-110"
             aria-label="Next slide"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,7 +255,7 @@ export default function FlashSale() {
         <div className="text-center mt-8">
           <Link
             href="/flash-sale"
-            className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#bc1215] px-8 py-3 font-semibold transition-colors duration-300"
+            className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-[#ec3137] px-8 py-3 font-semibold transition-colors duration-300"
           >
             {t('flashSale.viewAll')}
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

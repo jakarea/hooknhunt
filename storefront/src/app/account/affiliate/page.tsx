@@ -55,7 +55,7 @@ export default function AffiliateDashboard() {
       <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Link href="/account" className="hover:text-[#bc1215] transition-colors">My Account</Link>
+            <Link href="/account" className="hover:text-[#ec3137] transition-colors">My Account</Link>
             <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -88,7 +88,7 @@ export default function AffiliateDashboard() {
                 <select
                   value={selectedPeriod}
                   onChange={(e) => setSelectedPeriod(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#bc1215] focus:border-[#bc1215] dark:bg-gray-700 dark:text-white"
+                  className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] dark:bg-gray-700 dark:text-white"
                 >
                   <option value="7days">Last 7 days</option>
                   <option value="30days">Last 30 days</option>
@@ -141,7 +141,7 @@ export default function AffiliateDashboard() {
                       />
                       <button
                         onClick={() => copyToClipboard(affiliateLink)}
-                        className="bg-[#bc1215] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        className="bg-[#ec3137] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
                       >
                         Copy
                       </button>
@@ -160,7 +160,7 @@ export default function AffiliateDashboard() {
                       />
                       <button
                         onClick={() => copyToClipboard(referralCode)}
-                        className="bg-[#bc1215] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                        className="bg-[#ec3137] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
                       >
                         Copy
                       </button>
@@ -241,7 +241,7 @@ export default function AffiliateDashboard() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                           {referral.amount}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#bc1215]">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[#ec3137]">
                           {referral.commission}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -271,7 +271,7 @@ export default function AffiliateDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900 dark:text-white">{product.earnings}</p>
-                      <p className="text-sm text-[#bc1215]">{product.commission} commission</p>
+                      <p className="text-sm text-[#ec3137]">{product.commission} commission</p>
                     </div>
                   </div>
                 ))}
@@ -280,10 +280,10 @@ export default function AffiliateDashboard() {
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] rounded-lg p-6 text-white">
+              <div className="bg-gradient-to-br from-[#ec3137] to-[#8a0f12] rounded-lg p-6 text-white">
                 <h3 className="text-lg font-semibold mb-2">Marketing Materials</h3>
                 <p className="text-white/90 mb-4">Download banners, links, and promotional content</p>
-                <button className="bg-white text-[#bc1215] hover:bg-gray-100 font-medium py-2 px-4 rounded-lg transition-colors">
+                <button className="bg-white text-[#ec3137] hover:bg-gray-100 font-medium py-2 px-4 rounded-lg transition-colors">
                   Download Assets
                 </button>
               </div>

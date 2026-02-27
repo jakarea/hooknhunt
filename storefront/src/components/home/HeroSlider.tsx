@@ -110,7 +110,7 @@ export default function HeroSlider() {
     <section className="w-full bg-gray-900 dark:bg-black relative overflow-hidden">
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-20 h-20 bg-[#bc1215]/20 rounded-full blur-xl animate-pulse"></div>
+        <div className="absolute top-20 left-10 w-20 h-20 bg-[#ec3137]/20 rounded-full blur-xl animate-pulse"></div>
         <div className="absolute bottom-20 right-10 w-32 h-32 bg-[#046bd2]/20 rounded-full blur-xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-yellow-400/10 rounded-full blur-lg animate-bounce"></div>
       </div>
@@ -149,7 +149,7 @@ export default function HeroSlider() {
                     {/* Badge */}
                     {slide.badge && (
                       <div className="inline-block mb-4 animate-fadeInUp">
-                        <span className="px-4 py-2 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] text-white text-sm font-bold rounded-full shadow-lg">
+                        <span className="px-4 py-2 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] text-white text-sm font-bold rounded-full shadow-lg">
                           {slide.badge}
                         </span>
                       </div>
@@ -193,7 +193,7 @@ export default function HeroSlider() {
                     <div className="flex flex-wrap gap-4 animate-fadeInUp delay-600">
                       <Link
                         href={slide.ctaLink}
-                        className="group px-8 py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl flex items-center gap-2 cursor-pointer"
+                        className="group px-8 py-4 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold rounded-lg transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-2xl flex items-center gap-2 cursor-pointer"
                       >
                         {slide.cta}
                         <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -257,7 +257,7 @@ export default function HeroSlider() {
               onClick={() => goToSlide(index)}
               disabled={isTransitioning}
               className={`transition-all duration-500 rounded-full flex items-center gap-2 cursor-pointer ${index === currentSlide
-                  ? 'w-12 h-3 bg-[#bc1215] shadow-lg'
+                  ? 'w-12 h-3 bg-[#ec3137] shadow-lg'
                   : 'w-3 h-3 glass-button hover:scale-125'
                 }`}
               aria-label={`Go to slide ${index + 1}`}
@@ -274,7 +274,7 @@ export default function HeroSlider() {
         {/* Progress Bar */}
         <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
           <div
-            className="h-full bg-gradient-to-r from-[#bc1215] to-[#046bd2] transition-all duration-100 ease-linear"
+            className="h-full bg-gradient-to-r from-[#ec3137] to-[#046bd2] transition-all duration-100 ease-linear"
             style={{ width: `${((currentSlide + 1) / slides.length) * 100}%` }}
           ></div>
         </div>

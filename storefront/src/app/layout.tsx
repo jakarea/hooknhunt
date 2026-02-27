@@ -26,7 +26,7 @@ export default function RootLayout({
       <head>
 
       </head>
-      <body className={`${inter.className} antialiased bg-white text-gray-900 transition-colors duration-200`}>
+      <body className={`${inter.className} antialiased bg-white text-gray-900 transition-colors duration-200`} suppressHydrationWarning>
         <ErrorBoundary>
           <Providers>
             <Header />
