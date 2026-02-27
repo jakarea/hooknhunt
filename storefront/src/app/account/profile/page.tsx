@@ -88,7 +88,7 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-[#fcf8f6]">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-8">
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#bc1215]"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#ec3137]"></div>
           </div>
         </div>
       </div>
@@ -102,7 +102,7 @@ export default function ProfilePage() {
         <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Link href="/account" className="hover:text-[#bc1215] transition-colors">My Account</Link>
+            <Link href="/account" className="hover:text-[#ec3137] transition-colors">My Account</Link>
             <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -129,7 +129,7 @@ export default function ProfilePage() {
               {!isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="bg-[#bc1215] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                  className="bg-[#ec3137] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors"
                 >
                   Edit Profile
                 </button>
@@ -155,7 +155,7 @@ export default function ProfilePage() {
               <div className="lg:col-span-1">
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                   <div className="text-center">
-                    <div className="w-24 h-24 bg-[#bc1215] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-24 h-24 bg-[#ec3137] rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-white font-bold text-2xl">
                         {user?.name ? user.name.charAt(0).toUpperCase() : user?.phone_number.slice(0, 2)}
                       </span>
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                         className={`w-full px-4 py-2 border rounded-lg transition-colors ${
                           getFieldError('name')
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#bc1215]'
+                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#ec3137]'
                         } ${
                           isEditing
                             ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white'
@@ -238,7 +238,7 @@ export default function ProfilePage() {
                         className={`w-full px-4 py-2 border rounded-lg transition-colors ${
                           getFieldError('email')
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#bc1215]'
+                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#ec3137]'
                         } ${
                           isEditing
                             ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white'
@@ -266,7 +266,7 @@ export default function ProfilePage() {
                         className={`w-full px-4 py-2 border rounded-lg transition-colors ${
                           getFieldError('whatsapp_number')
                             ? 'border-red-500 focus:ring-red-500'
-                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#bc1215]'
+                            : 'border-gray-300 dark:border-gray-600 focus:ring-[#ec3137]'
                         } ${
                           isEditing
                             ? 'bg-white dark:bg-gray-900 text-gray-900 dark:text-white'
@@ -287,7 +287,7 @@ export default function ProfilePage() {
                         <button
                           onClick={handleSave}
                           disabled={updating}
-                          className="flex-1 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 bg-[#ec3137] hover:bg-[#8a0f12] text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {updating ? (
                             <span className="flex items-center justify-center">

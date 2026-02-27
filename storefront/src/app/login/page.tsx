@@ -129,7 +129,7 @@ export default function LoginPage() {
                                     required
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
+                                    className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ec3137] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
                                     placeholder={t('checkout.phoneNumberPlaceholder')}
                                 />
                             </div>
@@ -154,7 +154,7 @@ export default function LoginPage() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#bc1215] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
+                                    className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ec3137] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
                                     placeholder={t('auth.login.passwordPlaceholder')}
                                 />
                                 <button
@@ -183,14 +183,14 @@ export default function LoginPage() {
                                     id="remember-me"
                                     name="remember-me"
                                     type="checkbox"
-                                    className="h-4 w-4 text-[#bc1215] focus:ring-[#bc1215] border-gray-300 rounded"
+                                    className="h-4 w-4 text-[#ec3137] focus:ring-[#ec3137] border-gray-300 rounded"
                                 />
                                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                                     {t('auth.login.rememberMe')}
                                 </label>
                             </div>
                             <div className="text-sm">
-                                <Link href="/forgot-password" className="font-medium text-[#bc1215] hover:text-[#9a0f12]">
+                                <Link href="/forgot-password" className="font-medium text-[#ec3137] hover:text-[#9a0f12]">
                                     {t('auth.login.forgotPassword')}
                                 </Link>
                             </div>
@@ -200,7 +200,7 @@ export default function LoginPage() {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bc1215] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ec3137] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                         >
                             {isLoading ? (
                                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -231,7 +231,7 @@ export default function LoginPage() {
                     <div className="mt-6">
                         <Link
                             href="/registration"
-                            className="w-full flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#333333] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bc1215] transition-all duration-300"
+                            className="w-full flex justify-center py-3 px-4 border border-gray-300 dark:border-gray-700 rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-[#2a2a2a] hover:bg-gray-50 dark:hover:bg-[#333333] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#ec3137] transition-all duration-300"
                         >
                             {t('auth.login.signUp')}
                         </Link>
@@ -240,7 +240,7 @@ export default function LoginPage() {
 
                 {/* Back to Home */}
                 <div className="text-center">
-                    <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#bc1215] dark:hover:text-[#bc1215] transition-colors">
+                    <Link href="/" className="text-sm text-gray-600 dark:text-gray-400 hover:text-[#ec3137] dark:hover:text-[#ec3137] transition-colors">
                         ← {t('auth.reset.backToHome')}
                     </Link>
                 </div>

@@ -6,7 +6,6 @@ import Categories from '@/components/home/Categories';
 import RecentlySold from '@/components/home/RecentlySold';
 import FloatingActionButton from '@/components/common/FloatingActionButton';
 import NewArrivals from '@/components/home/NewArrivals';
-import BestDeals from '@/components/home/BestDeals';
 import RecomendedYou from '@/components/home/RecomendedYou';
 
 
@@ -60,7 +59,7 @@ export default function Home() {
           </Link>
 
           <Link href="/products?category=reels" className="group relative overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 transform hover:scale-[1.02] rounded-xl">
-            <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#bc1215] to-[#8a0f12]">
+            <div className="relative h-72 lg:h-80 bg-gradient-to-br from-[#ec3137] to-[#8a0f12]">
               <Image
                 src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=400&fit=crop"
                 alt="Fishing Reels Collection"
@@ -68,13 +67,13 @@ export default function Home() {
                 className="object-cover opacity-30 group-hover:opacity-40 group-hover:scale-110 transition-all duration-700"
                 sizes="(max-width: 1024px) 100vw, 50vw"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#bc1215]/80 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#ec3137]/80 to-transparent"></div>
               <div className="absolute inset-0 flex flex-col items-start justify-center text-white p-8 lg:p-12">
                 <div className="transform group-hover:translate-x-2 transition-transform duration-500">
                   <div className="inline-block px-4 py-1 bg-white/20 backdrop-blur-sm text-xs font-bold uppercase tracking-wider mb-4">Best Seller</div>
                   <h3 className="text-4xl md:text-5xl font-extrabold mb-3 leading-tight">Fishing Reels Collection</h3>
                   <p className="text-lg md:text-xl mb-6 font-medium text-white/90">High-performance reels for smooth fishing</p>
-                  <span className="inline-flex items-center gap-2 px-8 py-3 bg-white text-[#bc1215] font-bold text-lg hover:bg-gray-100 shadow-lg group-hover:gap-4 transition-all duration-300">
+                  <span className="inline-flex items-center gap-2 px-8 py-3 bg-white text-[#ec3137] font-bold text-lg hover:bg-gray-100 shadow-lg group-hover:gap-4 transition-all duration-300">
                     Shop Now
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
@@ -87,9 +86,6 @@ export default function Home() {
           </Link>
         </div>
       </section >
-
-      {/* Best Deals - Value Proposition */}
-      <BestDeals />
 
       {/* Recommended for You - Personalization */}
       <RecomendedYou />
@@ -110,9 +106,9 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
             <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2 rounded-xl">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-[#bc1215]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-[#ec3137]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
               <div className="flex items-center mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#ec3137] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
                   M
                 </div>
                 <div>
@@ -127,7 +123,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative">
-                <svg className="w-8 h-8 text-[#bc1215]/20 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text-[#ec3137]/20 mb-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base relative z-10">
@@ -164,9 +160,9 @@ export default function Home() {
             </div>
 
             <div className="group bg-white dark:bg-gray-900 p-8 shadow-lg hover:shadow-2xl transition-all duration-500 relative overflow-hidden transform hover:-translate-y-2 rounded-xl">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-[#bc1215]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
+              <div className="absolute top-0 right-0 w-20 h-20 bg-[#ec3137]/5 transform rotate-45 translate-x-10 -translate-y-10"></div>
               <div className="flex items-center mb-5">
-                <div className="w-14 h-14 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
+                <div className="w-14 h-14 bg-gradient-to-br from-[#ec3137] to-[#8a0f12] flex items-center justify-center text-white font-bold text-xl mr-4 shadow-lg rounded-full">
                   F
                 </div>
                 <div>
@@ -181,7 +177,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative">
-                <svg className="w-8 h-8 text-[#bc1215]/20 mb-2" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8 text-[#ec3137]/20 mb-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
                 </svg>
                 <p className="text-gray-600 dark:text-gray-400 leading-relaxed text-base relative z-10">
@@ -194,7 +190,7 @@ export default function Home() {
       </section >
 
       {/* Features - Trust Indicators */}
-      < section className="bg-gradient-to-br from-[#bc1215] to-[#8a0f12] text-white py-20 relative overflow-hidden" >
+      < section className="bg-gradient-to-br from-[#ec3137] to-[#8a0f12] text-white py-20 relative overflow-hidden" >
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-64 h-64 bg-white transform rotate-45"></div>
           <div className="absolute bottom-10 right-10 w-64 h-64 bg-white transform -rotate-45"></div>

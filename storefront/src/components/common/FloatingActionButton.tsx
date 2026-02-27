@@ -37,7 +37,7 @@ export default function FloatingActionButton() {
         toggleCart();
         setShowQuickActions(false);
       },
-      color: 'bg-[#bc1215] hover:bg-[#8a0f12]',
+      color: 'bg-[#ec3137] hover:bg-[#8a0f12]',
       count: getCartCount(),
     },
     {
@@ -119,7 +119,7 @@ export default function FloatingActionButton() {
       {/* Main FAB */}
       <button
         onClick={() => setShowQuickActions(!showQuickActions)}
-        className="w-14 h-14 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center group cursor-pointer shadow-lg hover:shadow-xl"
+        className="w-14 h-14 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white rounded-full transition-all duration-300 transform hover:scale-110 flex items-center justify-center group cursor-pointer shadow-lg hover:shadow-xl"
       >
         <svg
           className={`w-6 h-6 transition-transform duration-300 ${showQuickActions ? 'rotate-45' : ''}`}

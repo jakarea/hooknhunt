@@ -151,7 +151,7 @@ export default function AdminSidebar() {
       <div className="p-4">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8">
-          <div className="w-8 h-8 bg-[#bc1215] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-[#ec3137] rounded-lg flex items-center justify-center">
             <span className="text-white text-sm font-bold">H&H</span>
           </div>
           <div>
@@ -170,7 +170,7 @@ export default function AdminSidebar() {
                   href={item.href}
                   className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors group ${
                     isParentActive(item)
-                      ? 'bg-[#bc1215] text-white'
+                      ? 'bg-[#ec3137] text-white'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
@@ -207,7 +207,7 @@ export default function AdminSidebar() {
                         href={child.href}
                         className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
                           isActive(child.href)
-                            ? 'bg-[#bc1215] text-white'
+                            ? 'bg-[#ec3137] text-white'
                             : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >

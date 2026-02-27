@@ -29,7 +29,7 @@ export default function NewsletterSignup() {
   };
 
   return (
-    <section className="py-16 lg:py-20 bg-gradient-to-br from-[#bc1215] to-[#8a0f12] relative overflow-hidden">
+    <section className="py-16 lg:py-20 bg-gradient-to-br from-[#ec3137] to-[#8a0f12] relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-20">
@@ -77,7 +77,7 @@ export default function NewsletterSignup() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !email}
-                  className="px-8 py-4 bg-white text-[#bc1215] font-bold rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-lg"
+                  className="px-8 py-4 bg-white text-[#ec3137] font-bold rounded-lg hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 shadow-lg"
                 >
                   {isSubmitting ? (
                     <>

@@ -81,7 +81,7 @@ export default function UserNavigation() {
               href={item.href}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
                 pathname === item.href
-                  ? 'bg-[#bc1215] text-white'
+                  ? 'bg-[#ec3137] text-white'
                   : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
               }`}
             >

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -15,6 +15,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   const router = useRouter();
   const { addToCart, isInCart } = useCart();
   const [isAdding, setIsAdding] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Map product properties to display properties
   const price = product.price ?? product.actual_price;
@@ -29,7 +35,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
-  const productInCart = isInCart(product.id);
+  const productInCart = mounted ? isInCart(product.id) : false;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -82,7 +88,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           {/* Discount Badge */}
           {discount > 0 && (
-            <div className="absolute top-2 right-2 bg-[#bc1215] text-white px-2 py-1 text-xs font-bold">
+            <div className="absolute top-2 right-2 bg-[#ec3137] text-white px-2 py-1 text-xs font-bold">
               -{discount}%
             </div>
           )}
@@ -105,28 +111,28 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Product Info */}
         <div className="p-2.5 flex-1 flex flex-col">
           {/* Product Name */}
-          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm group-hover:text-[#bc1215] transition-colors min-h-[2.5rem]">
+          <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm group-hover:text-[#ec3137] transition-colors min-h-[2.5rem]">
             {name}
           </h3>
 
           {/* Price or Price Range */}
-          <div className="mb-3 lg:mb-5 flex-1">
+          <div className="mb-1 lg:mb-2 flex-1">
             {(variant_count === 0 || variant_count === 1) ? (
               // Single variant or no variants - show exact price
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm lg:text-base font-bold text-[#bc1215]">
+                <span className="text-sm lg:text-base font-bold text-[#ec3137]">
                   {price > 0 ? `৳${price.toLocaleString()}` : 'Price unavailable'}
                 </span>
-                {/* {originalPrice && originalPrice > price && price > 0 && (
-                  <span className="text-xs text-gray-500 line-through mt-1">
+                {originalPrice && originalPrice > price && price > 0 && (
+                  <span className="text-xs text-gray-500 line-through">
                     ৳{originalPrice.toLocaleString()}
                   </span>
-                )} */}
+                )}
               </div>
             ) : (
               // Multiple variants - show price range
               <div className="flex flex-col gap-1">
-                <span className="text-sm lg:text-base font-bold text-[#bc1215]">
+                <span className="text-sm lg:text-base font-bold text-[#ec3137]">
                   {price_range_display || (price > 0 ? `৳${price.toLocaleString()}` : 'Price varies')}
                 </span>
                 <span className="text-xs text-gray-500">
@@ -140,7 +146,10 @@ export default function ProductCard({ product }: ProductCardProps) {
 
       {/* Button Logic */}
       <div className="px-3 pb-3 flex-shrink-0 mt-auto">
-        {productInCart ? (
+        {!mounted ? (
+          // Loading skeleton to prevent hydration mismatch
+          <div className="w-full py-2.5 bg-gray-200 animate-pulse rounded"></div>
+        ) : productInCart ? (
           <button
             onClick={handleViewCart}
             className="w-full py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold text-xs transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-[1.02]"
@@ -169,7 +178,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           <button
             onClick={handleAddToCart}
             disabled={stock === 0 || price <= 0}
-            className={`w-full py-2.5 bg-[#bc1215] hover:bg-[#8a0f12] text-white font-semibold text-xs transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] ${isAdding ? 'scale-95 bg-[#8a0f12]' : ''
+            className={`w-full py-2.5 bg-[#ec3137] hover:bg-[#8a0f12] text-white font-semibold text-xs transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transform hover:scale-[1.02] ${isAdding ? 'scale-95 bg-[#8a0f12]' : ''
               }`}
           >
             <svg

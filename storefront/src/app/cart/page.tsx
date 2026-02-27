@@ -116,7 +116,7 @@ export default function CartPage() {
         <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
           <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
             <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-              <Link href="/" className="hover:text-[#bc1215] transition-colors">
+              <Link href="/" className="hover:text-[#ec3137] transition-colors">
                 {t('common.home')}
               </Link>
               <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,7 +153,7 @@ export default function CartPage() {
             </p>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 shadow-lg transform hover:scale-105"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold text-lg transition-all duration-300 shadow-lg transform hover:scale-105"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -177,7 +177,7 @@ export default function CartPage() {
       <div className="bg-gray-50 dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
-            <Link href="/" className="hover:text-[#bc1215] transition-colors">
+            <Link href="/" className="hover:text-[#ec3137] transition-colors">
               Home
             </Link>
             <svg className="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,7 +200,7 @@ export default function CartPage() {
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleSelectAll}
-                    className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215] focus:ring-offset-0 cursor-pointer"
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#ec3137] focus:ring-offset-0 cursor-pointer"
                   />
                 </div>
                 <span className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
@@ -217,7 +217,7 @@ export default function CartPage() {
                   ৳{originalTotal.toLocaleString()}
                 </span>
               )}
-              <span className="text-2xl font-bold text-[#bc1215]">
+              <span className="text-2xl font-bold text-[#ec3137]">
                 ৳{subtotal.toLocaleString()}
               </span>
             </div>
@@ -237,7 +237,7 @@ export default function CartPage() {
                   key={item.id}
                   className={`bg-white dark:bg-[#0a0a0a] border-2 ${
                     isSelected
-                      ? 'border-[#bc1215] shadow-md'
+                      ? 'border-[#ec3137] shadow-md'
                       : 'border-gray-200 dark:border-gray-800'
                   } p-6 transition-all duration-300 animate-slideIn`}
                   style={{ animationDelay: `${index * 50}ms` }}
@@ -249,7 +249,7 @@ export default function CartPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleItemSelection(item.id)}
-                        className="w-5 h-5 text-[#bc1215] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#bc1215] focus:ring-offset-0 cursor-pointer"
+                        className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#ec3137] focus:ring-offset-0 cursor-pointer"
                       />
                     </div>
 
@@ -273,7 +273,7 @@ export default function CartPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between gap-4 mb-3">
                         <Link href={`/products/${item.product.slug}`}>
-                          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-[#bc1215] transition-colors line-clamp-2">
+                          <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white hover:text-[#ec3137] transition-colors line-clamp-2">
                             {item.product.name}
                           </h3>
                           {item.product.variant_name && (
@@ -306,7 +306,7 @@ export default function CartPage() {
                       <div className="flex flex-wrap items-center justify-between gap-4">
                         {/* Price */}
                         <div>
-                          <p className="text-xl sm:text-2xl font-bold text-[#bc1215]">
+                          <p className="text-xl sm:text-2xl font-bold text-[#ec3137]">
                             ৳{(item.product.price || 0).toLocaleString()}
                           </p>
                           {item.product.originalPrice && (
@@ -407,7 +407,7 @@ export default function CartPage() {
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-[#0a0a0a] border-2 border-gray-200 dark:border-gray-800 sticky top-24 rounded-lg overflow-hidden">
               {/* Header */}
-              <div className="bg-gradient-to-r from-[#bc1215] to-[#8a0f12] text-white p-6">
+              <div className="bg-gradient-to-r from-[#ec3137] to-[#8a0f12] text-white p-6">
                 <h2 className="text-2xl font-bold">Order Summary</h2>
                 <p className="text-sm text-white/90 mt-1">
                   {getSelectedCount()} selected {getSelectedCount() === 1 ? 'item' : 'items'}
@@ -478,7 +478,7 @@ export default function CartPage() {
                               ৳{(originalTotal + shipping).toLocaleString()}
                             </p>
                           )}
-                          <span className="text-3xl font-bold text-[#bc1215]">
+                          <span className="text-3xl font-bold text-[#ec3137]">
                             <AnimatedCounter
                               value={total}
                               prefix="৳"
@@ -521,7 +521,7 @@ export default function CartPage() {
                     <button
                       onClick={() => router.push('/checkout')}
                       disabled={selectedItems.size === 0}
-                      className="w-full py-4 bg-gradient-to-r from-[#bc1215] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#bc1215] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mb-4"
+                      className="w-full py-4 bg-gradient-to-r from-[#ec3137] to-[#8a0f12] hover:from-[#8a0f12] hover:to-[#ec3137] text-white font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg transform hover:scale-[1.02] rounded disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none mb-4"
                     >
                       <span>Proceed to Checkout</span>
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

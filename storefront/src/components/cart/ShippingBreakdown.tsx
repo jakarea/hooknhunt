@@ -55,7 +55,7 @@ export default function ShippingBreakdown({ breakdown, className = '' }: Shippin
           </div>
           <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
             <span className="text-gray-900 font-semibold">Total Shipping:</span>
-            <span className="font-bold text-[#bc1215]">{formatCurrency(currentShippingCost)}</span>
+            <span className="font-bold text-[#ec3137]">{formatCurrency(currentShippingCost)}</span>
           </div>
         </div>
       )}
