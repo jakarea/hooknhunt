@@ -2,7 +2,7 @@
 
 import { User, Address } from '@/types';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.0.166:8000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.0.166:8000/api/v2';
 
 interface ApiResponse<T = unknown> {
   data?: T;
@@ -43,12 +43,16 @@ class ApiClient {
   private setToken(token: string): void {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       localStorage.setItem('auth_token', token);
+      // Also set cookie for middleware-based route protection
+      document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 30}; SameSite=Lax`;
     }
   }
 
   private removeToken(): void {
     if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
       localStorage.removeItem('auth_token');
+      // Also remove cookie
+      document.cookie = 'auth_token=; path=/; max-age=0; SameSite=Lax';
     }
   }
 

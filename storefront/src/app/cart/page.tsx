@@ -61,7 +61,7 @@ export default function CartPage() {
   const shipping = subtotal >= shippingThreshold ? 0 : 100;
   const total = subtotal + shipping;
 
-  // Toggle individual item selection
+  // Toggle individual item selection (uses product ID)
   const toggleItemSelection = (productId: number) => {
     setSelectedItems(prev => {
       const newSet = new Set(prev);
@@ -230,7 +230,7 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {cartItems.map((item, index) => {
-              const isSelected = selectedItems.has(item.id);
+              const isSelected = selectedItems.has(item.product.id);
 
               return (
                 <div
@@ -248,7 +248,7 @@ export default function CartPage() {
                       <input
                         type="checkbox"
                         checked={isSelected}
-                        onChange={() => toggleItemSelection(item.id)}
+                        onChange={() => toggleItemSelection(item.product.id)}
                         className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-[#ec3137] focus:ring-offset-0 cursor-pointer"
                       />
                     </div>

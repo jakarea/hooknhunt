@@ -12,7 +12,7 @@ import RecomendedYou from '@/components/home/RecomendedYou';
 export default function Home() {
 
   return (
-    <div className="bg-white">
+    <div className="bg-[#fcf8f6]">
       {/* Hero Slider - Full Screen */}
       <HeroSlider />
 

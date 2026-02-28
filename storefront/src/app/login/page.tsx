@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useTranslation } from '../../../node_modules/react-i18next';
 import toast, { Toaster } from 'react-hot-toast';
@@ -14,14 +14,18 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { login, isAuthenticated, isLoading: authLoading } = useAuth();
 
+    // Get redirect URL from query params (for middleware-based protection)
+    const redirectUrl = searchParams.get('redirect') || '/account';
+
     // Redirect if already authenticated
-    React.useEffect(() => {
+    useEffect(() => {
         if (!authLoading && isAuthenticated) {
-            router.replace('/account');
+            router.replace(redirectUrl);
         }
-    }, [isAuthenticated, authLoading, router]);
+    }, [isAuthenticated, authLoading, router, redirectUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,13 +57,13 @@ export default function LoginPage() {
             });
             setIsLoading(false); // Reset loading state after successful login
             setTimeout(() => {
-                // Try Next.js router first
-                router.replace('/account');
+                // Try Next.js router first - redirect to the page user was trying to access
+                router.replace(redirectUrl);
 
                 // Fallback: Force browser navigation after a delay if Next.js doesn't work
                 setTimeout(() => {
                     if (window.location.pathname === '/login') {
-                        window.location.href = '/account';
+                        window.location.href = redirectUrl;
                     }
                 }, 300);
             }, 200);

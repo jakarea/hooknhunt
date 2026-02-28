@@ -35,6 +35,9 @@ export default function Header() {
     { href: '/', label: 'Home', icon: '🏠' },
     { href: '/flash-sale', label: 'Flash Sale', icon: '🔥' },
     { href: '/products', label: 'All Product', icon: '🎣' },
+  ];
+
+  const navItemsAfterCategory = [
     { href: '/track-order', label: 'Track Order', icon: '📦' },
     { href: '/contact', label: 'Contact', icon: '📞' },
   ];
@@ -137,7 +140,7 @@ export default function Header() {
                     </span>
                   )}
                 </div>
-                <span className="hidden sm:inline text-sm sm:text-base font-medium">Cart</span>
+                
               </button>
 
               {/* Mobile Menu Button */}
@@ -205,6 +208,19 @@ export default function Header() {
                 </div>
               </div>
             </div>
+
+            {/* Track Order & Contact - After Category */}
+            {navItemsAfterCategory.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="py-3 text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 hover:text-[#ec3137] transition-colors relative group flex items-center gap-1"
+              >
+                {item.icon && <span>{item.icon}</span>}
+                {item.label}
+                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[#ec3137] transform scale-x-0 group-hover:scale-x-100 transition-transform"></span>
+              </Link>
+            ))}
           </nav>
         </div>
       </div>
@@ -255,6 +271,21 @@ export default function Header() {
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {category.name}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Track Order & Contact - After Categories */}
+              <div className="border-t border-gray-200 dark:border-gray-800 pt-4 mt-4">
+                {navItemsAfterCategory.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="px-4 py-3 text-sm md:text-base font-medium text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#1a1a1a] hover:text-[#ec3137] transition-colors flex items-center gap-2"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.icon && <span>{item.icon}</span>}
+                    {item.label}
                   </Link>
                 ))}
               </div>

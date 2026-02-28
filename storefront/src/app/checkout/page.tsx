@@ -8,9 +8,9 @@ import { useAuth } from '@/context/AuthContext';
 import AnimatedCounter from '@/components/common/AnimatedCounter';
 import { Address } from '@/types';
 import { OrderResponse } from '@/types/api';
+import { bangladeshDivisions } from '@/data/bangladesh-divisions';
 
-type PaymentMethod = 'cod' | 'mobile' | 'card';
-type MobileWallet = 'bkash' | 'nagad' | 'rocket' | null;
+type PaymentMethod = 'cod' | 'sslcommerz';
 
 // Coupon types
 const availableCoupons = {
@@ -23,11 +23,10 @@ const availableCoupons = {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cartItems, getCartTotal, clearCart } = useCart();
+  const { cartItems, getCartTotal, clearCart, removeFromCart, updateQuantity } = useCart();
   const { user, isAuthenticated } = useAuth();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
-  const [selectedWallet, setSelectedWallet] = useState<MobileWallet>(null);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
@@ -51,7 +50,40 @@ export default function CheckoutPage() {
     address: '',
     city: '',
     district: '',
+    thana: '',
+    division: '',
   });
+
+  // Get all districts with their division info
+  const getAllDistricts = () => {
+    const districts: { name: string; division: string }[] = [];
+    bangladeshDivisions.forEach(division => {
+      division.districts.forEach(district => {
+        districts.push({
+          name: district.name,
+          division: division.name
+        });
+      });
+    });
+    return districts.sort((a, b) => a.name.localeCompare(b.name));
+  };
+
+  // Get thanas for a selected district
+  const getThanasForDistrict = (districtName: string) => {
+    for (const division of bangladeshDivisions) {
+      const district = division.districts.find(d => d.name === districtName);
+      if (district) {
+        return district.thanas;
+      }
+    }
+    return [];
+  };
+
+  // Get division for a selected district
+  const getDivisionForDistrict = (districtName: string) => {
+    const district = getAllDistricts().find(d => d.name === districtName);
+    return district?.division || '';
+  };
 
   // OTP verification state
   const [showOtpModal, setShowOtpModal] = useState(false);
@@ -106,11 +138,14 @@ export default function CheckoutPage() {
           setSelectedAddress(defaultAddress.id);
           setUseDifferentAddress(false);
           // Pre-fill form with default address
+          const district = defaultAddress.district || '';
+          const division = getDivisionForDistrict(district);
           setFormData(prev => ({
             ...prev,
             address: defaultAddress.address || prev.address,
             city: defaultAddress.city || prev.city,
-            district: defaultAddress.district || prev.district,
+            district: district,
+            division: division,
           }));
         }
       }
@@ -124,20 +159,33 @@ export default function CheckoutPage() {
     setSelectedAddress(addressId);
     const selected = addresses.find(addr => addr.id === addressId);
     if (selected) {
+      const district = selected.district || '';
+      const division = getDivisionForDistrict(district);
       setFormData(prev => ({
         ...prev,
         address: selected.address || prev.address,
         city: selected.city || prev.city,
-        district: selected.district || prev.district,
+        district: district,
+        division: division,
       }));
       setUseDifferentAddress(false);
     }
   };
 
+  // Auto-fill division when district changes
+  useEffect(() => {
+    if (formData.district) {
+      const division = getDivisionForDistrict(formData.district);
+      if (division) {
+        setFormData(prev => ({ ...prev, division }));
+      }
+    }
+  }, [formData.district]);
+
   // Calculations
   const subtotal = getCartTotal();
   const deliveryCharge = 60;
-  const serviceCharge = 5;
+  const freeDeliveryThreshold = 500;
 
   let couponDiscount = 0;
   let freeShipping = false;
@@ -153,9 +201,12 @@ export default function CheckoutPage() {
   }
 
   const subtotalAfterCoupon = subtotal - couponDiscount;
-  const totalCharges = freeShipping ? serviceCharge : deliveryCharge + serviceCharge;
+  const totalCharges = freeShipping ? 0 : deliveryCharge;
   const total = subtotalAfterCoupon + totalCharges;
   const payableTotal = total;
+
+  // Calculate how much more to spend for free delivery
+  const amountNeededForFreeDelivery = Math.max(0, freeDeliveryThreshold - subtotal);
 
   // Calculate original total (without discount)
   const originalSubtotal = cartItems.reduce((sum, item) => {
@@ -223,13 +274,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (paymentMethod === 'mobile' && !selectedWallet) {
-      alert('Please select a mobile wallet');
-      return;
-    }
-
     // Validate form
-    if (!formData.name || !formData.phone || !formData.address || !formData.city || !formData.district) {
+    if (!formData.name || !formData.phone || !formData.address || !formData.district || !formData.thana) {
       alert('Please fill in all required fields');
       return;
     }
@@ -251,10 +297,8 @@ export default function CheckoutPage() {
       }));
 
       // Prepare payment details
-      const paymentDetails = paymentMethod === 'mobile' && selectedWallet
-        ? `Payment via ${selectedWallet}`
-        : paymentMethod === 'card'
-        ? 'Payment via credit/debit card'
+      const paymentDetails = paymentMethod === 'sslcommerz'
+        ? 'Payment via SSLCommerz'
         : 'Cash on delivery';
 
       // Order data
@@ -265,13 +309,14 @@ export default function CheckoutPage() {
         shipping_address: formData.address,
         shipping_city: formData.city,
         shipping_district: formData.district,
+        shipping_thana: formData.thana,
+        shipping_division: formData.division,
         payment_method: paymentMethod,
         payment_details: paymentDetails,
         notes: formData.notes || null,
         items: orderItems,
         subtotal: subtotal,
         delivery_charge: deliveryCharge,
-        service_charge: serviceCharge,
         coupon_discount: couponDiscount,
         total_amount: subtotal,
         payable_amount: payableTotal,
@@ -578,36 +623,65 @@ export default function CheckoutPage() {
                 </>
               )}
 
-              {/* City and District Fields - Show when guest or user wants different address */}
+              {/* District, Thana, and Division Fields - Show when guest or user wants different address */}
               {(!isAuthenticated || addresses.length === 0 || useDifferentAddress) && (
                 <>
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      City <span className="text-red-600">*</span>
+                      District <span className="text-red-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
-                      placeholder="e.g., Dhaka"
-                    />
+                    <select
+                      name="district"
+                      value={formData.district}
+                      onChange={(e) => {
+                        const district = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          district,
+                          thana: '', // Reset thana when district changes
+                        }));
+                      }}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
+                      required
+                    >
+                      <option value="">Select District</option>
+                      {getAllDistricts().map((district) => (
+                        <option key={district.name} value={district.name}>
+                          {district.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      District <span className="text-red-600">*</span>
+                      Thana/City <span className="text-red-600">*</span>
                     </label>
-                    <input
-                      type="text"
-                      name="district"
-                      value={formData.district}
+                    <select
+                      name="thana"
+                      value={formData.thana}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors"
-                      placeholder="e.g., Dhaka"
-                    />
+                      disabled={!formData.district}
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-[#0a0a0a] text-gray-900 dark:text-white focus:ring-2 focus:ring-[#ec3137] focus:border-[#ec3137] outline-none transition-colors disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+                      required
+                    >
+                      <option value="">{
+                        formData.district ? 'Select Thana/City' : 'Select District First'
+                      }</option>
+                      {formData.district && getThanasForDistrict(formData.district).map((thana) => (
+                        <option key={thana.name} value={thana.name}>
+                          {thana.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
+
+                  {/* Hidden Division Field */}
+                  <input
+                    type="hidden"
+                    name="division"
+                    value={formData.division}
+                  />
                 </>
               )}
 
@@ -616,7 +690,7 @@ export default function CheckoutPage() {
                 <div className="md:col-span-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                   <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Selected Delivery Address:</h4>
                   <p className="text-sm text-blue-800 dark:text-blue-300 whitespace-pre-line">
-                    {formData.address}, {formData.city}, {formData.district}
+                    {formData.address}, {formData.thana || formData.city}, {formData.district}
                   </p>
                 </div>
               )}
@@ -630,6 +704,41 @@ export default function CheckoutPage() {
               </h2>
 
               <div className="space-y-3">
+                {/* SSLCommerz Payment Gateway */}
+                <label
+                  className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                    paymentMethod === 'sslcommerz'
+                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="payment"
+                    value="sslcommerz"
+                    checked={paymentMethod === 'sslcommerz'}
+                    onChange={() => setPaymentMethod('sslcommerz')}
+                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137]"
+                  />
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-gray-900 dark:text-white">SSLCommerz</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Pay securely with Card, Mobile Banking, or Net Banking</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">Visa</span>
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">Mastercard</span>
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">bKash</span>
+                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full font-medium">Nagad</span>
+                      </div>
+                    </div>
+                  </div>
+                </label>
+
                 {/* Cash on Delivery */}
                 <label
                   className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
@@ -643,10 +752,7 @@ export default function CheckoutPage() {
                     name="payment"
                     value="cod"
                     checked={paymentMethod === 'cod'}
-                    onChange={() => {
-                      setPaymentMethod('cod');
-                      setSelectedWallet(null);
-                    }}
+                    onChange={() => setPaymentMethod('cod')}
                     className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137]"
                   />
                   <div className="flex items-center gap-3 flex-1">
@@ -661,122 +767,13 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </label>
-
-                {/* Mobile Wallets */}
-                <label
-                  className={`flex items-start gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    paymentMethod === 'mobile'
-                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="mobile"
-                    checked={paymentMethod === 'mobile'}
-                    onChange={() => setPaymentMethod('mobile')}
-                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137] mt-0.5"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <p className="font-bold text-gray-900 dark:text-white">Mobile Wallet</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">bKash, Nagad, Rocket</p>
-                      </div>
-                    </div>
-
-                    {paymentMethod === 'mobile' && (
-                      <div className="grid grid-cols-3 gap-3 mt-3">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedWallet('bkash')}
-                          className={`p-3 border-2 rounded-lg transition-all ${
-                            selectedWallet === 'bkash'
-                              ? 'border-pink-600 bg-pink-50 dark:bg-pink-900/20'
-                              : 'border-gray-300 dark:border-gray-600 hover:border-pink-400'
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-bold text-pink-600">bKash</div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedWallet('nagad')}
-                          className={`p-3 border-2 rounded-lg transition-all ${
-                            selectedWallet === 'nagad'
-                              ? 'border-orange-600 bg-orange-50 dark:bg-orange-900/20'
-                              : 'border-gray-300 dark:border-gray-600 hover:border-orange-400'
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-bold text-orange-600">Nagad</div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setSelectedWallet('rocket')}
-                          className={`p-3 border-2 rounded-lg transition-all ${
-                            selectedWallet === 'rocket'
-                              ? 'border-purple-600 bg-purple-50 dark:bg-purple-900/20'
-                              : 'border-gray-300 dark:border-gray-600 hover:border-purple-400'
-                          }`}
-                        >
-                          <div className="text-center">
-                            <div className="font-bold text-purple-600">Rocket</div>
-                          </div>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </label>
-
-                {/* Debit/Credit Card */}
-                <label
-                  className={`flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                    paymentMethod === 'card'
-                      ? 'border-[#ec3137] bg-red-50 dark:bg-red-900/10'
-                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="payment"
-                    value="card"
-                    checked={paymentMethod === 'card'}
-                    onChange={() => {
-                      setPaymentMethod('card');
-                      setSelectedWallet(null);
-                    }}
-                    className="w-5 h-5 text-[#ec3137] border-2 border-gray-300 focus:ring-2 focus:ring-[#ec3137]"
-                  />
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <svg className="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="font-bold text-gray-900 dark:text-white">Debit / Credit Card</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Visa, Mastercard, Amex</p>
-                    </div>
-                  </div>
-                </label>
               </div>
             </div>
           </div>
 
           {/* Right Column - Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-[#0a0a0a] border-2 border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden sticky top-24">
+            <div className="bg-white dark:bg-[#0a0a0a] border-2 border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden lg:sticky lg:top-24">
               {/* Header */}
               <div className="bg-gradient-to-r from-[#ec3137] to-[#8a0f12] text-white p-6">
                 <h2 className="text-2xl font-bold">Checkout Summary</h2>
@@ -786,6 +783,101 @@ export default function CheckoutPage() {
               </div>
 
               <div className="p-6">
+                {/* Cart Items with Thumbnails */}
+                <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-800 max-h-[300px] overflow-y-auto">
+                  <div className="space-y-4">
+                    {cartItems.map((item) => (
+                      <div key={`${item.product.id}-${item.variant?.id || 'default'}`} className="flex gap-3">
+                        {/* Product Image */}
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                          <img
+                            src={item.product.image || '/placeholder-product.png'}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/products/${item.product.slug}`}
+                            className="text-sm font-semibold text-gray-900 dark:text-white hover:text-[#ec3137] dark:hover:text-[#ec3137] line-clamp-2 transition-colors"
+                          >
+                            {item.product.name}
+                          </Link>
+
+                          {item.variant && (
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                              {item.variant.name}
+                            </p>
+                          )}
+
+                          <div className="flex items-center justify-between mt-2">
+                            {/* Quantity Controls */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                className="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
+                                disabled={item.quantity <= 1}
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                </svg>
+                              </button>
+                              <span className="text-sm font-semibold text-gray-900 dark:text-white w-6 text-center">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                className="w-7 h-7 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-400"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                              </button>
+                            </div>
+
+                            {/* Price */}
+                            <div className="text-right">
+                              <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                ৳{(item.price || 0) * item.quantity}
+                              </p>
+                              <p className="text-xs text-gray-600 dark:text-gray-400">
+                                ৳{item.price || 0} each
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Remove Button */}
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          className="self-start text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-1"
+                          aria-label="Remove item"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Edit Cart Link */}
+                  <Link
+                    href="/cart"
+                    className="mt-4 inline-flex items-center gap-1 text-sm text-[#ec3137] hover:underline font-medium"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit Cart
+                  </Link>
+                </div>
+
                 {/* Coupon Code */}
                 <div className="mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
                   <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
@@ -882,6 +974,25 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
+                {/* Free Delivery Promotion */}
+                {!freeShipping && amountNeededForFreeDelivery > 0 && (
+                  <div className="mb-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4">
+                    <div className="flex items-start gap-2">
+                      <svg className="w-5 h-5 text-orange-600 dark:text-orange-400 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-1">
+                          Almost there!
+                        </p>
+                        <p className="text-sm text-orange-800 dark:text-orange-300">
+                          Add <strong>৳{amountNeededForFreeDelivery.toLocaleString()}</strong> more to get FREE shipping!
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Summary Items */}
                 <div className="space-y-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex justify-between text-gray-700 dark:text-gray-300">
@@ -921,14 +1032,11 @@ export default function CheckoutPage() {
                         </span>
                       )}
                     </span>
+                   
                   </div>
-
-                  <div className="flex justify-between text-gray-700 dark:text-gray-300">
-                    <span>Website Service Charge</span>
-                    <span className="font-bold text-gray-900 dark:text-white">
-                      <AnimatedCounter value={serviceCharge} prefix="৳" duration={600} />
-                    </span>
-                  </div>
+                   <p className="text-sm text-right text-orange-800 dark:text-orange-300">
+                              Add <strong>৳200</strong> more to get FREE shipping!
+                            </p>
                 </div>
 
                 {/* Total */}
@@ -958,6 +1066,8 @@ export default function CheckoutPage() {
                     </p>
                   </div>
                 )}
+
+  
 
                 {/* Terms and Conditions */}
                 <label className="flex items-start gap-3 mb-6 cursor-pointer group">

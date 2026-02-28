@@ -105,7 +105,7 @@ All V2 API routes are in `routes/api.php` under the `/api/v2` prefix:
 
 ### Legacy V1 Routes
 
-- **`routes/website.php`**: Storefront routes (`/api/v1/store/*`)
+- **`routes/website.php`**: Storefront routes (`//*`)
 - **`routes/admin.php`**: Admin panel routes (`/api/v1/admin/*`)
 - **`routes/web.php`**: Web routes
 

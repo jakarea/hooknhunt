@@ -210,38 +210,11 @@ export default function ProductDetailPage() {
     }
   }, [slug]);
 
-  // Auto-play image gallery (after product is loaded)
-  useEffect(() => {
-    if (!product) return;
-
-    // Prepare product images
-    const galleryImages = (() => {
-      if (!product.gallery_images) return [];
-      if (typeof product.gallery_images === 'string') {
-        try {
-          return JSON.parse(product.gallery_images);
-        } catch (e) {
-          console.error('Error parsing gallery_images:', e);
-          return [];
-        }
-      }
-      return Array.isArray(product.gallery_images) ? product.gallery_images : [];
-    })();
-
-    const images = [
-      product.thumbnail_url,
-      ...galleryImages
-    ].filter(img => img && img.trim() !== '');
-
-    // Only auto-play if there are multiple images
-    if (images.length > 1) {
-      const interval = setInterval(() => {
-        setSelectedImage(prev => (prev + 1) % images.length);
-      }, 4000); // Change image every 4 seconds
-
-      return () => clearInterval(interval);
-    }
-  }, [product]);
+  // Auto-play disabled - users prefer manual control for product images
+  // useEffect(() => {
+  //   if (!product) return;
+  //   ...
+  // }, [product]);
 
   // Loading state
   if (loading) {
@@ -364,83 +337,122 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-
-
-
-
-
       {/* Product Section */}
       <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 pb-6">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
-          {/* Product Images Gallery */}
-
-          
+          {/* Product Images Gallery - Professional Slider */}
           <div className="space-y-4">
-            {/* Main Image with Smooth Fade Effect */}
-            <div className="relative group bg-gray-100 dark:bg-gray-900 aspect-square overflow-hidden rounded-lg">
-              {/* All Images - Stacked with controlled opacity */}
-              {productImages.map((img, index) => (
-                <div
-                  key={index}
-                  className="absolute inset-0 transition-opacity duration-500 ease-in-out"
-                  style={{
-                    opacity: index === selectedImage ? '1' : '0',
-                    zIndex: index === selectedImage ? '1' : '0',
-                  }}
-                >
-                  <Image
-                    src={img}
-                    alt={`${product.name} ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
-                    priority={index === 0}
-                  />
-                </div>
-              ))}
-
-              {/* Offer Badge */}
-              {product.has_offer && discountPercentage > 0 && (
-                <div className="absolute top-4 right-4 bg-[#ec3137] text-white px-4 py-2 text-sm font-bold rounded-lg shadow-lg z-10 animate-pulse">
-                  Save {discountPercentage}%
+            {/* Main Image with Professional Effects */}
+            <div className="relative group bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+              {/* Progress Bar */}
+              {productImages.length > 1 && (
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 z-20">
+                  <div
+                    className="h-full bg-gradient-to-r from-[#ec3137] to-[#ff6b6b] transition-all duration-300"
+                    style={{ width: `${((selectedImage + 1) / productImages.length) * 100}%` }}
+                  ></div>
                 </div>
               )}
 
-              {/* Navigation Arrows */}
+              {/* Image Container with Scale Effect */}
+              <div className="relative aspect-square overflow-hidden bg-gray-50">
+                {productImages.map((img, index) => (
+                  <div
+                    key={index}
+                    className="absolute inset-0 transition-all duration-700 ease-out"
+                    style={{
+                      opacity: index === selectedImage ? '1' : '0',
+                      transform: index === selectedImage ? 'scale(1)' : 'scale(1.1)',
+                      zIndex: index === selectedImage ? '1' : '0',
+                    }}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} ${index + 1}`}
+                      fill
+                      className="object-contain group-hover:scale-105 transition-transform duration-700"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 40vw"
+                      priority={index === 0}
+                    />
+                  </div>
+                ))}
+
+                {/* Overlay Gradient on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/0 via-transparent to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+              </div>
+
+              {/* Image Counter */}
+              {productImages.length > 1 && (
+                <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-semibold z-10 shadow-lg">
+                  <span className="text-[#ec3137]">{selectedImage + 1}</span>
+                  <span className="mx-1">/</span>
+                  {productImages.length}
+                </div>
+              )}
+
+              {/* Offer Badge - Enhanced */}
+              {product.has_offer && discountPercentage > 0 && (
+                <div className="absolute top-4 right-4 bg-gradient-to-r from-[#ec3137] to-[#ff4757] text-white px-4 py-2 text-sm font-bold rounded-xl shadow-2xl z-10 animate-bounce">
+                  <div className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                    Save {discountPercentage}%
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Arrows - Enhanced */}
               {productImages.length > 1 && (
                 <>
                   <button
                     onClick={() => handleImageChange(selectedImage === 0 ? productImages.length - 1 : selectedImage - 1)}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-all opacity-100 hover:scale-110"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:bg-white hover:scale-110 transition-all duration-300 opacity-0 group-hover:opacity-100 z-10 border border-gray-100"
                   >
-                    <svg className="w-5 h-5 text-gray-800 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
                     </svg>
                   </button>
                   <button
                     onClick={() => handleImageChange(selectedImage === productImages.length - 1 ? 0 : selectedImage + 1)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 dark:bg-gray-800/90 rounded-full flex items-center justify-center shadow-lg hover:bg-white dark:hover:bg-gray-800 transition-all opacity-100 hover:scale-110"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/95 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl hover:bg-white hover:scale-110 transition-all duration-300 opacity-0 group-hover:opacity-100 z-10 border border-gray-100"
                   >
-                    <svg className="w-5 h-5 text-gray-800 dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <svg className="w-6 h-6 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                     </svg>
                   </button>
                 </>
               )}
+
+              {/* Dot Indicators */}
+              {productImages.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+                  {productImages.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleImageChange(index)}
+                      className={`transition-all duration-300 rounded-full ${
+                        selectedImage === index
+                          ? 'w-8 h-2.5 bg-[#ec3137] shadow-lg'
+                          : 'w-2.5 h-2.5 bg-white/60 hover:bg-white/80 hover:scale-125'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
 
-
-            {/* Thumbnail Navigation */}
+            {/* Thumbnail Navigation - Enhanced */}
             {productImages.length > 1 && (
-              <div className="relative group">
-                <div className="grid grid-cols-7 gap-x-2 overflow-x-auto py-1.5 px-1">
+              <div className="bg-white rounded-xl p-3 shadow-lg border border-gray-100">
+                <div className="grid grid-cols-7 gap-2">
                   {productImages.map((img, index) => (
                     <button
                       key={index}
                       onClick={() => handleImageChange(index)}
-                      className={`flex-shrink-0 w-full h-18 bg-gray-100 dark:bg-gray-900 overflow-hidden transition-all relative rounded-lg ${
+                      className={`relative aspect-square rounded-lg overflow-hidden transition-all duration-300 ${
                         selectedImage === index
-                          ? 'ring-2 ring-[#ec3137] opacity-100 scale-105 shadow-md'
+                          ? 'ring-2 ring-[#ec3137] ring-offset-2 scale-105 shadow-md'
                           : 'opacity-60 hover:opacity-100 hover:scale-105'
                       }`}
                     >
@@ -452,7 +464,13 @@ export default function ProductDetailPage() {
                         sizes="72px"
                       />
                       {selectedImage === index && (
-                        <div className="absolute inset-0 bg-[#ec3137]/10 pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-[#ec3137]/10 flex items-center justify-center">
+                          <div className="w-6 h-6 bg-[#ec3137] rounded-full flex items-center justify-center">
+                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
                       )}
                     </button>
                   ))}
@@ -463,22 +481,27 @@ export default function ProductDetailPage() {
 
           {/* Product Information */}
           <div className="space-y-4">
-
-
-
-
-
             {/* Product Title & Category - Enhanced */}
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-              <div className="flex items-left gap-3 flex-wrap">
-               
-                  <svg className="w-5 h-5 text-[#ec3137]" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v-1h8v1z" />
-                  </svg>
-                  <span className="text-base font-bold text-gray-900 dark:text-white">234</span>
-                  <span className="text-gray-600 dark:text-gray-400 text-sm">Happy Customers</span>
-                
-            </div>
+              {/* Customer Rating Badge */}
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 dark:border-gray-700">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <svg
+                      key={i}
+                      className="w-4 h-4 text-yellow-400"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <span className="text-base font-bold text-gray-900 dark:text-white">4.8</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">/5</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">(500,000+ reviews)</span>
+                <a href="#reviews" className="text-xs text-[#ec3137] hover:underline font-medium">See reviews →</a>
+              </div>
 
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h1 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white leading-tight flex-1">
@@ -520,7 +543,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            
             {/* Price Section - Enhanced */}
             <div className="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 shadow-sm border border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between flex-wrap gap-3">
@@ -717,10 +739,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             )}
-
-
-
-
             {/* Action Buttons - Enhanced */}
             <div className="space-y-3">
               {(product.variant_count <= 1 || selectedVariant) ? (
@@ -835,8 +853,6 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             </div>
-
-            
           </div>
         </div>
       </div>
@@ -1070,7 +1086,7 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Reviews Section */}
-            <div className="bg-white dark:bg-[#0a0a0a] p-8">
+            <div id="reviews" className="bg-white dark:bg-[#0a0a0a] p-8">
               <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b-2 border-[#ec3137]">
                 Customer Reviews & Ratings
               </h2>
