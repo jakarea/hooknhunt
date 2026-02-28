@@ -12,7 +12,7 @@ export default function TestAPI() {
       console.log('🔐 Step 1: Registering user...');
 
       // Register a new user
-      const registerResponse = await fetch('http://192.168.0.166:8000/api/v1/store/auth/register', {
+      const registerResponse = await fetch('http://192.168.0.166:8000/api/v2/store/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ export default function TestAPI() {
         console.log('🔐 Step 2: Verifying OTP...');
 
         // Verify OTP
-        const verifyResponse = await fetch('http://192.168.0.166:8000/api/v1/store/auth/verify-otp', {
+        const verifyResponse = await fetch('http://192.168.0.166:8000/api/v2/store/auth/verify-otp', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function TestAPI() {
           const manualToken = localStorage.getItem('auth_token');
           console.log('🧪 Manual token check:', manualToken);
 
-          const manualResponse = await fetch('http://192.168.0.166:8000/api/v1/store/account/me', {
+          const manualResponse = await fetch('http://192.168.0.166:8000/api/v2/store/account/me', {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -109,7 +109,7 @@ export default function TestAPI() {
     }
 
     try {
-      const response = await fetch('http://192.168.0.166:8000/api/v1/store/account/me', {
+      const response = await fetch('http://192.168.0.166:8000/api/v2/store/account/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

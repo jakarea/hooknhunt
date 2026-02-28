@@ -14,7 +14,7 @@ return [
                 ],
                 'servers' => [
                     [
-                        'url' => env('APP_URL', 'http://localhost:8000') . '/api/v1/store',
+                        'url' => env('APP_URL', 'http://localhost:8000') . '/api/v2/store',
                         'description' => 'Development Server'
                     ],
                 ],

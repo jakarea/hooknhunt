@@ -1,17 +1,18 @@
 <?php
 
-use App\Http\Controllers\Api\V1\Storefront\CategoryController;
-use App\Http\Controllers\Api\V1\Storefront\ProductController;
-use App\Http\Controllers\Api\V1\Storefront\AuthController;
-use App\Http\Controllers\Api\V1\Storefront\AccountController;
-use App\Http\Controllers\Api\V1\Storefront\OrderController;
+use App\Http\Controllers\Api\V2\CategoryController;
+use App\Http\Controllers\Api\V2\ProductController;
+use App\Http\Controllers\Api\V2\AuthController;
+use App\Http\Controllers\Api\V2\AccountController;
+use App\Http\Controllers\Api\V2\OrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // WEBSITE API (For Next.js Website)
 // This file contains all routes for the public website
 
-Route::prefix('v1/store')->group(function () {
+Route::prefix('api')->group(function () {
+    Route::prefix('v2/store')->group(function () {
 
     // ===============================================
     // PUBLIC ROUTES (No Authentication Required)
@@ -74,9 +75,10 @@ Route::prefix('v1/store')->group(function () {
     // WEBSITE FUNCTIONALITY ROUTES
     // ===============================================
 
-    // We will add '/search' route here in a future step
-    // We will add '/contact' route here in a future step
-    // We will add '/newsletter' route here in a future step
-    // We will add '/reviews' public routes here in a future step
+        // We will add '/search' route here in a future step
+        // We will add '/contact' route here in a future step
+        // We will add '/newsletter' route here in a future step
+        // We will add '/reviews' public routes here in a future step
 
+    });
 });
