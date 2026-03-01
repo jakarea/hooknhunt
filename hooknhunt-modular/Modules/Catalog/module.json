@@ -1,0 +1,11 @@
+{
+    "name": "Catalog",
+    "alias": "catalog",
+    "description": "Product Catalog Module - Products, Categories, Brands, Attributes, Discounts",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Catalog\\Providers\\CatalogServiceProvider"
+    ],
+    "files": []
+}

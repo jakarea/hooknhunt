@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('source')->default('website');
             $table->string('medium')->nullable();
             $table->string('referral_code')->nullable();
+            $table->string('whatsapp_number')->nullable();
             $table->string('preferred_language', 10)->default('en');
             $table->string('preferred_currency', 3)->default('BDT');
             $table->boolean('marketing_consent')->default(false);

@@ -1,0 +1,11 @@
+{
+    "name": "Media",
+    "alias": "media",
+    "description": "Media File Management Module - Files, Folders, Upload, Organization",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Media\\Providers\\MediaServiceProvider"
+    ],
+    "files": []
+}

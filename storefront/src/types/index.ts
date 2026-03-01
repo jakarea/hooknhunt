@@ -1,5 +1,19 @@
 // types.ts
 
+// ✅ Customer Profile (from customer_profiles table)
+export interface CustomerProfile {
+  dob?: string;
+  gender?: string;
+  whatsapp_number?: string;
+  preferred_language?: string;
+  preferred_currency?: string;
+  loyalty_tier?: string;
+  loyalty_points?: number;
+  total_orders?: number;
+  total_spent?: number;
+  avg_order_value?: number;
+}
+
 // ✅ User
 export interface User {
   id: number;
@@ -7,7 +21,7 @@ export interface User {
   email?: string;
   phone_number: string; // Updated to match API response
   role?: string;
-  whatsapp_number?: string;
+  customer_profile?: CustomerProfile | null;
   address?: string;
   city?: string;
   district?: string;
@@ -21,14 +35,21 @@ export interface User {
 export interface Address {
   id: number;
   user_id: number;
-  type: string;
-  recipient_name: string;
+  label?: string;
+  full_name: string;
   phone: string;
-  address: string; // Updated to match API response
+  address_line1: string;
+  address_line2?: string;
+  area?: string;
+  type?: 'shipping' | 'billing'; // Derived from is_shipping_address/is_billing_address
   city: string;
-  district: string;
-  postal_code?: string;
+  district?: string;
+  post_code?: string;
+  division?: string;
+  country?: string;
   is_default: boolean;
+  is_billing_address: boolean;
+  is_shipping_address: boolean;
   created_at: string;
   updated_at: string;
 }

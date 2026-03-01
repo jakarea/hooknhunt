@@ -109,7 +109,7 @@ export default function TestAPI() {
     }
 
     try {
-      const response = await fetch('http://192.168.0.166:8000/api/v2/store/account/me', {
+      const response = await fetch('http://192.168.0.166:8000/api/v2/store/acct/me', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

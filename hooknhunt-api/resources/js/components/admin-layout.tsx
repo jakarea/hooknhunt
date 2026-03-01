@@ -3,10 +3,14 @@ import { Box } from '@mantine/core'
 import { AppSidebarMantine } from './app-sidebar-mantine'
 import { SiteHeaderMantine } from './site-header-mantine'
 import { useDisclosure } from '@mantine/hooks'
+import { useUIStore } from '@/stores/uiStore'
 
 export function AdminLayout() {
   const [mobileOpened, { toggle: toggleMobile }] = useDisclosure(false)
-  const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true)
+  // Use Zustand store for desktop sidebar state (so it can be controlled from any page)
+  // Note: sidebarCollapsed is inverted - when collapsed=false, desktopOpened=true (sidebar is open)
+  const { sidebarCollapsed, toggleSidebar } = useUIStore()
+  const desktopOpened = !sidebarCollapsed
 
   return (
     <Box style={{ display: 'flex', height: '100vh', backgroundColor: 'light-dark(var(--mantine-color-gray-0), var(--mantine-color-dark-8))' }}>
@@ -15,7 +19,7 @@ export function AdminLayout() {
         mobileOpened={mobileOpened}
         desktopOpened={desktopOpened}
         toggleMobile={toggleMobile}
-        toggleDesktop={toggleDesktop}
+        toggleDesktop={toggleSidebar}
       />
 
       {/* Main Content */}
@@ -23,7 +27,7 @@ export function AdminLayout() {
         <SiteHeaderMantine
           mobileOpened={mobileOpened}
           toggleMobile={toggleMobile}
-          toggleDesktop={toggleDesktop}
+          toggleDesktop={toggleSidebar}
         />
 
         {/* Page Content */}

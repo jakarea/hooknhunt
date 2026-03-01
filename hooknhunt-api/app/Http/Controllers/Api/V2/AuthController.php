@@ -202,7 +202,7 @@ class AuthController extends Controller
 
         // 2. Hashed Password Check
         if (!Hash::check($request->password, $user->password)) {
-            return $this->sendError('Invalid password', [
+            return $this->sendError('Invalid id or password', [
                 'email' => $user->email,
                 'phone' => $user->phone,
             ], 401);

@@ -11,6 +11,9 @@ return new class extends Migration
         Schema::create('product_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
+            $table->string('variant_slug');
+            $table->enum('channel', ['retail', 'wholesale', 'daraz', 'pos']);
+            $table->string('custom_name')->nullable();
             $table->string('sku')->unique();
             $table->string('custom_sku')->nullable();
             $table->string('variant_name')->nullable();
@@ -21,11 +24,15 @@ return new class extends Migration
             $table->string('pattern')->nullable();
             $table->foreignId('unit_id')->nullable()->constrained('units');
             $table->decimal('unit_value', 8, 2)->default(1);
-            $table->decimal('default_purchase_cost', 15, 2)->default(0);
-            $table->decimal('default_retail_price', 15, 2)->default(0);
-            $table->decimal('default_wholesale_price', 15, 2)->default(0);
+            $table->decimal('purchase_cost', 15, 2)->default(0);
+            $table->decimal('price', 15, 2)->default(0);
+            $table->decimal('offer_price', 15, 2)->default(0);
+            $table->date('offer_starts')->nullable();
+            $table->date('offer_ends')->nullable();
             $table->integer('stock_alert_level')->default(5);
-            $table->integer('wholesale_moq')->nullable();
+            $table->integer('allow_preorder')->default(false);
+            $table->date('expected_delivery')->nullable();
+            $table->integer('moq')->default(1);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes(); // Soft delete - no data loss

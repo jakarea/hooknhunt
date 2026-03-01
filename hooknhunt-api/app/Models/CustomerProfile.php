@@ -21,6 +21,7 @@ class CustomerProfile extends Model
         // Personal Information
         'dob',
         'gender',
+        'whatsapp_number',
         // Marketing Info
         'source',
         'medium',

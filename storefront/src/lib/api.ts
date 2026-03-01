@@ -146,14 +146,14 @@ class ApiClient {
     });
   }
 
-  async verifyOtp(phone: string, otp: string): Promise<ApiResponse<{ user: User; token: string }>> {
-    const response = await this.request<{ user: User; token: string }>('/store/auth/verify-otp', {
+  async verifyOtp(phone: string, otp: string): Promise<ApiResponse<{ user: User; access_token?: string; token?: string }>> {
+    const response = await this.request<{ user: User; access_token?: string; token?: string }>('/store/auth/verify-otp', {
       method: 'POST',
       body: JSON.stringify({ phone_number: phone, otp_code: otp }),
     });
 
     // Store token if verification successful (check both possible response structures)
-    const token = response.data?.token || (response as { token?: string })?.token;
+    const token = response.data?.access_token || response.data?.token || (response as { access_token?: string; token?: string })?.access_token || (response as { token?: string })?.token;
     if (token) {
       this.setToken(token);
     }
@@ -180,14 +180,14 @@ class ApiClient {
     });
   }
 
-  async login(phone: string, password: string): Promise<ApiResponse<{ user: User; token: string }>> {
-    const response = await this.request<{ user: User; token: string }>('/store/auth/login', {
+  async login(phone: string, password: string): Promise<ApiResponse<{ user: User; access_token?: string; token?: string }>> {
+    const response = await this.request<{ user: User; access_token?: string; token?: string }>('/store/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ phone_number: phone, password }),
+      body: JSON.stringify({ login_id: phone, password }),
     });
 
     // Store token if login successful (check both possible response structures)
-    const token = response.data?.token || (response as { token?: string })?.token;
+    const token = response.data?.access_token || response.data?.token || (response as { access_token?: string; token?: string })?.access_token || (response as { token?: string })?.token;
     if (token) {
       this.setToken(token);
     }

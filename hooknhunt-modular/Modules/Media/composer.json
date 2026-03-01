@@ -1,0 +1,28 @@
+{
+    "name": "nwidart/media",
+    "description": "Media File Management Module",
+    "authors": [
+        {
+            "name": "Hook & Hunt",
+            "email": "info@hooknhunt.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Media\\": "app/",
+            "Modules\\Media\\Database\\Factories\\": "database/factories/",
+            "Modules\\Media\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Media\\Tests\\": "tests/"
+        }
+    }
+}

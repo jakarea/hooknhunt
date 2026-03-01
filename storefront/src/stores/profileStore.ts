@@ -1,13 +1,26 @@
 import { create } from 'zustand';
 import api from '@/lib/api';
 
+interface CustomerProfile {
+  dob?: string;
+  gender?: string;
+  whatsapp_number?: string;
+  preferred_language?: string;
+  preferred_currency?: string;
+  loyalty_tier?: string;
+  loyalty_points?: number;
+  total_orders?: number;
+  total_spent?: number;
+  avg_order_value?: number;
+}
+
 interface User {
   id: number;
   name: string | null;
   phone_number: string;
   email: string | null;
-  whatsapp_number: string | null;
   role: string;
+  customer_profile?: CustomerProfile | null;
   phone_verified_at: string | null;
   created_at: string;
   updated_at: string;
@@ -35,7 +48,7 @@ interface ProfileState {
 
   // Actions
   fetchProfile: () => Promise<void>;
-  updateProfile: (data: Partial<Pick<User, 'name' | 'email' | 'whatsapp_number'>>) => Promise<void>;
+  updateProfile: (data: { name?: string; email?: string; phone_number?: string; whatsapp_number?: string }) => Promise<void>;
   clearErrors: () => void;
 }
 

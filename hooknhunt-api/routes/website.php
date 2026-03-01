@@ -3,8 +3,8 @@
 use App\Http\Controllers\Api\V2\CategoryController;
 use App\Http\Controllers\Api\V2\ProductController;
 use App\Http\Controllers\Api\V2\AuthController;
-use App\Http\Controllers\Api\V2\AccountController;
-use App\Http\Controllers\Api\V2\OrderController;
+use App\Http\Controllers\Api\V2\Website\AccountController;
+use App\Http\Controllers\Api\V2\Website\OrderController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 

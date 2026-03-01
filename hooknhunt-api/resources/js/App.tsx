@@ -15,6 +15,7 @@ import NotificationsPage from "@/app/admin/notifications/page"
 import Products from "@/app/admin/catalog/products/page"
 import CreateProduct from "@/app/admin/catalog/products/create/page"
 import Variants from "@/app/admin/catalog/variants/page"
+import VariantAttributes from "@/app/admin/catalog/variant-attributes/page"
 import Categories from "@/app/admin/catalog/categories/page"
 import Brands from "@/app/admin/catalog/brands/page"
 import Attributes from "@/app/admin/catalog/attributes/page"
@@ -175,6 +176,7 @@ function App() {
               <Route path="catalog/products/create" element={<CreateProduct />} />
               <Route path="catalog/products" element={<Products />} />
               <Route path="catalog/variants" element={<Variants />} />
+              <Route path="catalog/variant-attributes" element={<VariantAttributes />} />
               <Route path="catalog/categories" element={<Categories />} />
               <Route path="catalog/brands" element={<Brands />} />
               <Route path="catalog/attributes" element={<Attributes />} />

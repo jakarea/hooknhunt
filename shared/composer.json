@@ -1,0 +1,17 @@
+{
+    "name": "hooknhunt/shared",
+    "description": "Shared code package for Hook & Hunt microservices",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Shared\\": ""
+        }
+    },
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^11.0"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

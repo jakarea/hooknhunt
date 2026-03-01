@@ -3,27 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
-import { useProfileStore } from '@/stores/profileStore';
 import UserNavigation from '@/components/user/UserNavigation';
 import toast, { Toaster } from 'react-hot-toast';
+import api from '@/lib/api';
 
 export default function ProfilePage() {
-  const { isAuthenticated } = useAuth();
-  const { user, loading, updating, error, validationErrors, fetchProfile, updateProfile, clearErrors } = useProfileStore();
+  const { user, isAuthenticated } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]> | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     whatsapp_number: '',
   });
-
-  // Fetch profile on mount
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchProfile();
-    }
-  }, [isAuthenticated, fetchProfile]);
 
   // Update form data when user data is loaded
   useEffect(() => {
@@ -31,10 +26,15 @@ export default function ProfilePage() {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        whatsapp_number: user.whatsapp_number || '',
+        whatsapp_number: user.customer_profile?.whatsapp_number || '',
       });
     }
   }, [user]);
+
+  const clearErrors = () => {
+    setError(null);
+    setValidationErrors(null);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -42,40 +42,44 @@ export default function ProfilePage() {
       ...prev,
       [name]: value
     }));
-    // Clear errors when user starts typing
     clearErrors();
   };
 
   const handleSave = async () => {
     try {
-      await updateProfile(formData);
+      setUpdating(true);
+      setError(null);
+      setValidationErrors(null);
+
+      await api.updateProfile(formData);
       setIsEditing(false);
-      // Show success toast
       toast.success('Profile updated successfully!');
-    } catch (error) {
-      // Errors are handled in the store
-      console.error('Profile update failed:', error);
-      // Show error toast if not validation error
-      if (!validationErrors) {
+    } catch (err: unknown) {
+      const error = err as { status?: number; errors?: Record<string, string[]>; message?: string };
+
+      if (error.status === 422 && error.errors) {
+        setValidationErrors(error.errors);
+      } else {
+        setError(error.message || 'Failed to update profile');
         toast.error('Failed to update profile');
       }
+    } finally {
+      setUpdating(false);
     }
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    // Reset form data to original values
     if (user) {
       setFormData({
         name: user.name || '',
         email: user.email || '',
-        whatsapp_number: user.whatsapp_number || '',
+        whatsapp_number: user.customer_profile?.whatsapp_number || '',
       });
     }
     clearErrors();
   };
 
-  // Get error message for a specific field
   const getFieldError = (fieldName: string): string | null => {
     if (validationErrors && validationErrors[fieldName]) {
       return validationErrors[fieldName][0];
@@ -83,7 +87,7 @@ export default function ProfilePage() {
     return null;
   };
 
-  if (loading) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-[#fcf8f6]">
         <div className="max-w-[1344px] mx-auto px-4 lg:px-8 xl:px-12 py-8">
@@ -320,7 +324,7 @@ export default function ProfilePage() {
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Account Type:</span>
                       <span className="font-medium text-gray-900 dark:text-white capitalize">
-                        {user?.role.replace('_', ' ')}
+                        {user?.role?.replace('_', ' ') || 'Customer'}
                       </span>
                     </div>
                     <div className="flex justify-between">

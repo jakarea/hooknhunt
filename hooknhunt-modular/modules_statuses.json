@@ -1,0 +1,8 @@
+{
+    "Auth": true,
+    "User": true,
+    "Procurement": true,
+    "Catalog": true,
+    "Media": true,
+    "CRM": true
+}

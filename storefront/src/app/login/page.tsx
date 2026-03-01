@@ -13,6 +13,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
     const router = useRouter();
     const searchParams = useSearchParams();
     const { login, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -68,8 +69,10 @@ export default function LoginPage() {
                 }, 300);
             }, 200);
         } catch (err: unknown) {
-            const error = err as Error;
-            toast.error(error.message || t('auth.login.failed'));
+            const error = err as Error & { errors?: { [key: string]: string[] } };
+            const loginIdErrors = error.errors?.login_id;
+            const errorMessage = loginIdErrors?.[0] || error.message || t('auth.login.failed');
+            setError(errorMessage);
             setIsLoading(false);
         }
     };
@@ -161,6 +164,7 @@ export default function LoginPage() {
                                     className="appearance-none block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-700 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#ec3137] focus:border-transparent bg-white dark:bg-[#2a2a2a] text-gray-900 dark:text-gray-100"
                                     placeholder={t('auth.login.passwordPlaceholder')}
                                 />
+                                
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
@@ -178,6 +182,7 @@ export default function LoginPage() {
                                     )}
                                 </button>
                             </div>
+                            <p className='mt-2 font-medium text-[#ec3137]'>{error}</p>
                         </div>
 
                         {/* Remember Me & Forgot Password */}

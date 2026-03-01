@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/catalog",
+    "description": "Product Catalog Module",
+    "authors": [
+        {
+            "name": "Hook & Hunt",
+            "email": "info@hooknhunt.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Catalog\\": "app/",
+            "Modules\\Catalog\\Database\\Factories\\": "database/factories/",
+            "Modules\\Catalog\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Catalog\\Tests\\": "tests/"
+        }
+    }
+}
