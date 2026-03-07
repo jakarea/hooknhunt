@@ -27,8 +27,6 @@ import {
   IconArrowLeft,
   IconTrash,
   IconDeviceFloppy,
-  IconCurrencyYuan,
-  IconRefresh,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -36,7 +34,6 @@ import {
   getPurchaseOrder,
   getSuppliers,
   getProcurementProductsBySupplier,
-  getCurrencies,
   updatePurchaseOrder,
 } from '@/utils/api'
 
@@ -51,6 +48,7 @@ interface Product {
 }
 
 interface OrderItem {
+  id?: number  // Purchase order item ID (required for updating existing items)
   productId: number
   productName: string
   categoryName: string
@@ -73,7 +71,6 @@ export default function EditPurchaseOrderPage() {
   const [expectedDate, setExpectedDate] = useState<string>('')
   const [exchangeRate, setExchangeRate] = useState<number>(0)
   const [poNumber, setPoNumber] = useState<string>('')
-  const [loadingExchangeRate, setLoadingExchangeRate] = useState(false)
 
   // Suppliers and products
   const [suppliers, setSuppliers] = useState<any[]>([])
@@ -189,6 +186,7 @@ export default function EditPurchaseOrderPage() {
             const isSelected = existingItem !== undefined
 
             return {
+              id: existingItem?.id,  // Include purchase order item ID for existing items
               productId: p.id,
               productName: p.name,
               categoryName: p.category?.name || 'N/A',
@@ -268,18 +266,6 @@ export default function EditPurchaseOrderPage() {
     const totalBdt = totalRmb * exchangeRate
     return { totalRmb, totalBdt }
   }
-
-  // Recalculate BDT totals when exchange rate changes
-  useEffect(() => {
-    if (orderItems.length > 0 && exchangeRate > 0) {
-      setOrderItems(prevItems =>
-        prevItems.map(item => ({
-          ...item,
-          lineTotalBdt: item.lineTotalRmb * exchangeRate,
-        }))
-      )
-    }
-  }, [exchangeRate])
 
   const handleSubmit = async () => {
     if (!supplierId) {
@@ -425,24 +411,7 @@ export default function EditPurchaseOrderPage() {
                 onChange={(e) => setOrderDate(e.target.value)}
                 required
               />
-
-              <TextInput
-                label="Expected Date"
-                type="date"
-                value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
-              />
             </Group>
-
-            <NumberInput
-              label="Exchange Rate (CNY to BDT)"
-              value={exchangeRate}
-              onChange={(v) => setExchangeRate(typeof v === 'number' ? v : parseFloat(v) || 0)}
-              precision={2}
-              min={0}
-              required
-              leftSection={<IconCurrencyYuan size={16} />}
-            />
           </Stack>
         </Paper>
 
@@ -468,6 +437,16 @@ export default function EditPurchaseOrderPage() {
                         label="Select All"
                         checked={orderItems.length > 0 && orderItems.every(item => item.selected)}
                         onChange={toggleSelectAll}
+                        color="cyan"
+                        size="md"
+                        styles={{
+                          input: {
+                            borderColor: '#00bcd4',
+                            '&:hover': {
+                              borderColor: '#00bcd4',
+                            },
+                          },
+                        }}
                       />
                       <Text size="sm" c="dimmed">
                         {orderItems.filter(item => item.selected).length} of {orderItems.length} selected
@@ -482,7 +461,7 @@ export default function EditPurchaseOrderPage() {
                           <Table.Th style={{ width: 150 }}>
                             Unit Price (RMB)
                           </Table.Th>
-                          <Table.Th style={{ width: 150 }} textAlign="right">
+                          <Table.Th style={{ width: 150 }} ta="right">
                             Line Total (RMB)
                           </Table.Th>
                           <Table.Th style={{ width: 10 }}></Table.Th>
@@ -498,6 +477,16 @@ export default function EditPurchaseOrderPage() {
                               <Checkbox
                                 checked={item.selected}
                                 onChange={() => toggleItemSelection(index)}
+                                color="cyan"
+                                size="md"
+                                styles={{
+                                  input: {
+                                    borderColor: '#00bcd4',
+                                    '&:hover': {
+                                      borderColor: '#00bcd4',
+                                    },
+                                  },
+                                }}
                               />
                             </Table.Td>
                             <Table.Td>
@@ -529,7 +518,7 @@ export default function EditPurchaseOrderPage() {
                                 hideControls
                               />
                             </Table.Td>
-                            <Table.Td textAlign="right">
+                            <Table.Td ta="right">
                               <Stack gap={0}>
                                 <Text size="sm" fw={600}>
                                   ¥{item.lineTotalRmb.toFixed(2)}
@@ -564,6 +553,16 @@ export default function EditPurchaseOrderPage() {
                         label="Select All"
                         checked={orderItems.length > 0 && orderItems.every(item => item.selected)}
                         onChange={toggleSelectAll}
+                        color="cyan"
+                        size="md"
+                        styles={{
+                          input: {
+                            borderColor: '#00bcd4',
+                            '&:hover': {
+                              borderColor: '#00bcd4',
+                            },
+                          },
+                        }}
                       />
                       <Text size="sm" c="dimmed">
                         {orderItems.filter(item => item.selected).length} of {orderItems.length} selected
@@ -584,6 +583,16 @@ export default function EditPurchaseOrderPage() {
                                 checked={item.selected}
                                 onChange={() => toggleItemSelection(index)}
                                 label={item.productName}
+                                color="cyan"
+                                size="md"
+                                styles={{
+                                  input: {
+                                    borderColor: '#00bcd4',
+                                    '&:hover': {
+                                      borderColor: '#00bcd4',
+                                    },
+                                  },
+                                }}
                               />
                               <ActionIcon
                                 color="red"
@@ -618,10 +627,10 @@ export default function EditPurchaseOrderPage() {
 
                                 {item.lineTotalRmb > 0 && (
                                   <Stack gap={0}>
-                                    <Text size="sm" fw={600} textAlign="right">
+                                    <Text size="sm" fw={600} ta="right">
                                       Total: ¥{item.lineTotalRmb.toFixed(2)}
                                     </Text>
-                                    <Text size="xs" c="dimmed" textAlign="right">
+                                    <Text size="xs" c="dimmed" ta="right">
                                       ৳{item.lineTotalBdt.toFixed(2)}
                                     </Text>
                                   </Stack>

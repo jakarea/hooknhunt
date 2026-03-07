@@ -15,11 +15,13 @@ class PurchaseOrderStatusHistory extends Model
         'new_status',
         'comments',
         'changed_by',
+        'timeline_data',
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'timeline_data' => 'array',
     ];
 
     // Relationships

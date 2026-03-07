@@ -10,6 +10,47 @@ class ProductVariant extends Model
     use SoftDeletes;
 
     protected $guarded = ['id'];
+
+    protected $fillable = [
+        'product_id',
+        'channel',
+        'custom_name',
+        'variant_slug',
+        'variant_name',
+        'sku',
+        'custom_sku',
+        'size',
+        'color',
+        'material',
+        'weight',
+        'pattern',
+        'unit_id',
+        'unit_value',
+        'purchase_cost',
+        'price',
+        'offer_price',
+        'offer_starts',
+        'offer_ends',
+        'stock_alert_level',
+        'allow_preorder',
+        'expected_delivery',
+        'moq',
+        'stock',
+        'is_active',
+    ];
+    protected $casts = [
+        'stock' => 'integer',
+        'weight' => 'decimal:2',
+        'purchase_cost' => 'decimal:2',
+        'price' => 'decimal:2',
+        'offer_price' => 'decimal:2',
+        'is_active' => 'boolean',
+        'allow_preorder' => 'boolean',
+        'moq' => 'integer',
+        'stock_alert_level' => 'integer',
+        'unit_value' => 'decimal:2',
+    ];
+
     protected $appends = ['current_stock', 'full_name'];
 
     // --- Relationships ---
@@ -38,10 +79,8 @@ class ProductVariant extends Model
 
     public function getCurrentStockAttribute()
     {
-        if ($this->relationLoaded('batches')) {
-            return $this->batches->sum('remaining_qty');
-        }
-        return $this->batches()->sum('remaining_qty');
+        // Use the stock column directly
+        return (int) $this->attributes['stock'] ?? 0;
     }
 
     public function getFullNameAttribute()

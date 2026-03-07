@@ -50,9 +50,12 @@ class CamelCaseResponse
             // Convert key to camelCase
             $camelKey = $this->toCamelCase($key);
 
-            // Recursively convert nested arrays
+            // Recursively convert nested arrays and objects
             if (is_array($value)) {
                 $result[$camelKey] = $this->convertKeysToCamelCase($value);
+            } elseif (is_object($value)) {
+                // Convert objects to arrays first, then process
+                $result[$camelKey] = $this->convertKeysToCamelCase((array) $value);
             } else {
                 $result[$camelKey] = $value;
             }

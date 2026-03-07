@@ -673,13 +673,13 @@ export default function SuppliersPage() {
           <Stack gap={4}>
             <Text className="text-lg md:text-xl lg:text-2xl" fw={600}>
               {editMode
-                ? t('procurement.suppliersPage.form.update')
-                : t('procurement.suppliersPage.form.create')}
+                ? t('procurement.suppliersPage.drawer.updateTitle')
+                : t('procurement.suppliersPage.drawer.createTitle')}
             </Text>
             <Text className="text-sm md:text-base" c="dimmed">
               {editMode
-                ? 'Update supplier information and contact details'
-                : 'Add a new supplier to your procurement network'}
+                ? t('procurement.suppliersPage.drawer.updateDescription')
+                : t('procurement.suppliersPage.drawer.createDescription')}
             </Text>
           </Stack>
         }
@@ -695,14 +695,14 @@ export default function SuppliersPage() {
                 <Paper withBorder p="md" radius={0} bg="gray.0">
                   <Group gap="sm" mb="md">
                     <IconBuilding size={20} c="blue" />
-                    <Text fw={600} className="text-sm md:text-base">Basic Information</Text>
+                    <Text fw={600} className="text-sm md:text-base">{t('procurement.suppliersPage.form.basicInfo')}</Text>
                   </Group>
                   <Stack gap="md">
                     <TextInput
                       required
                       label={t('procurement.suppliersPage.form.name')}
-                      placeholder="e.g., Shenzhen Electronics Co."
-                      description="Official company or supplier name"
+                      placeholder={t('procurement.suppliersPage.form.namePlaceholderExample')}
+                      description={t('procurement.suppliersPage.form.nameDescription')}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       error={errors.name}
@@ -716,7 +716,7 @@ export default function SuppliersPage() {
                       <TextInput
                         leftSection={<IconBuilding size={18} />}
                         label={t('procurement.suppliersPage.form.shopName')}
-                        placeholder="Shop or store name"
+                        placeholder={t('procurement.suppliersPage.form.shopNamePlaceholderSimple')}
                         value={formData.shop_name}
                         onChange={(e) => setFormData({ ...formData, shop_name: e.target.value })}
                         className="text-base md:text-lg"
@@ -724,8 +724,8 @@ export default function SuppliersPage() {
 
                       <TextInput
                         leftSection={<IconWorld size={18} />}
-                        label="Website"
-                        placeholder="https://example.com"
+                        label={t('procurement.suppliersPage.drawer.website')}
+                        placeholder={t('procurement.suppliersPage.form.shopUrlPlaceholder')}
                         value={formData.shop_url}
                         onChange={(e) => setFormData({ ...formData, shop_url: e.target.value })}
                         error={errors.shop_url}
@@ -735,7 +735,7 @@ export default function SuppliersPage() {
 
                     <Textarea
                       label={t('procurement.suppliersPage.form.address')}
-                      placeholder="Complete business address"
+                      placeholder={t('procurement.suppliersPage.form.addressPlaceholderSimple')}
                       value={formData.address}
                       onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                       minRows={2}
@@ -745,7 +745,7 @@ export default function SuppliersPage() {
 
                     <Switch
                       label={t('procurement.suppliersPage.form.isActive')}
-                      description="Enable this supplier for placing orders"
+                      description={t('procurement.suppliersPage.form.isActiveDescriptionSimple')}
                       checked={formData.is_active}
                       onChange={(e) => setFormData({ ...formData, is_active: e.currentTarget.checked })}
                       className="text-lg md:text-xl lg:text-2xl"
@@ -757,7 +757,7 @@ export default function SuppliersPage() {
                 <Paper withBorder p="md" radius={0} bg="blue.0">
                   <Group gap="sm" mb="md">
                     <IconUsers size={20} c="blue" />
-                    <Text fw={600} className="text-sm md:text-base">Contact Information</Text>
+                    <Text fw={600} className="text-sm md:text-base">{t('procurement.suppliersPage.form.contactInfo')}</Text>
                   </Group>
                   <Stack gap="md">
                     <TextInput
@@ -811,7 +811,7 @@ export default function SuppliersPage() {
                 <Paper withBorder p="md" radius={0} bg="green.0">
                   <Group gap="sm" mb="md">
                     <IconCoin size={20} c="green" />
-                    <Text fw={600} className="text-sm md:text-base">Payment Information</Text>
+                    <Text fw={600} className="text-sm md:text-base">{t('procurement.suppliersPage.form.paymentInfo')}</Text>
                   </Group>
                   <Stack gap="xs">
                     <Text className="text-sm md:text-base" c="dimmed">
@@ -822,20 +822,20 @@ export default function SuppliersPage() {
                       <Stack gap="sm">
                         <Group gap="xs">
                           <IconCoin size={18} c="green" />
-                          <Text fw={500} className="text-sm md:text-base">WeChat Pay</Text>
+                          <Text fw={500} className="text-sm md:text-base">{t('procurement.suppliersPage.drawer.wechatPay')}</Text>
                         </Group>
                         <SimpleGrid cols={{ base: 1, md: 2 }}>
                           <TextInput
-                            label="WeChat ID"
-                            placeholder="WeChat Pay ID"
+                            label={t('procurement.suppliersPage.details.wechatId')}
+                            placeholder={t('procurement.suppliersPage.form.wechatIdPlaceholderSimple')}
                             value={formData.wechat_id}
                             onChange={(e) => setFormData({ ...formData, wechat_id: e.target.value })}
                             className="text-base md:text-lg"
                           />
 
                           <FileInput
-                            label="WeChat QR Code Image"
-                            placeholder="Upload QR code image"
+                            label={t('procurement.suppliersPage.details.wechatQrFile')}
+                            placeholder={t('procurement.suppliersPage.drawer.uploadQrCode')}
                             accept="image/png,image/jpeg,image/jpg"
                             leftSection={<IconUpload size={16} />}
                             value={formData.wechat_qr_file}
@@ -887,7 +887,7 @@ export default function SuppliersPage() {
                                     setWechatQrPreview(null)
                                   }}
                                 >
-                                  Remove
+                                  {t('procurement.suppliersPage.drawer.removePreview')}
                                 </Button>
                               </Stack>
                             </Group>
@@ -901,20 +901,20 @@ export default function SuppliersPage() {
                       <Stack gap="sm">
                         <Group gap="xs">
                           <IconCoin size={18} c="blue" />
-                          <Text fw={500} className="text-sm md:text-base">Alipay</Text>
+                          <Text fw={500} className="text-sm md:text-base">{t('procurement.suppliersPage.drawer.alipay')}</Text>
                         </Group>
                         <SimpleGrid cols={{ base: 1, md: 2 }}>
                           <TextInput
-                            label="Alipay ID"
-                            placeholder="Alipay account ID"
+                            label={t('procurement.suppliersPage.details.alipayId')}
+                            placeholder={t('procurement.suppliersPage.form.alipayIdPlaceholderSimple')}
                             value={formData.alipay_id}
                             onChange={(e) => setFormData({ ...formData, alipay_id: e.target.value })}
                             className="text-base md:text-lg"
                           />
 
                           <FileInput
-                            label="Alipay QR Code Image"
-                            placeholder="Upload QR code image"
+                            label={t('procurement.suppliersPage.details.alipayQrFile')}
+                            placeholder={t('procurement.suppliersPage.drawer.uploadQrCode')}
                             accept="image/png,image/jpeg,image/jpg"
                             leftSection={<IconUpload size={16} />}
                             value={formData.alipay_qr_file}

@@ -19,7 +19,6 @@ import {
   IconPackage,
   IconScaleOutline,
   IconReceipt,
-  IconAlertTriangle,
   IconInfoCircle,
   IconWeight,
   IconCoin,
@@ -242,10 +241,10 @@ const calculateItemBreakdown = (
   // Extra cost distributed by weight ratio
   const extraCostShare = extraCostBdt * weightRatio
 
-  // Lost item cost (only if lost ≤ 10%)
+  // Lost item cost (adjust for any amount of lost items)
   const lostValueBdt = lostQty * unitPrice
   let lostCostShare = 0
-  if (lostQty > 0 && lostPercentage <= 10) {
+  if (lostQty > 0) {
     lostCostShare = lostValueBdt / receivedQty
   }
 
@@ -355,13 +354,6 @@ const validateItemInputs = (
     }
   }
 
-  // Validate total items weight doesn't exceed total weight
-  if (weightCalc.totalItemsWeightKg > weightCalc.totalWeightKg) {
-    errors.push({
-      message: `Total items weight (${weightCalc.totalItemsWeightKg.toFixed(2)} kg) exceeds total shipment weight (${weightCalc.totalWeightKg.toFixed(2)} kg)`,
-    })
-  }
-
   return {
     isValid: errors.length === 0,
     errors,
@@ -394,27 +386,27 @@ const WeightBreakdownCard = ({
           <Stack gap={0}>
             <Text size="xs" c="dimmed">Total Shipment Weight</Text>
             <Text size="lg" fw={700} c="blue">
-              {weightCalc.totalWeightKg.toFixed(2)} kg
+              {Number(weightCalc.totalWeightKg).toFixed(2)} kg
             </Text>
           </Stack>
 
           <Stack gap={0}>
             <Text size="xs" c="dimmed">Items Weight</Text>
             <Text size="lg" fw={700} c="blue">
-              {weightCalc.totalItemsWeightKg.toFixed(2)} kg
+              {Number(weightCalc.totalItemsWeightKg).toFixed(2)} kg
             </Text>
             <Text size="xs" c="dimmed">
-              ({weightCalc.totalItemsWeightG.toLocaleString()} g)
+              ({Number(weightCalc.totalItemsWeightG).toLocaleString()} g)
             </Text>
           </Stack>
 
           <Stack gap={0}>
             <Text size="xs" c="dimmed">Extra Weight</Text>
             <Text size="lg" fw={700} c={weightCalc.extraWeightG > 0 ? 'orange' : 'green'}>
-              {weightCalc.extraWeightG.toFixed(0)} g
+              {Number(weightCalc.extraWeightG).toFixed(0)} g
             </Text>
             <Text size="xs" c="dimmed">
-              ({weightCalc.extraWeightKg.toFixed(3)} kg)
+              ({Number(weightCalc.extraWeightKg).toFixed(3)} kg)
             </Text>
           </Stack>
         </SimpleGrid>
@@ -443,16 +435,11 @@ const SummaryAlert = ({
   calculations: Record<number, ItemCalculation>
   t: (key: string, params?: any) => string
 }) => {
-  const hasItemsWithHighLoss = Object.values(calculations).some(calc => calc.lostPercentage > 10)
   const hasAnyLostItems = Object.values(calculations).some(calc => calc.lostQty > 0)
   const hasAnyFoundItems = Object.values(calculations).some(calc => calc.foundQty > 0)
 
-  const totalRefundAmount = Object.values(calculations)
-    .filter(calc => calc.lostPercentage > 10)
-    .reduce((sum, calc) => sum + calc.lostValueBdt, 0)
-
   const hasAnyIssues = hasAnyLostItems || hasAnyFoundItems
-  const color = hasItemsWithHighLoss ? 'red' : hasAnyIssues ? 'orange' : 'teal'
+  const color = hasAnyIssues ? 'orange' : 'teal'
 
   return (
     <Alert color={color} variant="light">
@@ -472,10 +459,10 @@ const SummaryAlert = ({
           )}
         </Text>
 
-        {hasItemsWithHighLoss && (
-          <Text size="sm" c="red" fw={500}>
-            <IconAlertTriangle size={14} style={{ display: 'inline', marginRight: 4 }} />
-            Manual review required: ৳{totalRefundAmount.toFixed(2)} in lost items will be refunded.
+        {hasAnyIssues && (
+          <Text size="sm" c="orange" fw={500}>
+            <IconInfoCircle size={14} style={{ display: 'inline', marginRight: 4 }} />
+            Costs will be adjusted to reflect lost/found items.
           </Text>
         )}
       </Stack>
@@ -525,7 +512,6 @@ const ItemsTable = ({
           {items.map((item) => {
             const calc = calculations[item.id]
             const input = itemInputs[item.id]
-            const hasIssue = calc && calc.lostPercentage > 10
 
             // Calculate unit price for display (even without calc)
             const displayUnitPrice = calc?.unitPrice || (item.chinaPrice * exchangeRate)
@@ -534,7 +520,7 @@ const ItemsTable = ({
             const adjustment = calc?.adjustment || 0
 
             return (
-              <Table.Tr key={item.id} bg={hasIssue ? 'red.0' : undefined}>
+              <Table.Tr key={item.id}>
                 <Table.Td>
                   <Stack gap={0}>
                     <Text size="sm" fw={500}>{item.product.name}</Text>
@@ -908,9 +894,15 @@ export default function ReceivingModal({
       onClose={onClose}
       size="95%"
       title={
-        <Group gap="xs">
+        <Group gap="xs" align="center">
           <IconPackage size={20} />
           <Text fw={600}>Receive Goods - {poNumber}</Text>
+          {totalWeight > 0 && (
+            <>
+              <Text c="dimmed">•</Text>
+              <Text size="sm" c="blue" fw={500}>{totalWeight} kg</Text>
+            </>
+          )}
         </Group>
       }
       styles={{
@@ -999,16 +991,12 @@ export default function ReceivingModal({
             onClick={handleSubmit}
             loading={submitting}
             color={
-              Object.values(itemCalculations).some(calc => calc.lostPercentage > 10)
-                ? 'red'
-                : Object.values(itemCalculations).some(calc => calc.lostQty > 0 || calc.foundQty > 0)
+              Object.values(itemCalculations).some(calc => calc.lostQty > 0 || calc.foundQty > 0)
                 ? 'orange'
                 : 'teal'
             }
           >
-            {Object.values(itemCalculations).some(calc => calc.lostPercentage > 10)
-              ? 'Submit for Review'
-              : Object.values(itemCalculations).some(calc => calc.lostQty > 0 || calc.foundQty > 0)
+            {Object.values(itemCalculations).some(calc => calc.lostQty > 0 || calc.foundQty > 0)
               ? 'Confirm Partial Reception'
               : 'Confirm Reception'}
           </Button>

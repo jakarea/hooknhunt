@@ -505,142 +505,146 @@ export default function ProcurementProductsPage() {
       </Paper>
 
       {/* Desktop Table */}
-      <Paper withBorder radius={0} p="md" className="hidden md:block">
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
-            <tr>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
-                {t('procurement.productsPage.name', 'Name')}
-              </th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
-                {t('procurement.productsPage.category', 'Category')}
-              </th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
-                {t('procurement.productsPage.brand', 'Brand')}
-              </th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
-                {t('procurement.productsPage.suppliers', 'Suppliers')}
-              </th>
-              <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
-                {t('procurement.productsPage.status', 'Status')}
-              </th>
-              <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
-                {t('common.actions', 'Actions')}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {Array.isArray(products) && products.map((product) => (
-              <tr
-                key={product.id}
-                style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}
-              >
-                <td style={{ padding: '12px 16px' }}>
-                  <Group gap="sm">
-                    {product.thumbnail ? (
-                      <Box w={40} h={40} bg="gray.0">
-                        <IconPhoto size={24} color="dimmed" />
-                      </Box>
-                    ) : (
-                      <Box w={40} h={40} bg="gray.1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IconPhoto size={20} color="gray.4" />
-                      </Box>
-                    )}
-                    <Text size="sm" fw={500}>
-                      {product.name}
-                    </Text>
-                  </Group>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <Text size="sm">{product.category?.name || '-'}</Text>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <Text size="sm">{product.brand?.name || '-'}</Text>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <Group gap={4}>
-                    {product.suppliers?.map((s: any) => (
-                      <Badge key={s.id} size="xs" variant="light">
-                        {s.name}
-                      </Badge>
-                    ))}
-                  </Group>
-                </td>
-                <td style={{ padding: '12px 16px' }}>
-                  <Badge
-                    size="sm"
-                    color={product.status === 'published' ? 'green' : 'gray'}
-                    variant="light"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => handleStatusChange(product.id, product.status)}
-                  >
-                    {product.status === 'published' ? 'Published' : 'Draft'}
-                  </Badge>
-                </td>
-                <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                  <Menu shadow="md" width={200} position="bottom-end">
-                    <Menu.Target>
-                      <ActionIcon variant="subtle" color="gray">
-                        <IconDots size={16} />
-                      </ActionIcon>
-                    </Menu.Target>
-                    <Menu.Dropdown>
-                      <Menu.Item leftSection={<IconEye size={14} />} onClick={() => handleView(product.id)}>
-                        {t('common.view', 'View')}
-                      </Menu.Item>
-                      <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => openEditDrawer(product)}>
-                        {t('common.edit', 'Edit')}
-                      </Menu.Item>
-                      <Menu.Item
-                        leftSection={<IconTrash size={14} />}
-                        color="red"
-                        onClick={() => handleDelete(product.id)}
-                      >
-                        {t('common.delete', 'Delete')}
-                      </Menu.Item>
-                    </Menu.Dropdown>
-                  </Menu>
-                </td>
-              </tr>
-            ))}
-            {products.length === 0 && !loading && (
+      <div className="hidden md:block">
+        <Paper withBorder radius={0} p="md">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ borderBottom: '1px solid var(--mantine-color-gray-3)' }}>
               <tr>
-                <td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>
-                  <Text c="dimmed">{t('common.noData', 'No products found')}</Text>
-                </td>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
+                  {t('procurement.productsPage.name', 'Name')}
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
+                  {t('procurement.productsPage.category', 'Category')}
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
+                  {t('procurement.productsPage.brand', 'Brand')}
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
+                  {t('procurement.productsPage.suppliers', 'Suppliers')}
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>
+                  {t('procurement.productsPage.status', 'Status')}
+                </th>
+                <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 600 }}>
+                  {t('common.actions', 'Actions')}
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </Paper>
-
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <Paper withBorder p="md" radius={0} className="hidden md:block">
-          <Group justify="flex-between">
-            <Text size="sm" c="dimmed">
-              Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
-            </Text>
-            <Group gap="xs">
-              <Button
-                size="xs"
-                variant="light"
-                disabled={pagination.page === 1}
-                onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-              >
-                Previous
-              </Button>
-              <Button
-                size="xs"
-                variant="light"
-                disabled={pagination.page === pagination.totalPages}
-                onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-              >
-                Next
-              </Button>
-            </Group>
-          </Group>
+            </thead>
+            <tbody>
+              {Array.isArray(products) && products.map((product) => (
+                <tr
+                  key={product.id}
+                  style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}
+                >
+                  <td style={{ padding: '12px 16px' }}>
+                    <Group gap="sm">
+                      {product.thumbnail ? (
+                        <Box w={40} h={40} bg="gray.0">
+                          <IconPhoto size={24} color="dimmed" />
+                        </Box>
+                      ) : (
+                        <Box w={40} h={40} bg="gray.1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <IconPhoto size={20} color="gray.4" />
+                        </Box>
+                      )}
+                      <Text size="sm" fw={500}>
+                        {product.name}
+                      </Text>
+                    </Group>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <Text size="sm">{product.category?.name || '-'}</Text>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <Text size="sm">{product.brand?.name || '-'}</Text>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <Group gap={4}>
+                      {product.suppliers?.map((s: any) => (
+                        <Badge key={s.id} size="xs" variant="light">
+                          {s.name}
+                        </Badge>
+                      ))}
+                    </Group>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <Badge
+                      size="sm"
+                      color={product.status === 'published' ? 'green' : 'gray'}
+                      variant="light"
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => handleStatusChange(product.id, product.status)}
+                    >
+                      {product.status === 'published' ? 'Published' : 'Draft'}
+                    </Badge>
+                  </td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                    <Menu shadow="md" width={200} position="bottom-end">
+                      <Menu.Target>
+                        <ActionIcon variant="subtle" color="gray">
+                          <IconDots size={16} />
+                        </ActionIcon>
+                      </Menu.Target>
+                      <Menu.Dropdown>
+                        <Menu.Item leftSection={<IconEye size={14} />} onClick={() => handleView(product.id)}>
+                          {t('common.view', 'View')}
+                        </Menu.Item>
+                        <Menu.Item leftSection={<IconEdit size={14} />} onClick={() => openEditDrawer(product)}>
+                          {t('common.edit', 'Edit')}
+                        </Menu.Item>
+                        <Menu.Item
+                          leftSection={<IconTrash size={14} />}
+                          color="red"
+                          onClick={() => handleDelete(product.id)}
+                        >
+                          {t('common.delete', 'Delete')}
+                        </Menu.Item>
+                      </Menu.Dropdown>
+                    </Menu>
+                  </td>
+                </tr>
+              ))}
+              {products.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={6} style={{ padding: '24px', textAlign: 'center' }}>
+                    <Text c="dimmed">{t('common.noData', 'No products found')}</Text>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </Paper>
+      </div>
+
+      {/* Desktop Pagination */}
+      {pagination.totalPages > 1 && (
+        <div className="hidden md:block">
+          <Paper withBorder p="md" radius={0}>
+            <Group justify="flex-between">
+              <Text size="sm" c="dimmed">
+                Page {pagination.page} of {pagination.totalPages} ({pagination.total} total)
+              </Text>
+              <Group gap="xs">
+                <Button
+                  size="xs"
+                  variant="light"
+                  disabled={pagination.page === 1}
+                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                >
+                  Previous
+                </Button>
+                <Button
+                  size="xs"
+                  variant="light"
+                  disabled={pagination.page === pagination.totalPages}
+                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                >
+                  Next
+                </Button>
+              </Group>
+            </Group>
+          </Paper>
+        </div>
       )}
 
       {/* Mobile Cards */}
@@ -715,31 +719,33 @@ export default function ProcurementProductsPage() {
 
         {/* Mobile Pagination */}
         {pagination.totalPages > 1 && (
-          <Paper withBorder p="md" mt="md" radius={0}>
-            <Group justify="space-between">
-              <Text size="sm" c="dimmed">
-                Page {pagination.page} of {pagination.totalPages}
-              </Text>
-              <Group gap="xs">
-                <Button
-                  size="xs"
-                  variant="light"
-                  disabled={pagination.page === 1}
-                  onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
-                >
-                  Previous
-                </Button>
-                <Button
-                  size="xs"
-                  variant="light"
-                  disabled={pagination.page === pagination.totalPages}
-                  onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
-                >
-                  Next
-                </Button>
+          <div className="block md:hidden">
+            <Paper withBorder p="md" mt="md" radius={0}>
+              <Group justify="space-between">
+                <Text size="sm" c="dimmed">
+                  Page {pagination.page} of {pagination.totalPages}
+                </Text>
+                <Group gap="xs">
+                  <Button
+                    size="xs"
+                    variant="light"
+                    disabled={pagination.page === 1}
+                    onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="light"
+                    disabled={pagination.page === pagination.totalPages}
+                    onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
+                  >
+                    Next
+                  </Button>
+                </Group>
               </Group>
-            </Group>
-          </Paper>
+            </Paper>
+          </div>
         )}
       </div>
 

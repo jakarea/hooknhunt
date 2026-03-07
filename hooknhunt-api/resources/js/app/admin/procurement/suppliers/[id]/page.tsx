@@ -39,6 +39,7 @@ import {
   getSuppliers,
   deleteSupplier,
   getProcurementProductsBySupplier,
+  getPurchaseOrders,
   type Supplier
 } from '@/utils/api'
 
@@ -50,6 +51,8 @@ export default function SupplierDetailsPage() {
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState<any[]>([])
   const [productsLoading, setProductsLoading] = useState(false)
+  const [lostItems, setLostItems] = useState<any[]>([])
+  const [lostItemsLoading, setLostItemsLoading] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -60,8 +63,46 @@ export default function SupplierDetailsPage() {
   useEffect(() => {
     if (supplier?.id) {
       fetchProducts(supplier.id)
+      fetchLostItems(supplier.id)
     }
   }, [supplier])
+
+  const fetchLostItems = async (supplierId: number) => {
+    try {
+      setLostItemsLoading(true)
+      const response: any = await getPurchaseOrders({ supplier_id: supplierId, per_page: 100 })
+      const ordersData = response?.data?.data || response?.data || []
+      const orders = Array.isArray(ordersData) ? ordersData : []
+
+      // Extract lost items from all orders
+      const allLostItems: any[] = []
+      orders.forEach((order: any) => {
+        if (order.items && Array.isArray(order.items)) {
+          order.items.forEach((item: any) => {
+            if (item.lostQuantity && item.lostQuantity > 0) {
+              allLostItems.push({
+                orderId: order.id,
+                orderNumber: order.poNumber,
+                orderDate: order.orderDate || order.createdAt,
+                productId: item.productId,
+                productName: item.product?.name || item.productName || 'Unknown Product',
+                lostQuantity: item.lostQuantity,
+                lostItemPrice: item.lostItemPrice,
+                chinaPrice: item.chinaPrice,
+                bdPrice: item.bdPrice,
+              })
+            }
+          })
+        }
+      })
+
+      setLostItems(allLostItems)
+    } catch (error) {
+      console.error('Failed to fetch lost items:', error)
+    } finally {
+      setLostItemsLoading(false)
+    }
+  }
 
   const fetchProducts = async (supplierId: number) => {
     try {
@@ -159,7 +200,7 @@ export default function SupplierDetailsPage() {
   if (loading) {
     return (
       <Stack p="xl" gap="md">
-        <Text className="text-lg md:text-xl lg:text-2xl">Loading...</Text>
+        <Text className="text-lg md:text-xl lg:text-2xl">{t('procurement.suppliersPage.details.loading')}</Text>
       </Stack>
     )
   }
@@ -168,7 +209,7 @@ export default function SupplierDetailsPage() {
     return (
       <Stack p="xl" gap="md">
         <Alert variant="light" color="red">
-          Supplier not found
+          {t('procurement.suppliersPage.details.notFound')}
         </Alert>
       </Stack>
     )
@@ -210,20 +251,20 @@ export default function SupplierDetailsPage() {
           <Paper withBorder p="md" radius="md">
             <Group gap="sm" mb="md">
               <IconBuilding size={20} c="blue" />
-              <Text fw={600} className="text-base md:text-lg">Basic Information</Text>
+              <Text fw={600} className="text-base md:text-lg">{t('procurement.suppliersPage.form.basicInfo')}</Text>
             </Group>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Company Name</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.details.companyName')}</Text>
                 <Text className="text-sm md:text-base">{supplier.name}</Text>
               </Stack>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Shop Name</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.shopName')}</Text>
                 <Text className="text-sm md:text-base">{supplier.shopName || '-'}</Text>
               </Stack>
               {supplier.shopUrl && (
                 <Stack gap="xs">
-                  <Text className="text-xs md:text-sm" c="dimmed">Website</Text>
+                  <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.details.website')}</Text>
                   <Text
                     className="text-sm md:text-base"
                     component="a"
@@ -238,7 +279,7 @@ export default function SupplierDetailsPage() {
               )}
               {supplier.address && (
                 <Stack gap="xs" style={{ gridColumn: '1 / -1' }}>
-                  <Text className="text-xs md:text-sm" c="dimmed">Address</Text>
+                  <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.address')}</Text>
                   <Text className="text-sm md:text-base">{supplier.address}</Text>
                 </Stack>
               )}
@@ -249,32 +290,32 @@ export default function SupplierDetailsPage() {
           <Paper withBorder p="md" radius="md">
             <Group gap="sm" mb="md">
               <IconUsers size={20} c="blue" />
-              <Text fw={600} className="text-base md:text-lg">Contact Information</Text>
+              <Text fw={600} className="text-base md:text-lg">{t('procurement.suppliersPage.form.contactInfo')}</Text>
             </Group>
             <SimpleGrid cols={{ base: 1, md: 2 }}>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Email</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.email')}</Text>
                 <Group gap="xs">
                   <IconMail size={14} c="dimmed" />
                   <Text className="text-sm md:text-base">{supplier.email}</Text>
                 </Group>
               </Stack>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Phone</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.phone')}</Text>
                 <Group gap="xs">
                   <IconPhone size={14} c="dimmed" />
                   <Text className="text-sm md:text-base">{supplier.phone || '-'}</Text>
                 </Group>
               </Stack>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">WhatsApp</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.whatsapp')}</Text>
                 <Group gap="xs">
                   <IconBrandWhatsapp size={14} c="dimmed" />
                   <Text className="text-sm md:text-base">{supplier.whatsapp || '-'}</Text>
                 </Group>
               </Stack>
               <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Contact Person</Text>
+                <Text className="text-xs md:text-sm" c="dimmed">{t('procurement.suppliersPage.form.contactPerson')}</Text>
                 <Group gap="xs">
                   <IconUsers size={14} c="dimmed" />
                   <Text className="text-sm md:text-base">{supplier.contactPerson || '-'}</Text>
@@ -283,86 +324,170 @@ export default function SupplierDetailsPage() {
             </SimpleGrid>
           </Paper>
 
-          {/* Wallet Balance */}
+          {/* Lost Items History */}
           <Paper withBorder p="md" radius="md">
             <Group gap="sm" mb="md">
-              <IconCoin size={20} c="green" />
-              <Text fw={600} className="text-base md:text-lg">Wallet Balance</Text>
+              <IconCoin size={20} c="orange" />
+              <Text fw={600} className="text-base md:text-lg">{t('procurement.suppliersPage.details.lostItemsHistory')}</Text>
+              <Badge size="sm">{lostItems.length}</Badge>
             </Group>
-            <Stack gap="sm">
-              <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Current Balance</Text>
-                <Text
-                  className="text-xl md:text-2xl lg:text-3xl"
-                  fw={700}
-                  c={(Number(supplier.walletBalance) ?? 0) > 0 ? 'green' : (Number(supplier.walletBalance) ?? 0) < 0 ? 'red' : 'gray'}
-                >
-                  ৳{(Number(supplier.walletBalance) ?? 0).toFixed(2)} BDT
-                </Text>
-              </Stack>
-              <Stack gap="xs">
-                <Text className="text-xs md:text-sm" c="dimmed">Credit Limit</Text>
-                <Text className="text-sm md:text-base">
-                  ৳{(Number(supplier.creditLimit) ?? 0).toFixed(2)} BDT
-                </Text>
-              </Stack>
-              {(Number(supplier.walletBalance) ?? 0) !== 0 && (
-                <Alert variant="light" color={(Number(supplier.walletBalance) ?? 0) > 0 ? 'green' : 'red'}>
-                  <Text className="text-xs md:text-sm">
-                    {(Number(supplier.walletBalance) ?? 0) > 0
-                      ? `Supplier has credit balance of ৳${(Number(supplier.walletBalance) ?? 0).toFixed(2)} BDT`
-                      : `Supplier has debit balance of ৳${Math.abs(Number(supplier.walletBalance) ?? 0).toFixed(2)} BDT`
-                    }
+
+            {lostItemsLoading ? (
+              <Text className="text-sm" c="dimmed">{t('procurement.suppliersPage.details.loadingLostItems')}</Text>
+            ) : lostItems.length === 0 ? (
+              <Text className="text-sm" c="dimmed">{t('procurement.suppliersPage.details.noLostItems')}</Text>
+            ) : (
+              <Stack gap="md">
+                {/* Summary Card - Total Lost Value */}
+                <Paper withBorder p="sm" radius="sm" bg="red.0">
+                  <Group justify="space-between">
+                    <Text size="sm" fw={600} c="red">
+                      <IconAlertTriangle size={16} style={{ display: 'inline', marginRight: 4 }} />
+                      {t('procurement.suppliersPage.details.totalLostCost')}
+                    </Text>
+                    <Text size="lg" fw={700} c="red">
+                      ৳{Number(
+                        lostItems.reduce((sum, item) => {
+                          const price = item.lostItemPrice || (item.bdPrice || 0)
+                          return sum + (price * item.lostQuantity)
+                        }, 0)
+                      ).toFixed(2)}
+                    </Text>
+                  </Group>
+                  <Text size="xs" c="dimmed" mt={4}>
+                    {t('procurement.suppliersPage.details.totalLostDescription')}
                   </Text>
-                </Alert>
-              )}
-              {supplier.walletNotes && (
-                <Box>
-                  <Text className="text-xs md:text-sm" c="dimmed" mb="xs">Recent Transactions</Text>
-                  <ScrollArea h={200}>
-                    <Stack gap="xs">
-                      {(() => {
-                        try {
-                          const notes = JSON.parse(supplier.walletNotes)
-                          return notes.slice(-5).reverse().map((note: any, index: number) => (
-                        <Paper key={index} withBorder p="xs" radius="sm" bg={note.type === 'credit' ? 'green.0' : 'red.0'}>
-                          <Group justify="space-between" wrap="nowrap">
-                            <Stack gap={0}>
-                              <Text className="text-xs" fw={500}>
-                                {note.type === 'credit' ? 'Credit' : 'Debit'}
+                </Paper>
+
+                {/* Lost Items List */}
+                <ScrollArea h={400}>
+                  <Stack gap="sm">
+                    {lostItems.map((item, index) => (
+                      <Paper
+                        key={index}
+                        withBorder
+                        p="sm"
+                        radius="md"
+                        className="hover:shadow-sm transition-shadow"
+                      >
+                        {/* Desktop View */}
+                        <Box className="hidden md:block">
+                          <Group justify="space-between" align="center">
+                            {/* Product Info */}
+                            <Group gap="md" flex="1">
+                              <Text className="text-sm" fw={600} style={{ minWidth: 200 }}>
+                                {item.productName}
                               </Text>
-                              <Text className="text-xs" c="dimmed">
-                                {new Date(note.date).toLocaleDateString()} {new Date(note.date).toLocaleTimeString()}
+                              <Badge size="sm" color="orange" variant="light">
+                                {t('procurement.suppliersPage.details.lost')}: {item.lostQuantity}
+                              </Badge>
+                            </Group>
+
+                            {/* Order Info */}
+                            <Group gap="lg" style={{ minWidth: 200 }}>
+                              <Stack gap={2}>
+                                <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.orderNumber')}</Text>
+                                <Text
+                                  className="text-sm"
+                                  fw={500}
+                                  c="blue"
+                                  component="a"
+                                  href={`/procurement/orders/${item.orderId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {item.orderNumber}
+                                  <IconExternalLink size={12} style={{ marginLeft: 4 }} />
+                                </Text>
+                              </Stack>
+                              <Stack gap={2}>
+                                <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.orderDate')}</Text>
+                                <Text className="text-sm">
+                                  {item.orderDate ? new Date(item.orderDate).toLocaleDateString() : 'N/A'}
+                                </Text>
+                              </Stack>
+                            </Group>
+
+                            {/* Cost Info */}
+                            <Stack gap={2} align="flex-end" style={{ minWidth: 150 }}>
+                              <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.lostCost')}</Text>
+                              <Text className="text-sm" fw={700} c="red">
+                                {item.lostItemPrice
+                                  ? `৳${Number(item.lostItemPrice).toFixed(2)}`
+                                  : item.chinaPrice
+                                    ? `¥${Number(item.chinaPrice).toFixed(2)}`
+                                    : '-'
+                                }
                               </Text>
-                            </Stack>
-                            <Stack gap={0} align="flex-end">
-                              <Text
-                                className="text-sm"
-                                fw={600}
-                                c={note.type === 'credit' ? 'green' : 'red'}
-                              >
-                                {note.type === 'credit' ? '+' : '-'}৳{Number(note.amount).toFixed(2)}
-                              </Text>
-                              <Text className="text-xs" c="dimmed">
-                                Balance: ৳{Number(note.balance_after).toFixed(2)}
-                              </Text>
+                              {item.bdPrice && (
+                                <Text className="text-xs" c="dimmed">
+                                  ৳{Number(item.bdPrice).toFixed(2)}/{t('procurement.suppliersPage.details.unit')}
+                                </Text>
+                              )}
                             </Stack>
                           </Group>
-                          <Text className="text-xs" mt="xs" c="dimmed" lineClamp={2}>
-                            {note.note}
-                          </Text>
-                        </Paper>
-                          ))
-                        } catch (error) {
-                          console.error('Failed to parse wallet notes:', error)
-                          return <Text className="text-xs" c="dimmed">Unable to load transactions</Text>
-                        }
-                      })()}
-                    </Stack>
-                  </ScrollArea>
-                </Box>
-              )}
-            </Stack>
+                        </Box>
+
+                        {/* Mobile View */}
+                        <Box className="block md:hidden">
+                          <Stack gap="xs">
+                            <Group justify="space-between" align="center">
+                              <Text className="text-sm" fw={600} style={{ flex: 1 }}>
+                                {item.productName}
+                              </Text>
+                              <Badge size="sm" color="orange" variant="light">
+                                {t('procurement.suppliersPage.details.lost')}: {item.lostQuantity}
+                              </Badge>
+                            </Group>
+
+                            <Divider />
+
+                            <SimpleGrid cols={2}>
+                              <Stack gap={2}>
+                                <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.orderNumber')}</Text>
+                                <Text
+                                  className="text-sm"
+                                  fw={500}
+                                  c="blue"
+                                  component="a"
+                                  href={`/procurement/orders/${item.orderId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  {item.orderNumber}
+                                  <IconExternalLink size={12} style={{ marginLeft: 4 }} />
+                                </Text>
+                              </Stack>
+                              <Stack gap={2} align="flex-end">
+                                <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.orderDate')}</Text>
+                                <Text className="text-sm">
+                                  {item.orderDate ? new Date(item.orderDate).toLocaleDateString() : 'N/A'}
+                                </Text>
+                              </Stack>
+                            </SimpleGrid>
+
+                            <Divider />
+
+                            <Group justify="space-between" align="center">
+                              <Text className="text-xs" c="dimmed">{t('procurement.suppliersPage.details.lostCost')}</Text>
+                              <Text className="text-sm" fw={700} c="red">
+                                {item.lostItemPrice
+                                  ? `৳${Number(item.lostItemPrice).toFixed(2)}`
+                                  : item.chinaPrice
+                                    ? `¥${Number(item.chinaPrice).toFixed(2)}`
+                                    : '-'
+                                }
+                              </Text>
+                            </Group>
+                          </Stack>
+                        </Box>
+                      </Paper>
+                    ))}
+                  </Stack>
+                </ScrollArea>
+              </Stack>
+            )}
           </Paper>
         </Stack>
 
@@ -371,7 +496,7 @@ export default function SupplierDetailsPage() {
           <Paper withBorder p="md" radius="md">
             <Group gap="sm" mb="md">
               <IconCoin size={20} c="green" />
-              <Text fw={600} className="text-base md:text-lg">Payment Information</Text>
+              <Text fw={600} className="text-base md:text-lg">{t('procurement.suppliersPage.form.paymentInfo')}</Text>
             </Group>
             <Stack gap="md">
               {/* WeChat Pay and Alipay Side by Side */}
@@ -379,15 +504,15 @@ export default function SupplierDetailsPage() {
                 {/* WeChat Pay */}
                 {(supplier.wechatId || supplier.wechatQrFile) && (
                   <Card withBorder p="sm" radius="sm" bg="gray.0">
-                    <Text fw={500} className="text-sm md:text-base" mb="xs">WeChat Pay</Text>
+                    <Text fw={500} className="text-sm md:text-base" mb="xs">{t('procurement.suppliersPage.details.wechatPay')}</Text>
                     {supplier.wechatId && (
                       <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
-                        WeChat ID: {supplier.wechatId}
+                        {t('procurement.suppliersPage.details.wechatId')}: {supplier.wechatId}
                       </Text>
                     )}
                     {supplier.wechatQrFile && (
                       <Box>
-                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">QR Code:</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">{t('procurement.suppliersPage.details.qrCode')}:</Text>
                         <Image
                           src={supplier.wechatQrFile.startsWith('http') ? supplier.wechatQrFile : `${baseUrl}/storage/${supplier.wechatQrFile}`}
                           alt="WeChat QR Code"
@@ -406,15 +531,15 @@ export default function SupplierDetailsPage() {
                 {/* Alipay */}
                 {(supplier.alipayId || supplier.alipayQrFile) && (
                   <Card withBorder p="sm" radius="sm" bg="blue.0">
-                    <Text fw={500} className="text-sm md:text-base" mb="xs">Alipay</Text>
+                    <Text fw={500} className="text-sm md:text-base" mb="xs">{t('procurement.suppliersPage.details.alipay')}</Text>
                     {supplier.alipayId && (
                       <Text className="text-xs md:text-sm" c="dimmed" mb="xs">
-                        Alipay ID: {supplier.alipayId}
+                        {t('procurement.suppliersPage.details.alipayId')}: {supplier.alipayId}
                       </Text>
                     )}
                     {supplier.alipayQrFile && (
                       <Box>
-                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">QR Code:</Text>
+                        <Text className="text-xs md:text-sm" c="dimmed" mb="xs">{t('procurement.suppliersPage.details.qrCode')}:</Text>
                         <Image
                           src={supplier.alipayQrFile.startsWith('http') ? supplier.alipayQrFile : `${baseUrl}/storage/${supplier.alipayQrFile}`}
                           alt="Alipay QR Code"
@@ -440,18 +565,18 @@ export default function SupplierDetailsPage() {
         <Group gap="sm" mb="md">
           <IconPhoto size={20} c="blue" />
           <Text fw={600} className="text-base md:text-lg">
-            {t('procurement.suppliersPage.products') || 'Products'}
+            {t('procurement.suppliersPage.products')}
           </Text>
           <Badge size="sm">{products.length}</Badge>
         </Group>
 
         {productsLoading ? (
           <Text className="text-sm md:text-base" c="dimmed">
-            Loading products...
+            {t('procurement.suppliersPage.details.loadingProducts')}
           </Text>
         ) : products.length === 0 ? (
           <Text className="text-sm md:text-base" c="dimmed">
-            No products linked to this supplier yet
+            {t('procurement.suppliersPage.details.noProductsLinked')}
           </Text>
         ) : (
           <Stack gap="sm">

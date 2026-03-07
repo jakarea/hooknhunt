@@ -532,147 +532,151 @@ export default function ProductsPage() {
         </Paper>
 
         {/* Desktop Table View */}
-        <Paper withBorder p="0" className="hidden md:block">
-          <Table striped highlightOnHover>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('catalog.productsPage.table.product') || 'Product'}</Table.Th>
-                <Table.Th>{t('catalog.productsPage.table.variants') || 'Variants'}</Table.Th>
-                <Table.Th>{t('catalog.productsPage.table.category') || 'Category'}</Table.Th>
-                <Table.Th>{t('catalog.productsPage.table.brand') || 'Brand'}</Table.Th>
-                <Table.Th>{t('catalog.productsPage.table.stock') || 'Stock'}</Table.Th>
-                <Table.Th>{t('catalog.productsPage.table.status') || 'Status'}</Table.Th>
-                <Table.Th ta="center">{t('catalog.productsPage.table.actions') || 'Actions'}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {products.length === 0 ? (
+        <div className="hidden md:block">
+          <Paper withBorder p="0">
+            <Table striped highlightOnHover>
+              <Table.Thead>
                 <Table.Tr>
-                  <Table.Td colSpan={7} ta="center">
-                    <Stack py="xl" align="center" gap="sm">
-                      <IconPackages size={48} className="text-gray-300" />
-                      <Text c="dimmed" className="text-sm md:text-base">
-                        {t('catalog.productsPage.table.noProducts') || 'No products found'}
-                      </Text>
-                    </Stack>
-                  </Table.Td>
+                  <Table.Th>{t('catalog.productsPage.table.product') || 'Product'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.variants') || 'Variants'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.category') || 'Category'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.brand') || 'Brand'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.stock') || 'Stock'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.status') || 'Status'}</Table.Th>
+                  <Table.Th ta="center">{t('catalog.productsPage.table.actions') || 'Actions'}</Table.Th>
                 </Table.Tr>
-              ) : (
-                products.map((product) => (
-                  <Table.Tr key={product.id}>
-                    <Table.Td>
-                      <Group gap="sm">
-                        <Box
-                          w={40}
-                          h={40}
-                          className="bg-gray-100 rounded flex items-center justify-center"
-                        >
-                          {product.thumbnail ? (
-                            <Image
-                              src={product.thumbnail.filePath}
-                              alt={product.name}
-                              w={40}
-                              h={40}
-                              fit="cover"
-                              radius="sm"
-                            />
-                          ) : (
-                            <IconPhoto size={20} className="text-gray-400" />
-                          )}
-                        </Box>
-                        <Box>
-                          <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
-                            {product.name}
-                          </Text>
-                          {product.variants && product.variants.length > 0 && (
-                            <Text className="text-xs md:text-sm" c="dimmed">
-                              {product.variants.length} {t('catalog.productsPage.table.variants') || 'variant(s)'}
-                            </Text>
-                          )}
-                        </Box>
-                      </Group>
-                    </Table.Td>
-                    <Table.Td>
-                      <Text className="text-sm md:text-base">
-                        {product.variants?.length || 0}
-                      </Text>
-                    </Table.Td>
-                    <Table.Td>
-                      {product.category ? (
-                        <Text className="text-sm md:text-base">{product.category.name}</Text>
-                      ) : (
-                        <Text className="text-sm md:text-base" c="dimmed">-</Text>
-                      )}
-                    </Table.Td>
-                    <Table.Td>
-                      {product.brand ? (
-                        <Text className="text-sm md:text-base">{product.brand.name}</Text>
-                      ) : (
-                        <Text className="text-sm md:text-base" c="dimmed">-</Text>
-                      )}
-                    </Table.Td>
-                    <Table.Td>{getStockBadge(product)}</Table.Td>
-                    <Table.Td>{getStatusBadge(product.status, product.id, isSuperAdmin() || hasPermission('catalog.products.update'))}</Table.Td>
-                    <Table.Td ta="center">
-                      <Group gap="xs" justify="center" wrap="nowrap">
-                        <Tooltip label={t('common.edit') || 'Edit'}>
-                          <ActionIcon
-                            size="lg"
-                            variant="light"
-                            color="blue"
-                            onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
-                          >
-                            <IconEdit size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label={t('catalog.productsPage.menu.duplicate') || 'Duplicate'}>
-                          <ActionIcon
-                            size="lg"
-                            variant="light"
-                            color="gray"
-                            onClick={() => handleDuplicate(product)}
-                          >
-                            <IconCopy size={18} />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Menu shadow="md" width={160} position="bottom-end">
-                          <Menu.Target>
-                            <ActionIcon size="lg" variant="light">
-                              <IconDots size={18} />
-                            </ActionIcon>
-                          </Menu.Target>
-
-                          <Menu.Dropdown>
-                            <Menu.Label>{t('catalog.productsPage.menu.actions') || 'Actions'}</Menu.Label>
-                            <Menu.Item
-                              leftSection={<IconEye size={16} />}
-                              onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
-                            >
-                              {t('catalog.productsPage.menu.viewDetails') || 'View Details'}
-                            </Menu.Item>
-                            <Menu.Divider />
-                            <Menu.Item
-                              leftSection={<IconTrash size={16} />}
-                              c="red"
-                              onClick={() => handleDelete(product)}
-                            >
-                              {t('common.delete') || 'Delete'}
-                            </Menu.Item>
-                          </Menu.Dropdown>
-                        </Menu>
-                      </Group>
+              </Table.Thead>
+              <Table.Tbody>
+                {products.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={7} ta="center">
+                      <Stack py="xl" align="center" gap="sm">
+                        <IconPackages size={48} className="text-gray-300" />
+                        <Text c="dimmed" className="text-sm md:text-base">
+                          {t('catalog.productsPage.table.noProducts') || 'No products found'}
+                        </Text>
+                      </Stack>
                     </Table.Td>
                   </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </Paper>
+                ) : (
+                  products.map((product) => (
+                    <Table.Tr key={product.id}>
+                      <Table.Td>
+                        <Group gap="sm">
+                          <Box
+                            w={40}
+                            h={40}
+                            className="bg-gray-100 rounded flex items-center justify-center"
+                          >
+                            {product.thumbnail ? (
+                              <Image
+                                src={product.thumbnail.filePath}
+                                alt={product.name}
+                                w={40}
+                                h={40}
+                                fit="cover"
+                                radius="sm"
+                              />
+                            ) : (
+                              <IconPhoto size={20} className="text-gray-400" />
+                            )}
+                          </Box>
+                          <Box>
+                            <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
+                              {product.name}
+                            </Text>
+                            {product.variants && product.variants.length > 0 && (
+                              <Text className="text-xs md:text-sm" c="dimmed">
+                                {product.variants.length} {t('catalog.productsPage.table.variants') || 'variant(s)'}
+                              </Text>
+                            )}
+                          </Box>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        <Text className="text-sm md:text-base">
+                          {product.variants?.length || 0}
+                        </Text>
+                      </Table.Td>
+                      <Table.Td>
+                        {product.category ? (
+                          <Text className="text-sm md:text-base">{product.category.name}</Text>
+                        ) : (
+                          <Text className="text-sm md:text-base" c="dimmed">-</Text>
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        {product.brand ? (
+                          <Text className="text-sm md:text-base">{product.brand.name}</Text>
+                        ) : (
+                          <Text className="text-sm md:text-base" c="dimmed">-</Text>
+                        )}
+                      </Table.Td>
+                      <Table.Td>{getStockBadge(product)}</Table.Td>
+                      <Table.Td>{getStatusBadge(product.status, product.id, isSuperAdmin() || hasPermission('catalog.products.update'))}</Table.Td>
+                      <Table.Td ta="center">
+                        <Group gap="xs" justify="center" wrap="nowrap">
+                          <Tooltip label={t('common.edit') || 'Edit'}>
+                            <ActionIcon
+                              size="lg"
+                              variant="light"
+                              color="blue"
+                              onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+                            >
+                              <IconEdit size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label={t('catalog.productsPage.menu.duplicate') || 'Duplicate'}>
+                            <ActionIcon
+                              size="lg"
+                              variant="light"
+                              color="gray"
+                              onClick={() => handleDuplicate(product)}
+                            >
+                              <IconCopy size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Menu shadow="md" width={160} position="bottom-end">
+                            <Menu.Target>
+                              <ActionIcon size="lg" variant="light">
+                                <IconDots size={18} />
+                              </ActionIcon>
+                            </Menu.Target>
+
+                            <Menu.Dropdown>
+                              <Menu.Label>{t('catalog.productsPage.menu.actions') || 'Actions'}</Menu.Label>
+                              <Menu.Item
+                                leftSection={<IconEye size={16} />}
+                                onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                              >
+                                {t('catalog.productsPage.menu.viewDetails') || 'View Details'}
+                              </Menu.Item>
+                              <Menu.Divider />
+                              <Menu.Item
+                                leftSection={<IconTrash size={16} />}
+                                c="red"
+                                onClick={() => handleDelete(product)}
+                              >
+                                {t('common.delete') || 'Delete'}
+                              </Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
+              </Table.Tbody>
+            </Table>
+          </Paper>
+        </div>
 
         {/* Mobile Card View */}
-        <SimpleGrid cols={{ base: 1, xs: 2 }} className="md:hidden">
-          {productCards}
-        </SimpleGrid>
+        <div className="block md:hidden">
+          <SimpleGrid cols={{ base: 1, xs: 2 }}>
+            {productCards}
+          </SimpleGrid>
+        </div>
 
         {/* Pagination (if needed) */}
         {pagination.total > pagination.perPage && (

@@ -60,6 +60,9 @@ export const STATUS_TRANSITIONS: Record<string, StatusTransition[]> = {
   in_transit_bogura: [
     { to: 'received_hub', from: 'in_transit_bogura', requiredFields: [] }, // Opens receiving modal
   ],
+  partially_completed: [
+    { to: 'completed', from: 'partially_completed', requiredFields: [] }, // Can mark as complete when items found
+  ],
 }
 
 // Pure validation functions

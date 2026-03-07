@@ -68,6 +68,16 @@ class PurchaseOrderController extends Controller
         $po = PurchaseOrder::with(['supplier', 'createdBy:id,name', 'items.product:id,name', 'items.productVariant:id,name', 'statusHistory.changedByUser:id,name'])
             ->findOrFail($id);
 
+        // Debug: Log first item data before returning
+        \Log::info('PurchaseOrder #' . $id . ' first item:', [
+            'id' => $po->items[0]->id,
+            'quantity' => $po->items[0]->quantity,
+            'received_quantity' => $po->items[0]->received_quantity,
+            'lost_quantity' => $po->items[0]->lost_quantity,
+            'china_price' => $po->items[0]->china_price,
+            'bd_price' => $po->items[0]->bd_price,
+        ]);
+
         return $this->sendSuccess($po);
     }
 
@@ -456,7 +466,11 @@ class PurchaseOrderController extends Controller
                         'new_status' => $newStatus,
                         'comments' => $request->comments,
                         'changed_by' => auth()->id(),
+                        'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                     ]);
+
+                    // Send SMS notification
+                    $this->sendPaymentConfirmationSMS($po, $bank, $breakdown['from_bank'], $orderTotalBDT);
 
                     DB::commit();
 
@@ -502,6 +516,7 @@ class PurchaseOrderController extends Controller
                     'new_status' => $newStatus,
                     'comments' => $request->comments,
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
@@ -521,6 +536,7 @@ class PurchaseOrderController extends Controller
                     'new_status' => $newStatus,
                     'comments' => $request->comments,
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
@@ -581,6 +597,7 @@ class PurchaseOrderController extends Controller
                     'new_status' => $newStatus,
                     'comments' => $request->comments,
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
@@ -600,6 +617,7 @@ class PurchaseOrderController extends Controller
                     'new_status' => $newStatus,
                     'comments' => $request->comments,
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
@@ -647,6 +665,10 @@ class PurchaseOrderController extends Controller
                     $item->unit_weight = $unitWeight;
                     $item->extra_weight = $extraWeight;
                     $item->received_quantity = $receivedQty;
+
+                    // Calculate and save lost_quantity for tracking (needed for partial completion detection)
+                    $lostQty = max(0, $orderedQty - $receivedQty);
+                    $item->lost_quantity = $lostQty;
 
                     // Calculate shipping cost for this item
                     // Use provided shipping_cost_per_kg or default to 0
@@ -702,75 +724,49 @@ class PurchaseOrderController extends Controller
                     ? (($totalOrdered - $totalReceived) / $totalOrdered) * 100
                     : 0;
 
-                // Step 3: Handle refund/wallet credit (PER-ITEM percentage check)
-                // Each item is checked independently based on its own lost percentage
-                $refundAmount = 0;
+                // Step 3: Calculate lost items cost for tracking (NO automatic refund)
+                $lostItemsCost = 0;
 
-                // Calculate refund amount for items with > 10% loss
                 foreach ($po->items as $item) {
                     $lostQty = $item->quantity - $item->received_quantity;
-                    $lostPercentage = $item->quantity > 0 ? ($lostQty / $item->quantity) * 100 : 0;
-
-                    // PER-ITEM CHECK: Only refund if THIS item's loss > 10%
-                    if ($lostQty > 0 && $lostPercentage > 10) {
-                        // This item lost > 10% - add to refund
-                        $itemRefundAmount = $lostQty * $item->china_price * $po->exchange_rate;
-                        $refundAmount += $itemRefundAmount;
+                    if ($lostQty > 0) {
+                        // Calculate lost cost for tracking purposes
+                        $lostItemCost = $lostQty * $item->china_price * $po->exchange_rate;
+                        $lostItemsCost += $lostItemCost;
 
                         $productName = $item->product?->name ?? 'Unknown Product';
+                        $lostPercentage = $item->quantity > 0 ? ($lostQty / $item->quantity) * 100 : 0;
 
                         $receivingNotes[] = [
-                            'info' => "Item {$productName}: Lost {$lostQty} units ({$lostPercentage}%). Refund: {$itemRefundAmount} BDT."
+                            'info' => "Item {$productName}: Lost {$lostQty} units ({$lostPercentage}%). Cost: ৳{$lostItemCost}"
                         ];
                     }
-                    // If lost % <= 10%, NO refund (price adjustment handled in Step 3)
                 }
 
-                // Auto-credit supplier wallet if there are refunds
-                // No threshold check needed - each item checked independently
-                if ($refundAmount > 0) {
-                    $po->supplier->addCredit(
-                        $refundAmount,
-                        "Auto-credit for PO {$po->po_number} - Refund for items with >10% loss (total refund: {$refundAmount} BDT)"
-                    );
-                    $po->refund_auto_credited = true;
-                    $po->refunded_at = now();
-
-                    $receivingNotes[] = [
-                        'success' => "Supplier wallet credited with {$refundAmount} BDT for items with >10% loss."
-                    ];
-                }
-
-                // Step 5: Update purchase order
+                // Step 4: Update purchase order
                 $po->total_weight = $totalWeight;
-                $po->refund_amount = $refundAmount;
+                $po->refund_amount = $lostItemsCost; // Store for tracking, no automatic credit
                 $po->receiving_notes = json_encode($receivingNotes);
                 $po->status = $newStatus;
                 $po->save();
-
-                // Generate credit note if refund was processed
-                if ($refundAmount > 0 && $po->refund_auto_credited) {
-                    $po->credit_note_number = $po->generateCreditNoteNumber();
-                    $po->save();
-                }
 
                 // Record status history
                 \App\Models\PurchaseOrderStatusHistory::create([
                     'purchase_order_id' => $po->id,
                     'old_status' => $oldStatus,
                     'new_status' => $newStatus,
-                    'comments' => $request->comments ?? "Received {$totalReceived}/{$totalOrdered} units. Lost: " . ($totalOrdered - $totalReceived) . " units ({$totalLostPercentage}%). Refund: {$refundAmount} BDT.",
+                    'comments' => $request->comments ?? "Received {$totalReceived}/{$totalOrdered} units ({$totalLostPercentage}% lost). Lost items cost: ৳{$lostItemsCost}. Pending manual review.",
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
 
-                $message = "Received at Bogura hub. ";
-                $message .= "Received: {$totalReceived}/{$totalOrdered} units ({$totalLostPercentage}% lost). ";
-                if ($refundAmount > 0) {
-                    $message .= $po->refund_auto_credited
-                        ? "Auto-credited {$refundAmount} BDT to supplier wallet."
-                        : "Refund of {$refundAmount} BDT requires manual review.";
+                $message = "Received {$totalReceived}/{$totalOrdered} units ({$totalLostPercentage}% lost). ";
+                if ($lostItemsCost > 0) {
+                    $message .= "Lost items cost: ৳{$lostItemsCost}. Pending manual review.";
+                } else {
+                    $message .= "All items received successfully.";
                 }
 
                 return $this->sendSuccess($po->load(['items', 'statusHistory', 'supplier']), $message);
@@ -844,6 +840,7 @@ class PurchaseOrderController extends Controller
                     'new_status' => $newStatus,
                     'comments' => $request->comments,
                     'changed_by' => auth()->id(),
+                    'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
                 ]);
 
                 DB::commit();
@@ -862,6 +859,7 @@ class PurchaseOrderController extends Controller
                 'new_status' => $newStatus,
                 'comments' => $request->comments,
                 'changed_by' => auth()->id(),
+                'timeline_data' => $this->buildTimelineData($newStatus, $request, $po),
             ]);
 
             DB::commit();
@@ -928,6 +926,49 @@ class PurchaseOrderController extends Controller
         $history->save();
 
         return $this->sendSuccess($history->load('changedByUser:id,name'), 'Comments updated successfully');
+    }
+
+    /**
+     * Update status history timeline data
+     * PUT /api/v2/procurement/orders/{poId}/status-history/{historyId}/timeline-data
+     */
+    public function updateStatusHistoryTimelineData(Request $request, $poId, $historyId)
+    {
+        if (!auth()->user()->hasPermissionTo('procurement.orders.edit')) {
+            return $this->sendError('You do not have permission to update purchase orders.', null, 403);
+        }
+
+        $request->validate([
+            'timeline_data' => 'nullable|array',
+            'timeline_data.exchange_rate' => 'nullable|numeric|min:0',
+            'timeline_data.courier_name' => 'nullable|string',
+            'timeline_data.tracking_number' => 'nullable|string',
+            'timeline_data.lot_number' => 'nullable|string',
+            'timeline_data.transport_type' => 'nullable|string',
+            'timeline_data.total_weight' => 'nullable|numeric|min:0',
+            'timeline_data.shipping_cost_per_kg' => 'nullable|numeric|min:0',
+            'timeline_data.total_shipping_cost' => 'nullable|numeric|min:0',
+            'timeline_data.bd_courier_tracking' => 'nullable|string',
+        ]);
+
+        $po = PurchaseOrder::findOrFail($poId);
+        $history = \App\Models\PurchaseOrderStatusHistory::where('purchase_order_id', $poId)
+            ->findOrFail($historyId);
+
+        // Update timeline data
+        $timelineData = $history->timeline_data ?? [];
+        if ($request->has('timeline_data')) {
+            $newTimelineData = $request->input('timeline_data');
+            // Merge with existing data, with new data taking precedence
+            $timelineData = array_merge($timelineData, array_filter($newTimelineData, function ($value) {
+                return $value !== null && $value !== '';
+            }));
+        }
+
+        $history->timeline_data = $timelineData;
+        $history->save();
+
+        return $this->sendSuccess($history->load('changedByUser:id,name'), 'Timeline data updated successfully');
     }
 
     /**
@@ -998,6 +1039,142 @@ class PurchaseOrderController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return $this->sendError('Failed to approve order', ['error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Build timeline data array for status history
+     * Stores status-specific information at the time of status change
+     */
+    private function buildTimelineData(string $newStatus, Request $request, $po): array
+    {
+        $timelineData = [];
+
+        switch ($newStatus) {
+            case 'payment_confirmed':
+                if ($request->has('exchange_rate') && $request->exchange_rate) {
+                    $timelineData['exchange_rate'] = (float) $request->exchange_rate;
+                }
+                if ($po->exchange_rate) {
+                    $timelineData['exchange_rate'] = (float) $po->exchange_rate;
+                }
+                break;
+
+            case 'supplier_dispatched':
+                if ($request->courier_name) {
+                    $timelineData['courier_name'] = $request->courier_name;
+                }
+                if ($po->courier_name) {
+                    $timelineData['courier_name'] = $po->courier_name;
+                }
+                if ($request->tracking_number) {
+                    $timelineData['tracking_number'] = $request->tracking_number;
+                }
+                if ($po->tracking_number) {
+                    $timelineData['tracking_number'] = $po->tracking_number;
+                }
+                break;
+
+            case 'warehouse_received':
+                if ($request->lot_number) {
+                    $timelineData['lot_number'] = $request->lot_number;
+                }
+                if ($po->lot_number) {
+                    $timelineData['lot_number'] = $po->lot_number;
+                }
+                break;
+
+            case 'shipped_bd':
+                if ($request->has('transport_type')) {
+                    $timelineData['transport_type'] = $request->transport_type;
+                }
+                if ($po->shipping_method) {
+                    $timelineData['transport_type'] = $po->shipping_method;
+                }
+                if ($request->has('total_weight')) {
+                    $timelineData['total_weight'] = (float) $request->total_weight;
+                }
+                if ($po->total_weight) {
+                    $timelineData['total_weight'] = (float) $po->total_weight;
+                }
+                if ($request->has('shipping_cost_per_kg')) {
+                    $timelineData['shipping_cost_per_kg'] = (float) $request->shipping_cost_per_kg;
+                }
+                if ($po->items && $po->items->first() && $po->items->first()->shipping_cost_per_kg) {
+                    $timelineData['shipping_cost_per_kg'] = (float) $po->items->first()->shipping_cost_per_kg;
+                }
+                if ($po->total_shipping_cost) {
+                    $timelineData['total_shipping_cost'] = (float) $po->total_shipping_cost;
+                }
+                break;
+
+            case 'arrived_bd':
+            case 'in_transit_bogura':
+                if ($request->bd_courier_tracking) {
+                    $timelineData['bd_courier_tracking'] = $request->bd_courier_tracking;
+                }
+                if ($po->bd_courier_tracking) {
+                    $timelineData['bd_courier_tracking'] = $po->bd_courier_tracking;
+                }
+                break;
+
+            case 'received_hub':
+            case 'partially_completed':
+                if ($po->total_weight) {
+                    $timelineData['total_weight'] = (float) $po->total_weight;
+                }
+                if ($po->total_shipping_cost) {
+                    $timelineData['total_shipping_cost'] = (float) $po->total_shipping_cost;
+                }
+                if ($request->has('items')) {
+                    $timelineData['receiving_details'] = [
+                        'total_ordered' => $po->items->sum('quantity'),
+                        'total_received' => $po->items->sum('received_quantity'),
+                    ];
+                }
+                if ($po->refund_amount) {
+                    $timelineData['refund_amount'] = (float) $po->refund_amount;
+                }
+                break;
+        }
+
+        return $timelineData;
+    }
+
+    /**
+     * Send SMS notification on payment confirmation
+     */
+    private function sendPaymentConfirmationSMS($po, $bank, $paymentAmount, $orderTotalBDT): void
+    {
+        try {
+            $newBalance = $bank->current_balance - $paymentAmount;
+
+            // Format message (must be under 159 characters, in English)
+            // PO: {number}, Paid: ৳{amount}, Bank: {name}, New Bal: ৳{balance}
+            $message = "PO: {$po->po_number}, Paid: ৳" . number_format($paymentAmount, 0) .
+                       ", Bank: {$bank->name}, New Bal: ৳" . number_format($newBalance, 0);
+
+            // Check message length (max 159 characters for AlphaSMS)
+            if (strlen($message) > 159) {
+                // Truncate if needed
+                $message = substr($message, 0, 159);
+            }
+
+            $smsService = new \App\Services\AlphaSmsService();
+            $smsService->sendSms($message, '8801728247398');
+
+            \Log::info('Payment confirmation SMS sent', [
+                'po_number' => $po->po_number,
+                'message' => $message,
+                'length' => strlen($message),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send payment confirmation SMS', [
+                'po_id' => $po->id,
+                'po_number' => $po->po_number,
+                'error' => $e->getMessage(),
+            ]);
+            // Don't fail the transaction if SMS fails
         }
     }
 }

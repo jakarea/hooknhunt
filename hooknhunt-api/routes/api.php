@@ -400,6 +400,7 @@ Route::group([
         Route::patch('orders/{id}/status', 'PurchaseOrderController@updateStatus');
         Route::post('orders/{id}/approve-and-stock', 'PurchaseOrderController@approveAndStock');
         Route::patch('orders/{poId}/status-history/{historyId}/comments', 'PurchaseOrderController@updateStatusHistoryComments');
+        Route::patch('orders/{poId}/status-history/{historyId}/timeline-data', 'PurchaseOrderController@updateStatusHistoryTimelineData');
         Route::apiResource('orders', 'PurchaseOrderController');
     });
 

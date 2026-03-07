@@ -381,6 +381,16 @@ export default function CreatePurchaseOrderPage() {
                         label="Select All"
                         checked={orderItems.length > 0 && orderItems.every(item => item.selected)}
                         onChange={toggleSelectAll}
+                        color="cyan"
+                        size="md"
+                        styles={{
+                          input: {
+                            borderColor: '#00bcd4',
+                            '&:hover': {
+                              borderColor: '#00bcd4',
+                            },
+                          },
+                        }}
                       />
                       <Text size="sm" c="dimmed">
                         {orderItems.filter(item => item.selected).length} of {orderItems.length} selected
@@ -395,7 +405,7 @@ export default function CreatePurchaseOrderPage() {
                           <Table.Th style={{ width: 150 }}>
                             Unit Price (RMB)
                           </Table.Th>
-                          <Table.Th style={{ width: 150 }} textAlign="right">
+                          <Table.Th style={{ width: 150 }} ta="right">
                             Line Total (RMB)
                           </Table.Th>
                           <Table.Th style={{ width: 10 }}></Table.Th>
@@ -411,6 +421,16 @@ export default function CreatePurchaseOrderPage() {
                               <Checkbox
                                 checked={item.selected}
                                 onChange={() => toggleItemSelection(index)}
+                                color="cyan"
+                                size="md"
+                                styles={{
+                                  input: {
+                                    borderColor: '#00bcd4',
+                                    '&:hover': {
+                                      borderColor: '#00bcd4',
+                                    },
+                                  },
+                                }}
                               />
                             </Table.Td>
                             <Table.Td>
@@ -442,7 +462,7 @@ export default function CreatePurchaseOrderPage() {
                                 hideControls
                               />
                             </Table.Td>
-                            <Table.Td textAlign="right">
+                            <Table.Td ta="right">
                               <Stack gap={0}>
                                 <Text size="sm" fw={600}>
                                   ¥{item.lineTotalRmb.toFixed(2)}
@@ -477,6 +497,16 @@ export default function CreatePurchaseOrderPage() {
                         label="Select All"
                         checked={orderItems.length > 0 && orderItems.every(item => item.selected)}
                         onChange={toggleSelectAll}
+                        color="cyan"
+                        size="md"
+                        styles={{
+                          input: {
+                            borderColor: '#00bcd4',
+                            '&:hover': {
+                              borderColor: '#00bcd4',
+                            },
+                          },
+                        }}
                       />
                       <Text size="sm" c="dimmed">
                         {orderItems.filter(item => item.selected).length} of {orderItems.length} selected
@@ -497,6 +527,16 @@ export default function CreatePurchaseOrderPage() {
                                 checked={item.selected}
                                 onChange={() => toggleItemSelection(index)}
                                 label={item.productName}
+                                color="cyan"
+                                size="md"
+                                styles={{
+                                  input: {
+                                    borderColor: '#00bcd4',
+                                    '&:hover': {
+                                      borderColor: '#00bcd4',
+                                    },
+                                  },
+                                }}
                               />
                               <ActionIcon
                                 color="red"
@@ -531,10 +571,10 @@ export default function CreatePurchaseOrderPage() {
 
                                 {item.lineTotalRmb > 0 && (
                                   <Stack gap={0}>
-                                    <Text size="sm" fw={600} textAlign="right">
+                                    <Text size="sm" fw={600} ta="right">
                                       Total: ¥{item.lineTotalRmb.toFixed(2)}
                                     </Text>
-                                    <Text size="xs" c="dimmed" textAlign="right">
+                                    <Text size="xs" c="dimmed" ta="right">
                                       ৳{item.lineTotalBdt.toFixed(2)}
                                     </Text>
                                   </Stack>

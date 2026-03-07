@@ -6,6 +6,21 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import en from '../locales/en.json';
 import bn from '../locales/bn.json';
 
+// মডিউলার ট্রান্সলেশন ফাইল ইমপোর্ট
+import procurementEn from '../locales/modules/en/procurement.js';
+import procurementBn from '../locales/modules/bn/procurement.js';
+
+// মডিউল মার্জ করা
+const enTranslation = {
+  ...en,
+  procurement: procurementEn
+};
+
+const bnTranslation = {
+  ...bn,
+  procurement: procurementBn
+};
+
 i18n
   // ইউজারের ভাষা ডিটেক্ট করবে (localStorage বা Browser setting থেকে)
   .use(LanguageDetector)
@@ -13,8 +28,8 @@ i18n
   .use(initReactI18next)
   .init({
     resources: {
-      en: { translation: en },
-      bn: { translation: bn }
+      en: { translation: enTranslation },
+      bn: { translation: bnTranslation }
     },
     // lng: 'en', // Removed - let LanguageDetector decide from localStorage
     fallbackLng: 'en', // ভাষা খুঁজে না পেলে ইংলিশ দেখাবে

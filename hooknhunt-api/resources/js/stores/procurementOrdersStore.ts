@@ -274,21 +274,23 @@ export const useProcurementOrdersStore = create<ProcurementOrdersStore>((set, ge
         return false
       }
 
-      // Search query
+      // Search query - handle both camelCase and snake_case
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase()
-        const matchesPoNumber = order.poNumber.toLowerCase().includes(query)
+        const poNumber = (order as any).poNumber || (order as any).po_number || ''
+        const matchesPoNumber = poNumber.toLowerCase().includes(query)
         const matchesSupplier = order.supplier.name.toLowerCase().includes(query)
         if (!matchesPoNumber && !matchesSupplier) {
           return false
         }
       }
 
-      // Date range filter
-      if (filters.fromDate && order.orderDate < filters.fromDate) {
+      // Date range filter - handle both camelCase and snake_case
+      const orderDate = (order as any).orderDate || (order as any).order_date
+      if (filters.fromDate && orderDate < filters.fromDate) {
         return false
       }
-      if (filters.toDate && order.orderDate > filters.toDate) {
+      if (filters.toDate && orderDate > filters.toDate) {
         return false
       }
 

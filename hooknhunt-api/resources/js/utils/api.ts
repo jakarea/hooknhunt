@@ -4188,6 +4188,7 @@ export const getProcurementProductsBySupplier = async (supplierId: number, filte
 // ============================================
 
 export type PurchaseOrderItem = {
+  id?: number  // Purchase order item ID (required for updating existing items)
   productId: number
   quantity: number
   chinaPrice: number
@@ -4283,6 +4284,7 @@ export const updatePurchaseOrder = async (id: number, data: PurchaseOrder) => {
     expected_date: data.expectedDate,
     exchange_rate: data.exchangeRate,
     items: data.items.map(item => ({
+      id: item.id,  // Include purchase order item ID for existing items
       product_id: item.productId,
       quantity: item.quantity,
       china_price: item.chinaPrice,

@@ -15,9 +15,32 @@ class Product extends Model
 
     protected $guarded = ['id'];
 
+    protected $fillable = [
+        'name',
+        'slug',
+        'category_id',
+        'brand_id',
+        'thumbnail_id',
+        'gallery_images',
+        'description',
+        'short_description',
+        'video_url',
+        'seo_title',
+        'seo_description',
+        'seo_tags',
+        'status',
+        'warranty_enabled',
+        'warranty_details',
+        'highlights',
+        'includes_in_box',
+    ];
+
     protected $casts = [
         'gallery_images' => 'array', // JSON Column for multiple images
-        'is_active' => 'boolean',
+        'seo_tags' => 'array', // JSON Column for SEO tags
+        'highlights' => 'array', // JSON Column for product highlights
+        'includes_in_box' => 'array', // JSON Column for items included in box
+        'warranty_enabled' => 'boolean',
     ];
 
     // 1. Relation with Category

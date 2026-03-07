@@ -188,6 +188,11 @@ class PurchaseOrder extends Model
         return $this->status === 'received_hub';
     }
 
+    public function isPartiallyCompleted(): bool
+    {
+        return $this->status === 'partially_completed';
+    }
+
     public function isCompleted(): bool
     {
         return $this->status === 'completed';
@@ -210,9 +215,9 @@ class PurchaseOrder extends Model
             'warehouse_received' => ['shipped_bd', 'lost'],
             'shipped_bd' => ['arrived_bd', 'lost'],
             'arrived_bd' => ['in_transit_bogura', 'lost'],
-            'in_transit_bogura' => ['received_hub', 'completed_partially', 'lost'],
+            'in_transit_bogura' => ['received_hub', 'partially_completed', 'lost'],
             'received_hub' => ['completed', 'lost'],
-            'completed_partially' => [], // Final status (partial completion due to lost items)
+            'partially_completed' => ['completed'], // Can be marked complete if items found later
             'completed' => [], // Final status
             'lost' => [], // Final status
         ];

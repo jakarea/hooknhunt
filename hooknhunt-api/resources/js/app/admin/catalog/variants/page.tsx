@@ -1,412 +1,432 @@
-import { useState, useEffect } from 'react'
+'use client'
+
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
+  Box,
   Stack,
   Group,
+  Title,
   Text,
   Paper,
-  Button,
-  Card,
+  Table,
   Badge,
+  Button,
   ActionIcon,
-  Modal,
   TextInput,
+  Skeleton,
+  Card,
   SimpleGrid,
-  ColorInput,
-  Switch,
-  Divider,
-  LoadingOverlay,
+  Flex,
+  Tooltip,
+  Menu,
 } from '@mantine/core'
 import {
+  IconSearch,
   IconPlus,
-  IconEdit,
-  IconTrash,
+  IconPhoto,
+  IconDots,
+  IconPackages,
+  IconCube,
   IconTag,
-  IconRuler,
-  IconScale,
-  IconColorPicker,
-  IconRefresh,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
-import { getAttributes, createAttribute, updateAttribute, deleteAttribute, type Attribute } from '@/utils/api'
+import { useDebouncedValue } from '@mantine/hooks'
+import { usePermissions } from '@/hooks/usePermissions'
+import {
+  getProducts,
+  type Product,
+  type ProductFilters,
+} from '@/utils/api'
 
 export default function VariantsPage() {
-  const [attributes, setAttributes] = useState<Attribute[]>([])
+  const { hasPermission, isSuperAdmin } = usePermissions()
+
+  // Permission check
+  if (!isSuperAdmin() && !hasPermission('catalog.products.view')) {
+    return (
+      <Stack p="xl">
+        <Paper withBorder p="xl" shadow="sm" ta="center">
+          <Title order={3} className="text-xl md:text-2xl">Access Denied</Title>
+          <Text c="dimmed" className="text-sm md:text-base">You do not have permission to view variants</Text>
+        </Paper>
+      </Stack>
+    )
+  }
+
   const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [modalOpened, setModalOpened] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [editingAttribute, setEditingAttribute] = useState<Attribute | null>(null)
+  const [products, setProducts] = useState<Product[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [debouncedSearch] = useDebouncedValue(searchQuery, 300)
+  const [pagination, setPagination] = useState({ page: 1, total: 0, perPage: 20 })
 
-  // Form state
-  const [formData, setFormData] = useState({
-    displayName: '',
-    name: '',
-    type: 'select' as 'select' | 'color',
-  })
-  const [options, setOptions] = useState<Array<{
-    id?: number
-    value: string
-    label: string
-    swatchValue?: string
-    sortOrder: number
-  }>>([])
-
-  // Fetch attributes
-  const fetchAttributes = async (showLoading = true) => {
+  // Fetch products with variants
+  const fetchProducts = useCallback(async () => {
     try {
-      if (showLoading) setLoading(true)
-      else setRefreshing(true)
+      setLoading(true)
+      const filters: ProductFilters = {
+        search: debouncedSearch || undefined,
+        per_page: pagination.perPage,
+        page: pagination.page,
+      }
 
-      const response = await getAttributes()
-      const attrs = Array.isArray(response) ? response : (response?.data || [])
+      const response = await getProducts(filters)
 
-      // Filter only select and color types (for variants)
-      const variantAttributes = attrs.filter((attr: Attribute) =>
-        attr.type === 'select' || attr.type === 'color'
-      )
-
-      setAttributes(variantAttributes)
+      // Handle paginated response
+      if (response.data) {
+        const productsData = response.data.data || response.data
+        // Filter products that have variants
+        const productsWithVariants = productsData.filter((p: Product) => p.variants && p.variants.length > 0)
+        setProducts(productsWithVariants)
+        if (response.data.total) {
+          setPagination((prev) => ({ ...prev, total: response.data.total }))
+        }
+      } else {
+        const productsData = response.data || []
+        const productsWithVariants = productsData.filter((p: Product) => p.variants && p.variants.length > 0)
+        setProducts(productsWithVariants)
+      }
     } catch (error) {
       notifications.show({
         title: 'Error',
-        message: 'Failed to load variant types',
-        color: 'red'
+        message: 'Failed to load variants',
+        color: 'red',
       })
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
-  }
+  }, [debouncedSearch, pagination.page])
 
   useEffect(() => {
-    fetchAttributes()
+    fetchProducts()
+  }, [fetchProducts])
+
+  // Handle add new variant
+  const handleAddVariant = () => {
+    window.location.href = '/admin/catalog/products/create'
+  }
+
+  // Calculate total variants for a product
+  const getTotalVariants = useCallback((product: Product) => {
+    return product.variants?.length || 0
   }, [])
 
-  // Get icon for variant type
-  const getTypeIcon = (attribute: Attribute) => {
-    const name = attribute.displayName?.toLowerCase() || ''
-    if (name.includes('color')) return <IconColorPicker size={20} />
-    if (name.includes('size')) return <IconRuler size={20} />
-    if (name.includes('weight')) return <IconScale size={20} />
-    return <IconTag size={20} />
-  }
+  // Memoized product cards for mobile
+  const productCards = useMemo(() => {
+    return products.map((product) => (
+      <Card key={product.id} withBorder p="md" shadow="sm">
+        <Stack gap="sm">
+          {/* Product Image & Basic Info */}
+          <Group justify="space-between" align="flex-start">
+            <Group gap="sm">
+              <Box
+                w={60}
+                h={60}
+                className="bg-gray-100 rounded-md flex items-center justify-center"
+              >
+                {product.thumbnail ? (
+                  <Box
+                    component="img"
+                    src={product.thumbnail.filePath}
+                    alt={product.name}
+                    w={60}
+                    h={60}
+                    style={{ objectFit: 'cover', borderRadius: '6px' }}
+                  />
+                ) : (
+                  <IconPhoto size={24} className="text-gray-400" />
+                )}
+              </Box>
+              <Box>
+                <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
+                  {product.name}
+                </Text>
+                {product.category && (
+                  <Text className="text-xs md:text-sm" c="dimmed">
+                    {product.category.name}
+                  </Text>
+                )}
+              </Box>
+            </Group>
+          </Group>
 
-  // Add new type
-  const handleAdd = () => {
-    setFormData({ displayName: '', name: '', type: 'select' })
-    setOptions([])
-    setEditingAttribute(null)
-    setModalOpened(true)
-  }
+          {/* Variants Count */}
+          <Group justify="space-between">
+            <Text className="text-xs md:text-sm" c="dimmed">
+              Variants:
+            </Text>
+            <Badge
+              leftSection={<IconCube size={12} />}
+              className="text-sm md:text-base"
+            >
+              {getTotalVariants(product)}
+            </Badge>
+          </Group>
 
-  // Edit type
-  const handleEdit = (attribute: Attribute) => {
-    setFormData({
-      displayName: attribute.displayName || '',
-      name: attribute.name || '',
-      type: (attribute.type === 'color' ? 'color' : 'select')
-    })
+          {/* Actions */}
+          <Group gap="xs">
+            <Button
+              variant="light"
+              size="xs"
+              radius="xl"
+              leftSection={<IconTag size={14} />}
+              onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+              className="flex-1"
+            >
+              Manage
+            </Button>
+            <Menu shadow="md" width={160} position="bottom-end">
+              <Menu.Target>
+                <ActionIcon variant="light" size="lg">
+                  <IconDots size={18} />
+                </ActionIcon>
+              </Menu.Target>
 
-    // Transform options to form format
-    const formOptions = attribute.options?.map(opt => ({
-      id: opt.id,
-      value: opt.value || '',
-      label: opt.label || opt.value || '',
-      swatchValue: opt.swatchValue || undefined,
-      sortOrder: opt.sortOrder
-    })) || []
+              <Menu.Dropdown>
+                <Menu.Label>Actions</Menu.Label>
+                <Menu.Item
+                  leftSection={<IconTag size={16} />}
+                  onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+                >
+                  Manage Variants
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<IconPackages size={16} />}
+                  onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                >
+                  View Details
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        </Stack>
+      </Card>
+    ))
+  }, [products, getTotalVariants])
 
-    setOptions(formOptions)
-    setEditingAttribute(attribute)
-    setModalOpened(true)
-  }
+  // Loading state
+  if (loading) {
+    return (
+      <Box p={{ base: 'md', md: 'xl' }}>
+        <Stack gap="md">
+          {/* Header Skeleton */}
+          <Group justify="space-between">
+            <Skeleton height={40} width={200} />
+            <Skeleton height={36} width={120} />
+          </Group>
 
-  // Delete type
-  const handleDelete = async (attribute: Attribute) => {
-    try {
-      await deleteAttribute(attribute.id)
-      await fetchAttributes(false)
-      notifications.show({
-        title: 'Deleted',
-        message: `"${attribute.displayName}" has been deleted`,
-        color: 'green'
-      })
-    } catch (error: any) {
-      notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to delete',
-        color: 'red'
-      })
-    }
-  }
+          {/* Filters Skeleton */}
+          <Skeleton height={50} radius="md" />
 
-  // Add value
-  const handleAddValue = () => {
-    const newValue = {
-      value: '',
-      label: '',
-      swatchValue: formData.type === 'color' ? '#000000' : undefined,
-      sortOrder: options.length + 1
-    }
-    setOptions([...options, newValue])
-  }
-
-  // Update value
-  const handleUpdateValue = (index: number, field: string, val: any) => {
-    const newOptions = [...options]
-    newOptions[index] = { ...newOptions[index], [field]: val }
-    setOptions(newOptions)
-  }
-
-  // Remove value
-  const handleRemoveValue = (index: number) => {
-    setOptions(options.filter((_, i) => i !== index))
-  }
-
-  // Save
-  const handleSave = async () => {
-    if (!formData.displayName || !formData.name) {
-      notifications.show({
-        title: 'Validation Error',
-        message: 'Display Name and Code Name are required',
-        color: 'red'
-      })
-      return
-    }
-
-    setSubmitting(true)
-    try {
-      // Transform to snake_case for backend
-      const payload: any = {
-        name: formData.name,
-        display_name: formData.displayName,
-        type: formData.type,
-        is_required: true,
-        is_visible: true,
-        sort_order: 0,
-        options: options.map(opt => ({
-          value: opt.value,
-          label: opt.label || opt.value,
-          swatch_value: opt.swatchValue,
-          sort_order: opt.sortOrder
-        }))
-      }
-
-      if (editingAttribute) {
-        await updateAttribute(editingAttribute.id, payload)
-        notifications.show({
-          title: 'Updated',
-          message: `"${formData.displayName}" has been updated`,
-          color: 'green'
-        })
-      } else {
-        await createAttribute(payload)
-        notifications.show({
-          title: 'Created',
-          message: `"${formData.displayName}" has been created`,
-          color: 'green'
-        })
-      }
-
-      setModalOpened(false)
-      await fetchAttributes(false)
-    } catch (error: any) {
-      notifications.show({
-        title: 'Error',
-        message: error.response?.data?.message || 'Failed to save',
-        color: 'red'
-      })
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  // Auto-generate code name from display name
-  const handleDisplayNameChange = (value: string) => {
-    setFormData({
-      ...formData,
-      displayName: value,
-      name: value.toLowerCase().replace(/\s+/g, '_')
-    })
+          {/* Table Skeleton */}
+          <Paper withBorder p="0">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Group key={i} p="md" gap="md">
+                <Skeleton height={48} width={48} circle />
+                <Skeleton height={16} flex={1} />
+                <Skeleton height={16} width={100} />
+                <Skeleton height={16} width={80} />
+                <Skeleton height={30} width={30} />
+              </Group>
+            ))}
+          </Paper>
+        </Stack>
+      </Box>
+    )
   }
 
   return (
-    <Stack p="xl" gap="md">
-      {/* Header */}
-      <Group justify="space-between">
-        <div>
-          <Text className="text-2xl" fw={700}>Variant Types</Text>
-          <Text c="dimmed">Manage variant types and their values</Text>
-        </div>
-        <Group>
+    <Box p={{ base: 'md', md: 'xl' }}>
+      <Stack gap="md">
+        {/* Header */}
+        <Flex justify="space-between" align="center" direction={{ base: 'column', sm: 'row' }} gap="sm">
+          <Group>
+            <IconTag size={32} className="text-blue-600" />
+            <div>
+              <Title order={1} className="text-lg md:text-xl lg:text-2xl">
+                Product Variants
+              </Title>
+              <Text c="dimmed" className="text-sm md:text-base">
+                Manage product variants and SKUs ({products.length} products)
+              </Text>
+            </div>
+          </Group>
           <Button
-            variant="light"
-            leftSection={<IconRefresh size={16} />}
-            loading={refreshing}
-            onClick={() => fetchAttributes(false)}
+            leftSection={<IconPlus size={18} />}
+            onClick={handleAddVariant}
+            className="text-sm md:text-base"
           >
-            Refresh
+            Add New Variant
           </Button>
-          <Button leftSection={<IconPlus size={16} />} onClick={handleAdd}>
-            Add Type
-          </Button>
-        </Group>
-      </Group>
+        </Flex>
 
-      {/* Variant Types List */}
-      {loading ? (
-        <Paper withBorder p="xl">
-          <Text ta="center" c="dimmed">Loading...</Text>
-        </Paper>
-      ) : attributes.length === 0 ? (
-        <Paper withBorder p="xl">
-          <Text ta="center" c="dimmed">No variant types found. Click "Add Type" to create one.</Text>
-        </Paper>
-      ) : (
-        <SimpleGrid cols={{ base: 1, md: 2, lg: 3 }}>
-          {attributes.map((attribute) => (
-            <Card key={attribute.id} withBorder shadow="sm">
-              <Stack gap="sm">
-                {/* Header */}
-                <Group justify="space-between">
-                  <Group gap="sm">
-                    <div className="text-blue-600">{getTypeIcon(attribute)}</div>
-                    <div>
-                      <Text fw={600}>{attribute.displayName}</Text>
-                      <Text size="xs" c="dimmed">Code: {attribute.name}</Text>
-                    </div>
-                  </Group>
-                  <Group gap="xs">
-                    <ActionIcon size="sm" variant="light" color="blue" onClick={() => handleEdit(attribute)}>
-                      <IconEdit size={16} />
-                    </ActionIcon>
-                    <ActionIcon size="sm" variant="light" color="red" onClick={() => handleDelete(attribute)}>
-                      <IconTrash size={16} />
-                    </ActionIcon>
-                  </Group>
-                </Group>
-
-                <Divider />
-
-                {/* Values */}
-                <Stack gap="xs">
-                  <Group gap="xs">
-                    <Text size="sm" fw={500}>Values</Text>
-                    <Badge size="xs">{attribute.options?.length || 0}</Badge>
-                  </Group>
-                  {attribute.options?.map((option) => (
-                    <Group key={option.id} gap="sm">
-                      {attribute.type === 'color' && option.swatchValue && (
-                        <Paper
-                          w={24}
-                          h={24}
-                          style={{
-                            backgroundColor: option.swatchValue,
-                            border: '1px solid #e5e7eb',
-                            flexShrink: 0
-                          }}
-                        />
-                      )}
-                      <Text size="sm">{option.label || option.value}</Text>
-                    </Group>
-                  ))}
-                </Stack>
-              </Stack>
-            </Card>
-          ))}
-        </SimpleGrid>
-      )}
-
-      {/* Add/Edit Modal */}
-      <Modal
-        opened={modalOpened}
-        onClose={() => setModalOpened(false)}
-        title={editingAttribute ? 'Edit Variant Type' : 'Add Variant Type'}
-        size="md"
-      >
-        <Stack gap="md">
+        {/* Filters */}
+        <Paper withBorder p="md">
           <TextInput
-            label="Display Name*"
-            placeholder="e.g., Color, Size, Weight"
-            value={formData.displayName}
-            onChange={(e) => handleDisplayNameChange(e.currentTarget.value)}
-            description="User-friendly name shown in UI"
+            placeholder="Search products..."
+            leftSection={<IconSearch size={18} />}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.currentTarget.value)}
           />
+        </Paper>
 
-          <TextInput
-            label="Code Name*"
-            placeholder="e.g., color, size, weight"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.currentTarget.value })}
-            description="Internal code (auto-generated from display name)"
-          />
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+          <Paper withBorder p="0">
+            <Table striped highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Product</Table.Th>
+                  <Table.Th>Category</Table.Th>
+                  <Table.Th>Variants</Table.Th>
+                  <Table.Th ta="center">Actions</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {products.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={4} ta="center">
+                      <Stack py="xl" align="center" gap="sm">
+                        <IconTag size={48} className="text-gray-300" />
+                        <Text c="dimmed" className="text-sm md:text-base">
+                          No variants found
+                        </Text>
+                      </Stack>
+                    </Table.Td>
+                  </Table.Tr>
+                ) : (
+                  products.map((product) => (
+                    <Table.Tr key={product.id}>
+                      <Table.Td>
+                        <Group gap="sm">
+                          <Box
+                            w={40}
+                            h={40}
+                            className="bg-gray-100 rounded flex items-center justify-center"
+                          >
+                            {product.thumbnail ? (
+                              <Box
+                                component="img"
+                                src={product.thumbnail.filePath}
+                                alt={product.name}
+                                w={40}
+                                h={40}
+                                style={{ objectFit: 'cover', borderRadius: '4px' }}
+                              />
+                            ) : (
+                              <IconPhoto size={20} className="text-gray-400" />
+                            )}
+                          </Box>
+                          <Box>
+                            <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
+                              {product.name}
+                            </Text>
+                            {product.brand && (
+                              <Text className="text-xs md:text-sm" c="dimmed">
+                                {product.brand.name}
+                              </Text>
+                            )}
+                          </Box>
+                        </Group>
+                      </Table.Td>
+                      <Table.Td>
+                        {product.category ? (
+                          <Text className="text-sm md:text-base">{product.category.name}</Text>
+                        ) : (
+                          <Text className="text-sm md:text-base" c="dimmed">-</Text>
+                        )}
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge
+                          leftSection={<IconCube size={12} />}
+                          className="text-sm md:text-base"
+                        >
+                          {getTotalVariants(product)}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td ta="center">
+                        <Group gap="xs" justify="center" wrap="nowrap">
+                          <Tooltip label="Manage Variants">
+                            <ActionIcon
+                              size="lg"
+                              variant="light"
+                              color="blue"
+                              onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+                            >
+                              <IconTag size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Tooltip label="View Details">
+                            <ActionIcon
+                              size="lg"
+                              variant="light"
+                              color="gray"
+                              onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                            >
+                              <IconPackages size={18} />
+                            </ActionIcon>
+                          </Tooltip>
+                          <Menu shadow="md" width={160} position="bottom-end">
+                            <Menu.Target>
+                              <ActionIcon size="lg" variant="light">
+                                <IconDots size={18} />
+                              </ActionIcon>
+                            </Menu.Target>
 
-          <Switch
-            label="Color Type (with swatches)"
-            checked={formData.type === 'color'}
-            onChange={(e) => setFormData({ ...formData, type: e.currentTarget.checked ? 'color' : 'select' })}
-          />
+                            <Menu.Dropdown>
+                              <Menu.Label>Actions</Menu.Label>
+                              <Menu.Item
+                                leftSection={<IconTag size={16} />}
+                                onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+                              >
+                                Manage Variants
+                              </Menu.Item>
+                              <Menu.Item
+                                leftSection={<IconPackages size={16} />}
+                                onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                              >
+                                View Details
+                              </Menu.Item>
+                            </Menu.Dropdown>
+                          </Menu>
+                        </Group>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))
+                )}
+              </Table.Tbody>
+            </Table>
+          </Paper>
+        </div>
 
-          <Divider label="Values" labelPosition="center" />
+        {/* Mobile Card View */}
+        <div className="block md:hidden">
+          <SimpleGrid cols={{ base: 1, xs: 2 }}>
+            {productCards}
+          </SimpleGrid>
+        </div>
 
-          <Group justify="space-between">
-            <Text size="sm" fw={500}>Values ({options.length})</Text>
-            <Button size="xs" variant="light" onClick={handleAddValue}>Add Value</Button>
-          </Group>
-
-          {options.length === 0 ? (
-            <Paper withBorder p="xl" bg="gray.0">
-              <Text c="dimmed" ta="center" size="sm">No values added</Text>
-            </Paper>
-          ) : (
-            <Stack gap="xs">
-              {options.map((option, index) => (
-                <Paper key={index} withBorder p="xs" bg="gray.0">
-                  <Group>
-                    <Badge size="sm">{index + 1}</Badge>
-                    <TextInput
-                      placeholder="Value (e.g., red, s)"
-                      size="xs"
-                      value={option.value}
-                      onChange={(e) => handleUpdateValue(index, 'value', e.currentTarget.value)}
-                      style={{ flex: 1 }}
-                    />
-                    <TextInput
-                      placeholder="Label (e.g., Red, Small)"
-                      size="xs"
-                      value={option.label}
-                      onChange={(e) => handleUpdateValue(index, 'label', e.currentTarget.value)}
-                      style={{ flex: 1 }}
-                    />
-                    {formData.type === 'color' && (
-                      <ColorInput
-                        size="xs"
-                        value={option.swatchValue}
-                        onChange={(v) => handleUpdateValue(index, 'swatchValue', v)}
-                      />
-                    )}
-                    <ActionIcon
-                      size="sm"
-                      color="red"
-                      variant="light"
-                      onClick={() => handleRemoveValue(index)}
-                    >
-                      <IconTrash size={14} />
-                    </ActionIcon>
-                  </Group>
-                </Paper>
-              ))}
+        {/* Empty state */}
+        {products.length === 0 && !loading && (
+          <Paper withBorder p="xl" ta="center">
+            <Stack align="center" gap="sm">
+              <IconTag size={64} className="text-gray-300" />
+              <Text className="text-base md:text-lg" fw={500}>
+                No variants found
+              </Text>
+              <Text className="text-sm md:text-base" c="dimmed">
+                Products with variants will appear here
+              </Text>
+              <Button
+                leftSection={<IconPlus size={16} />}
+                onClick={handleAddVariant}
+                mt="sm"
+              >
+                Add New Variant
+              </Button>
             </Stack>
-          )}
-
-          <Group justify="flex-end" mt="md">
-            <Button variant="light" onClick={() => setModalOpened(false)}>Cancel</Button>
-            <Button onClick={handleSave} loading={submitting}>
-              {editingAttribute ? 'Update' : 'Create'} Type
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
-    </Stack>
+          </Paper>
+        )}
+      </Stack>
+    </Box>
   )
 }

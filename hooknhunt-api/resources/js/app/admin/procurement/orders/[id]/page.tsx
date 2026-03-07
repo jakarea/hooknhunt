@@ -43,6 +43,7 @@ import {
   IconBuilding,
   IconCoin,
   IconWeight,
+  IconInfoCircle,
 } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -50,6 +51,7 @@ import { getPurchaseOrder, updatePurchaseOrderStatus, updateStatusHistoryComment
 import api from '@/lib/api'
 import ReceivingModal, { type ReceivingData } from '@/components/receiving-modal'
 import { getNextStatus } from '@/stores/procurementStore'
+import { usePurchaseOrderDetailStore } from '@/stores/purchaseOrderDetailStore'
 import {
   validateAndShowErrors,
   buildStatusUpdatePayload,
@@ -132,8 +134,13 @@ const getStatusFlow = (t: (key: string) => string, order?: PurchaseOrder | null)
     { value: 'received_hub', label: t('procurement.ordersPage.statuses.receivedHub'), icon: IconPackage, color: 'lime' },
   ]
 
-  // Check if any items have lost_quantity > 0
-  const hasLostItems = order?.items?.some(item => (item.lostQuantity || 0) > 0) || false
+  // Check if any items have lost_quantity > 0 OR received_quantity < quantity
+  const hasLostItems = order?.items?.some(item => {
+    const lostQty = item.lostQuantity || 0
+    const receivedQty = item.receivedQuantity ?? item.quantity
+    const orderedQty = item.quantity
+    return lostQty > 0 || receivedQty < orderedQty
+  }) || false
 
   // Add appropriate final status based on whether there are lost items
   if (hasLostItems) {
@@ -151,9 +158,14 @@ export default function PurchaseOrderDetailsPage() {
   const { id } = useParams()
   const { hasPermission } = usePermissions()
 
-  // Data state
-  const [order, setOrder] = useState<PurchaseOrder | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Use Zustand store for order data (no full page re-renders!)
+  const order = usePurchaseOrderDetailStore((state) => state.order)
+  const history = usePurchaseOrderDetailStore((state) => state.history)
+  const loading = usePurchaseOrderDetailStore((state) => state.loading)
+  const fetchOrder = usePurchaseOrderDetailStore((state) => state.fetchOrder)
+  const updateStatusHistoryEntry = usePurchaseOrderDetailStore((state) => state.updateStatusHistoryEntry)
+
+  // Local UI state only (modals, form inputs, etc.)
 
   // Get status flow with translations (for UI display only)
   // Recalculate when order changes to determine whether to show partially_completed or completed
@@ -246,13 +258,6 @@ export default function PurchaseOrderDetailsPage() {
     }
   }
 
-  // Pure function: Check if payment summary should be shown
-  const shouldShowPaymentSummary = (
-    paymentBreakdown: { from_supplier_credit: number; from_bank: number; total: number } | null
-  ): boolean => {
-    return paymentBreakdown !== null && paymentBreakdown.from_supplier_credit > 0
-  }
-
   // Pure function: Calculate final bank balance
   const calculateFinalBankBalance = (currentBalance: number, paymentAmount: number): number => {
     return Math.round((currentBalance - paymentAmount) * 100) / 100
@@ -281,26 +286,16 @@ export default function PurchaseOrderDetailsPage() {
     }
 
     if (id) {
-      fetchOrder()
+      fetchOrder(Number(id))
     }
   }, [id])
 
-  const fetchOrder = async () => {
-    try {
-      setLoading(true)
-      const response: any = await getPurchaseOrder(Number(id))
-      setOrder(response?.data || response)
-    } catch (error: any) {
-      console.error('Failed to load PO:', error)
-      notifications.show({
-        title: t('common.error'),
-        message: error.response?.data?.message || error.message || t('procurement.ordersPage.notifications.errorLoading'),
-        color: 'red',
-      })
-    } finally {
-      setLoading(false)
+  // Clear store when component unmounts
+  useEffect(() => {
+    return () => {
+      usePurchaseOrderDetailStore.getState().clearOrder()
     }
-  }
+  }, [])
 
   const openStatusModal = () => {
     const nextStatus = getNextStatus(order?.status || '')
@@ -419,8 +414,6 @@ export default function PurchaseOrderDetailsPage() {
         }
       )
 
-      console.log('📤 Sending status update:', payload)
-
       const response: any = await updatePurchaseOrderStatus(
         Number(id),
         nextStatus,
@@ -428,15 +421,13 @@ export default function PurchaseOrderDetailsPage() {
         payload
       )
 
-      console.log('📥 Response:', response)
-
       // Show success using pure function
       const message = response?.data?.message || response?.message
       const nextStatusLabel = STATUS_FLOW.find(s => s.value === nextStatus)?.label || nextStatus
       showStatusUpdateSuccess(nextStatusLabel, message, t)
 
       setStatusModalOpen(false)
-      await fetchOrder() // Refresh order data
+      await fetchOrder(Number(id)) // Refresh order data
     } catch (error: any) {
       console.error('Failed to update status:', error)
       showStatusUpdateError(error, t)
@@ -478,7 +469,7 @@ export default function PurchaseOrderDetailsPage() {
       })
 
       setReceivingModalOpen(false)
-      await fetchOrder()
+      await fetchOrder(Number(id))
     } catch (error: any) {
       console.error('Failed to receive goods:', error)
       notifications.show({
@@ -510,7 +501,7 @@ export default function PurchaseOrderDetailsPage() {
       })
 
       setApproveModalOpen(false)
-      await fetchOrder()
+      await fetchOrder(Number(id))
     } catch (error: any) {
       console.error('Failed to approve order:', error)
       notifications.show({
@@ -535,7 +526,7 @@ export default function PurchaseOrderDetailsPage() {
   const extractExtraCostFromHistory = () => {
     if (!order?.statusHistory) return 0
 
-    const receivedHubEntry = order.statusHistory.find((h: any) => h.newStatus === 'received_hub')
+    const receivedHubEntry = history.find((h: any) => h.newStatus === 'received_hub')
     if (receivedHubEntry?.comments) {
       const match = receivedHubEntry.comments.match(/Extra cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
       if (match) {
@@ -550,7 +541,7 @@ export default function PurchaseOrderDetailsPage() {
     if (!order?.statusHistory) return 0
 
     // Try to find arrived_bd status with shipping cost info
-    const arrivedBDEntry = order.statusHistory.find((h: any) => h.newStatus === 'arrived_bd')
+    const arrivedBDEntry = history.find((h: any) => h.newStatus === 'arrived_bd')
     if (arrivedBDEntry?.comments) {
       const match = arrivedBDEntry.comments.match(/Total shipping cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
       if (match) {
@@ -565,7 +556,7 @@ export default function PurchaseOrderDetailsPage() {
 
     // Calculate items total in BDT: sum of (china_price × exchange_rate × quantity)
     const itemsTotalBdt = order.items.reduce((sum, item) => {
-      const bdPrice = (item as any).bdPrice || (Number(item.chinaPrice) * Number(order.exchangeRate))
+      const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order.exchangeRate))
       return sum + (bdPrice * item.quantity)
     }, 0)
 
@@ -621,7 +612,7 @@ export default function PurchaseOrderDetailsPage() {
 
       if (result.success) {
         setTimelineEditModalOpen(false)
-        await fetchOrder() // Refresh to get updated data
+        // Store already updated by saveTimelineUpdate - no full refetch needed!
       }
     } finally {
       setSavingTimelineEdit(false)
@@ -654,9 +645,17 @@ export default function PurchaseOrderDetailsPage() {
   const nextStatusValue = getNextStatus(order.status)
   const nextStatus = nextStatusValue ? STATUS_FLOW.find(s => s.value === nextStatusValue) || null : null
   const canEdit = order.status === 'draft' && hasPermission('procurement.orders.edit')
-  const canUpdateStatus = hasPermission('procurement.orders.edit') && order.status !== 'completed' && order.status !== 'partially_completed'
+  const canUpdateStatus = hasPermission('procurement.orders.edit') && order.status !== 'completed'
   const isCompleted = order.status === 'completed'
   const isPartiallyCompleted = order.status === 'partially_completed'
+
+  // Check if any items have lost_quantity > 0 OR received_quantity < quantity
+  const hasLostItems = order?.items?.some((item: any) => {
+    const lostQty = item.lostQuantity || 0
+    const receivedQty = item.receivedQuantity || item.quantity
+    const orderedQty = item.quantity
+    return lostQty > 0 || receivedQty < orderedQty
+  }) || false
 
   return (
     <Box p={{ base: 'md', md: 'xl' }}>
@@ -702,12 +701,12 @@ export default function PurchaseOrderDetailsPage() {
 
         {/* Two Column Layout: Timeline (Left) + Details (Right) */}
         <Box className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
-          {/* Left Column - Status Timeline */}
+          {/* Left Column - Enhanced Status Timeline */}
           <Paper withBorder p="md" radius="md">
             <Stack gap="sm">
               <Text fw={600} size="lg">{t('procurement.ordersPage.details.statusTimeline')}</Text>
 
-              {/* Vertical Timeline - Compact */}
+              {/* Vertical Timeline - Clean & Simple */}
               <Timeline active={currentStatusIndex} bulletSize={22} lineWidth={1}>
                 {STATUS_FLOW.map((status, index) => {
                   const Icon = status.icon
@@ -715,7 +714,7 @@ export default function PurchaseOrderDetailsPage() {
                   const isPast = index < currentStatusIndex
 
                   // Find status history for this status
-                  const statusHistoryEntry = order.statusHistory?.find(
+                  const statusHistoryEntry = history?.find(
                     (h: any) => h.newStatus === status.value
                   )
 
@@ -767,271 +766,122 @@ export default function PurchaseOrderDetailsPage() {
                             )}
                           </Group>
 
-                          {/* Show entered values for current and past statuses - Enhanced Details */}
-                          {(isCurrent || isPast) && (() => {
-                            // Determine if there's any data to show in the details box
-                            const hasDetailsData =
-                              // Payment Confirmed
-                              (status.value === 'payment_confirmed' && (order.exchangeRate || statusHistoryEntry?.comments)) ||
-                              // Supplier Dispatched
-                              (status.value === 'supplier_dispatched' && (order.courierName || order.trackingNumber)) ||
-                              // Warehouse Received
-                              (status.value === 'warehouse_received' && (order.lotNumber || statusHistoryEntry?.comments)) ||
-                              // Shipped BD
-                              (status.value === 'shipped_bd' && (
-                                order.lotNumber ||
-                                order.totalWeight ||
-                                order.shippingCostPerKg ||
-                                order.totalShippingCost ||
-                                (statusHistoryEntry?.comments && /Total shipping cost:/i.test(statusHistoryEntry.comments))
-                              )) ||
-                              // Arrived BD
-                              (status.value === 'arrived_bd' && (order.bdCourierTracking || statusHistoryEntry?.comments)) ||
-                              // In Transit Bogura (always show transit message)
-                              status.value === 'in_transit_bogura' ||
-                              // Received Hub
-                              (status.value === 'received_hub' && (
-                                order.extraCost ||
-                                (statusHistoryEntry?.comments && /Extra cost:/i.test(statusHistoryEntry.comments)) ||
-                                statusHistoryEntry?.comments
-                              )) ||
-                              // Partially Completed
-                              (status.value === 'partially_completed' && (order.extraCost || statusHistoryEntry?.comments)) ||
-                              // Completed
-                              status.value === 'completed' ||
-                              // Other past statuses
-                              (!['payment_confirmed', 'supplier_dispatched', 'warehouse_received', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub', 'partially_completed', 'completed'].includes(status.value) && isPast)
+                          {/* Simple inline details for current/past statuses */}
+                          {(isCurrent || isPast) && statusHistoryEntry && (
+                            <Stack gap={2}>
+                              {/* Timestamp */}
+                              <Text size="xs" c="dimmed">
+                                {new Date(statusHistoryEntry.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                              </Text>
 
-                            return (
-                              <Stack gap={6} align="flex-start">
-                                {/* Details Paper - Only show if there's data */}
-                                {hasDetailsData && (
-                                  <Paper p="xs" radius="sm" bg="gray.0" withBorder style={{ width: '100%' }}>
-                                    <Stack gap={4}>
-                                      {/* Payment Confirmed Details */}
-                                      {status.value === 'payment_confirmed' && (
-                                        <>
-                                          {order.exchangeRate && (
-                                            <Group gap={6} wrap="wrap">
-                                              <Group gap={4}>
-                                                <Text size="xs" c="dimmed" fw={500}>Exchange Rate:</Text>
-                                                <Text size="xs" fw={600} c="blue">৳{order.exchangeRate}</Text>
-                                              </Group>
-                                            </Group>
-                                          )}
-                                          {statusHistoryEntry?.comments && (
-                                            <Group gap={4}>
-                                              <Text size="xs" c="dimmed" fw={500}>Payment:</Text>
-                                              <Text size="xs" c="green" fw={500}>Confirmed</Text>
-                                            </Group>
-                                          )}
-                                        </>
-                                      )}
-
-                                      {/* Supplier Dispatched Details */}
-                                      {status.value === 'supplier_dispatched' && (
-                                        <>
-                                          {order.courierName && (
-                                            <Group gap={6} wrap="wrap">
-                                              <Group gap={4}>
-                                                <IconPlane size={12} c="dimmed" />
-                                                <Text size="xs" c="dimmed" fw={500}>Courier:</Text>
-                                                <Text size="xs" fw={500}>{order.courierName}</Text>
-                                              </Group>
-                                            </Group>
-                                          )}
-                                          {order.trackingNumber && (
-                                            <Group gap={4}>
-                                              <IconScreenshot size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>Tracking:</Text>
-                                              <Text size="xs" c="blue" fw={500}>{order.trackingNumber}</Text>
-                                            </Group>
-                                          )}
-                                        </>
-                                      )}
-
-                                      {/* Warehouse Received Details */}
-                                      {status.value === 'warehouse_received' && (
-                                        <>
-                                          {order.lotNumber && (
-                                            <Group gap={4}>
-                                              <IconHash size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>Lot Number:</Text>
-                                              <Text size="xs" fw={500}>{order.lotNumber}</Text>
-                                            </Group>
-                                          )}
-                                          {!order.lotNumber && (
-                                            <Text size="xs" c="green" fw={500}>✓ Goods Received at Warehouse</Text>
-                                          )}
-                                        </>
-                                      )}
-
-                                      {/* Shipped BD Details */}
-                                      {status.value === 'shipped_bd' && (
-                                        <>
-                                          {order.lotNumber && (
-                                            <Group gap={4}>
-                                              <IconHash size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>Lot/Shipments:</Text>
-                                              <Text size="xs" fw={500}>{order.lotNumber}</Text>
-                                            </Group>
-                                          )}
-                                          {order.totalWeight && (
-                                            <Group gap={4}>
-                                              <IconWeight size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>Total Weight:</Text>
-                                              <Text size="xs" fw={600} c="blue">{order.totalWeight} kg</Text>
-                                            </Group>
-                                          )}
-                                          {order.shippingCostPerKg && (
-                                            <Group gap={4}>
-                                              <Text size="xs" c="dimmed" fw={500}>Shipping Cost:</Text>
-                                              <Text size="xs" fw={600} c="blue">৳{order.shippingCostPerKg}/kg</Text>
-                                            </Group>
-                                          )}
-                                          {order.totalShippingCost && (
-                                            <Group gap={4}>
-                                              <Text size="xs" c="dimmed" fw={500}>Total Shipping:</Text>
-                                              <Text size="xs" fw={700} c="green">৳{order.totalShippingCost}</Text>
-                                            </Group>
-                                          )}
-                                          {/* Extract from comments if not in order object */}
-                                          {!order.totalShippingCost && statusHistoryEntry?.comments && (() => {
-                                            const match = statusHistoryEntry.comments.match(/Total shipping cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
-                                            return match ? (
-                                              <Group gap={4}>
-                                                <Text size="xs" c="dimmed" fw={500}>Total Shipping:</Text>
-                                                <Text size="xs" fw={700} c="green">৳{Number(match[1]).toFixed(2)}</Text>
-                                              </Group>
-                                            ) : null
-                                          })()}
-                                        </>
-                                      )}
-
-                                      {/* Arrived BD Details */}
-                                      {status.value === 'arrived_bd' && (
-                                        <>
-                                          {order.bdCourierTracking && (
-                                            <Group gap={4}>
-                                              <IconTruck size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>BD Tracking:</Text>
-                                              <Text size="xs" c="blue" fw={500}>{order.bdCourierTracking}</Text>
-                                            </Group>
-                                          )}
-                                          {!order.bdCourierTracking && statusHistoryEntry?.comments && (
-                                            <Text size="xs" c="green" fw={500}>✓ Arrived in Bangladesh</Text>
-                                          )}
-                                        </>
-                                      )}
-
-                                      {/* In Transit Bogura Details */}
-                                      {status.value === 'in_transit_bogura' && (
-                                        <>
-                                          {order.bdCourierTracking && (
-                                            <Group gap={4}>
-                                              <IconTruck size={12} c="dimmed" />
-                                              <Text size="xs" c="dimmed" fw={500}>BD Tracking:</Text>
-                                              <Text size="xs" c="blue" fw={500}>{order.bdCourierTracking}</Text>
-                                            </Group>
-                                          )}
-                                          <Text size="xs" c="orange" fw={500}>🚚 In Transit to Bogura</Text>
-                                        </>
-                                      )}
-
-                                      {/* Received Hub Details */}
-                                      {status.value === 'received_hub' && (
-                                        <>
-                                          <Text size="xs" c="green" fw={600}>✓ Received at Hub</Text>
-                                          {order.extraCost && (
-                                            <Group gap={4}>
-                                              <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
-                                              <Text size="xs" fw={600} c="red">৳{order.extraCost}</Text>
-                                            </Group>
-                                          )}
-                                          {/* Extract from comments if not in order object */}
-                                          {!order.extraCost && statusHistoryEntry?.comments && (() => {
-                                            const match = statusHistoryEntry.comments.match(/Extra cost:\s*(\d+(?:\.\d+)?)\s*BDT/i)
-                                            return match ? (
-                                              <Group gap={4}>
-                                                <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
-                                                <Text size="xs" fw={600} c="red">৳{Number(match[1]).toFixed(2)}</Text>
-                                              </Group>
-                                            ) : null
-                                          })()}
-                                        </>
-                                      )}
-
-                                      {/* Partially Completed Details */}
-                                      {status.value === 'partially_completed' && (
-                                        <>
-                                          <Text size="xs" c="orange" fw={600}>⚠️ Partially Completed</Text>
-                                          {order.extraCost && (
-                                            <Group gap={4}>
-                                              <Text size="xs" c="dimmed" fw={500}>Extra Cost:</Text>
-                                              <Text size="xs" fw={600} c="red">৳{order.extraCost}</Text>
-                                            </Group>
-                                          )}
-                                        </>
-                                      )}
-
-                                      {/* Completed Details */}
-                                      {status.value === 'completed' && (
-                                        <Text size="xs" c="green" fw={600}>✅ Order Completed</Text>
-                                      )}
-
-                                      {/* General status indicators for other statuses */}
-                                      {!['payment_confirmed', 'supplier_dispatched', 'warehouse_received', 'shipped_bd', 'arrived_bd', 'in_transit_bogura', 'received_hub', 'partially_completed', 'completed'].includes(status.value) && isPast && (
-                                        <Text size="xs" c="green" fw={500}>✓ Completed</Text>
-                                      )}
-                                    </Stack>
-                                  </Paper>
+                              {/* Key info - only show essential details inline */}
+                              <Group gap={6} wrap="wrap">
+                                {/* Payment exchange rate */}
+                                {status.value === 'payment_confirmed' && statusHistoryEntry.timelineData?.exchangeRate && (
+                                  <Text size="xs" c="blue" fw={500}>৳{Number(statusHistoryEntry.timelineData.exchangeRate).toFixed(2)}</Text>
                                 )}
-
-                                {/* Metadata Row - Always show if there's status history */}
-                                {statusHistoryEntry && (
-                                  <Group gap={6} wrap="wrap" align="center">
-                                    {/* Timestamp */}
-                                    <Group gap={4}>
-                                      <Text size="xs" c="dimmed">
-                                        {new Date(statusHistoryEntry.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                                      </Text>
-                                      <Text size="xs" c="dimmed">
-                                        {new Date(statusHistoryEntry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                      </Text>
-                                    </Group>
-
-                                    {/* Changed by user */}
-                                    {statusHistoryEntry?.changedByUser && (
-                                      <>
-                                        <Text size="xs" c="gray.4">•</Text>
-                                        <Group gap={4}>
-                                          <Text size="xs" c="blue" fw={500}>{statusHistoryEntry.changedByUser.name}</Text>
-                                        </Group>
-                                      </>
-                                    )}
-                                  </Group>
+                                {/* Courier */}
+                                {status.value === 'supplier_dispatched' && statusHistoryEntry.timelineData?.courierName && (
+                                  <Text size="xs" c="dimmed">{statusHistoryEntry.timelineData.courierName}</Text>
                                 )}
-
-                                {/* Comments - Full text with better styling */}
-                                {statusHistoryEntry?.comments && (
-                                  <Paper p="xs" radius="sm" bg="blue.0" style={{ width: '100%' }}>
-                                    <Group gap={6} align="flex-start">
-                                      <Text size="lg" c="blue">"</Text>
-                                      <Text size="xs" c="blue.8" style={{ flex: 1, lineHeight: 1.4 }}>
-                                        {statusHistoryEntry.comments}
-                                      </Text>
-                                    </Group>
-                                  </Paper>
+                                {/* Tracking */}
+                                {status.value === 'supplier_dispatched' && statusHistoryEntry.timelineData?.trackingNumber && (
+                                  <Text size="xs" c="blue" fw={500} truncate style={{ maxWidth: 120 }}>{statusHistoryEntry.timelineData.trackingNumber}</Text>
                                 )}
-                              </Stack>
-                            )
-                          })()}
+                                {/* BD Tracking */}
+                                {(status.value === 'arrived_bd' || status.value === 'in_transit_bogura') && statusHistoryEntry.timelineData?.bdCourierTracking && (
+                                  <Text size="xs" c="blue" fw={500} truncate style={{ maxWidth: 120 }}>{statusHistoryEntry.timelineData.bdCourierTracking}</Text>
+                                )}
+                                {/* Lot Number */}
+                                {(status.value === 'warehouse_received' || status.value === 'shipped_bd') && statusHistoryEntry.timelineData?.lotNumber && (
+                                  <Text size="xs" c="teal" fw={500}>{statusHistoryEntry.timelineData.lotNumber}</Text>
+                                )}
+                                {/* Shipping Cost */}
+                                {status.value === 'shipped_bd' && statusHistoryEntry.timelineData?.totalShippingCost && (
+                                  <Text size="xs" c="green" fw={600}>৳{Number(statusHistoryEntry.timelineData.totalShippingCost).toFixed(2)}</Text>
+                                )}
+                              </Group>
+
+                              {/* Comment - only if exists and short */}
+                              {statusHistoryEntry?.comments && statusHistoryEntry.comments.length < 50 && (
+                                <Text size="xs" c="dimmed" italic lineClamp={1}>
+                                  {statusHistoryEntry.comments}
+                                </Text>
+                              )}
+                            </Stack>
+                          )}
                         </Stack>
                       }
                     />
                   )
                 })}
               </Timeline>
+
+              {/* Timeline Summary Card - Overall Order Stats */}
+              {order.createdAt && (
+                <Paper p="xs" radius="sm" bg="gray.0" withBorder>
+                  <Stack gap={4}>
+                    <Text size="xs" c="dimmed" fw={500}>Order Timeline Summary</Text>
+                    <SimpleGrid cols={2} spacing={4}>
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Order Age:</Text>
+                        <Text size="xs" fw={600}>
+                          {(() => {
+                            const now = new Date()
+                            const created = new Date(order.createdAt)
+                            const diffMs = now.getTime() - created.getTime()
+                            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+                            return `${diffDays} days`
+                          })()}
+                        </Text>
+                      </Group>
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Stages Done:</Text>
+                        <Text size="xs" fw={600}>{currentStatusIndex + 1}/{STATUS_FLOW.length}</Text>
+                      </Group>
+                    </SimpleGrid>
+                    {/* Expected Delivery Badge - Show if not completed */}
+                    {order.status !== 'completed' && order.status !== 'partially_completed' && order.expectedDate && (
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Expected:</Text>
+                        <Text size="xs" fw={500} c={(() => {
+                          const expected = new Date(order.expectedDate)
+                          const now = new Date()
+                          const diffDays = Math.ceil((expected.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                          return diffDays < 0 ? 'red' : diffDays <= 3 ? 'orange' : 'green'
+                        })()}>
+                          {order.expectedDate}
+                          {(() => {
+                            const expected = new Date(order.expectedDate)
+                            const now = new Date()
+                            const diffDays = Math.ceil((expected.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                            if (diffDays < 0) return ` (${Math.abs(diffDays)}d overdue)`
+                            if (diffDays === 0) return ' (today)'
+                            if (diffDays === 1) return ' (tomorrow)'
+                            return ` (${diffDays}d left)`
+                          })()}
+                        </Text>
+                      </Group>
+                    )}
+                    {/* Average time per stage */}
+                    {currentStatusIndex > 0 && (() => {
+                      const firstStatusDate = history?.[0]?.createdAt
+                      if (!firstStatusDate) return null
+
+                      const now = new Date()
+                      const first = new Date(firstStatusDate)
+                      const avgTime = Math.ceil((now.getTime() - first.getTime()) / (1000 * 60 * 60 * 24) / currentStatusIndex)
+
+                      return (
+                        <Group gap={4}>
+                          <Text size="xs" c="dimmed">Avg/Stage:</Text>
+                          <Text size="xs" fw={500}>{avgTime} days</Text>
+                        </Group>
+                      )
+                    })()}
+                  </Stack>
+                </Paper>
+              )}
 
               {/* Action Button */}
               {canUpdateStatus && nextStatus && (
@@ -1071,6 +921,94 @@ export default function PurchaseOrderDetailsPage() {
               <Stack gap="md">
                 <Text fw={600} size="lg">{t('procurement.ordersPage.details.orderInformation')}</Text>
 
+                {/* Supplier Info - Prominent with Link */}
+                <Paper p="sm" radius="sm" bg="blue.0" withBorder>
+                  <Group justify="space-between" align="center">
+                    <Group gap="sm">
+                      <IconBuilding size={18} c="blue" />
+                      <Stack gap={0}>
+                        <Text size="xs" c="dimmed">Supplier</Text>
+                        <Text size="sm" fw={600}>{order.supplier.name}</Text>
+                      </Stack>
+                    </Group>
+                    <Button
+                      variant="light"
+                      size="xs"
+                      color="blue"
+                      leftSection={<IconBuilding size={14} />}
+                      onClick={() => navigate(`/procurement/suppliers/${order.supplier.id}`)}
+                    >
+                      View Profile
+                    </Button>
+                  </Group>
+                </Paper>
+
+                {/* Order Summary Card - Key Metrics */}
+                <Paper p="sm" radius="sm" bg="gray.0" withBorder>
+                  <Stack gap={4}>
+                    <Group justify="space-between" align="center">
+                      <Group gap="sm">
+                        <IconHash size={16} c="dimmed" />
+                        <Text size="xs" c="dimmed" fw={500}>Order Summary</Text>
+                      </Group>
+                      <Badge size="sm" color={STATUS_FLOW[currentStatusIndex]?.color || 'gray'} variant="light">
+                        {STATUS_FLOW[currentStatusIndex]?.label || order.status}
+                      </Badge>
+                    </Group>
+
+                    <SimpleGrid cols={4} spacing={4}>
+                      <Stack gap={0}>
+                        <Text size="xs" c="dimmed">Items</Text>
+                        <Text size="sm" fw={600}>{order.items.length}</Text>
+                      </Stack>
+                      <Stack gap={0}>
+                        <Text size="xs" c="dimmed">Total Qty</Text>
+                        <Text size="sm" fw={600}>{order.items.reduce((sum, item) => sum + item.quantity, 0)}</Text>
+                      </Stack>
+                      <Stack gap={0}>
+                        <Text size="xs" c="dimmed">Total (RMB)</Text>
+                        <Text size="sm" fw={600} c="cyan">¥{Number(order.items.reduce((sum, item) => sum + (item.china_price * item.quantity), 0)).toFixed(2)}</Text>
+                      </Stack>
+                      <Stack gap={0}>
+                        <Text size="xs" c="dimmed">Total (BDT)</Text>
+                        <Text size="sm" fw={600} c="blue">
+                          ৳{Number(order.items.reduce((sum, item) => {
+                            const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order.exchangeRate))
+                            return sum + (bdPrice * item.quantity)
+                          }, 0)).toFixed(2)}
+                        </Text>
+                      </Stack>
+                    </SimpleGrid>
+
+                    {/* Progress Bar */}
+                    <Box>
+                      <Group justify="space-between" mb={2}>
+                        <Text size="xs" c="dimmed">Progress</Text>
+                        <Text size="xs" fw={600} c={STATUS_FLOW[currentStatusIndex]?.color}>{Math.round((currentStatusIndex + 1) / STATUS_FLOW.length * 100)}%</Text>
+                      </Group>
+                      <Box style={{ width: '100%', height: 6, backgroundColor: '#e9ecef', borderRadius: 3, overflow: 'hidden' }}>
+                        <Box
+                          style={{
+                            width: `${((currentStatusIndex + 1) / STATUS_FLOW.length) * 100}%`,
+                            height: '100%',
+                            backgroundColor: STATUS_FLOW[currentStatusIndex]?.color === 'gray' ? '#6c757d' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'blue' ? '#228be6' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'cyan' ? '#06b6d4' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'teal' ? '#0d9488' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'indigo' ? '#6366f1' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'purple' ? '#9333ea' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'orange' ? '#f97316' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'lime' ? '#84cc16' :
+                                           STATUS_FLOW[currentStatusIndex]?.color === 'green' ? '#22c55e' : '#6c757d',
+                            borderRadius: 3,
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Stack>
+                </Paper>
+
                 <Box className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
                   <Stack gap={0}>
                     <Text size="xs" c="dimmed">{t('procurement.ordersPage.details.orderDate')}</Text>
@@ -1091,6 +1029,15 @@ export default function PurchaseOrderDetailsPage() {
                       <Text size="sm" c="dimmed">৳</Text>
                     </Group>
                   </Stack>
+
+                  {order.totalWeight && (
+                    <Stack gap={0}>
+                      <Text size="xs" c="dimmed">Total Weight</Text>
+                      <Text size="sm" fw={500} c="teal">
+                        {`${(Number(order.totalWeight) / 1000).toFixed(2)} kg`}
+                      </Text>
+                    </Stack>
+                  )}
 
                   {(order.courierName || order.trackingNumber) && (
                     <Stack gap={0}>
@@ -1131,8 +1078,17 @@ export default function PurchaseOrderDetailsPage() {
                       <Table.Tr>
                         <Table.Th>{t('procurement.ordersPage.details.product')}</Table.Th>
                         <Table.Th style={{ width: 100 }}>{t('procurement.ordersPage.details.quantity')}</Table.Th>
-                        <Table.Th style={{ width: 150 }}>BD Price</Table.Th>
-                        <Table.Th style={{ width: 150 }}>Total (BDT)</Table.Th>
+                        {order.status === 'draft' ? (
+                          <>
+                            <Table.Th style={{ width: 150 }}>Unit Price (RMB)</Table.Th>
+                            <Table.Th style={{ width: 150 }}>Total (RMB)</Table.Th>
+                          </>
+                        ) : (
+                          <>
+                            <Table.Th style={{ width: 150 }}>BD Price</Table.Th>
+                            <Table.Th style={{ width: 150 }}>Total (BDT)</Table.Th>
+                          </>
+                        )}
                         {(order.status === 'arrived_bd' || order.status === 'in_transit_bogura' || order.status === 'received_hub') && (
                           <Table.Th style={{ width: 150 }}>{t('procurement.ordersPage.details.shippingCost')}</Table.Th>
                         )}
@@ -1140,8 +1096,10 @@ export default function PurchaseOrderDetailsPage() {
                     </Table.Thead>
                     <Table.Tbody>
                       {order.items.map((item) => {
-                        const bdPrice = (item as any).bdPrice || (Number(item.chinaPrice) * Number(order?.exchangeRate))
+                        const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order?.exchangeRate))
                         const totalBdt = bdPrice * item.quantity
+                        const totalRmb = Number(item.china_price) * item.quantity
+
                         return (
                           <Table.Tr key={item.id}>
                             <Table.Td>
@@ -1152,16 +1110,43 @@ export default function PurchaseOrderDetailsPage() {
                             <Table.Td>
                               <Text size="sm">{item.quantity}</Text>
                             </Table.Td>
-                            <Table.Td>
-                              <Text size="sm">
-                                ৳{Number(bdPrice).toFixed(2)}
-                              </Text>
-                            </Table.Td>
-                            <Table.Td>
-                              <Text size="sm" fw={600} c="blue">
-                                ৳{Number(totalBdt).toFixed(2)}
-                              </Text>
-                            </Table.Td>
+                            {order.status === 'draft' ? (
+                              <>
+                                <Table.Td>
+                                  <Stack gap={0}>
+                                    <Text size="sm" fw={500}>
+                                      ¥{Number(item.china_price).toFixed(2)}
+                                    </Text>
+                                    <Text size="xs" c="dimmed">
+                                      ৳{Number(bdPrice).toFixed(2)}
+                                    </Text>
+                                  </Stack>
+                                </Table.Td>
+                                <Table.Td>
+                                  <Stack gap={0}>
+                                    <Text size="sm" fw={600} c="cyan">
+                                      ¥{Number(totalRmb).toFixed(2)}
+                                    </Text>
+                                    <Text size="xs" c="dimmed">
+                                      ৳{Number(totalBdt).toFixed(2)}
+                                    </Text>
+                                  </Stack>
+                                </Table.Td>
+                              </>
+                            ) : (
+                              <>
+                                <Table.Td>
+                                  <Text size="sm">
+                                    ৳{Number(bdPrice).toFixed(2)}
+                                  </Text>
+                                </Table.Td>
+                                <Table.Td>
+                                  <Text size="sm" fw={600} c="blue">
+                                    ৳{Number(totalBdt).toFixed(2)}
+                                  </Text>
+                                </Table.Td>
+                              </>
+                            )}
                             {(order.status === 'arrived_bd' || order.status === 'in_transit_bogura' || order.status === 'received_hub') && (
                               <Table.Td>
                                 <Text size="sm" c="blue">
@@ -1191,7 +1176,16 @@ export default function PurchaseOrderDetailsPage() {
 
                           <Group justify="space-between">
                             <Text size="xs" c="dimmed">{t('procurement.ordersPage.details.unitPrice')}</Text>
-                            <Text size="xs">¥{Number(item.chinaPrice).toFixed(2)}</Text>
+                            {order.status === 'draft' ? (
+                              <Stack gap={0} align="end">
+                                <Text size="xs" fw={500}>¥{Number(item.china_price).toFixed(2)}</Text>
+                                <Text size="xs" c="dimmed">
+                                  ৳{Number(item.bdPrice || (Number(item.china_price) * Number(order?.exchangeRate))).toFixed(2)}
+                                </Text>
+                              </Stack>
+                            ) : (
+                              <Text size="xs">¥{Number(item.china_price).toFixed(2)}</Text>
+                            )}
                           </Group>
 
                           <Stack gap={0}>
@@ -1220,22 +1214,40 @@ export default function PurchaseOrderDetailsPage() {
                 <Paper withBorder p="md" radius="sm" bg="gray.0">
                   <Stack gap="sm">
                     <Stack gap={4}>
-                      <Group justify="space-between">
-                        <Text size="sm">{t('procurement.ordersPage.details.totals.itemsTotalBdt')}</Text>
-                        <Text size="sm" c="dimmed">
-                          ৳{order.items.reduce((sum, item) => {
-                            const bdPrice = (item as any).bdPrice || (Number(item.chinaPrice) * Number(order.exchangeRate))
-                            return sum + (bdPrice * item.quantity)
-                          }, 0).toFixed(2)}
-                        </Text>
-                      </Group>
+                      {/* Items Total */}
+                      {order.status === 'draft' ? (
+                        <Group justify="space-between">
+                          <Text size="sm">Items Total (RMB)</Text>
+                          <Stack gap={0} align="end">
+                            <Text size="sm" fw={600} c="cyan">
+                              ¥{Number(order.items.reduce((sum, item) => sum + (Number(item.china_price) * item.quantity), 0)).toFixed(2)}
+                            </Text>
+                            <Text size="xs" c="dimmed">
+                              ৳{Number(order.items.reduce((sum, item) => {
+                                const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order.exchangeRate))
+                                return sum + (bdPrice * item.quantity)
+                              }, 0)).toFixed(2)} BDT
+                            </Text>
+                          </Stack>
+                        </Group>
+                      ) : (
+                        <Group justify="space-between">
+                          <Text size="sm">{t('procurement.ordersPage.details.totals.itemsTotalBdt')}</Text>
+                          <Text size="sm" c="dimmed">
+                            ৳{Number(order.items.reduce((sum, item) => {
+                              const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order.exchangeRate))
+                              return sum + (bdPrice * item.quantity)
+                            }, 0)).toFixed(2)}
+                          </Text>
+                        </Group>
+                      )}
 
                       {/* Shipping Cost - only show when present */}
                       {((order.totalShippingCost && order.totalShippingCost > 0) || extractShippingCostFromHistory() > 0) && (
                         <Group justify="space-between">
                           <Text size="sm">{t('procurement.ordersPage.details.totals.shippingCost')}</Text>
                           <Text size="sm" fw={500} c="blue">
-                            ৳{((Number(order.totalShippingCost) || 0) || extractShippingCostFromHistory()).toFixed(2)}
+                            ৳{Number((Number(order.totalShippingCost) || 0) || extractShippingCostFromHistory()).toFixed(2)}
                           </Text>
                         </Group>
                       )}
@@ -1245,7 +1257,7 @@ export default function PurchaseOrderDetailsPage() {
                         <Group justify="space-between">
                           <Text size="sm">{t('procurement.ordersPage.details.totals.extraCost')}</Text>
                           <Text size="sm" fw={500} c="blue">
-                            ৳{((Number(order.extraCost) || 0) || extractExtraCostFromHistory()).toFixed(2)}
+                            ৳{Number((Number(order.extraCost) || 0) || extractExtraCostFromHistory()).toFixed(2)}
                           </Text>
                         </Group>
                       )}
@@ -1256,10 +1268,24 @@ export default function PurchaseOrderDetailsPage() {
                       <Group justify="space-between" align="flex-end">
                         <Text size="lg" fw={600}>{t('procurement.ordersPage.details.totals.grandTotal')}</Text>
                         <Stack gap={0} align="end">
-                          <Text size="xl" fw={700} className="text-xl md:text-2xl" c="blue">
-                            ৳{calculateGrandTotal().toFixed(2)} BDT
-                          </Text>
-                          <Text size="xs" c="dimmed" fs="italic">{t('procurement.ordersPage.details.totals.note')}</Text>
+                          {order.status === 'draft' ? (
+                            <>
+                              <Text size="xl" fw={700} className="text-xl md:text-2xl" c="cyan">
+                                ¥{Number(order.items.reduce((sum, item) => sum + (Number(item.china_price) * item.quantity), 0)).toFixed(2)}
+                              </Text>
+                              <Text size="sm" c="dimmed">
+                                ৳{Number(calculateGrandTotal()).toFixed(2)} BDT
+                              </Text>
+                              <Text size="xs" c="dimmed" italic>{t('procurement.ordersPage.details.totals.note')}</Text>
+                            </>
+                          ) : (
+                            <>
+                              <Text size="xl" fw={700} className="text-xl md:text-2xl" c="blue">
+                                ৳{Number(calculateGrandTotal()).toFixed(2)} BDT
+                              </Text>
+                              <Text size="xs" c="dimmed" italic>{t('procurement.ordersPage.details.totals.note')}</Text>
+                            </>
+                          )}
                         </Stack>
                       </Group>
                     </Stack>
@@ -1267,6 +1293,184 @@ export default function PurchaseOrderDetailsPage() {
                 </Paper>
               </Stack>
             </Paper>
+
+            {/* Lost and Found Section - Show forever if order has lost items (regardless of current status) */}
+            {hasLostItems && (
+              <Paper withBorder p="md" radius="md">
+                <Stack gap="md">
+                  <Group gap="xs">
+                    <IconAlertTriangle size={18} style={{ color: '#ED6B5E' }} />
+                    <Text fw={600} size="lg">{t('procurement.lostAndFound.title')}</Text>
+                  </Group>
+
+                  {/* Desktop Table */}
+                  <Box className="hidden md:block">
+                    <Table>
+                      <Table.Thead>
+                        <Table.Tr>
+                          <Table.Th>{t('procurement.lostAndFound.tableHeaders.product')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'center' }}>{t('procurement.lostAndFound.tableHeaders.ordered')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'center' }}>{t('procurement.lostAndFound.tableHeaders.received')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'center' }}>{t('procurement.lostAndFound.tableHeaders.lost')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'center' }}>{t('procurement.lostAndFound.tableHeaders.found')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'center' }}>{t('procurement.lostAndFound.tableHeaders.unitPrice')}</Table.Th>
+                          <Table.Th style={{ textAlign: 'right' }}>{t('procurement.lostAndFound.tableHeaders.lostCost')}</Table.Th>
+                        </Table.Tr>
+                      </Table.Thead>
+                      <Table.Tbody>
+                        {order.items
+                          .filter((item) => {
+                            const receivedQty = item.receivedQuantity || item.quantity
+                            return receivedQty !== item.quantity
+                          })
+                          .map((item) => {
+                            const orderedQty = item.quantity
+                            const receivedQty = item.receivedQuantity || orderedQty
+                            const lostQty = Math.max(0, orderedQty - receivedQty)
+                            const foundQty = Math.max(0, receivedQty - orderedQty)
+                            const bdPrice = Number(item.bdPrice) || (Number(item.china_price) * Number(order?.exchangeRate))
+                            const lostCost = lostQty * bdPrice
+
+                            return (
+                              <Table.Tr key={item.id}>
+                                <Table.Td>
+                                  <Text size="sm" fw={500}>{item.product.name}</Text>
+                                </Table.Td>
+                                <Table.Td ta="center">
+                                  <Badge color="gray">{orderedQty}</Badge>
+                                </Table.Td>
+                                <Table.Td ta="center">
+                                  <Badge color={receivedQty < orderedQty ? 'orange' : receivedQty > orderedQty ? 'green' : 'blue'}>
+                                    {receivedQty}
+                                  </Badge>
+                                </Table.Td>
+                                <Table.Td ta="center">
+                                  {lostQty > 0 ? (
+                                    <Badge color="red">{lostQty}</Badge>
+                                  ) : (
+                                    <Text c="dimmed">-</Text>
+                                  )}
+                                </Table.Td>
+                                <Table.Td ta="center">
+                                  {foundQty > 0 ? (
+                                    <Badge color="green">+{foundQty}</Badge>
+                                  ) : (
+                                    <Text c="dimmed">-</Text>
+                                  )}
+                                </Table.Td>
+                                <Table.Td ta="center">
+                                  <Text size="xs" c="dimmed">৳{bdPrice.toFixed(2)}</Text>
+                                </Table.Td>
+                                <Table.Td ta="right">
+                                  {lostQty > 0 ? (
+                                    <Text size="sm" fw={700} c="red">
+                                      -৳{lostCost.toFixed(2)}
+                                    </Text>
+                                  ) : (
+                                    <Text c="dimmed">-</Text>
+                                  )}
+                                </Table.Td>
+                              </Table.Tr>
+                            )
+                          })}
+                      </Table.Tbody>
+                    </Table>
+                  </Box>
+
+                  {/* Mobile Cards */}
+                  <Box className="block md:hidden">
+                    <Stack gap="sm">
+                      {order.items
+                        .filter((item) => {
+                          const receivedQty = item.receivedQuantity || item.quantity
+                          return receivedQty !== item.quantity
+                        })
+                        .map((item) => {
+                          const orderedQty = item.quantity
+                          const receivedQty = item.receivedQuantity || orderedQty
+                          const lostQty = Math.max(0, orderedQty - receivedQty)
+                          const foundQty = Math.max(0, receivedQty - orderedQty)
+                          const bdPrice = Number(item.bdPrice) || (Number(item.china_price) * Number(order?.exchangeRate))
+                          const lostCost = lostQty * bdPrice
+
+                          return (
+                            <Card withBorder p="sm" radius="sm" key={item.id}>
+                              <Stack gap="xs">
+                                <Text size="sm" fw={600}>{item.product.name}</Text>
+
+                                <SimpleGrid cols={3}>
+                                  <Stack gap={0}>
+                                    <Text size="xs" c="dimmed">{t('procurement.lostAndFound.tableHeaders.ordered')}</Text>
+                                    <Text size="sm" fw={500}>{orderedQty}</Text>
+                                  </Stack>
+                                  <Stack gap={0}>
+                                    <Text size="xs" c="dimmed">{t('procurement.lostAndFound.tableHeaders.received')}</Text>
+                                    <Text size="sm" fw={500} c={receivedQty < orderedQty ? 'orange' : receivedQty > orderedQty ? 'green' : 'blue'}>
+                                      {receivedQty}
+                                    </Text>
+                                  </Stack>
+                                  <Stack gap={0}>
+                                    <Text size="xs" c="dimmed">{t('procurement.lostAndFound.tableHeaders.lost')}</Text>
+                                    <Text size="sm" fw={500} c={lostQty > 0 ? 'red' : 'dimmed'}>
+                                      {lostQty > 0 ? lostQty : '-'}
+                                    </Text>
+                                  </Stack>
+                                </SimpleGrid>
+
+                                {foundQty > 0 && (
+                                  <Group gap="xs">
+                                    <Badge color="green">{t('procurement.lostAndFound.tableHeaders.found')}: +{foundQty}</Badge>
+                                  </Group>
+                                )}
+
+                                <Divider />
+
+                                <SimpleGrid cols={2}>
+                                  <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">{t('procurement.lostAndFound.tableHeaders.unitPrice')}</Text>
+                                    <Text size="xs" c="blue">৳{bdPrice.toFixed(2)}</Text>
+                                  </Group>
+                                  <Group justify="space-between">
+                                    <Text size="xs" c="dimmed">{t('procurement.lostAndFound.tableHeaders.lostCost')}</Text>
+                                    {lostQty > 0 ? (
+                                      <Text size="sm" fw={700} c="red">-৳{lostCost.toFixed(2)}</Text>
+                                    ) : (
+                                      <Text size="xs" c="dimmed">-</Text>
+                                    )}
+                                  </Group>
+                                </SimpleGrid>
+                              </Stack>
+                            </Card>
+                          )
+                        })}
+                    </Stack>
+                  </Box>
+
+                  {/* Summary - Total Lost Cost */}
+                  <Paper withBorder p="md" radius="sm" bg="red.0">
+                    <Stack gap={0}>
+                      <Group justify="space-between">
+                        <Text size="sm" c="red" fw={600}>
+                          <IconAlertTriangle size={16} style={{ display: 'inline', marginRight: 4 }} />
+                          {t('procurement.lostAndFound.summary.totalLostCost')}
+                        </Text>
+                        <Text size="lg" fw={700} c="red">
+                          ৳{Number(order.items.reduce((sum, item) => {
+                            const receivedQty = item.receivedQuantity || item.quantity
+                            const lostQty = Math.max(0, item.quantity - receivedQty)
+                            const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order?.exchangeRate))
+                            return sum + (lostQty * bdPrice)
+                          }, 0)).toFixed(2)}
+                        </Text>
+                      </Group>
+                      <Text size="xs" c="dimmed" mt={4}>
+                        {t('procurement.lostAndFound.summary.description')}
+                      </Text>
+                    </Stack>
+                  </Paper>
+                </Stack>
+              </Paper>
+            )}
 
             {/* Info Alert */}
             {order.status === 'draft' && (
@@ -1361,7 +1565,7 @@ export default function PurchaseOrderDetailsPage() {
                           fw={700}
                           c={statusFormData.exchangeRate > 0 ? 'green' : 'gray'}
                         >
-                          ৳{(Number(order?.totalAmount || 0) * statusFormData.exchangeRate).toFixed(2)}
+                          ৳{(Number(order?.totalAmount || 0) * Number(statusFormData.exchangeRate || 0)).toFixed(2)}
                         </Text>
                       </Stack>
                     </Paper>
@@ -1399,103 +1603,18 @@ export default function PurchaseOrderDetailsPage() {
                 </Stack>
               </Paper>
 
-              {/* Payment Summary & Breakdown - Show ONLY when supplier has credit (from_supplier_credit > 0) */}
-              {shouldShowPaymentSummary(paymentBreakdown) && (
-                <>
-                  {/* Payment Summary Card - Enhanced */}
-                  <Paper withBorder p="lg" radius="md" bg="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
-                    <Stack gap="md">
-                      <Group gap="sm">
-                        <IconCoin size={24} color="white" />
-                        <Text fw={700} className="text-lg md:text-xl" c="white">Payment Summary</Text>
-                      </Group>
+              {/* Payment Account Selection - Enhanced */}
+              {order.status === 'draft' && (
+                <Paper withBorder p="lg" radius="md">
+                  <Stack gap="md">
+                    <Group gap="sm">
+                      <IconBuilding size={20} style={{ color: '#228BE6' }} />
+                      <Text fw={600} size="sm">Select Payment Account*</Text>
+                    </Group>
 
-                      <SimpleGrid cols={{ base: 1, md: 3 }}>
-                        {/* Order Value (RMB) */}
-                        <Paper p="md" radius="sm" bg="white" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                          <Stack gap={4}>
-                            <Text size="xs" c="dimmed">Order Value (RMB)</Text>
-                            <Text size="lg" fw={700}>
-                              ¥{Number(order?.totalAmount || 0).toFixed(2)}
-                            </Text>
-                          </Stack>
-                        </Paper>
-
-                        {/* Order Value (BDT) */}
-                        <Paper p="md" radius="sm" bg="white" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                          <Stack gap={4}>
-                            <Text size="xs" c="dimmed">Order Value (BDT)</Text>
-                            <Text size="lg" fw={700} c="blue">
-                              ৳{paymentBreakdown!.total.toFixed(2)}
-                            </Text>
-                          </Stack>
-                        </Paper>
-
-                        {/* Supplier Credit */}
-                        <Paper p="md" radius="sm" bg="white" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                          <Stack gap={4}>
-                            <Text size="xs" c="dimmed">Supplier Credit</Text>
-                            <Text
-                              size="lg"
-                              fw={700}
-                              c={(Number(order?.supplier?.walletBalance) ?? 0) > 0 ? 'green' : 'gray'}
-                            >
-                              ৳{(Number(order?.supplier?.walletBalance) || 0).toFixed(2)}
-                            </Text>
-                          </Stack>
-                        </Paper>
-                      </SimpleGrid>
-
-                      <Paper p="sm" radius="sm" bg="white">
-                        <Text size="xs" c="dimmed">
-                          Exchange Rate: <Text fw={600}>{statusFormData.exchangeRate}</Text> ৳ per ¥1
-                        </Text>
-                      </Paper>
-
-                      {/* Payment Breakdown - Enhanced */}
-                      <Paper p="md" radius="sm" bg="white" style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-                        <Stack gap="sm">
-                          <Text size="sm" fw={600} c="dimmed">PAYMENT BREAKDOWN</Text>
-
-                          <SimpleGrid cols={{ base: 1, md: 3 }}>
-                            {/* Total */}
-                            <Stack gap={4}>
-                              <Text size="xs" c="dimmed">Order Total</Text>
-                              <Text size="md" fw={700}>৳{paymentBreakdown!.total.toFixed(2)}</Text>
-                            </Stack>
-
-                            {/* From Credit */}
-                            <Stack gap={4}>
-                              <Text size="xs" c="dimmed">From Credit</Text>
-                              <Text size="md" fw={700} c="green">
-                                ৳{paymentBreakdown!.from_supplier_credit.toFixed(2)}
-                              </Text>
-                            </Stack>
-
-                            {/* From Bank */}
-                            <Stack gap={4}>
-                              <Text size="xs" c="dimmed">From Bank</Text>
-                              <Text size="md" fw={700} c="blue">
-                                ৳{paymentBreakdown!.from_bank.toFixed(2)}
-                              </Text>
-                            </Stack>
-                          </SimpleGrid>
-                        </Stack>
-                      </Paper>
-                    </Stack>
-                  </Paper>
-
-                  {/* Payment Account Selection - Enhanced */}
-                  <Paper withBorder p="lg" radius="md">
-                    <Stack gap="md">
-                      <Group gap="sm">
-                        <IconBuilding size={20} style={{ color: '#228BE6' }} />
-                        <Text fw={600} size="sm">Select Payment Account*</Text>
-                      </Group>
-
-                      <Select
-                        placeholder="Choose bank or mobile wallet"
-                        data={banks.map(bank => ({
+                    <Select
+                      placeholder="Choose bank or mobile wallet"
+                      data={banks.map(bank => ({
                           value: bank.id.toString(),
                           label: `${bank.name} - ৳${Number(bank.currentBalance).toFixed(2)} BDT`,
                         }))}
@@ -1543,7 +1662,7 @@ export default function PurchaseOrderDetailsPage() {
                               <Text size="sm">
                                 Current: <Text fw={600} c="dimmed">৳{Number(bank.currentBalance).toFixed(2)}</Text>
                                 {' → '}
-                                After Payment: <Text fw={700} c={isNegative ? 'red' : 'teal'}>৳{finalBalance.toFixed(2)}</Text>
+                                After Payment: <Text fw={700} c={isNegative ? 'red' : 'teal'}>৳{Number(finalBalance).toFixed(2)}</Text>
                               </Text>
                             </Stack>
                           </Alert>
@@ -1551,11 +1670,9 @@ export default function PurchaseOrderDetailsPage() {
                       })()}
                     </Stack>
                   </Paper>
-                </>
-              )}
-
-            </>
-          )}
+                )}
+              </>
+            )}
 
           {order.status === 'payment_confirmed' && (
             <>
@@ -1639,7 +1756,7 @@ export default function PurchaseOrderDetailsPage() {
                     <Stack gap={1}>
                       {order.items.map((item) => {
                         // Calculate BD price if not available: china_price × exchange_rate
-                        const bdPrice = (item as any).bdPrice || (Number(item.chinaPrice) * Number(order?.exchangeRate))
+                        const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order?.exchangeRate))
                         const totalPrice = bdPrice * item.quantity
                         return (
                           <Group key={item.id} justify="space-between" align="center" px="xs" py={2} gap={0}>
@@ -1647,7 +1764,7 @@ export default function PurchaseOrderDetailsPage() {
                               {item.product.name}
                             </Text>
                             <Text size="xs" c="dimmed" ta="center" style={{ minWidth: '60%', maxWidth: '60%' }}>
-                              ¥{Number(item.chinaPrice).toFixed(2)} × {Number(order?.exchangeRate).toFixed(2)} × {item.quantity}
+                              ¥{Number(item.china_price).toFixed(2)} × {Number(order?.exchangeRate).toFixed(2)} × {item.quantity}
                             </Text>
                             <Text size="xs" fw={600} c="blue" ta="right" style={{ minWidth: '20%', maxWidth: '20%' }}>
                               ৳{Number(totalPrice).toFixed(2)}
@@ -1664,10 +1781,10 @@ export default function PurchaseOrderDetailsPage() {
                             Total
                           </Text>
                           <Text size="sm" fw={700} c="blue">
-                            ৳{order.items.reduce((sum, item) => {
-                              const bdPrice = (item as any).bdPrice || (Number(item.chinaPrice) * Number(order?.exchangeRate))
+                            ৳{Number(order.items.reduce((sum, item) => {
+                              const bdPrice = item.bdPrice || (Number(item.china_price) * Number(order?.exchangeRate))
                               return sum + (bdPrice * item.quantity)
-                            }, 0).toFixed(2)}
+                            }, 0)).toFixed(2)}
                           </Text>
                         </Group>
                       </Paper>
@@ -1755,7 +1872,7 @@ export default function PurchaseOrderDetailsPage() {
                           size="xxl"
                           fw={700}
                         >
-                          ৳{(statusFormData.totalWeight * statusFormData.shippingCostPerKg).toFixed(2)}
+                          ৳{(Number(statusFormData.totalWeight || 0) * Number(statusFormData.shippingCostPerKg || 0)).toFixed(2)}
                         </Text>
                       </Group>
                     </Stack>

@@ -67,38 +67,187 @@ class ProductController extends Controller
     }
 
     /**
-     * 3. Create Product (Parent Only)
+     * 3. Create Product with Multi-Platform Variants
+     * POST /api/v2/catalog/products
      */
     public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string',
-            'category_id' => 'required|exists:categories,id',
-            'brand_id' => 'nullable|exists:brands,id',
-            'status' => 'in:draft,published,archived'
+        // Comprehensive validation with custom error messages
+        $validated = $request->validate([
+            // Product Basic Information
+            'productName' => 'required|string|max:255',
+            'category' => 'required|integer|exists:categories,id',
+            'brand' => 'required|integer|exists:brands,id',
+            'status' => 'required|in:draft,published,archived',
+            'videoUrl' => 'nullable|url|max:500',
+
+            // Product Settings
+            'enableWarranty' => 'boolean',
+            'warrantyDetails' => 'nullable|string|max:1000',
+            'enablePreorder' => 'boolean',
+            'expectedDeliveryDate' => 'nullable|date|after:today',
+
+            // Content
+            'description' => 'required|string|min:10',
+            'highlights' => 'nullable|array|max:10',
+            'highlights.*' => 'string|max:255',
+            'includesInTheBox' => 'nullable|array|max:20',
+            'includesInTheBox.*' => 'string|max:255',
+
+            // SEO
+            'seoTitle' => 'nullable|string|max:60',
+            'seoDescription' => 'nullable|string|max:160',
+            'seoTags' => 'nullable|string|max:255',
+
+            // Media
+            'featuredImage' => 'nullable|integer|exists:media_files,id',
+            'galleryImages' => 'nullable|array|max:6',
+            'galleryImages.*' => 'integer|exists:media_files,id',
+
+            // Variants (at least one required)
+            'variants' => 'required|array|min:1',
+            'variants.*.name' => 'required|string|max:255',
+            'variants.*.sellerSku' => 'nullable|string|max:100',
+            'variants.*.purchaseCost' => 'required|numeric|min:0',
+            'variants.*.retailPrice' => 'required|numeric|min:0',
+            'variants.*.wholesalePrice' => 'required|numeric|min:0',
+            'variants.*.retailOfferPrice' => 'nullable|numeric|min:0|lte:variants.*.retailPrice',
+            'variants.*.wholesaleOfferPrice' => 'nullable|numeric|min:0|lte:variants.*.wholesalePrice',
+            'variants.*.wholesaleMoq' => 'required|integer|min:1',
+            'variants.*.weight' => 'required|numeric|min:0|max:999999',
+            'variants.*.stock' => 'required|integer|min:0',
+        ], [
+            // Custom error messages
+            'productName.required' => 'Product name is required',
+            'category.required' => 'Please select a category',
+            'category.exists' => 'Selected category does not exist',
+            'brand.required' => 'Please select a brand',
+            'brand.exists' => 'Selected brand does not exist',
+            'status.in' => 'Status must be draft, published, or archived',
+            'videoUrl.url' => 'Video URL must be a valid URL',
+            'description.required' => 'Product description is required',
+            'description.min' => 'Description must be at least 10 characters',
+            'highlights.max' => 'Maximum 10 highlights allowed',
+            'includesInTheBox.max' => 'Maximum 20 items allowed in box',
+            'seoTitle.max' => 'SEO title must not exceed 60 characters',
+            'seoDescription.max' => 'SEO description must not exceed 160 characters',
+            'featuredImage.exists' => 'Featured image does not exist',
+            'galleryImages.max' => 'Maximum 6 gallery images allowed',
+            'variants.required' => 'At least one variant is required',
+            'variants.min' => 'At least one variant is required',
+            'variants.*.name.required' => 'Variant name is required',
+            'variants.*.retailPrice.required' => 'Retail price is required',
+            'variants.*.wholesalePrice.required' => 'Wholesale price is required',
+            'variants.*.purchaseCost.required' => 'Purchase cost is required',
+            'variants.*.retailOfferPrice.lte' => 'Retail offer price cannot be higher than retail price',
+            'variants.*.wholesaleOfferPrice.lte' => 'Wholesale offer price cannot be higher than wholesale price',
         ]);
 
         DB::beginTransaction();
         try {
+            // 1. Create Product
             $product = Product::create([
-                'name' => $request->name,
-                'slug' => Str::slug($request->name) . '-' . time(),
-                'category_id' => $request->category_id,
-                'brand_id' => $request->brand_id,
-                'thumbnail_id' => $request->thumbnail_id,
-                'gallery_images' => $request->gallery_images, // Array of IDs
-                'description' => $request->description,
-                'status' => $request->status ?? 'draft',
-                'video_url' => $request->video_url
+                'name' => $validated['productName'],
+                'slug' => Str::slug($validated['productName']) . '-' . time(),
+                'category_id' => $validated['category'],
+                'brand_id' => $validated['brand'],
+                'status' => $validated['status'],
+                'video_url' => $validated['videoUrl'],
+                'warranty_enabled' => $validated['enableWarranty'],
+                'warranty_details' => $validated['warrantyDetails'],
+                'description' => $validated['description'],
+                'highlights' => $validated['highlights'],
+                'includes_in_box' => $validated['includesInTheBox'],
+                'seo_title' => $validated['seoTitle'],
+                'seo_description' => $validated['seoDescription'],
+                'seo_tags' => $validated['seoTags'] ? explode(',', $validated['seoTags']) : null,
+                'thumbnail_id' => $validated['featuredImage'],
+                'gallery_images' => $validated['galleryImages'],
             ]);
 
-            DB::commit();
-            return $this->sendSuccess($product, 'Product created successfully. Now add variants.', 201);
+            // 2. Create Variants - TWO ROWS PER VARIANT (Retail + Wholesale)
+            $createdVariants = [];
 
+            foreach ($validated['variants'] as $index => $variant) {
+                $baseSku = $variant['sellerSku'] ?? $this->generateSkuFromNames($product->name, $variant['name']);
+
+                // RETAIL VARIANT ROW
+                $retailVariant = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'channel' => 'retail',
+                    'custom_name' => $variant['name'],
+                    'variant_slug' => Str::slug($variant['name'] . '-retail'),
+                    'variant_name' => $variant['name'],
+                    'sku' => $baseSku . '-R-' . rand(1000, 9999),
+                    'custom_sku' => $variant['sellerSku'],
+                    'purchase_cost' => $variant['purchaseCost'],
+                    'price' => $variant['retailPrice'],
+                    'offer_price' => $variant['retailOfferPrice'] ?? 0,
+                    'moq' => $variant['wholesaleMoq'],
+                    'weight' => $variant['weight'],
+                    'stock' => $variant['stock'],
+                    'allow_preorder' => $validated['enablePreorder'],
+                    'expected_delivery' => $validated['expectedDeliveryDate'],
+                    'is_active' => true,
+                ]);
+
+                $createdVariants[] = $retailVariant;
+
+                // WHOLESALE VARIANT ROW
+                $wholesaleVariant = ProductVariant::create([
+                    'product_id' => $product->id,
+                    'channel' => 'wholesale',
+                    'custom_name' => $variant['name'],
+                    'variant_slug' => Str::slug($variant['name'] . '-wholesale'),
+                    'variant_name' => $variant['name'],
+                    'sku' => $baseSku . '-W-' . rand(1000, 9999),
+                    'custom_sku' => $variant['sellerSku'],
+                    'purchase_cost' => $variant['purchaseCost'],
+                    'price' => $variant['wholesalePrice'],
+                    'offer_price' => $variant['wholesaleOfferPrice'] ?? 0,
+                    'moq' => $variant['wholesaleMoq'],
+                    'weight' => $variant['weight'],
+                    'stock' => $variant['stock'],
+                    'allow_preorder' => $validated['enablePreorder'],
+                    'expected_delivery' => $validated['expectedDeliveryDate'],
+                    'is_active' => true,
+                ]);
+
+                $createdVariants[] = $wholesaleVariant;
+            }
+
+            DB::commit();
+
+            return $this->sendSuccess([
+                'product' => $product,
+                'variants' => $createdVariants,
+                'total_variants' => count($createdVariants)
+            ], 'Product created successfully with ' . count($createdVariants) . ' variants (2 per platform)', 201);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return $this->sendError('Validation failed', $e->errors(), 422);
         } catch (\Exception $e) {
             DB::rollBack();
-            return $this->sendError('Product creation failed', ['error' => $e->getMessage()], 500);
+            \Log::error('Product creation failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendError('Product creation failed', [
+                'error' => 'An error occurred while creating the product. Please try again.',
+                'debug' => config('app.debug') ? $e->getMessage() : null
+            ], 500);
         }
+    }
+
+    /**
+     * Helper: Generate SKU from product and variant names
+     */
+    private function generateSkuFromNames($productName, $variantName)
+    {
+        $productCode = strtoupper(substr(Str::slug($productName), 0, 3));
+        $variantCode = strtoupper(substr(Str::slug($variantName), 0, 3));
+        return $productCode . '-' . $variantCode;
     }
 
     /**

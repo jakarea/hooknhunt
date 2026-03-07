@@ -1,5 +1,6 @@
 import { notifications } from '@mantine/notifications'
 import api from '@/lib/api'
+import { usePurchaseOrderDetailStore } from '@/stores/purchaseOrderDetailStore'
 
 /**
  * Types for timeline edit functionality
@@ -37,12 +38,24 @@ export interface StatusHistoryEntry {
     id: number
     name: string
   }
+  timelineData?: {
+    exchange_rate?: number
+    courier_name?: string
+    tracking_number?: string
+    lot_number?: string
+    transport_type?: string
+    total_weight?: number
+    shipping_cost_per_kg?: number
+    total_shipping_cost?: number
+    bd_courier_tracking?: string
+  }
 }
 
 /**
  * Get initial form data based on status and order data
  * @param statusValue - The status value being edited
  * @param order - The purchase order object
+ * @param historyEntry - Optional status history entry with timeline data
  * @returns Initial timeline edit data
  */
 export const getInitialTimelineData = (
@@ -50,23 +63,30 @@ export const getInitialTimelineData = (
   order: any,
   historyEntry?: StatusHistoryEntry
 ): TimelineEditData => {
-  // For shipped_bd status, get shipping_cost_per_kg from the first item
+  // Get timeline data from history entry first, fall back to order data
+  const timeline = historyEntry?.timelineData || {}
+
+  // For shipped_bd status, get shipping_cost_per_kg from timeline data or from the first item
   // since it's now stored at item level, not order level
   let shippingCostPerKg = 0
-  if (statusValue === 'shipped_bd' && order?.items?.length > 0) {
-    shippingCostPerKg = Number(order.items[0].shippingCostPerKg) || 0
+  if (statusValue === 'shipped_bd') {
+    if (timeline.shipping_cost_per_kg !== undefined) {
+      shippingCostPerKg = Number(timeline.shipping_cost_per_kg) || 0
+    } else if (order?.items?.length > 0) {
+      shippingCostPerKg = Number(order.items[0].shippingCostPerKg) || 0
+    }
   }
 
   return {
     comments: historyEntry?.comments || '',
-    exchangeRate: Number(order?.exchangeRate) || 0,
-    courierName: order?.courierName || '',
-    trackingNumber: order?.trackingNumber || '',
-    lotNumber: order?.lotNumber || '',
-    transportType: order?.shippingMethod || '', // Fixed: was order?.transportType
-    totalWeight: Number(order?.totalWeight) || 0,
-    shippingCostPerKg: shippingCostPerKg, // Fixed: get from items array
-    bdCourierTracking: order?.bdCourierTracking || '',
+    exchangeRate: timeline.exchange_rate !== undefined ? Number(timeline.exchange_rate) : (Number(order?.exchangeRate) || 0),
+    courierName: timeline.courier_name || order?.courierName || '',
+    trackingNumber: timeline.tracking_number || order?.trackingNumber || '',
+    lotNumber: timeline.lot_number || order?.lotNumber || '',
+    transportType: timeline.transport_type || order?.shippingMethod || '',
+    totalWeight: timeline.total_weight !== undefined ? Number(timeline.total_weight) : (Number(order?.totalWeight) || 0),
+    shippingCostPerKg: shippingCostPerKg,
+    bdCourierTracking: timeline.bd_courier_tracking || order?.bdCourierTracking || '',
   }
 }
 
@@ -177,8 +197,8 @@ export const validateTimelineData = (
     if (formData.totalWeight <= 0) {
       errors.push('Total weight is required')
     }
-    if (formData.shippingCostPerKg <= 0) {
-      errors.push('Shipping cost per kg is required')
+    if (formData.shippingCostPerKg < 0) {
+      errors.push('Shipping cost per kg cannot be negative')
     }
   }
 
@@ -213,16 +233,57 @@ export const saveTimelineUpdate = async (
     // Build payload for timeline data
     const payload = buildTimelineUpdatePayload(statusValue, formData)
 
-    // Make API call if there's data to update
-    if (Object.keys(payload).length > 0) {
-      await api.patch(`procurement/orders/${orderId}`, payload)
+    // Get the store instance
+    const store = usePurchaseOrderDetailStore.getState()
+
+    // For shipped_bd status, we need to update BOTH the order AND the timeline_data
+    if (statusValue === 'shipped_bd' && Object.keys(payload).length > 0) {
+      // Update the actual purchase order fields
+      await api.patch(`procurement/orders/${orderId}`, {
+        transport_type: payload.transport_type,
+        total_weight: payload.total_weight,
+        shipping_cost_per_kg: payload.shipping_cost_per_kg,
+      })
+
+      // Also update timeline_data for history
+      if (historyId) {
+        await api.patch(`procurement/orders/${orderId}/status-history/${historyId}/timeline-data`, {
+          timeline_data: payload,
+        })
+      }
+
+      // Refresh order data to show updated values
+      await store.fetchOrder(orderId)
+    }
+    // For other statuses, only update timeline_data
+    else if (historyId && Object.keys(payload).length > 0) {
+      const timelineResponse = await api.patch(`procurement/orders/${orderId}/status-history/${historyId}/timeline-data`, {
+        timeline_data: payload,
+      })
+
+      // Update the store directly with the response
+      if (timelineResponse.data?.data) {
+        store.updateStatusHistoryEntry(historyId, {
+          timelineData: timelineResponse.data.data.timelineData,
+        })
+      }
+    } else if (Object.keys(payload).length > 0) {
+      // Fallback: Update order directly for backward compatibility
+      const fallbackResponse = await api.patch(`procurement/orders/${orderId}`, payload)
     }
 
-    // Update comments if history ID provided and comments changed
-    if (historyId && formData.comments.trim()) {
-      await api.patch(`procurement/orders/${orderId}/status-history/${historyId}/comments`, {
+    // Update comments if history ID provided
+    if (historyId) {
+      const commentsResponse = await api.patch(`procurement/orders/${orderId}/status-history/${historyId}/comments`, {
         comments: formData.comments.trim(),
       })
+
+      // Update the store directly with the new comments
+      if (commentsResponse.data?.data) {
+        store.updateStatusHistoryEntry(historyId, {
+          comments: commentsResponse.data.data.comments,
+        })
+      }
     }
 
     notifications.show({
@@ -245,6 +306,7 @@ export const saveTimelineUpdate = async (
     }
   }
 }
+
 
 /**
  * Check if a status can be edited

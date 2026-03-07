@@ -69,6 +69,7 @@ const STATUS_COLORS: Record<string, string> = {
   arrived_bd: 'purple',
   in_transit_bogura: 'orange',
   received_hub: 'lime',
+  partially_completed: 'orange',
   completed: 'green',
   lost: 'red',
 }
@@ -527,8 +528,13 @@ const OrderTableRow = ({
   deleting: number | null
   onDeleteClick: (id: number, poNumber: string) => void
 }) => {
-  const totalAmount = toNumber(order.totalAmount)
-  const exchangeRate = toNumber(order.exchangeRate)
+  // Handle both camelCase and snake_case field names
+  const poNumber = (order as any).poNumber || (order as any).po_number
+  const totalAmount = toNumber((order as any).totalAmount || (order as any).total_amount)
+  const exchangeRate = toNumber((order as any).exchangeRate || (order as any).exchange_rate)
+  const orderDate = (order as any).orderDate || (order as any).order_date
+  const itemsCount = (order as any).itemsCount || (order as any).items_count
+
   const totalBdt = calculateBdt(totalAmount, exchangeRate)
   const canEdit = canEditOrder(order.status, hasEditPermission)
   const canDelete = canDeleteOrder(order.status, hasDeletePermission)
@@ -537,14 +543,14 @@ const OrderTableRow = ({
     <Table.Tr key={order.id}>
       <Table.Td>
         <Anchor size="sm" fw={600} onClick={() => navigate(`/procurement/orders/${order.id}`)}>
-          {order.poNumber}
+          {poNumber}
         </Anchor>
       </Table.Td>
       <Table.Td>
         <Text size="sm">{order.supplier.name}</Text>
       </Table.Td>
       <Table.Td>
-        <Text size="sm">{order.orderDate}</Text>
+        <Text size="sm">{orderDate}</Text>
       </Table.Td>
       <Table.Td>
         <Badge color={STATUS_COLORS[order.status] || 'gray'}>
@@ -563,7 +569,7 @@ const OrderTableRow = ({
       </Table.Td>
       <Table.Td ta="center">
         <Badge variant="light" size="sm">
-          {order.itemsCount}
+          {itemsCount}
         </Badge>
       </Table.Td>
       <Table.Td>
@@ -572,24 +578,13 @@ const OrderTableRow = ({
             <IconEye size={14} />
           </ActionIcon>
 
-          {canEdit && (
-            <ActionIcon
-              size="sm"
-              variant="light"
-              color="blue"
-              onClick={() => navigate(`/procurement/orders/${order.id}/edit`)}
-            >
-              <IconEdit size={14} />
-            </ActionIcon>
-          )}
-
           {canDelete && (
             <ActionIcon
               size="sm"
               variant="light"
               color="red"
               loading={deleting === order.id}
-              onClick={() => onDeleteClick(order.id, order.poNumber)}
+              onClick={() => onDeleteClick(order.id, poNumber)}
             >
               <IconTrash size={14} />
             </ActionIcon>
@@ -620,8 +615,13 @@ const OrderMobileCard = ({
   deleting: number | null
   onDeleteClick: (id: number, poNumber: string) => void
 }) => {
-  const totalAmount = toNumber(order.totalAmount)
-  const exchangeRate = toNumber(order.exchangeRate)
+  // Handle both camelCase and snake_case field names
+  const poNumber = (order as any).poNumber || (order as any).po_number
+  const totalAmount = toNumber((order as any).totalAmount || (order as any).total_amount)
+  const exchangeRate = toNumber((order as any).exchangeRate || (order as any).exchange_rate)
+  const orderDate = (order as any).orderDate || (order as any).order_date
+  const itemsCount = (order as any).itemsCount || (order as any).items_count
+
   const totalBdt = calculateBdt(totalAmount, exchangeRate)
   const canEdit = canEditOrder(order.status, hasEditPermission)
   const canDelete = canDeleteOrder(order.status, hasDeletePermission)
@@ -631,7 +631,7 @@ const OrderMobileCard = ({
       <Stack gap="xs">
         <Group justify="space-between">
           <Anchor size="sm" fw={600} onClick={() => navigate(`/procurement/orders/${order.id}`)}>
-            {order.poNumber}
+            {poNumber}
           </Anchor>
           <Badge color={STATUS_COLORS[order.status] || 'gray'} size="sm">
             {statusLabels[order.status] || order.status}
@@ -641,9 +641,9 @@ const OrderMobileCard = ({
         <Text size="sm" c="dimmed">{order.supplier.name}</Text>
 
         <Group justify="space-between">
-          <Text size="xs" c="dimmed">{order.orderDate}</Text>
+          <Text size="xs" c="dimmed">{orderDate}</Text>
           <Badge variant="light" size="xs">
-            {order.itemsCount} items
+            {itemsCount} items
           </Badge>
         </Group>
 
@@ -666,18 +666,6 @@ const OrderMobileCard = ({
             View
           </Button>
 
-          {canEdit && (
-            <Button
-              size="xs"
-              variant="light"
-              color="blue"
-              leftSection={<IconEdit size={14} />}
-              onClick={() => navigate(`/procurement/orders/${order.id}/edit`)}
-            >
-              Edit
-            </Button>
-          )}
-
           {canDelete && (
             <Button
               size="xs"
@@ -685,7 +673,7 @@ const OrderMobileCard = ({
               color="red"
               loading={deleting === order.id}
               leftSection={<IconTrash size={14} />}
-              onClick={() => onDeleteClick(order.id, order.poNumber)}
+              onClick={() => onDeleteClick(order.id, poNumber)}
             >
               Delete
             </Button>
@@ -853,9 +841,11 @@ export default function PurchaseOrdersPage() {
     try {
       useProcurementOrdersStore.getState().setLoading(true)
       const params = buildFilterParams(filters, pagination.perPage, pagination.currentPage)
-      const { orders: ordersData, totalPages: pages } = await fetchOrdersData(params)
+      const response = await getPurchaseOrders(params)
+      const ordersData = extractArrayFromResponse(response)
       useProcurementOrdersStore.getState().setOrders(ordersData)
-      useProcurementOrdersStore.getState().setTotalPages(pages)
+      const totalPages = extractTotalPages(response)
+      useProcurementOrdersStore.getState().setTotalPages(totalPages)
     } catch (error) {
       console.error('Failed to load orders:', error)
       notifications.show({
@@ -916,7 +906,7 @@ export default function PurchaseOrdersPage() {
   const handleDelete = useCallback(async () => {
     if (!deleteModal.orderToDelete) return
 
-    const { id } = deleteModal.orderToDelete
+    const { id, poNumber } = deleteModal.orderToDelete
 
     try {
       useProcurementOrdersStore.getState().setDeletingId(id)
