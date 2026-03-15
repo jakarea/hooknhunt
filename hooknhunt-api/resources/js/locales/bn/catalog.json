@@ -13,7 +13,17 @@
       "status": "স্ট্যাটাস",
       "allStatus": "সব স্ট্যাটাস",
       "category": "ক্যাটাগরি",
-      "brand": "ব্র্যান্ড"
+      "brand": "ব্র্যান্ড",
+      "sortBy": "সর্ট করুন",
+      "defaultSort": "ডিফল্ট"
+    },
+    "sort": {
+      "lastCreated": "সর্বশেষ তৈরি",
+      "firstCreated": "সর্বপ্রথম তৈরি",
+      "lastUpdated": "সর্বশেষ আপডেট",
+      "firstUpdated": "সর্বপ্রথম আপডেট",
+      "mostExpensive": "সবচেয়ে ব্যয়বহুল",
+      "cheapest": "সবচেয়ে সস্তা"
     },
     "table": {
       "product": "পণ্য",

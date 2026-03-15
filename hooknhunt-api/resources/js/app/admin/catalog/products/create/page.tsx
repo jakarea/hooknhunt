@@ -25,7 +25,8 @@ import {
   Badge,
   Grid,
   SimpleGrid,
-  Table
+  Table,
+  useMantineColorScheme
 } from '@mantine/core'
 import {
   IconPhoto,
@@ -78,6 +79,7 @@ export default function CreateProductPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { openSingleSelect, openMultipleSelect } = useMediaSelector()
+  const { colorScheme } = useMantineColorScheme()
 
   // Loading state
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -132,34 +134,32 @@ export default function CreateProductPage() {
   const [seoDescription, setSeoDescription] = useState('')
   const [seoTags, setSeoTags] = useState('')
 
-  // Track original values to prevent auto-fill from overwriting user input
-  const originalValues = useRef({
-    productName: '',
-    retailName: '',
-    wholesaleName: '',
-    customName: '',
-    seoTitle: ''
+  // Track which fields have been manually edited by the user
+  const [manuallyEdited, setManuallyEdited] = useState({
+    retailName: false,
+    wholesaleName: false,
+    customName: false,
+    seoTitle: false
   })
 
-  // Auto-fill retail name, wholesale name, custom name, and SEO title ONLY if they're empty
+  // Auto-fill retail name, wholesale name, custom name, and SEO title from product name
+  // Only updates fields that haven't been manually edited by the user
   useEffect(() => {
     if (productName) {
-      // Only auto-fill if the field is empty
-      if (!retailName) {
+      if (!manuallyEdited.retailName) {
         setRetailName(productName)
       }
-      if (!wholesaleName) {
+      if (!manuallyEdited.wholesaleName) {
         setWholesaleName(productName)
       }
-      if (!customName) {
+      if (!manuallyEdited.customName) {
         setCustomName(productName)
       }
-      // Only update SEO title if it's empty
-      if (!seoTitle) {
+      if (!manuallyEdited.seoTitle) {
         setSeoTitle(productName)
       }
     }
-  }, [productName, retailName, wholesaleName, customName, seoTitle])
+  }, [productName])
 
   // Quill editor refs
   const descriptionQuillRef = useRef<any>(null)
@@ -395,6 +395,7 @@ export default function CreateProductPage() {
           [data-mantine-color-scheme="dark"] #includes-in-the-box-editor a {
             color: #228BE6;
           }
+
         `
         document.head.appendChild(style)
       }
@@ -406,13 +407,74 @@ export default function CreateProductPage() {
         const quill1 = new Quill('#description-editor', {
           theme: 'snow',
           placeholder: t('catalog.productsCreate.productDescriptionPlaceholder') || 'Enter detailed product description...',
+          formats: [
+            'bold', 'italic', 'underline',
+            'header',
+            'list', 'bullet',
+            'align',
+            'link', 'image'
+          ],
           modules: {
             toolbar: [
               ['bold', 'italic', 'underline'],
+              [{ 'header': [2, 3, 4, 5, 6, false] }],
               [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-              ['link'],
+              [{ 'align': [] }, { 'align': 'center' }],
+              ['link', 'image'],
               ['clean']
             ]
+          }
+        })
+
+        // Handle image insertion via toolbar button
+        const toolbar = quill1.getModule('toolbar')
+        if (toolbar) {
+          toolbar.addHandler('image', () => {
+            openSingleSelect((mediaFile: MediaFile) => {
+              const range = quill1.getSelection(true)
+              quill1.insertEmbed(range.index, 'image', mediaFile.url)
+            })
+          })
+        }
+
+        // Handle drag-and-drop images
+        quill1.root.addEventListener('drop', (e: any) => {
+          e.preventDefault()
+          const files = e.dataTransfer?.files
+          if (files && files.length > 0) {
+            const file = files[0]
+            if (file.type.startsWith('image/')) {
+              // For now, create a local URL
+              // TODO: Upload to server and get media library URL
+              const reader = new FileReader()
+              reader.onload = (event: any) => {
+                const range = quill1.getSelection(true)
+                quill1.insertEmbed(range.index, 'image', event.target.result)
+              }
+              reader.readAsDataURL(file)
+            }
+          }
+        })
+
+        // Handle paste events (for images from clipboard)
+        quill1.root.addEventListener('paste', (e: any) => {
+          const items = e.clipboardData?.items
+          if (items) {
+            for (let i = 0; i < items.length; i++) {
+              if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault()
+                const file = items[i].getAsFile()
+                if (file) {
+                  const reader = new FileReader()
+                  reader.onload = (event: any) => {
+                    const range = quill1.getSelection(true)
+                    quill1.insertEmbed(range.index, 'image', event.target.result)
+                  }
+                  reader.readAsDataURL(file)
+                }
+                break
+              }
+            }
           }
         })
 
@@ -1085,7 +1147,12 @@ export default function CreateProductPage() {
                       label={t('catalog.productsCreate.retailName') || 'Retail Name'}
                       placeholder={t('catalog.productsCreate.retailNamePlaceholder') || 'Enter retail name'}
                       value={retailName}
-                      onChange={(value) => setRetailName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
+                      onChange={(value) => {
+                        if (!manuallyEdited.retailName) {
+                          setManuallyEdited(prev => ({ ...prev, retailName: true }))
+                        }
+                        setRetailName(typeof value === 'string' ? value : value?.currentTarget?.value || '')
+                      }}
                       onFocus={collapseSidebarIfNeeded}
                       maxLength={255}
                       required
@@ -1095,7 +1162,12 @@ export default function CreateProductPage() {
                       label={t('catalog.productsCreate.wholesaleName') || 'Wholesale Name'}
                       placeholder={t('catalog.productsCreate.wholesaleNamePlaceholder') || 'Enter wholesale name'}
                       value={wholesaleName}
-                      onChange={(value) => setWholesaleName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
+                      onChange={(value) => {
+                        if (!manuallyEdited.wholesaleName) {
+                          setManuallyEdited(prev => ({ ...prev, wholesaleName: true }))
+                        }
+                        setWholesaleName(typeof value === 'string' ? value : value?.currentTarget?.value || '')
+                      }}
                       onFocus={collapseSidebarIfNeeded}
                       maxLength={255}
                       required
@@ -1105,7 +1177,12 @@ export default function CreateProductPage() {
                       label={t('catalog.productsCreate.customName') || 'Custom Name'}
                       placeholder={t('catalog.productsCreate.customNamePlaceholder') || 'Enter custom name'}
                       value={customName}
-                      onChange={(value) => setCustomName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
+                      onChange={(value) => {
+                        if (!manuallyEdited.customName) {
+                          setManuallyEdited(prev => ({ ...prev, customName: true }))
+                        }
+                        setCustomName(typeof value === 'string' ? value : value?.currentTarget?.value || '')
+                      }}
                       onFocus={collapseSidebarIfNeeded}
                       maxLength={255}
                     />
@@ -1390,7 +1467,11 @@ export default function CreateProductPage() {
                         💡 {t('catalog.productsCreate.autoCalculationTip') || 'Enter Purchase Cost to auto-calculate Retail Price (+50%) and Wholesale Price (+20%)'}
                       </Text>
 
-                      <Paper withBorder p="xs" bg="blue.0">
+                      <Paper
+                        withBorder
+                        p="xs"
+                        bg={colorScheme === 'dark' ? 'dark.7' : 'blue.0'}
+                      >
                         <SimpleGrid cols={10} spacing="md">
                           {/* Variant Name (empty) */}
                           <Stack gap={4}>
@@ -1872,7 +1953,12 @@ export default function CreateProductPage() {
                             <TextInput
                               placeholder={t('catalog.productsCreate.seoTitlePlaceholder') || 'Best Product Name for SEO - Your Brand'}
                               value={seoTitle}
-                              onChange={(value) => setSeoTitle(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
+                              onChange={(value) => {
+                                if (!manuallyEdited.seoTitle) {
+                                  setManuallyEdited(prev => ({ ...prev, seoTitle: true }))
+                                }
+                                setSeoTitle(typeof value === 'string' ? value : value?.currentTarget?.value || '')
+                              }}
                               onFocus={collapseSidebarIfNeeded}
                               maxLength={60}
                             />
@@ -1927,7 +2013,12 @@ export default function CreateProductPage() {
                           <Text size="sm" fw={500} c="dimmed">
                             {t('catalog.productsCreate.googlePreview') || 'Google Search Preview'}
                           </Text>
-                          <Paper withBorder p="lg" bg="white" style={{ cursor: 'pointer' }}>
+                          <Paper
+                            withBorder
+                            p="lg"
+                            bg={colorScheme === 'dark' ? 'dark.7' : 'white'}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <Stack gap={4}>
                               {/* Site Info Row */}
                               <Group gap={6} wrap="nowrap">
@@ -1937,26 +2028,26 @@ export default function CreateProductPage() {
                                     width: 26,
                                     height: 26,
                                     borderRadius: '50%',
-                                    backgroundColor: '#f1f3f4',
+                                    backgroundColor: colorScheme === 'dark' ? '#373A40' : '#f1f3f4',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     flexShrink: 0
                                   }}
                                 >
-                                  <Text size="xs" fw={700} c="#5f6368">H</Text>
+                                  <Text size="xs" fw={700} c={colorScheme === 'dark' ? '#C1C2C5' : '#5f6368'}>H</Text>
                                 </Box>
 
                                 {/* Domain Name */}
-                                <Text size="xs" c="#202124">
+                                <Text size="xs" c={colorScheme === 'dark' ? '#C1C2C5' : '#202124'}>
                                   hooknhunt.com
                                 </Text>
 
                                 {/* Arrow */}
-                                <Text size="xs" c="#5f6368">›</Text>
+                                <Text size="xs" c={colorScheme === 'dark' ? '#909296' : '#5f6368'}>›</Text>
 
                                 {/* Breadcrumb */}
-                                <Text size="xs" c="#202124" truncate>
+                                <Text size="xs" c={colorScheme === 'dark' ? '#C1C2C5' : '#202124'} truncate>
                                   Products › {(seoTitle || 'Product Name').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}
                                 </Text>
                               </Group>
@@ -1965,7 +2056,7 @@ export default function CreateProductPage() {
                               <Text
                                 size="xl"
                                 fw={400}
-                                c="#1a0dab"
+                                c={colorScheme === 'dark' ? '#4dabf7' : '#1a0dab'}
                                 style={{
                                   lineHeight: '1.3',
                                   overflow: 'hidden',
@@ -1981,7 +2072,7 @@ export default function CreateProductPage() {
                               {/* Description - Below Title */}
                               <Text
                                 size="sm"
-                                c="#4d5156"
+                                c={colorScheme === 'dark' ? '#C1C2C5' : '#4d5156'}
                                 style={{
                                   lineHeight: '1.58',
                                   overflow: 'hidden',

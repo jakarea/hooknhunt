@@ -4,448 +4,148 @@
 
 ## Laravel API + Mobile-First React PWA (Enterprise ERP Standard)
 
-You are a **Senior Full-Stack Engineer** building a **production-grade ERP system** using:
-
-* **Backend:** Laravel (API-first)
-* **Frontend:** React + TypeScript
-* **UI Library:** Mantine UI
-* **Styling:** Tailwind CSS only
-* **Icons:** Tabler Icons only
-* **State Management:** Zustand
-* **Architecture:** Mobile-First Progressive Web App (PWA)
-* **Future Target:** Android & iOS using Capacitor
-
-You must strictly follow ALL rules below before writing any code.
+**Tech Stack:**
+- Backend: Laravel (API-first)
+- Frontend: React + TypeScript
+- UI: Mantine UI
+- Styling: Tailwind CSS
+- Icons: Tabler Icons
+- State: Zustand
+- Architecture: Mobile-First PWA → Android/iOS (Capacitor)
 
 ---
 
-# 🏗 1️⃣ BACKEND ENGINEERING RULES (Laravel – Senior Standard)
+# 🏗 BACKEND (Laravel)
 
-## Architecture & Structure
+## Architecture
+- Clean Architecture: Controller → Service → Repository
+- Thin controllers, business logic in services
+- SOLID principles, dependency injection
+- PSR-12 coding standard
 
-* Follow Clean Architecture principles
-* Strict separation of concerns:
+## Security (NON-NEGOTIABLE)
+- Form Request validation on ALL inputs
+- Mass assignment protection (guarded/fillable)
+- Authentication + Authorization (Policies/Gates)
+- Never expose exceptions to client
+- API must NEVER crash due to client behavior
 
-  * Controller → Service → Repository (when needed)
-* Controllers must remain thin
-* Business logic must NEVER exist in controllers
-* Follow SOLID principles
-* Use dependency injection (no hidden dependencies)
-* Avoid static method abuse
-* Every class must have single responsibility
-* Pure functions whenever possible (no hidden side effects)
-
----
-
-## Code Standards
-
-* Follow PSR-12
-* Use strict types where possible
-* Always define return types
-* Use typed DTOs where needed
-* Keep methods small and focused
-* Avoid deep nesting (use early returns)
-* Use descriptive, intention-revealing names
-* No magic numbers
-* No unclear variable names
-
----
-
-## Security (Non-Negotiable)
-
-* Validate every request using Form Request classes
-* Sanitize input properly
-* Use guarded/fillable correctly
-* Prevent:
-
-  * SQL injection
-  * Mass assignment vulnerabilities
-  * XSS
-  * CSRF
-* Enforce authentication properly
-* Enforce authorization via Policies or Gates
-* Never expose internal exceptions to client
-* The API must NEVER crash due to client behavior
-* Log securely without leaking sensitive data
-
----
-
-## Performance Standards
-
-* Prevent N+1 using eager loading
-* Select only required columns
-* Be indexing-aware when querying
-* Avoid unnecessary queries
-* Implement pagination for large datasets
-* Use chunking for heavy processing
-* Keep memory usage predictable
-* Avoid loading unnecessary relationships
-
----
+## Performance
+- Prevent N+1 (eager loading)
+- Select only required columns
+- Pagination for large datasets
+- Use chunking for heavy processing
 
 ## Error Handling
-
-* Wrap risky logic in try/catch
-* Return structured API responses
-* No raw exception messages
-* Standard JSON format:
-
-```
+```json
 {
   success: boolean,
   message: string,
   data: object | array | null,
-  meta?: pagination data
+  meta?: pagination
 }
 ```
 
-* Errors must be predictable and human-readable
-* System logs must be structured and safe
+---
+
+# 📱 FRONTEND (React + PWA)
+
+## UI Rules (STRICT)
+- ✅ Mantine UI components only (no custom UI if Mantine has it)
+- ✅ Tailwind CSS only (no inline styles)
+- ✅ Tabler Icons only
+- ✅ Design: Calm, Clean, Non-aggressive
+
+## Mobile-First
+- Mobile = baseline, Desktop = enhancement
+- NO hover states (tap/click/press only)
+- Finger-friendly touch targets
+- Forms scroll when keyboard opens
+
+## Responsive Data Rendering
+- Desktop (md+) → Table view
+- Mobile (<md) → Card view
+- Use: `hidden md:block` and `block md:hidden`
+
+## State Management (Zustand)
+- Small, modular, predictable stores
+- Selective selectors only
+- Isolate side effects from UI
+
+## Performance (CRITICAL)
+- Assume low-end Android device
+- useMemo, useCallback, Memoized components
+- Never re-render full pages unnecessarily
+- Optimize render cycles
+
+## Navigation (STANDARD)
+- ✅ `useNavigate()` hook (React Router)
+- ❌ NEVER `window.location.href` (causes reloads)
 
 ---
 
-## API Design Rules
+# 🧘 UX MENTAL PEACE (NON-NEGOTIABLE)
 
-* RESTful endpoints
-* API versioning (`/api/v2/`)
-* Deterministic responses
-* Testable architecture
-* No inconsistent response structures
+ERP = long-usage software → Mental peace = feature
 
----
+## Destructive Actions
+- Always show confirmation dialog
+- Calm, clear, non-threatening wording
 
-# 🧩 HUMAN-READABLE & MAINTAINABLE CODE (MANDATORY)
-
-Code must be written for **humans first, machines second**.
-
-## Core Principles
-
-* Clarity over cleverness
-* Avoid smart one-liners that reduce readability
-* Descriptive naming only
-* No ambiguous logic
-* No magic behavior
+## Feedback
+- ✅ Success: Toast after create/update/delete
+- ❌ Error: Human-readable, non-technical, calm
+- 🔄 Loading: Smooth transitions, no flashing/blinking
 
 ---
 
-## Function Rules
-
-Each function must:
-
-* Do one thing only
-* Be small and focused
-* Be easily testable
-* Have no hidden side effects
-* Use early returns instead of deep nesting
-
-Break complex logic into smaller private methods.
-
----
-
-## Commenting Standard
-
-* Do NOT comment obvious code
-* Comment:
-
-  * Business rules
-  * Why decisions were made
-  * Non-obvious logic
-* Comments must be concise and professional
-
----
-
-## Maintainability Rules
-
-Code must be easy to:
-
-* Extend
-* Debug
-* Refactor
-
-Avoid:
-
-* Tight coupling
-* Duplicate logic
-* Hidden dependencies
-* Over-engineering
-
-Before finalizing, verify:
-
-* A senior dev understands it in 60 seconds
-* A mid-level dev can safely modify it
-* The intention is obvious without explanation
-
-If not → refactor.
-
----
-
-# 📱 2️⃣ FRONTEND ENGINEERING RULES (React + PWA)
-
-Mobile is baseline.
-Desktop is enhancement.
-
----
-
-# 🎨 UI & DESIGN SYSTEM (STRICT)
-
-* Use Mantine UI components only
-* DO NOT create custom UI components if Mantine provides one
-* Styling must use Tailwind CSS only
-* Icons must come only from Tabler Icons
-* UI must feel:
-
-  * Calm
-  * Clean
-  * Non-aggressive
-  * Mentally relaxing for long ERP usage
-
----
-
-# 📱 MOBILE-FIRST INTERACTION RULES
-
-* Never rely on hover
-* Only tap / click / press
-* Touch targets must be finger-friendly
-* Forms must scroll when keyboard opens
-* Prefer Mantine Drawer / Modal / Sheet for forms
-* No layout shifts
-* No sudden UI jumps
-
----
-
-# 📊 RESPONSIVE ERP DATA RENDERING
-
-For large datasets:
-
-* Desktop (`md+`) → Table view
-* Mobile (`<md`) → Card view
-
-Must use:
-
-```
-hidden md:block
-block md:hidden
-```
-
-No alternative logic allowed.
-
----
-
-# 🧠 STATE MANAGEMENT (ZUSTAND)
-
-* All shared state must use Zustand
-* Avoid prop drilling
-* Stores must be:
-
-  * Small
-  * Modular
-  * Predictable
-* Use selective selectors
-* Side effects must be isolated from UI rendering
-
----
-
-# ⚡ PERFORMANCE RULES (CRITICAL)
-
-Assume low-end Android device.
-
-* Never re-render full pages unnecessarily
-* Use:
-
-  * useMemo
-  * useCallback
-  * Memoized components
-  * Selective Zustand selectors
-* Avoid unnecessary state updates
-* Lazy load when possible
-* Optimize render cycles carefully
-
----
-
-# 🚨 ERROR HANDLING (FRONTEND)
-
-* Always use try/catch for async calls
-* Never expose raw backend error
-* Show friendly human-readable messages
-* Explain what happened and next step
-* No console spam in production
-
----
-
-# 🧘 UX MENTAL PEACE RULES (NON-NEGOTIABLE)
-
-ERP is long-usage software.
-Mental peace is a feature.
-
----
-
-## 🔴 Destructive Actions
-
-* Always show confirmation dialog
-* Calm wording
-* Clear and non-threatening
-
-Example:
-“Are you sure you want to delete this item?”
-
----
-
-## 🟢 Success Feedback
-
-* Show success toast after create/update/delete
-* Short and reassuring
-
-Example:
-“Saved successfully.”
-
----
-
-## 🔴 Error Feedback
-
-* Calm
-* Human-readable
-* Non-technical
-* No aggressive red flashes
-* Reduce anxiety, not increase it
-
----
-
-## 🌀 Loading States
-
-* Smooth transitions only
-* Visible loading indicators
-* No flashing
-* No blinking
-* User must always feel in control
-
----
-
-# 🔤 TYPOGRAPHY & SCALING (TAILWIND ONLY)
+# 🔤 Typography (Tailwind ONLY)
 
 Mobile baseline. Desktop scales up.
 
-Use:
-
-* Body → `text-sm md:text-base`
-* Section → `text-base md:text-lg lg:text-xl`
-* Page → `text-lg md:text-xl lg:text-2xl`
-
-Rules:
-
-* Always pair with:
-
-  * `leading-normal`
-  * `leading-relaxed`
-* Never fixed px font sizes
-* Never inline font styles
-* Maintain proper contrast
-* Never rely on color alone for meaning
-* Minimum readable mobile size ≈ 14px equivalent
-* Spacing must scale with font size
+- Body: `text-sm md:text-base`
+- Section: `text-base md:text-lg lg:text-xl`
+- Page: `text-lg md:text-xl lg:text-2xl`
+- Always pair with: `leading-normal` or `leading-relaxed`
 
 ---
 
-# 🌍 INTERNATIONALIZATION (MANDATORY)
+# 🌍 i18n (MANDATORY)
 
-All user-facing text must be translatable.
+All user-facing text MUST be translatable via `t()`
 
-Never hardcode text.
+**Structure:**
+- `resources/js/locales/en/[module-name].json`
+- `resources/js/locales/bn/[module-name].json`
 
-Use:
-* must use saperate language file for each module, to it is managable 
-use @hooknhunt-api/resources/js/locales/en/[module-name].json
-use @hooknhunt-api/resources/js/locales/bn/[module-name].json
-
-
-Applies to:
-
-* Buttons
-* Labels
-* Toasts
-* Errors
-* Confirmations
-* Dialog text
-
-Keys must be consistent and structured.
+**Applies to:** Buttons, Labels, Toasts, Errors, Confirmations, Dialogs
 
 ---
 
-# 📡 PWA & OFFLINE-FIRST ARCHITECTURE
+# 🛡 CODE QUALITY
 
-* App is a Progressive Web App
-* Assume unstable internet
-* Handle:
+## Backend
+- Testable, Deterministic, Secure, Performant
 
-  * Offline detection
-  * Retry logic
-  * Graceful network failure
-* Cache responsibly
-* Design for resilience
-
----
-
-# 📲 CAPACITOR & NATIVE COMPATIBILITY
-
-App will be converted to Android & iOS.
-
-Rules:
-
-* Avoid browser-only APIs
-* Abstract device-specific logic
-* Keep UI native-friendly
-* Avoid patterns that break on mobile WebView
+## Frontend
+- Fully TypeScript safe (no `any`)
+- ESLint clean
+- Predictable rendering
+- No hidden side effects
 
 ---
 
-# 🛡 CODE QUALITY GATES
+# ✅ FINAL ASSUMPTION
 
-Backend:
+If a feature feels:
+- Aggressive, Cluttered, Unstable, Confusing (mobile), Stressful
 
-* Testable
-* Deterministic
-* Secure
-* Performant
+→ It MUST be redesigned
 
-Frontend:
-
-* Fully TypeScript safe
-* No `any`
-* ESLint clean
-* Predictable rendering
-* No hidden side effects
-
----
-
-# 🧠 UNIVERSAL ENGINEERING RULES
-
-* Small focused functions
-* No deep nesting
-* Early returns
-* Clear naming
-* Minimal but meaningful comments
-* Security first
-* Performance by default
-* Readability over cleverness
-* If requirement unclear → ask before implementing
-
----
-
-# ✅ FINAL ENGINEERING ASSUMPTION
-
-If a feature:
-
-* Feels aggressive
-* Feels cluttered
-* Feels unstable
-* Feels confusing on mobile
-* Feels mentally stressful
-
-It must be redesigned.
-
-Mobile UX is baseline.
-Mental peace is a feature.
-Security is mandatory.
-Performance is default.
-Clarity is law.
+**Mobile UX = baseline**
+**Mental peace = feature**
+**Security = mandatory**
+**Performance = default**
+**Clarity = law**
 
 ---

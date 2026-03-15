@@ -3838,10 +3838,20 @@ export type ProductChannelSetting = {
   isActive: boolean
 }
 
+export type ProductSortBy =
+  | 'created_at_desc'
+  | 'created_at_asc'
+  | 'updated_at_desc'
+  | 'updated_at_asc'
+  | 'price_desc'
+  | 'price_asc'
+
 export type ProductFilters = {
   search?: string
   category_id?: number
+  brand_id?: number
   status?: 'draft' | 'published' | 'archived'
+  sort_by?: ProductSortBy
   per_page?: number
   page?: number
 }
@@ -3855,7 +3865,9 @@ export const getProducts = async (filters?: ProductFilters) => {
 
   if (filters?.search) params.append('search', filters.search)
   if (filters?.category_id) params.append('category_id', filters.category_id.toString())
+  if (filters?.brand_id) params.append('brand_id', filters.brand_id.toString())
   if (filters?.status) params.append('status', filters.status)
+  if (filters?.sort_by) params.append('sort_by', filters.sort_by)
   if (filters?.per_page) params.append('per_page', filters.per_page.toString())
   if (filters?.page) params.append('page', filters.page.toString())
 

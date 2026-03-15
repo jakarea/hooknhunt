@@ -54,9 +54,12 @@ import {
   getBrandsDropdown,
   type Product,
   type ProductFilters,
+  type ProductSortBy,
 } from '@/utils/api'
 
 type StatusType = 'all' | 'draft' | 'published' | 'archived'
+
+type SortByType = ProductSortBy | 'all'
 
 export default function ProductsPage() {
   const { t } = useTranslation()
@@ -84,6 +87,7 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<StatusType>('all')
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [brandFilter, setBrandFilter] = useState<string | null>(null)
+  const [sortBy, setSortBy] = useState<SortByType>('all')
   const [pagination, setPagination] = useState({ page: 1, total: 0, perPage: 20 })
   const [duplicatedProductId, setDuplicatedProductId] = useState<number | null>(null)
 
@@ -94,7 +98,9 @@ export default function ProductsPage() {
       const filters: ProductFilters = {
         search: debouncedSearch || undefined,
         category_id: categoryFilter ? parseInt(categoryFilter) : undefined,
+        brand_id: brandFilter ? parseInt(brandFilter) : undefined,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        sort_by: sortBy === 'all' ? undefined : sortBy,
         per_page: pagination.perPage,
         page: pagination.page,
       }
@@ -119,7 +125,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [debouncedSearch, categoryFilter, brandFilter, statusFilter, pagination.page])
+  }, [debouncedSearch, categoryFilter, brandFilter, statusFilter, sortBy, pagination.page])
 
   // Fetch dropdown data
   const fetchDropdownData = async () => {
@@ -501,7 +507,7 @@ export default function ProductsPage() {
 
         {/* Filters */}
         <Paper withBorder p="md">
-          <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }}>
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 5 }}>
             <TextInput
               placeholder={t('catalog.productsPage.filters.searchPlaceholder') || 'Search products...'}
               leftSection={<IconSearch size={18} />}
@@ -535,6 +541,21 @@ export default function ProductsPage() {
               value={brandFilter}
               onChange={setBrandFilter}
               data={brands}
+            />
+            <Select
+              placeholder={t('catalog.productsPage.filters.sortBy') || 'Sort By'}
+              clearable
+              value={sortBy}
+              onChange={(v) => setSortBy(v as SortByType)}
+              data={[
+                { value: 'all', label: t('catalog.productsPage.filters.defaultSort') || 'Default' },
+                { value: 'created_at_desc', label: t('catalog.productsPage.sort.lastCreated') || 'Last Created' },
+                { value: 'created_at_asc', label: t('catalog.productsPage.sort.firstCreated') || 'First Created' },
+                { value: 'updated_at_desc', label: t('catalog.productsPage.sort.lastUpdated') || 'Last Updated' },
+                { value: 'updated_at_asc', label: t('catalog.productsPage.sort.firstUpdated') || 'First Updated' },
+                { value: 'price_desc', label: t('catalog.productsPage.sort.mostExpensive') || 'Most Expensive' },
+                { value: 'price_asc', label: t('catalog.productsPage.sort.cheapest') || 'Cheapest' },
+              ]}
             />
           </SimpleGrid>
         </Paper>

@@ -185,7 +185,17 @@
       "status": "Status",
       "allStatus": "All Status",
       "category": "Category",
-      "brand": "Brand"
+      "brand": "Brand",
+      "sortBy": "Sort By",
+      "defaultSort": "Default"
+    },
+    "sort": {
+      "lastCreated": "Last Created",
+      "firstCreated": "First Created",
+      "lastUpdated": "Last Updated",
+      "firstUpdated": "First Updated",
+      "mostExpensive": "Most Expensive",
+      "cheapest": "Cheapest"
     },
     "table": {
       "product": "Product",

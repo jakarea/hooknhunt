@@ -40,6 +40,47 @@ class ProductController extends Controller
             $query->where('brand_id', $request->brand_id);
         }
 
+        // Sorting
+        if ($request->sort_by) {
+            switch ($request->sort_by) {
+                case 'created_at_desc':
+                    $query->orderBy('created_at', 'desc');
+                    break;
+                case 'created_at_asc':
+                    $query->orderBy('created_at', 'asc');
+                    break;
+                case 'updated_at_desc':
+                    $query->orderBy('updated_at', 'desc');
+                    break;
+                case 'updated_at_asc':
+                    $query->orderBy('updated_at', 'asc');
+                    break;
+                case 'price_desc':
+                    // Sort by minimum variant price descending
+                    $query->with(['variants' => function($q) {
+                        $q->orderBy('price', 'desc');
+                    }])
+                    ->select('products.*')
+                    ->leftJoin('product_variants as pv', 'products.id', '=', 'pv.product_id')
+                    ->groupBy('products.id')
+                    ->orderByRaw('MIN(pv.price) DESC');
+                    break;
+                case 'price_asc':
+                    // Sort by minimum variant price ascending
+                    $query->with(['variants' => function($q) {
+                        $q->orderBy('price', 'asc');
+                    }])
+                    ->select('products.*')
+                    ->leftJoin('product_variants as pv', 'products.id', '=', 'pv.product_id')
+                    ->groupBy('products.id')
+                    ->orderByRaw('MIN(pv.price) ASC');
+                    break;
+            }
+        } else {
+            // Default sorting
+            $query->orderBy('created_at', 'desc');
+        }
+
         $perPage = $request->per_page ?? 20;
         $page = $request->page ?? 1;
 

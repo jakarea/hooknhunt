@@ -3,7 +3,8 @@
     "allow": [
       "Bash(php artisan:*)",
       "Bash(grep -A 10 \"setRetailName\\(productName\\)\" resources/js/app/admin/catalog/products/[id]/edit/page.tsx)",
-      "Bash(bc)"
+      "Bash(bc)",
+      "Read(//Users/jakareaparvez/.claude/projects/-Users-jakareaparvez-Sites-hooknhunt/memory/**)"
     ],
     "additionalDirectories": [
       "/Users/jakareaparvez/Sites/hooknhunt/hooknhunt-api/resources/js/app/admin/catalog/products/[id]",
