@@ -145,7 +145,7 @@ export default function ProcurementProductDetailPage() {
                     {t('procurement.productsPage.thumbnail') || 'Thumbnail'}
                   </Text>
                   <img
-                    src={product.thumbnail.filePath}
+                    src={product.thumbnail.fullUrl}
                     alt={product.name}
                     style={{
                       width: '120px',

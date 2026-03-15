@@ -593,7 +593,7 @@ export default function SupplierDetailsPage() {
                   <Group gap="sm" flex="1">
                     {product.thumbnail && (
                       <Image
-                        src={product.thumbnail.filePath}
+                        src={product.thumbnail.fullUrl}
                         alt={product.name}
                         w={50}
                         h={50}

@@ -10,8 +10,8 @@ class UploadFileRequest extends ApiRequest
     {
         return [
             // এখন 'files' নামে অ্যারে এক্সেপ্ট করবে
-            'files' => 'required|array', 
-            'files.*' => 'file|max:10240|mimes:jpeg,png,jpg,gif,svg,pdf,doc,docx,xls,xlsx',
+            'files' => 'required|array',
+            'files.*' => 'file|max:10240|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx',
             'folder_id' => 'nullable|integer|exists:media_folders,id'
         ];
     }

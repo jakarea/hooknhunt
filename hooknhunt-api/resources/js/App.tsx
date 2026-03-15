@@ -13,7 +13,9 @@ import Analytics from "@/app/admin/dashboard/analytics/page"
 import Profile from "@/app/admin/profile/page"
 import NotificationsPage from "@/app/admin/notifications/page"
 import Products from "@/app/admin/catalog/products/page"
+import ProductDetail from "@/app/admin/catalog/products/[id]/page"
 import CreateProduct from "@/app/admin/catalog/products/create/page"
+import EditProduct from "@/app/admin/catalog/products/[id]/edit/page"
 import Variants from "@/app/admin/catalog/variants/page"
 import VariantAttributes from "@/app/admin/catalog/variant-attributes/page"
 import Categories from "@/app/admin/catalog/categories/page"
@@ -174,6 +176,8 @@ function App() {
               <Route path="profile" element={<Profile />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="catalog/products/create" element={<CreateProduct />} />
+              <Route path="catalog/products/:id/edit" element={<EditProduct />} />
+              <Route path="catalog/products/:id" element={<ProductDetail />} />
               <Route path="catalog/products" element={<Products />} />
               <Route path="catalog/variants" element={<Variants />} />
               <Route path="catalog/variant-attributes" element={<VariantAttributes />} />

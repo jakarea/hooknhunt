@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import {
   Box,
   Stack,
@@ -23,8 +24,8 @@ import {
   Image,
   Tooltip,
   Menu,
-  Modal,
   Switch,
+  Anchor,
 } from '@mantine/core'
 import {
   IconSearch,
@@ -59,6 +60,7 @@ type StatusType = 'all' | 'draft' | 'published' | 'archived'
 
 export default function ProductsPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { hasPermission, isSuperAdmin } = usePermissions()
 
   // Permission check
@@ -83,6 +85,7 @@ export default function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null)
   const [brandFilter, setBrandFilter] = useState<string | null>(null)
   const [pagination, setPagination] = useState({ page: 1, total: 0, perPage: 20 })
+  const [duplicatedProductId, setDuplicatedProductId] = useState<number | null>(null)
 
   // Fetch products
   const fetchProducts = useCallback(async () => {
@@ -146,78 +149,39 @@ export default function ProductsPage() {
     fetchDropdownData()
   }, [])
 
-  // Status badge helper
-  const getStatusBadge = (status: string, productId?: number, canEdit = false) => {
-    const statusConfig: Record<string, { color: string; label: string }> = {
-      draft: { color: 'gray', label: t('catalog.productsPage.status.draft') || 'Draft' },
-      published: { color: 'green', label: t('catalog.productsPage.status.published') || 'Published' },
-      archived: { color: 'red', label: t('catalog.productsPage.status.archived') || 'Archived' },
-    }
-    const config = statusConfig[status] || statusConfig.draft
-
-    if (canEdit && productId) {
-      return (
-        <Menu shadow="sm" position="bottom-start" withArrow>
-          <Menu.Target>
-            <Badge
-              color={config.color}
-              style={{ cursor: 'pointer' }}
-              className="hover:opacity-80 transition-opacity"
-            >
-              {config.label}
-            </Badge>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Label>{t('catalog.productsPage.status.changeStatus') || 'Change Status'}</Menu.Label>
-            <Menu.Item
-              leftSection={<div className="w-2 h-2 rounded-full bg-gray-500" />}
-              onClick={() => handleQuickStatusChange(productId, 'draft')}
-            >
-              {t('catalog.productsPage.status.draft') || 'Draft'}
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<div className="w-2 h-2 rounded-full bg-green-500" />}
-              onClick={() => handleQuickStatusChange(productId, 'published')}
-            >
-              {t('catalog.productsPage.status.published') || 'Published'}
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<div className="w-2 h-2 rounded-full bg-red-500" />}
-              onClick={() => handleQuickStatusChange(productId, 'archived')}
-            >
-              {t('catalog.productsPage.status.archived') || 'Archived'}
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      )
-    }
-
-    return <Badge color={config.color}>{config.label}</Badge>
-  }
-
-  // Handle quick status change
-  const handleQuickStatusChange = async (productId: number, newStatus: 'draft' | 'published' | 'archived') => {
+  // Handle publish/draft toggle (immediate update with revert on error)
+  const handlePublishToggle = async (productId: number, currentStatus: string) => {
     if (!isSuperAdmin() && !hasPermission('catalog.products.update')) {
       notifications.show({
         title: t('common.error') || 'Error',
-        message: t('catalog.productsPage.notification.statusPermission') || "You don't have permission to change product status",
+        message: 'You do not have permission to update product status',
         color: 'red',
       })
       return
     }
 
+    const newStatus = currentStatus === 'published' ? 'draft' : 'published'
+
+    // Optimistic update - immediately update UI
+    setProducts((prevProducts) =>
+      prevProducts.map((p) =>
+        p.id === productId ? { ...p, status: newStatus } : p
+      )
+    )
+
     try {
       await updateProductStatus(productId, newStatus)
-      notifications.show({
-        title: t('common.success') || 'Success',
-        message: t('catalog.productsPage.notification.statusSuccess') || 'Product status updated successfully',
-        color: 'green',
-      })
-      fetchProducts()
+      // Success - UI already updated
     } catch (error: any) {
+      // Revert on error
+      setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+          p.id === productId ? { ...p, status: currentStatus } : p
+        )
+      )
       notifications.show({
         title: t('common.error') || 'Error',
-        message: error.response?.data?.message || t('catalog.productsPage.notification.statusError') || 'Failed to update product status',
+        message: 'Failed to update product status',
         color: 'red',
       })
     }
@@ -278,12 +242,15 @@ export default function ProductsPage() {
       onConfirm: async () => {
         try {
           await deleteProduct(product.id)
+
+          // Optimistic update - remove deleted product from state immediately
+          setProducts((prevProducts) => prevProducts.filter((p) => p.id !== product.id))
+
           notifications.show({
             title: t('common.success') || 'Success',
             message: t('catalog.productsPage.notification.deleteSuccess') || 'Product deleted successfully',
             color: 'green',
           })
-          fetchProducts()
         } catch (error: any) {
           notifications.show({
             title: t('common.error') || 'Error',
@@ -307,13 +274,33 @@ export default function ProductsPage() {
     }
 
     try {
-      await duplicateProduct(product.id)
+      const response = await duplicateProduct(product.id)
+
+      // Optimistic update - insert duplicated product right after the original
+      const duplicatedProduct = response.data || response
+      setProducts((prevProducts) => {
+        const productIndex = prevProducts.findIndex((p) => p.id === product.id)
+        if (productIndex === -1) {
+          return [duplicatedProduct, ...prevProducts]
+        }
+        const newProducts = [...prevProducts]
+        newProducts.splice(productIndex + 1, 0, duplicatedProduct)
+        return newProducts
+      })
+
+      // Highlight the duplicated product
+      setDuplicatedProductId(duplicatedProduct.id)
+
+      // Clear highlight after 3 seconds
+      setTimeout(() => {
+        setDuplicatedProductId(null)
+      }, 3000)
+
       notifications.show({
         title: t('common.success') || 'Success',
         message: t('catalog.productsPage.notification.duplicateSuccess') || 'Product duplicated successfully',
         color: 'green',
       })
-      fetchProducts()
     } catch (error: any) {
       notifications.show({
         title: t('common.error') || 'Error',
@@ -323,15 +310,20 @@ export default function ProductsPage() {
     }
   }
 
-  // Calculate total stock across variants
-  const calculateTotalStock = useCallback((product: Product) => {
-    return product.variants?.reduce((sum, v) => sum + (v.currentStock || 0), 0) || 0
-  }, [])
-
   // Memoized product cards for mobile
   const productCards = useMemo(() => {
     return products.map((product) => (
-      <Card key={product.id} withBorder p="md" shadow="sm">
+      <Card
+        key={product.id}
+        withBorder
+        p="md"
+        shadow="sm"
+        bg={duplicatedProductId === product.id ? 'teal.0' : undefined}
+        style={{
+          transition: 'background-color 0.3s ease',
+          border: duplicatedProductId === product.id ? '2px solid #20c997' : undefined,
+        }}
+      >
         <Stack gap="sm">
           {/* Product Image & Basic Info */}
           <Group justify="space-between" align="flex-start">
@@ -343,7 +335,7 @@ export default function ProductsPage() {
               >
                 {product.thumbnail ? (
                   <Image
-                    src={product.thumbnail.filePath}
+                    src={product.thumbnail.fullUrl}
                     alt={product.name}
                     w={60}
                     h={60}
@@ -355,9 +347,19 @@ export default function ProductsPage() {
                 )}
               </Box>
               <Box>
-                <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
-                  {product.name}
-                </Text>
+                <Anchor
+                  className="text-sm md:text-base fw={500}"
+                  lineClamp={1}
+                  href={`/catalog/products/${product.id}`}
+                  onClick={(e: React.MouseEvent) => {
+                    e.preventDefault()
+                    navigate(`/catalog/products/${product.id}`)
+                  }}
+                >
+                  {product.name?.length > 66
+                    ? product.name.substring(0, 66) + '...'
+                    : product.name}
+                </Anchor>
                 {product.category && (
                   <Text className="text-xs md:text-sm" c="dimmed">
                     {product.category.name}
@@ -370,7 +372,13 @@ export default function ProductsPage() {
                 )}
               </Box>
             </Group>
-            {getStatusBadge(product.status, product.id, isSuperAdmin() || hasPermission('catalog.products.update'))}
+            <Switch
+              checked={product.status === 'published'}
+              onChange={() => handlePublishToggle(product.id, product.status)}
+              color="red"
+              size="md"
+              disabled={!isSuperAdmin() && !hasPermission('catalog.products.update')}
+            />
           </Group>
 
           {/* Stock Info */}
@@ -393,7 +401,7 @@ export default function ProductsPage() {
               size="xs"
               radius="xl"
               leftSection={<IconEdit size={14} />}
-              onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+              onClick={() => navigate(`/catalog/products/${product.id}/edit`)}
               className="flex-1"
             >
               {t('common.edit') || 'Edit'}
@@ -415,7 +423,7 @@ export default function ProductsPage() {
                 </Menu.Item>
                 <Menu.Item
                   leftSection={<IconEye size={16} />}
-                  onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                  onClick={() => navigate(`/catalog/products/${product.id}`)}
                 >
                   {t('catalog.productsPage.menu.viewDetails') || 'View Details'}
                 </Menu.Item>
@@ -433,7 +441,7 @@ export default function ProductsPage() {
         </Stack>
       </Card>
     ))
-  }, [products, calculateTotalStock, getStatusBadge, getStockBadge, handleDelete, handleDuplicate])
+  }, [products, getStockBadge, handleDelete, handleDuplicate, navigate, t, duplicatedProductId])
 
   // Loading state
   if (loading) {
@@ -484,7 +492,7 @@ export default function ProductsPage() {
           </Group>
           <Button
             leftSection={<IconPlus size={18} />}
-            onClick={() => window.location.href = '/admin/catalog/products/create'}
+            onClick={() => navigate('/catalog/products/create')}
             className="text-sm md:text-base"
           >
             {t('catalog.productsPage.addProduct') || 'Add Product'}
@@ -538,18 +546,17 @@ export default function ProductsPage() {
               <Table.Thead>
                 <Table.Tr>
                   <Table.Th>{t('catalog.productsPage.table.product') || 'Product'}</Table.Th>
-                  <Table.Th>{t('catalog.productsPage.table.variants') || 'Variants'}</Table.Th>
                   <Table.Th>{t('catalog.productsPage.table.category') || 'Category'}</Table.Th>
                   <Table.Th>{t('catalog.productsPage.table.brand') || 'Brand'}</Table.Th>
                   <Table.Th>{t('catalog.productsPage.table.stock') || 'Stock'}</Table.Th>
-                  <Table.Th>{t('catalog.productsPage.table.status') || 'Status'}</Table.Th>
+                  <Table.Th>{t('catalog.productsPage.table.publish') || 'Publish'}</Table.Th>
                   <Table.Th ta="center">{t('catalog.productsPage.table.actions') || 'Actions'}</Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {products.length === 0 ? (
                   <Table.Tr>
-                    <Table.Td colSpan={7} ta="center">
+                    <Table.Td colSpan={6} ta="center">
                       <Stack py="xl" align="center" gap="sm">
                         <IconPackages size={48} className="text-gray-300" />
                         <Text c="dimmed" className="text-sm md:text-base">
@@ -560,7 +567,13 @@ export default function ProductsPage() {
                   </Table.Tr>
                 ) : (
                   products.map((product) => (
-                    <Table.Tr key={product.id}>
+                    <Table.Tr
+                      key={product.id}
+                      bg={duplicatedProductId === product.id ? 'teal.0' : undefined}
+                      style={{
+                        transition: 'background-color 0.3s ease',
+                      }}
+                    >
                       <Table.Td>
                         <Group gap="sm">
                           <Box
@@ -570,7 +583,7 @@ export default function ProductsPage() {
                           >
                             {product.thumbnail ? (
                               <Image
-                                src={product.thumbnail.filePath}
+                                src={product.thumbnail.fullUrl}
                                 alt={product.name}
                                 w={40}
                                 h={40}
@@ -582,9 +595,19 @@ export default function ProductsPage() {
                             )}
                           </Box>
                           <Box>
-                            <Text className="text-sm md:text-base" fw={500} lineClamp={1}>
-                              {product.name}
-                            </Text>
+                            <Anchor
+                              className="text-sm md:text-base fw={500}"
+                              lineClamp={1}
+                              href={`/catalog/products/${product.id}`}
+                              onClick={(e: React.MouseEvent) => {
+                                e.preventDefault()
+                                navigate(`/catalog/products/${product.id}`)
+                              }}
+                            >
+                              {product.name?.length > 66
+                                ? product.name.substring(0, 66) + '...'
+                                : product.name}
+                            </Anchor>
                             {product.variants && product.variants.length > 0 && (
                               <Text className="text-xs md:text-sm" c="dimmed">
                                 {product.variants.length} {t('catalog.productsPage.table.variants') || 'variant(s)'}
@@ -592,11 +615,6 @@ export default function ProductsPage() {
                             )}
                           </Box>
                         </Group>
-                      </Table.Td>
-                      <Table.Td>
-                        <Text className="text-sm md:text-base">
-                          {product.variants?.length || 0}
-                        </Text>
                       </Table.Td>
                       <Table.Td>
                         {product.category ? (
@@ -613,7 +631,15 @@ export default function ProductsPage() {
                         )}
                       </Table.Td>
                       <Table.Td>{getStockBadge(product)}</Table.Td>
-                      <Table.Td>{getStatusBadge(product.status, product.id, isSuperAdmin() || hasPermission('catalog.products.update'))}</Table.Td>
+                      <Table.Td>
+                        <Switch
+                          checked={product.status === 'published'}
+                          onChange={() => handlePublishToggle(product.id, product.status)}
+                          color="red"
+                          size="md"
+                          disabled={!isSuperAdmin() && !hasPermission('catalog.products.update')}
+                        />
+                      </Table.Td>
                       <Table.Td ta="center">
                         <Group gap="xs" justify="center" wrap="nowrap">
                           <Tooltip label={t('common.edit') || 'Edit'}>
@@ -621,7 +647,7 @@ export default function ProductsPage() {
                               size="lg"
                               variant="light"
                               color="blue"
-                              onClick={() => window.location.href = `/admin/catalog/products/${product.id}/edit`}
+                              onClick={() => navigate(`/catalog/products/${product.id}/edit`)}
                             >
                               <IconEdit size={18} />
                             </ActionIcon>
@@ -647,7 +673,7 @@ export default function ProductsPage() {
                               <Menu.Label>{t('catalog.productsPage.menu.actions') || 'Actions'}</Menu.Label>
                               <Menu.Item
                                 leftSection={<IconEye size={16} />}
-                                onClick={() => window.location.href = `/admin/catalog/products/${product.id}`}
+                                onClick={() => navigate(`/catalog/products/${product.id}`)}
                               >
                                 {t('catalog.productsPage.menu.viewDetails') || 'View Details'}
                               </Menu.Item>

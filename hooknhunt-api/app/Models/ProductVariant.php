@@ -14,7 +14,6 @@ class ProductVariant extends Model
     protected $fillable = [
         'product_id',
         'channel',
-        'custom_name',
         'variant_slug',
         'variant_name',
         'sku',

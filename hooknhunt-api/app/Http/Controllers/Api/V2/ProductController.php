@@ -76,6 +76,9 @@ class ProductController extends Controller
         $validated = $request->validate([
             // Product Basic Information
             'productName' => 'required|string|max:255',
+            'retailName' => 'nullable|string|max:255',
+            'wholesaleName' => 'nullable|string|max:255',
+            'customName' => 'nullable|string|max:255',
             'category' => 'required|integer|exists:categories,id',
             'brand' => 'required|integer|exists:brands,id',
             'status' => 'required|in:draft,published,archived',
@@ -145,9 +148,25 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
+            // Check for duplicate variant names
+            $variantNames = array_column($validated['variants'], 'name');
+            if (count($variantNames) !== count(array_unique($variantNames))) {
+                $duplicates = array_filter(array_count_values($variantNames), function($count) {
+                    return $count > 1;
+                });
+                $duplicateNames = implode(', ', array_keys($duplicates));
+
+                return $this->sendError('Validation failed', [
+                    'variants' => "Variant names must be unique. Duplicate(s) found: {$duplicateNames}"
+                ], 422);
+            }
+
             // 1. Create Product
             $product = Product::create([
                 'name' => $validated['productName'],
+                'retail_name' => $validated['retailName'] ?? null,
+                'wholesale_name' => $validated['wholesaleName'] ?? null,
+                'custom_name' => $validated['customName'] ?? null,
                 'slug' => Str::slug($validated['productName']) . '-' . time(),
                 'category_id' => $validated['category'],
                 'brand_id' => $validated['brand'],
@@ -175,7 +194,6 @@ class ProductController extends Controller
                 $retailVariant = ProductVariant::create([
                     'product_id' => $product->id,
                     'channel' => 'retail',
-                    'custom_name' => $variant['name'],
                     'variant_slug' => Str::slug($variant['name'] . '-retail'),
                     'variant_name' => $variant['name'],
                     'sku' => $baseSku . '-R-' . rand(1000, 9999),
@@ -197,7 +215,6 @@ class ProductController extends Controller
                 $wholesaleVariant = ProductVariant::create([
                     'product_id' => $product->id,
                     'channel' => 'wholesale',
-                    'custom_name' => $variant['name'],
                     'variant_slug' => Str::slug($variant['name'] . '-wholesale'),
                     'variant_name' => $variant['name'],
                     'sku' => $baseSku . '-W-' . rand(1000, 9999),
@@ -323,30 +340,105 @@ class ProductController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name' => 'sometimes|required|string',
-            'category_id' => 'sometimes|required|exists:categories,id',
-            'brand_id' => 'nullable|exists:brands,id',
+            'productName' => 'sometimes|required|string',
+            'retailName' => 'nullable|string',
+            'wholesaleName' => 'nullable|string',
+            'customName' => 'nullable|string',
+            'category' => 'sometimes|required|exists:categories,id',
+            'brand' => 'nullable|exists:brands,id',
             'status' => 'in:draft,published,archived'
         ]);
 
         $product = Product::findOrFail($id);
 
+        // DEBUG: Write to file for debugging
+        $debugFile = storage_path('logs/custom_name_debug.log');
+        $debugData = date('Y-m-d H:i:s') . " - UPDATE START\n";
+        $debugData .= "ID: $id\n";
+        $debugData .= "Request customName: " . var_export($request->input('customName'), true) . "\n";
+        $debugData .= "Request has customName: " . var_export($request->has('customName'), true) . "\n";
+        $debugData .= "Product before: " . var_export($product->custom_name, true) . "\n";
+        file_put_contents($debugFile, $debugData, FILE_APPEND);
+
         DB::beginTransaction();
         try {
+            // Update product fields - map camelCase to snake_case
             $product->update([
-                'name' => $request->name ?? $product->name,
-                'slug' => $request->name ? Str::slug($request->name) . '-' . time() : $product->slug,
-                'category_id' => $request->category_id ?? $product->category_id,
-                'brand_id' => $request->brand_id ?? $product->brand_id,
-                'thumbnail_id' => $request->thumbnail_id ?? $product->thumbnail_id,
-                'gallery_images' => $request->gallery_images ?? $product->gallery_images,
+                'name' => $request->productName ?? $product->name,
+                'retail_name' => $request->retailName ?? $product->retail_name,
+                'wholesale_name' => $request->wholesaleName ?? $product->wholesale_name,
+                'custom_name' => $request->has('customName') ? $request->customName : $product->custom_name,
+                'slug' => $request->productName ? Str::slug($request->productName) . '-' . time() : $product->slug,
+                'category_id' => $request->category ?? $product->category_id,
+                'brand_id' => $request->brand ?? $product->brand_id,
+                'thumbnail_id' => $request->featuredImage ?? $product->thumbnail_id,
+                'gallery_images' => $request->galleryImages ?? $product->gallery_images,
                 'description' => $request->description ?? $product->description,
+                'video_url' => $request->videoUrl ?? $product->video_url,
+                'seo_title' => $request->seoTitle ?? $product->seo_title,
+                'seo_description' => $request->seoDescription ?? $product->seo_description,
+                'seo_tags' => $request->seoTags ?? $product->seo_tags,
                 'status' => $request->status ?? $product->status,
-                'video_url' => $request->video_url ?? $product->video_url
+                'warranty_enabled' => $request->has('enableWarranty') ? $request->boolean('enableWarranty') : $product->warranty_enabled,
+                'warranty_details' => $request->has('warrantyDetails') ? $request->warrantyDetails : $product->warranty_details,
+                'highlights' => $request->highlights ?? $product->highlights,
+                'includes_in_box' => $request->includesInTheBox ?? $product->includes_in_box,
             ]);
 
+            // DEBUG: Log what was actually saved
+            $product->refresh(); // Reload from database
+            $debugData = "Product after: " . var_export($product->custom_name, true) . "\n";
+            $debugData .= "UPDATE END\n\n";
+            file_put_contents($debugFile, $debugData, FILE_APPEND);
+
+            // Handle variants update
+            if ($request->has('variants') && is_array($request->variants)) {
+                foreach ($request->variants as $variantData) {
+                    // Validate required fields for variant
+                    if (!isset($variantData['retail_id']) || !isset($variantData['wholesale_id'])) {
+                        continue;
+                    }
+
+                    // Common fields (same for both channels)
+                    $commonFields = [
+                        'variant_name' => $variantData['name'],
+                        'purchase_cost' => $variantData['purchaseCost'] ?? 0,
+                        'weight' => $variantData['weight'] ?? 0,
+                        'stock' => $variantData['stock'] ?? 0,
+                        'allow_preorder' => $request->enablePreorder ?? false,
+                        'expected_delivery' => $request->expectedDeliveryDate ?? null,
+                    ];
+
+                    // Update retail variant
+                    $retailVariant = \App\Models\ProductVariant::find($variantData['retail_id']);
+                    if ($retailVariant && $retailVariant->product_id == $product->id) {
+                        $retailVariant->update(array_merge($commonFields, [
+                            'sku' => $variantData['sellerSku'] ?? $retailVariant->sku,
+                            'price' => $variantData['retailPrice'] ?? 0,
+                            'offer_price' => $variantData['retailOfferPrice'] ?? null,
+                        ]));
+                    }
+
+                    // Update wholesale variant
+                    $wholesaleVariant = \App\Models\ProductVariant::find($variantData['wholesale_id']);
+                    if ($wholesaleVariant && $wholesaleVariant->product_id == $product->id) {
+                        $wholesaleUpdateData = [
+                            'price' => $variantData['wholesalePrice'] ?? 0,
+                            'offer_price' => $variantData['wholesaleOfferPrice'] ?? null,
+                        ];
+
+                        // Only update MOQ if it's explicitly provided (allow 0, but use current value if not provided)
+                        if (array_key_exists('wholesaleMoq', $variantData)) {
+                            $wholesaleUpdateData['moq'] = is_null($variantData['wholesaleMoq']) ? $wholesaleVariant->moq : $variantData['wholesaleMoq'];
+                        }
+
+                        $wholesaleVariant->update(array_merge($commonFields, $wholesaleUpdateData));
+                    }
+                }
+            }
+
             DB::commit();
-            return $this->sendSuccess($product->load(['category', 'brand', 'thumbnail']), 'Product updated successfully');
+            return $this->sendSuccess($product->load(['category', 'brand', 'thumbnail', 'variants']), 'Product updated successfully');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -401,7 +493,22 @@ class ProductController extends Controller
             foreach ($product->variants as $variant) {
                 $newVariant = $variant->replicate();
                 $newVariant->product_id = $newProduct->id;
-                $newVariant->sku = $variant->sku . '-COPY';
+
+                // Generate unique SKU
+                $originalSku = $variant->sku;
+                $newSku = $originalSku . '-COPY';
+                $counter = 1;
+                while (ProductVariant::where('sku', $newSku)->exists()) {
+                    $newSku = $originalSku . '-COPY-' . $counter;
+                    $counter++;
+                }
+                $newVariant->sku = $newSku;
+
+                // Generate unique variant_slug
+                $originalSlug = $variant->variant_slug;
+                $newSlug = $originalSlug . '-copy-' . time() . '-' . rand(1000, 9999);
+                $newVariant->variant_slug = $newSlug;
+
                 $newVariant->save();
             }
 

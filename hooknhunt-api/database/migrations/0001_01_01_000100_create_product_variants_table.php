@@ -11,9 +11,8 @@ return new class extends Migration
         Schema::create('product_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
-            $table->string('variant_slug');
+            $table->string('variant_slug')->unique();
             $table->enum('channel', ['retail', 'wholesale', 'daraz', 'pos']);
-            $table->string('custom_name')->nullable();
             $table->string('sku')->unique();
             $table->string('custom_sku')->nullable();
             $table->string('variant_name')->nullable();
@@ -34,6 +33,7 @@ return new class extends Migration
             $table->date('expected_delivery')->nullable();
             $table->integer('moq')->default(1);
             $table->boolean('is_active')->default(true);
+            $table->unique(['product_id', 'variant_name', 'channel'], 'unique_variant_name_per_product_channel');
             $table->timestamps();
             $table->softDeletes(); // Soft delete - no data loss
         });

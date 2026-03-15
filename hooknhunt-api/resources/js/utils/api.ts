@@ -3788,7 +3788,8 @@ export type Product = {
   categoryId: number
   brandId?: number | null
   thumbnailId?: number | null
-  galleryImages?: number[] | null
+  galleryImages?: number[] | null // Internal IDs
+  galleryImagesUrls?: string[] | null // Public URLs for display
   description?: string | null
   status: 'draft' | 'published' | 'archived'
   videoUrl?: string | null
@@ -3805,7 +3806,7 @@ export type Product = {
   thumbnail?: {
     id: number
     fileName: string
-    filePath: string
+    fullUrl: string
   }
   variants?: ProductVariant[]
 }

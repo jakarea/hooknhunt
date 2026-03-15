@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Box,
@@ -59,6 +60,8 @@ interface GalleryImage {
 
 interface ProductVariant {
   id: string
+  retail_id?: number | null
+  wholesale_id?: number | null
   name: string
   price: number
   wholesalePrice: number
@@ -73,6 +76,7 @@ interface ProductVariant {
 
 export default function CreateProductPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const { openSingleSelect, openMultipleSelect } = useMediaSelector()
 
   // Loading state
@@ -110,15 +114,8 @@ export default function CreateProductPage() {
   const [productName, setProductName] = useState('')
   const [retailName, setRetailName] = useState('')
   const [wholesaleName, setWholesaleName] = useState('')
+  const [customName, setCustomName] = useState('')
   const [category, setCategory] = useState<string | null>(null)
-
-  // Auto-fill retail and wholesale names when product name changes
-  useEffect(() => {
-    if (productName) {
-      setRetailName(productName)
-      setWholesaleName(productName)
-    }
-  }, [productName])
   const [brand, setBrand] = useState<string | null>(null)
   const [status, setStatus] = useState<string>('draft')
   const [videoUrl, setVideoUrl] = useState('')
@@ -135,6 +132,35 @@ export default function CreateProductPage() {
   const [seoDescription, setSeoDescription] = useState('')
   const [seoTags, setSeoTags] = useState('')
 
+  // Track original values to prevent auto-fill from overwriting user input
+  const originalValues = useRef({
+    productName: '',
+    retailName: '',
+    wholesaleName: '',
+    customName: '',
+    seoTitle: ''
+  })
+
+  // Auto-fill retail name, wholesale name, custom name, and SEO title ONLY if they're empty
+  useEffect(() => {
+    if (productName) {
+      // Only auto-fill if the field is empty
+      if (!retailName) {
+        setRetailName(productName)
+      }
+      if (!wholesaleName) {
+        setWholesaleName(productName)
+      }
+      if (!customName) {
+        setCustomName(productName)
+      }
+      // Only update SEO title if it's empty
+      if (!seoTitle) {
+        setSeoTitle(productName)
+      }
+    }
+  }, [productName, retailName, wholesaleName, customName, seoTitle])
+
   // Quill editor refs
   const descriptionQuillRef = useRef<any>(null)
   const highlightsQuillRef = useRef<any>(null)
@@ -148,6 +174,8 @@ export default function CreateProductPage() {
   const [variants, setVariants] = useState<ProductVariant[]>([
     {
       id: '1',
+      retail_id: null,
+      wholesale_id: null,
       name: '',
       price: 0,
       wholesalePrice: 0,
@@ -742,6 +770,8 @@ export default function CreateProductPage() {
       ...variants,
       {
         id: newId,
+        retail_id: null,
+        wholesale_id: null,
         name: '',
         price: 0,
         wholesalePrice: 0,
@@ -800,7 +830,10 @@ export default function CreateProductPage() {
   // These functions are kept for potential future use or backwards compatibility
 
   const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+    try {
+      event.preventDefault()
+
+      console.log('📝 Form submit triggered')
 
     // Clear previous errors
     setErrors({})
@@ -808,36 +841,75 @@ export default function CreateProductPage() {
     // Validate required fields
     const newErrors: Record<string, string> = {}
 
-    if (!productName) {
+    console.log('🔍 Form values:', {
+      productName,
+      retailName,
+      wholesaleName,
+      customName,
+      category,
+      brand,
+      status,
+      description: description?.substring(0, 50) + '...',
+      variantsCount: variants.length,
+      firstVariant: variants[0]
+    })
+
+    if (!productName || productName.trim() === '') {
       newErrors.productName = t('catalog.productsCreate.validation.productNameRequired') || 'Product name is required'
+      console.log('❌ Missing: productName')
     }
 
     if (!category) {
       newErrors.category = t('catalog.productsCreate.validation.categoryRequired') || 'Please select a category'
+      console.log('❌ Missing: category')
     }
 
     if (!brand) {
       newErrors.brand = t('catalog.productsCreate.validation.brandRequired') || 'Please select a brand'
+      console.log('❌ Missing: brand')
     }
 
     if (!description || description.trim().length < 10) {
       newErrors.description = t('catalog.productsCreate.validation.descriptionTooShort') || 'Description must be at least 10 characters'
+      console.log('❌ Missing or too short: description')
     }
 
     if (variants.length === 0) {
       newErrors.variants = t('catalog.productsCreate.validation.atLeastOneVariant') || 'At least one variant is required'
+      console.log('❌ Missing: variants')
     }
 
     // Validate variants
     variants.forEach((variant, index) => {
       if (!variant.name || variant.name.trim() === '') {
         newErrors[`variant.${index}.name`] = t('catalog.productsCreate.validation.variantNameRequired', { index: index + 1 }) || `Variant ${index + 1} name is required`
+        console.log(`❌ Missing: variant.${index}.name`)
       }
     })
 
+    // Check for duplicate variant names
+    const variantNames = variants.map(v => v.name.trim()).filter(name => name.length > 0)
+    const duplicateNames = variantNames.filter((name, index) => variantNames.indexOf(name) !== index)
+    if (duplicateNames.length > 0) {
+      const uniqueDuplicates = [...new Set(duplicateNames)]
+      newErrors.variants = t('catalog.productsCreate.validation.duplicateVariantNames', { names: uniqueDuplicates.join(', ') }) ||
+        `Variant names must be unique. Duplicate(s): ${uniqueDuplicates.join(', ')}`
+      console.log('❌ Duplicate variant names:', uniqueDuplicates)
+    }
+
     // If there are errors, set them and stop
     if (Object.keys(newErrors).length > 0) {
+      console.log('🚫 Validation errors:', newErrors)
       setErrors(newErrors)
+
+      // Show notification with validation errors
+      const errorMessages = Object.values(newErrors).join('\n')
+      notifications.show({
+        title: t('common.validationError') || 'Validation Error',
+        message: errorMessages,
+        color: 'red'
+      })
+
       // Scroll to first error
       const firstField = Object.keys(newErrors)[0]
       const element = document.getElementById(firstField)
@@ -847,14 +919,18 @@ export default function CreateProductPage() {
       return
     }
 
+    console.log('✅ Validation passed, submitting...')
     setIsSubmitting(true)
 
     try {
       // Prepare data for API
       const payload = {
         productName,
-        category: parseInt(category),
-        brand: parseInt(brand),
+        retailName,
+        wholesaleName,
+        customName,
+        category: parseInt(category!),
+        brand: parseInt(brand!),
         status,
         videoUrl,
         enableWarranty,
@@ -870,6 +946,8 @@ export default function CreateProductPage() {
         featuredImage: featuredImage?.mediaId,
         galleryImages: galleryImages.map(img => img.mediaId),
         variants: variants.map(v => ({
+          retail_id: v.retail_id || null,
+          wholesale_id: v.wholesale_id || null,
           name: v.name,
           sellerSku: v.sellerSku || null,
           purchaseCost: parseFloat(v.purchaseCost.toString()),
@@ -883,8 +961,12 @@ export default function CreateProductPage() {
         }))
       }
 
+      console.log('📦 Payload prepared:', payload)
+
       // Call API
+      console.log('🌐 Calling API...')
       const response = await apiMethods.post('/catalog/products', payload)
+      console.log('✅ API response:', response)
 
       // Success
       notifications.show({
@@ -895,7 +977,7 @@ export default function CreateProductPage() {
 
       // Navigate to products list
       setTimeout(() => {
-        window.location.href = '/admin/catalog/products'
+        navigate('/catalog/products')
       }, 1500)
 
     } catch (error: any) {
@@ -928,6 +1010,14 @@ export default function CreateProductPage() {
       }
     } finally {
       setIsSubmitting(false)
+    }
+    } catch (error: any) {
+      console.error('❌ Unexpected error in handleSubmit:', error)
+      notifications.show({
+        title: t('common.error') || 'Error',
+        message: error.message || 'An unexpected error occurred',
+        color: 'red'
+      })
     }
   }
 
@@ -992,8 +1082,8 @@ export default function CreateProductPage() {
                     />
 
                     <TextInput
-                      label="Retail Name"
-                      placeholder="Enter retail name"
+                      label={t('catalog.productsCreate.retailName') || 'Retail Name'}
+                      placeholder={t('catalog.productsCreate.retailNamePlaceholder') || 'Enter retail name'}
                       value={retailName}
                       onChange={(value) => setRetailName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
                       onFocus={collapseSidebarIfNeeded}
@@ -1002,13 +1092,22 @@ export default function CreateProductPage() {
                     />
 
                     <TextInput
-                      label="Wholesale Name"
-                      placeholder="Enter wholesale name"
+                      label={t('catalog.productsCreate.wholesaleName') || 'Wholesale Name'}
+                      placeholder={t('catalog.productsCreate.wholesaleNamePlaceholder') || 'Enter wholesale name'}
                       value={wholesaleName}
                       onChange={(value) => setWholesaleName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
                       onFocus={collapseSidebarIfNeeded}
                       maxLength={255}
                       required
+                    />
+
+                    <TextInput
+                      label={t('catalog.productsCreate.customName') || 'Custom Name'}
+                      placeholder={t('catalog.productsCreate.customNamePlaceholder') || 'Enter custom name'}
+                      value={customName}
+                      onChange={(value) => setCustomName(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
+                      onFocus={collapseSidebarIfNeeded}
+                      maxLength={255}
                     />
 
                     <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -1086,12 +1185,13 @@ export default function CreateProductPage() {
                         </Stack>
                       </Paper>
                     ) : (
-                      <Box pos="relative" maw={200}>
+                      <Box pos="relative" maw={120}>
                         <Paper shadow="sm" p="xs">
                           <Image
                             src={featuredImage.url}
                             alt={t('catalog.productsCreate.featured') || 'Featured'}
-                            height={200}
+                            height={120}
+                            width={120}
                             radius="md"
                           />
                         </Paper>
@@ -1165,7 +1265,8 @@ export default function CreateProductPage() {
                               <Image
                                 src={image.url}
                                 alt={`Gallery ${index + 1}`}
-                                height={100}
+                                height={80}
+                                width={80}
                                 radius="md"
                               />
                             </Paper>
@@ -1289,133 +1390,145 @@ export default function CreateProductPage() {
                         💡 {t('catalog.productsCreate.autoCalculationTip') || 'Enter Purchase Cost to auto-calculate Retail Price (+50%) and Wholesale Price (+20%)'}
                       </Text>
 
-                      <Paper withBorder p="xs" bg="gray.0">
+                      <Paper withBorder p="xs" bg="blue.0">
                         <SimpleGrid cols={10} spacing="md">
                           {/* Variant Name (empty) */}
-                          <Text size="xs" c="dimmed">{t('catalog.productsCreate.variantName') || 'VARIANT NAME'}</Text>
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.variantName') || 'VARIANT NAME'}</Text>
+                          </Stack>
 
                           {/* Seller SKU */}
-                          <TextInput
-                            placeholder={t('catalog.productsCreate.sellerSkuPlaceholder') || 'SKU'}
-                            value={defaultValues.sellerSku}
-                            onChange={(value) => setDefaultValues(prev => ({ ...prev, sellerSku: typeof value === 'string' ? value : value?.currentTarget?.value || '' }))}
-                            onFocus={collapseSidebarIfNeeded}
-                            size="sm"
-                            styles={{ input: { minWidth: 100 } }}
-                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.sellerSku') || 'SELLER SKU'}</Text>
+                            <TextInput
+                              placeholder={t('catalog.productsCreate.sellerSkuPlaceholder') || 'SKU'}
+                              value={defaultValues.sellerSku}
+                              onChange={(value) => setDefaultValues(prev => ({ ...prev, sellerSku: typeof value === 'string' ? value : value?.currentTarget?.value || '' }))}
+                              onFocus={collapseSidebarIfNeeded}
+                              size="xs"
+                            />
+                          </Stack>
 
                           {/* Purchase Cost */}
-                          <NumberInput
-                            placeholder="0"
-                            value={defaultValues.purchaseCost}
-                            onChange={(value) => setDefaultValues(prev => ({ ...prev, purchaseCost: typeof value === 'number' ? value : 0 }))}
-                            onFocus={collapseSidebarIfNeeded}
-                            min={0}
-                            size="sm"
-                            styles={{ input: { minWidth: 80 } }}
-                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.purchaseCost') || 'PURCHASE COST'}</Text>
+                            <NumberInput
+                              placeholder="0"
+                              value={defaultValues.purchaseCost}
+                              onChange={(value) => setDefaultValues(prev => ({ ...prev, purchaseCost: typeof value === 'number' ? value : 0 }))}
+                              onFocus={collapseSidebarIfNeeded}
+                              min={0}
+                              size="xs"
+                            />
+                          </Stack>
 
                           {/* Retail Price */}
-                          <Stack gap={0}>
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.retailPrice') || 'RETAIL PRICE'}</Text>
                             <NumberInput
                               placeholder="0"
                               value={defaultValues.price}
                               onChange={(value) => setDefaultValues(prev => ({ ...prev, price: typeof value === 'number' ? value : 0 }))}
                               onFocus={collapseSidebarIfNeeded}
                               min={0}
-                              size="sm"
-                              styles={{ input: { minWidth: 80 } }}
+                              size="xs"
                             />
                             <Text size="xs" c={defaultValues.price - defaultValues.purchaseCost < 0 ? 'red' : 'green'}>
-                              {defaultValues.price - defaultValues.purchaseCost < 0 ? 'Loss' : 'Profit'}: {defaultValues.price - defaultValues.purchaseCost > 0 ? '+' : ''}{(defaultValues.price - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.price - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
+                              {defaultValues.price - defaultValues.purchaseCost > 0 ? '+' : ''}{(defaultValues.price - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.price - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
                             </Text>
                           </Stack>
 
                           {/* Wholesale Price */}
-                          <Stack gap={0}>
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.wholesalePrice') || 'WHOLESALE PRICE'}</Text>
                             <NumberInput
                               placeholder="0"
                               value={defaultValues.wholesalePrice}
                               onChange={(value) => setDefaultValues(prev => ({ ...prev, wholesalePrice: typeof value === 'number' ? value : 0 }))}
                               onFocus={collapseSidebarIfNeeded}
                               min={0}
-                              size="sm"
-                              styles={{ input: { minWidth: 80 } }}
+                              size="xs"
                             />
                             <Text size="xs" c={defaultValues.wholesalePrice - defaultValues.purchaseCost < 0 ? 'red' : 'green'}>
-                              {defaultValues.wholesalePrice - defaultValues.purchaseCost < 0 ? 'Loss' : 'Profit'}: {defaultValues.wholesalePrice - defaultValues.purchaseCost > 0 ? '+' : ''}{(defaultValues.wholesalePrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.wholesalePrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
+                              {defaultValues.wholesalePrice - defaultValues.purchaseCost > 0 ? '+' : ''}{(defaultValues.wholesalePrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.wholesalePrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
                             </Text>
                           </Stack>
 
                           {/* Retail Offer Price */}
-                          <Stack gap={0}>
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.retailOfferPrice') || 'RETAIL OFFER PRICE'}</Text>
                             <NumberInput
                               placeholder="0"
                               value={defaultValues.specialPrice}
                               onChange={(value) => setDefaultValues(prev => ({ ...prev, specialPrice: typeof value === 'number' ? value : undefined }))}
                               onFocus={collapseSidebarIfNeeded}
                               min={0}
-                              size="sm"
-                              styles={{ input: { minWidth: 80 } }}
+                              size="xs"
                             />
                             {defaultValues.specialPrice !== undefined && defaultValues.specialPrice > 0 && (
                               <Text size="xs" c={(defaultValues.specialPrice - defaultValues.purchaseCost) < 0 ? 'red' : 'green'}>
-                                {(defaultValues.specialPrice - defaultValues.purchaseCost) < 0 ? 'Loss' : 'Profit'}: {(defaultValues.specialPrice - defaultValues.purchaseCost) > 0 ? '+' : ''}{(defaultValues.specialPrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.specialPrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
+                                {(defaultValues.specialPrice - defaultValues.purchaseCost) > 0 ? '+' : ''}{(defaultValues.specialPrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.specialPrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
                               </Text>
                             )}
                           </Stack>
 
                           {/* Wholesale Offer Price */}
-                          <Stack gap={0}>
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.wholesaleOfferPrice') || 'WHOLESALE OFFER PRICE'}</Text>
                             <NumberInput
                               placeholder="0"
                               value={defaultValues.wholesaleOfferPrice}
                               onChange={(value) => setDefaultValues(prev => ({ ...prev, wholesaleOfferPrice: typeof value === 'number' ? value : undefined }))}
                               onFocus={collapseSidebarIfNeeded}
                               min={0}
-                              size="sm"
-                              styles={{ input: { minWidth: 80 } }}
+                              size="xs"
                             />
                             {defaultValues.wholesaleOfferPrice !== undefined && defaultValues.wholesaleOfferPrice > 0 && (
                               <Text size="xs" c={(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) < 0 ? 'red' : 'green'}>
-                                {(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) < 0 ? 'Loss' : 'Profit'}: {(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) > 0 ? '+' : ''}{(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
+                                {(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) > 0 ? '+' : ''}{(defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost).toFixed(2)} ({defaultValues.purchaseCost > 0 ? ((defaultValues.wholesaleOfferPrice - defaultValues.purchaseCost) / defaultValues.purchaseCost * 100).toFixed(0) : 0}%)
                               </Text>
                             )}
                           </Stack>
 
                           {/* Wholesale MOQ */}
-                          <NumberInput
-                            placeholder="0"
-                            value={defaultValues.wholesaleMoq}
-                            onChange={(value) => setDefaultValues(prev => ({ ...prev, wholesaleMoq: typeof value === 'number' ? value : 0 }))}
-                            onFocus={collapseSidebarIfNeeded}
-                            min={0}
-                            size="sm"
-                            styles={{ input: { minWidth: 80 } }}
-                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.wholesaleMoq') || 'WHOLESALE MOQ'}</Text>
+                            <NumberInput
+                              placeholder="0"
+                              value={defaultValues.wholesaleMoq}
+                              onChange={(value) => setDefaultValues(prev => ({ ...prev, wholesaleMoq: typeof value === 'number' ? value : 0 }))}
+                              onFocus={collapseSidebarIfNeeded}
+                              min={0}
+                              size="xs"
+                            />
+                          </Stack>
 
                           {/* Weight */}
-                          <NumberInput
-                            placeholder="0"
-                            value={defaultValues.weight}
-                            onChange={(value) => setDefaultValues(prev => ({ ...prev, weight: typeof value === 'number' ? value : 0 }))}
-                            onFocus={collapseSidebarIfNeeded}
-                            min={0}
-                            size="sm"
-                            styles={{ input: { minWidth: 80 } }}
-                            rightSection={<Text size="xs">g</Text>}
-                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.weight') || 'WEIGHT (g)'}</Text>
+                            <NumberInput
+                              placeholder="0"
+                              value={defaultValues.weight}
+                              onChange={(value) => setDefaultValues(prev => ({ ...prev, weight: typeof value === 'number' ? value : 0 }))}
+                              onFocus={collapseSidebarIfNeeded}
+                              min={0}
+                              size="xs"
+                              rightSection={<Text size="xs">g</Text>}
+                            />
+                          </Stack>
 
                           {/* Stock */}
-                          <NumberInput
-                            placeholder="0"
-                            value={defaultValues.stock}
-                            onChange={(value) => setDefaultValues(prev => ({ ...prev, stock: typeof value === 'number' ? value : 0 }))}
-                            onFocus={collapseSidebarIfNeeded}
-                            min={0}
-                            size="sm"
-                            styles={{ input: { minWidth: 80 } }}
-                          />
+                          <Stack gap={4}>
+                            <Text size="xs" fw={500} c="dimmed">{t('catalog.productsCreate.stock') || 'STOCK'}</Text>
+                            <NumberInput
+                              placeholder="0"
+                              value={defaultValues.stock}
+                              onChange={(value) => setDefaultValues(prev => ({ ...prev, stock: typeof value === 'number' ? value : 0 }))}
+                              onFocus={collapseSidebarIfNeeded}
+                              min={0}
+                              size="xs"
+                            />
+                          </Stack>
                         </SimpleGrid>
                       </Paper>
                     </Stack>
@@ -1498,7 +1611,7 @@ export default function CreateProductPage() {
                                     styles={{ input: { minWidth: 80 } }}
                                   />
                                   <Text size="xs" c={variant.price - variant.purchaseCost < 0 ? 'red' : 'green'}>
-                                    {variant.price - variant.purchaseCost < 0 ? 'Loss' : 'Profit'}: {variant.price - variant.purchaseCost > 0 ? '+' : ''}{(variant.price - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.price - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
+                                    {variant.price - variant.purchaseCost > 0 ? '+' : ''}{(variant.price - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.price - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
                                   </Text>
                                 </Stack>
 
@@ -1514,7 +1627,7 @@ export default function CreateProductPage() {
                                     styles={{ input: { minWidth: 80 } }}
                                   />
                                   <Text size="xs" c={variant.wholesalePrice - variant.purchaseCost < 0 ? 'red' : 'green'}>
-                                    {variant.wholesalePrice - variant.purchaseCost < 0 ? 'Loss' : 'Profit'}: {variant.wholesalePrice - variant.purchaseCost > 0 ? '+' : ''}{(variant.wholesalePrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.wholesalePrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
+                                    {variant.wholesalePrice - variant.purchaseCost > 0 ? '+' : ''}{(variant.wholesalePrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.wholesalePrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
                                   </Text>
                                 </Stack>
 
@@ -1531,7 +1644,7 @@ export default function CreateProductPage() {
                                   />
                                   {variant.specialPrice !== undefined && variant.specialPrice > 0 && (
                                     <Text size="xs" c={(variant.specialPrice - variant.purchaseCost) < 0 ? 'red' : 'green'}>
-                                      {(variant.specialPrice - variant.purchaseCost) < 0 ? 'Loss' : 'Profit'}: {(variant.specialPrice - variant.purchaseCost) > 0 ? '+' : ''}{(variant.specialPrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.specialPrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
+                                      {(variant.specialPrice - variant.purchaseCost) > 0 ? '+' : ''}{(variant.specialPrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.specialPrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
                                     </Text>
                                   )}
                                 </Stack>
@@ -1549,7 +1662,7 @@ export default function CreateProductPage() {
                                   />
                                   {variant.wholesaleOfferPrice !== undefined && variant.wholesaleOfferPrice > 0 && (
                                     <Text size="xs" c={(variant.wholesaleOfferPrice - variant.purchaseCost) < 0 ? 'red' : 'green'}>
-                                      {(variant.wholesaleOfferPrice - variant.purchaseCost) < 0 ? 'Loss' : 'Profit'}: {(variant.wholesaleOfferPrice - variant.purchaseCost) > 0 ? '+' : ''}{(variant.wholesaleOfferPrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.wholesaleOfferPrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
+                                      {(variant.wholesaleOfferPrice - variant.purchaseCost) > 0 ? '+' : ''}{(variant.wholesaleOfferPrice - variant.purchaseCost).toFixed(2)} ({variant.purchaseCost > 0 ? ((variant.wholesaleOfferPrice - variant.purchaseCost) / variant.purchaseCost * 100).toFixed(0) : 0}%)
                                     </Text>
                                   )}
                                 </Stack>
@@ -1612,7 +1725,7 @@ export default function CreateProductPage() {
                         {t('catalog.productsCreate.productDescription') || 'Product Description'} <Text span c="red">*</Text>
                       </Text>
                       <Box
-                        id="description"
+                        id="description-editor-container"
                         style={{
                           borderRadius: '4px'
                         }}
@@ -1662,8 +1775,8 @@ export default function CreateProductPage() {
                     <Grid>
                       <Grid.Col span={{ base: 12, md: 3.6 }}>
                         <Switch
-                          label="Enable Warranty"
-                          description="Offer warranty for this product"
+                          label={t('catalog.productsCreate.enableWarranty') || 'Enable Warranty'}
+                          description={t('catalog.productsCreate.enableWarrantyDescription') || 'Offer warranty for this product'}
                           checked={enableWarranty}
                           onChange={(e) => setEnableWarranty(e.currentTarget.checked)}
                           size="md"
@@ -1673,8 +1786,8 @@ export default function CreateProductPage() {
                       {enableWarranty && (
                         <Grid.Col span={{ base: 12, md: 8.4 }}>
                           <TextInput
-                            label="Warranty Details"
-                            placeholder="Enter warranty details"
+                            label={t('catalog.productsCreate.warrantyDetails') || 'Warranty Details'}
+                            placeholder={t('catalog.productsCreate.warrantyDetailsPlaceholder') || 'Enter warranty details'}
                             value={warrantyDetails}
                             onChange={(value) => setWarrantyDetails(typeof value === 'string' ? value : value?.currentTarget?.value || '')}
                             onFocus={collapseSidebarIfNeeded}
@@ -1911,7 +2024,7 @@ export default function CreateProductPage() {
           <Group justify="flex-end" gap="sm" mt="md">
             <Button
               variant="light"
-              onClick={() => { window.location.href = '/admin/catalog/products' }}
+              onClick={() => navigate('/catalog/products')}
             >
               {t('common.cancel') || 'Cancel'}
             </Button>

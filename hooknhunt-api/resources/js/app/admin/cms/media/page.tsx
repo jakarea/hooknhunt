@@ -233,11 +233,80 @@ export default function MediaLibraryPage() {
 
       await fetchFiles(false)
     } catch (error: any) {
-      notifications.show({
-        title: t('common.error'),
-        message: error.response?.data?.message || t('cms.mediaPage.errorUploading'),
-        color: 'red',
-      })
+      console.error('Upload error:', error)
+
+      // Handle validation errors with detailed messages
+      if (error.response?.status === 422 && error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors
+        const errorMessages: string[] = []
+        const failedFileIndices = new Set<number>()
+
+        // Parse validation errors
+        Object.keys(validationErrors).forEach(key => {
+          // Extract file index from key (e.g., "files.0" -> 0, "files.2" -> 2)
+          const match = key.match(/^files\.(\d+)(\..*)?$/)
+          if (match) {
+            const fileIndex = parseInt(match[1])
+            failedFileIndices.add(fileIndex)
+          }
+        })
+
+        // Build detailed error message
+        if (failedFileIndices.size > 0) {
+          const failedFiles = Array.from(failedFileIndices)
+            .map(index => {
+              const file = uploadedFiles[index]
+              return file ? `• ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)` : `• File #${index + 1}`
+            })
+            .join('\n')
+
+          errorMessages.push(`The following files failed to upload:\n${failedFiles}`)
+        }
+
+        // Check specific error types
+        const hasMimeError = Object.keys(validationErrors).some(key => key.includes('mimes'))
+        const hasSizeError = Object.keys(validationErrors).some(key => key.includes('max'))
+
+        if (hasMimeError) {
+          errorMessages.push('\n❌ Invalid file type')
+          errorMessages.push('\n✅ Allowed formats:')
+          errorMessages.push('   • Images: JPEG, PNG, GIF, SVG, WebP')
+          errorMessages.push('   • Documents: PDF, DOC, DOCX, XLS, XLSX')
+        }
+
+        if (hasSizeError) {
+          errorMessages.push('\n❌ File too large')
+          errorMessages.push('\n✅ Maximum size: 10 MB per file')
+        }
+
+        // Show the detailed error in a modal for better readability
+        modals.open({
+          title: 'Upload Failed',
+          children: (
+            <Stack gap="sm">
+              <Text size="sm" c="red" fw={500}>Some files could not be uploaded</Text>
+              <Text size="sm" style={{ whiteSpace: 'pre-line', fontFamily: 'monospace' }}>
+                {errorMessages.join('')}
+              </Text>
+              <Text size="xs" c="dimmed" mt="md">
+                Please correct the issues and try again.
+              </Text>
+              <Button mt="md" onClick={() => modals.closeAll()}>
+                Got it
+              </Button>
+            </Stack>
+          ),
+          size: 'lg',
+          centered: true,
+        })
+      } else {
+        // Fallback for other errors
+        notifications.show({
+          title: t('common.error'),
+          message: error.response?.data?.message || t('cms.mediaPage.errorUploading'),
+          color: 'red',
+        })
+      }
     } finally {
       setUploading(false)
     }
@@ -539,25 +608,45 @@ export default function MediaLibraryPage() {
           )}
 
           {hasPermission('cms.media.files.upload') && (
-            <Button
-              component="label"
-              size="sm"
-              leftSection={<IconUpload size={16} />}
-              loading={uploading}
-            >
-              {t('cms.mediaPage.uploadFiles')}
-              <input
-                type="file"
-                multiple
-                hidden
-                onChange={(e) => {
-                  const files = e.target.files
-                  if (files && files.length > 0) {
-                    handleFileUpload(files)
-                  }
-                }}
-              />
-            </Button>
+            <Menu position="bottom-end">
+              <Menu.Target>
+                <Button
+                  component="label"
+                  size="sm"
+                  leftSection={<IconUpload size={16} />}
+                  loading={uploading}
+                >
+                  {t('cms.mediaPage.uploadFiles')}
+                  <input
+                    type="file"
+                    multiple
+                    hidden
+                    onChange={(e) => {
+                      const files = e.target.files
+                      if (files && files.length > 0) {
+                        handleFileUpload(files)
+                      }
+                    }}
+                  />
+                </Button>
+              </Menu.Target>
+
+              <Menu.Dropdown>
+                <Menu.Label>File Upload Guidelines</Menu.Label>
+                <Menu.Item disabled>
+                  <Stack gap={4}>
+                    <Group gap={8}>
+                      <Text size="xs" c="dimmed">✅ Allowed formats:</Text>
+                    </Group>
+                    <Text size="xs" pl={28} c="dimmed">Images: JPEG, PNG, GIF, SVG, WebP</Text>
+                    <Text size="xs" pl={28} c="dimmed">Documents: PDF, DOC, DOCX, XLS, XLSX</Text>
+                    <Group gap={8} mt={4}>
+                      <Text size="xs" c="dimmed">📏 Max size: 10 MB per file</Text>
+                    </Group>
+                  </Stack>
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
           )}
 
           <ActionIcon

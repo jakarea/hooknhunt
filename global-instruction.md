@@ -352,9 +352,10 @@ All user-facing text must be translatable.
 Never hardcode text.
 
 Use:
+* must use saperate language file for each module, to it is managable 
+use @hooknhunt-api/resources/js/locales/en/[module-name].json
+use @hooknhunt-api/resources/js/locales/bn/[module-name].json
 
-* `src/locales/en.json`
-* `t('key.path')`
 
 Applies to:
 

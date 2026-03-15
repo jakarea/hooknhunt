@@ -6,19 +6,35 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import en from '../locales/en.json';
 import bn from '../locales/bn.json';
 
-// মডিউলার ট্রান্সলেশন ফাইল ইমপোর্ট
-import procurementEn from '../locales/modules/en/procurement.js';
-import procurementBn from '../locales/modules/bn/procurement.js';
+// মডিউলার ট্রান্সলেশন ফাইল ইমপোর্ট (JSON)
+import productsEn from '../locales/en/products.json';
+import productsBn from '../locales/bn/products.json';
+import procurementEn from '../locales/en/procurement.json';
+import procurementBn from '../locales/bn/procurement.json';
+import catalogEn from '../locales/en/catalog.json';
+import catalogBn from '../locales/bn/catalog.json';
+import commonEn from '../locales/en/common.json';
+import commonBn from '../locales/bn/common.json';
+import navEn from '../locales/en/nav.json';
+import navBn from '../locales/bn/nav.json';
 
 // মডিউল মার্জ করা
 const enTranslation = {
   ...en,
-  procurement: procurementEn
+  ...commonEn,
+  ...navEn,
+  products: productsEn,
+  procurement: procurementEn,
+  catalog: catalogEn
 };
 
 const bnTranslation = {
   ...bn,
-  procurement: procurementBn
+  ...commonBn,
+  ...navBn,
+  products: productsBn,
+  procurement: procurementBn,
+  catalog: catalogBn
 };
 
 i18n

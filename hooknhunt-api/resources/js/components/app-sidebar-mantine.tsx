@@ -104,7 +104,6 @@ export function AppSidebarMantine({
             icon: IconPackage,
             children: [
               { title: t("products.productList"), url: "/catalog/products" },
-              { title: t("products.createProduct"), url: "/catalog/products/create" },
               { title: t("products.variants"), url: "/catalog/variants" },
               { title: t("products.categories"), url: "/catalog/categories" },
               { title: t("products.brands"), url: "/catalog/brands" },

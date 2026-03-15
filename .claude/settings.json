@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan:*)",
+      "Bash(grep -A 10 \"setRetailName\\(productName\\)\" resources/js/app/admin/catalog/products/[id]/edit/page.tsx)",
+      "Bash(bc)"
+    ],
+    "additionalDirectories": [
+      "/Users/jakareaparvez/Sites/hooknhunt/hooknhunt-api/resources/js/app/admin/catalog/products/[id]",
+      "/Users/jakareaparvez/Sites/hooknhunt/hooknhunt-api/resources/js/app/admin/procurement/products/[id].bak",
+      "/Users/jakareaparvez/Sites/hooknhunt/app/admin/catalog/products/[id]"
+    ]
+  }
+}
